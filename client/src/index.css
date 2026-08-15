@@ -1,0 +1,532 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+
+:root {
+  /* Official University of Cebu Brand Colors */
+  --uc-blue: #002B7F;
+  --uc-blue-dark: #001D59;
+  --uc-blue-light: #0A3EA8;
+  --uc-blue-subtle: #EBF1FC;
+  --uc-blue-border: #BCD1F7;
+
+  --uc-gold: #FFC72C;
+  --uc-gold-dark: #E5A800;
+  --uc-gold-light: #FFF2CC;
+  --uc-gold-border: #FFE082;
+
+  --accent-green: #059669;
+  --accent-green-subtle: #ECFDF5;
+  --accent-green-border: #A7F3D0;
+
+  /* App Surfaces */
+  --bg-app: #F8FAFC;
+  --bg-surface: #FFFFFF;
+  --bg-subtle: #F1F5F9;
+  --bg-hover: #E2E8F0;
+
+  --text-primary: #0F172A;
+  --text-secondary: #334155;
+  --text-muted: #64748B;
+  --text-subtle: #94A3B8;
+
+  --border-subtle: #E2E8F0;
+  --border-strong: #CBD5E1;
+
+  /* Typography */
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-card-hover: 0 10px 25px -4px rgba(0, 43, 127, 0.1);
+  --shadow-gold-hover: 0 10px 25px -4px rgba(229, 168, 0, 0.2);
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  overflow-x: hidden;
+  width: 100%;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+input, select, textarea {
+  font-family: inherit;
+}
+
+/* Custom Sleek Scrollbars (University of Cebu Theme) */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F1F5F9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #002B7F;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #001D59;
+}
+
+/* Responsive Container with Proportional Max-Width */
+.container {
+  width: 100%;
+  max-width: 1360px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+/* Shimmer Skeleton */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #F1F5F9 25%,
+    #E2E8F0 37%,
+    #F1F5F9 63%
+  );
+  background-size: 400% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius-md);
+}
+
+/* Clean Card Styling */
+.clean-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.clean-card:hover {
+  border-color: var(--uc-blue-border);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* Segmented Control Tab */
+.segmented-tab {
+  padding: 0.45rem 1rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  background-color: transparent;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.segmented-tab:hover {
+  color: var(--uc-blue);
+  background-color: var(--uc-blue-subtle);
+}
+
+.segmented-tab.active {
+  color: #FFFFFF;
+  background-color: var(--uc-blue);
+}
+
+/* Clean Input Styling */
+.clean-input {
+  width: 100%;
+  padding: 0.65rem 0.9rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background-color: #FFFFFF;
+  color: var(--text-primary);
+  font-size: 0.88rem;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.clean-input:focus {
+  border-color: var(--uc-blue);
+  box-shadow: 0 0 0 3px rgba(0, 43, 127, 0.15);
+}
+
+/* Primary Button (UC Blue & Gold Accent) */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  background-color: var(--uc-blue);
+  color: #FFFFFF;
+  padding: 0.6rem 1.25rem;
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  font-weight: 700;
+  transition: all 0.15s ease;
+}
+
+.btn-primary:hover {
+  background-color: var(--uc-blue-light);
+  transform: translateY(-1px);
+}
+
+/* Gold Accent Button */
+.btn-gold {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  background-color: var(--uc-gold);
+  color: #002B7F;
+  padding: 0.6rem 1.25rem;
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  font-weight: 800;
+  transition: all 0.15s ease;
+}
+
+.btn-gold:hover {
+  background-color: var(--uc-gold-dark);
+  color: #FFFFFF;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  padding: 0.6rem 1.25rem;
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+
+.btn-secondary:hover {
+  background-color: var(--bg-subtle);
+  border-color: var(--border-strong);
+}
+
+/* Campus pill color-codes */
+.campus-badge-main {
+  background-color: #EBF1FC;
+  color: #002B7F;
+  border: 1px solid #BCD1F7;
+}
+
+.campus-badge-banilad {
+  background-color: #ECFDF5;
+  color: #047857;
+  border: 1px solid #A7F3D0;
+}
+
+.campus-badge-lm {
+  background-color: #FFFBEB;
+  color: #B45309;
+  border: 1px solid #FDE68A;
+}
+
+.campus-badge-metc {
+  background-color: #F5F3FF;
+  color: #6D28D9;
+  border: 1px solid #DDD6FE;
+}
+
+/* Glassmorphism & High-End Card Utilities */
+.glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1.5px solid rgba(188, 209, 247, 0.5);
+  box-shadow: 0 10px 30px rgba(0, 43, 127, 0.08);
+}
+
+.glass-panel-dark {
+  background: rgba(0, 29, 89, 0.85);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1.5px solid rgba(255, 199, 44, 0.25);
+  box-shadow: 0 16px 36px rgba(0, 29, 89, 0.3);
+}
+
+/* Pulse animation for live indicators */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 199, 44, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(255, 199, 44, 0);
+  }
+}
+
+.pulse-gold {
+  animation: pulse-glow 2s infinite;
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN SYSTEM (Ultra-Wide to Small Mobile)
+   ========================================================================== */
+
+/* 1. Universal Responsive Listing Grid */
+.grid-responsive-listings {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.25rem;
+  width: 100%;
+}
+
+/* 2. Universal Responsive Wanted Grid */
+.grid-responsive-wanted {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.25rem;
+  width: 100%;
+}
+
+/* 3. Horizontal Touch Scroll Container (Mobile & Tablet) */
+.touch-scroll-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  padding-bottom: 6px;
+  scrollbar-width: none; /* Firefox */
+}
+.touch-scroll-row::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
+/* 4. Display Utility Classes */
+.mobile-only {
+  display: none !important;
+}
+
+.desktop-only {
+  display: flex !important;
+}
+
+/* ==========================================================================
+   MEDIA QUERY: ULTRA-WIDE & 4K SCREENS (>= 1440px)
+   ========================================================================== */
+@media (min-width: 1440px) {
+  .container {
+    max-width: 1680px;
+    padding-left: 2.5rem;
+    padding-right: 2.5rem;
+  }
+
+  .grid-responsive-listings {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .grid-responsive-wanted {
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 1.5rem;
+  }
+}
+
+/* ==========================================================================
+   MEDIA QUERY: TABLETS & COMPACT LAPTOPS (641px to 1024px)
+   ========================================================================== */
+@media (max-width: 1024px) {
+  .container {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+
+  .grid-responsive-listings {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+  }
+
+  .grid-responsive-wanted {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+}
+
+/* ==========================================================================
+   MEDIA QUERY: MOBILE PHONES & FOLDABLES (<= 640px)
+   ========================================================================== */
+@media (max-width: 640px) {
+  .container {
+    padding-left: 0.85rem;
+    padding-right: 0.85rem;
+  }
+
+  .desktop-only {
+    display: none !important;
+  }
+
+  .mobile-only {
+    display: flex !important;
+  }
+
+  /* 2-Column High-Efficiency Grid on Mobile (Like native shopping apps) */
+  .grid-responsive-listings {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.65rem;
+  }
+
+  .grid-responsive-wanted {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  /* Compact Card Typography for Mobile 2-col */
+  .clean-card {
+    border-radius: 12px;
+  }
+
+  /* Mobile Bottom Nav Spacing */
+  main {
+    padding-bottom: 5.5rem !important;
+  }
+
+  /* Mobile Touch Buttons */
+  button, a {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .btn-primary, .btn-gold, .btn-secondary {
+    min-height: 42px;
+  }
+}
+
+/* Mobile Bottom Navigation Bar Styling */
+.mobile-nav-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid #E2E8F0;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 0.5rem;
+  z-index: 80;
+  box-shadow: 0 -4px 20px rgba(0, 43, 127, 0.08);
+}
+
+.mobile-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  flex: 1;
+  height: 100%;
+  color: #64748B;
+  font-size: 0.65rem;
+  font-weight: 700;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.mobile-nav-item.active {
+  color: #002B7F;
+}
+
+.mobile-nav-item.active svg {
+  transform: translateY(-2px);
+  color: #002B7F;
+}
+
+.mobile-sell-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FFC72C 0%, #E5A800 100%);
+  color: #002B7F;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(229, 168, 0, 0.4);
+  transform: translateY(-10px);
+  border: 3px solid #FFFFFF;
+}
+
+.demo-banner-floating {
+  position: fixed;
+  bottom: 1.25rem;
+  right: 1.25rem;
+  z-index: 9999;
+}
+
+@media (max-width: 640px) {
+  .demo-banner-floating {
+    bottom: 74px;
+    right: 0.75rem;
+  }
+}
+
+
+

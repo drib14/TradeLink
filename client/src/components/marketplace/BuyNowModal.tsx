@@ -1,0 +1,508 @@
+import React, { useState } from 'react';
+import { Listing, Campus } from '../../types';
+import { useAuth } from '../../context/AuthContext';
+import { useChat } from '../../context/ChatContext';
+import { useToast } from '../common/Toast';
+import { VerifiedBadge } from '../common/VerifiedBadge';
+import { CAMPUS_MEETUP_SPOTS, CAMPUS_DETAILS } from '../../data/campusLocations';
+import {
+  X,
+  ShieldCheck,
+  MapPin,
+  Calendar,
+  CreditCard,
+  Banknote,
+  CheckCircle2,
+  Lock,
+  ArrowRight,
+  Sparkles,
+  ShoppingBag,
+  Building2
+} from 'lucide-react';
+
+interface BuyNowModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  listing: Listing;
+  onSuccess?: () => void;
+}
+
+export const BuyNowModal: React.FC<BuyNowModalProps> = ({
+  isOpen,
+  onClose,
+  listing,
+  onSuccess
+}) => {
+  const { currentUser } = useAuth();
+  const { scheduleMeetup } = useChat();
+  const { showToast } = useToast();
+
+  const [step, setStep] = useState<'checkout' | 'meetup' | 'success'>('checkout');
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'gcash'>('cash');
+  const [selectedCampus, setSelectedCampus] = useState<Campus>(listing.sellerCampus);
+  const [selectedSpot, setSelectedSpot] = useState<string>(
+    listing.customMeetupSpot || CAMPUS_MEETUP_SPOTS.find((s) => s.campus === listing.sellerCampus)?.name || 'Main Gate Security Station'
+  );
+  const [isCustomSpot, setIsCustomSpot] = useState(false);
+  const [customSpotInput, setCustomSpotInput] = useState('');
+  const [meetupDate, setMeetupDate] = useState('Tomorrow');
+  const [meetupTime, setMeetupTime] = useState('1:30 PM');
+  const [buyerNotes, setBuyerNotes] = useState('');
+  const [generatedCode, setGeneratedCode] = useState('');
+
+  if (!isOpen) return null;
+
+  const isFree = listing.tradeMode === 'free_donation';
+  const availableSpots = CAMPUS_MEETUP_SPOTS.filter((s) => s.campus === selectedCampus);
+
+  const handleProceedToMeetup = (e: React.FormEvent) => {
+    e.preventDefault();
+    setStep('meetup');
+  };
+
+  const handleFinalizeOrder = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const finalSpot = isCustomSpot && customSpotInput.trim() ? customSpotInput.trim() : selectedSpot;
+    const finalDateTime = `${meetupDate} at ${meetupTime}`;
+
+    const newTransaction = scheduleMeetup({
+      listing,
+      buyerId: currentUser.id,
+      buyerName: currentUser.name,
+      sellerId: listing.sellerId,
+      sellerName: listing.sellerName,
+      tradeMode: listing.tradeMode,
+      finalPrice: isFree ? 0 : listing.price,
+      campus: selectedCampus,
+      landmarkSpot: finalSpot,
+      scheduledDateTime: finalDateTime,
+      notes: buyerNotes.trim() || `Payment: ${paymentMethod === 'cash' ? 'Cash on Meetup' : 'GCash / Maya on Inspection'}`
+    });
+
+    setGeneratedCode(newTransaction.verificationCode);
+    setStep('success');
+    showToast(
+      'Order & Meetup Confirmed!',
+      `You purchased "${listing.title}". Handshake safety code: ${newTransaction.verificationCode}`,
+      'success'
+    );
+
+    if (onSuccess) {
+      onSuccess();
+    }
+  };
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        backgroundColor: 'rgba(0, 29, 89, 0.65)',
+        backdropFilter: 'blur(6px)',
+        zIndex: 2100,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1rem'
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          backgroundColor: '#FFFFFF',
+          borderRadius: '16px',
+          border: '1.5px solid #BCD1F7',
+          width: '100%',
+          maxWidth: '560px',
+          maxHeight: '92vh',
+          overflowY: 'auto',
+          boxShadow: '0 20px 40px rgba(0, 43, 127, 0.25)',
+          padding: '1.75rem'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Modal Top Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.85rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div style={{ width: '34px', height: '34px', borderRadius: '8px', backgroundColor: '#EBF1FC', color: '#002B7F', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <ShoppingBag size={18} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#002B7F' }}>
+                {step === 'checkout' && 'Complete Purchase'}
+                {step === 'meetup' && 'Schedule Handshake (Inside or Outside Campus)'}
+                {step === 'success' && 'Transaction Confirmed!'}
+              </h3>
+              <p style={{ fontSize: '0.75rem', color: '#64748B' }}>
+                {step === 'checkout' && 'Step 1 of 2 • Order Summary & Payment'}
+                {step === 'meetup' && 'Step 2 of 2 • Pick Guarded Spot or Nearby Mall'}
+                {step === 'success' && 'Your 4-digit code is ready'}
+              </p>
+            </div>
+          </div>
+
+          <button onClick={onClose} style={{ color: '#64748B', padding: '0.25rem' }}>
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* STEP 1: CHECKOUT & PAYMENT */}
+        {step === 'checkout' && (
+          <form onSubmit={handleProceedToMeetup} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            {/* Item Card Preview */}
+            <div
+              style={{
+                display: 'flex',
+                gap: '1rem',
+                backgroundColor: '#F8FAFC',
+                border: '1px solid #CBD5E1',
+                borderRadius: '12px',
+                padding: '0.85rem',
+                alignItems: 'center'
+              }}
+            >
+              <img
+                src={listing.images[0] || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80'}
+                alt={listing.title}
+                style={{ width: '68px', height: '68px', borderRadius: '8px', objectFit: 'cover' }}
+              />
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.72rem', color: '#002B7F', fontWeight: 700 }}>
+                  <span>{listing.sellerCampus}</span>
+                  <span>•</span>
+                  <span>{listing.condition}</span>
+                </div>
+                <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: '#0F172A', lineHeight: 1.3, marginTop: '2px' }}>
+                  {listing.title}
+                </h4>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem', marginTop: '4px' }}>
+                  <span style={{ fontSize: '1.15rem', fontWeight: 800, color: '#002B7F', fontFamily: 'var(--font-display)' }}>
+                    {isFree ? 'FREE DONATION' : `₱${listing.price.toLocaleString()}`}
+                  </span>
+                  {listing.originalSrp > listing.price && (
+                    <span style={{ fontSize: '0.75rem', color: '#94A3B8', textDecoration: 'line-through' }}>
+                      ₱{listing.originalSrp.toLocaleString()}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Seller Reputation Badge */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                backgroundColor: '#FFFFFF',
+                border: '1px solid #E2E8F0',
+                borderRadius: '10px',
+                padding: '0.75rem 0.95rem'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <img
+                  src={listing.sellerAvatar}
+                  alt={listing.sellerName}
+                  style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }}
+                />
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0F172A' }}>{listing.sellerName}</span>
+                    {listing.sellerIsVerified && <VerifiedBadge size="xs" variant="gold" />}
+                  </div>
+                  <span style={{ fontSize: '0.72rem', color: '#64748B' }}>{listing.sellerCollege} • Trust Score {listing.sellerTrustScore}%</span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#059669', fontSize: '0.75rem', fontWeight: 700 }}>
+                <ShieldCheck size={14} />
+                <span>Verified Seller</span>
+              </div>
+            </div>
+
+            {/* Payment Method Selector */}
+            {!isFree && (
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.45rem' }}>
+                  Payment Preference (Paid on Handshake Inspection)
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('cash')}
+                    style={{
+                      padding: '0.75rem',
+                      borderRadius: '10px',
+                      border: paymentMethod === 'cash' ? '2px solid #002B7F' : '1px solid #CBD5E1',
+                      backgroundColor: paymentMethod === 'cash' ? '#EBF1FC' : '#FFFFFF',
+                      textAlign: 'left',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.25rem'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#002B7F', fontWeight: 700, fontSize: '0.84rem' }}>
+                      <Banknote size={16} /> Cash on Meetup
+                    </div>
+                    <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Inspect item and pay physical cash</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('gcash')}
+                    style={{
+                      padding: '0.75rem',
+                      borderRadius: '10px',
+                      border: paymentMethod === 'gcash' ? '2px solid #002B7F' : '1px solid #CBD5E1',
+                      backgroundColor: paymentMethod === 'gcash' ? '#EBF1FC' : '#FFFFFF',
+                      textAlign: 'left',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.25rem'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#002B7F', fontWeight: 700, fontSize: '0.84rem' }}>
+                      <CreditCard size={16} /> GCash / Maya
+                    </div>
+                    <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Scan seller QR code in person</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Buyer Guarantee Callout */}
+            <div style={{ backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '10px', padding: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', color: '#166534' }}>
+              <Lock size={15} color="#16a34a" style={{ flexShrink: 0 }} />
+              <span><strong>UC TradeLink Protection:</strong> No advance payments required. You only exchange payment after inspecting the item during the meetup (inside campus or at public malls/cafes).</span>
+            </div>
+
+            <button type="submit" className="btn-primary" style={{ padding: '0.75rem', width: '100%', fontSize: '0.9rem' }}>
+              <span>Proceed to Schedule Meetup</span>
+              <ArrowRight size={16} />
+            </button>
+          </form>
+        )}
+
+        {/* STEP 2: MEETUP SCHEDULING */}
+        {step === 'meetup' && (
+          <form onSubmit={handleFinalizeOrder} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            {/* Campus Select */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                Primary UC Campus / Area *
+              </label>
+              <select
+                value={selectedCampus}
+                onChange={(e: any) => setSelectedCampus(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.65rem 0.85rem',
+                  borderRadius: '8px',
+                  border: '1.5px solid #CBD5E1',
+                  fontSize: '0.85rem',
+                  backgroundColor: '#FFFFFF',
+                  fontWeight: 600
+                }}
+              >
+                <option value="UC Main">UC Main (Downtown Cebu / E-Mall)</option>
+                <option value="UC Banilad">UC Banilad (Gov. Cuenco / Country Mall / IT Park)</option>
+                <option value="UC LM">UC LM (Mandaue / Parkmall)</option>
+                <option value="UC METC">UC METC (Mambaling / SM Seaside / IL Corso)</option>
+                <option value="UC Pardo-Talisay">UC Pardo-Talisay (Talisay / Minglanilla)</option>
+                <option value="UC South Campus">UC South Campus (Sanciangko)</option>
+                <option value="UC Medical Center">UC Medical Center (UCMC Mandaue)</option>
+              </select>
+            </div>
+
+            {/* Meetup Spot Selection (Inside & Outside Options) */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#334155' }}>
+                  Meetup Spot (Inside Gate or Outside Mall/Cafe) *
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setIsCustomSpot(!isCustomSpot)}
+                  style={{ fontSize: '0.75rem', color: '#002B7F', fontWeight: 800 }}
+                >
+                  {isCustomSpot ? 'Select from List' : '+ Custom Spot (Inside or Outside)'}
+                </button>
+              </div>
+
+              {!isCustomSpot ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '180px', overflowY: 'auto' }}>
+                  {availableSpots.map((spot) => (
+                    <label
+                      key={spot.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '0.65rem',
+                        padding: '0.65rem 0.85rem',
+                        borderRadius: '8px',
+                        border: selectedSpot === spot.name ? '2px solid #002B7F' : '1px solid #CBD5E1',
+                        backgroundColor: selectedSpot === spot.name ? '#EBF1FC' : '#FFFFFF',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="meetupSpot"
+                        checked={selectedSpot === spot.name}
+                        onChange={() => setSelectedSpot(spot.name)}
+                        style={{ marginTop: '3px' }}
+                      />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0F172A' }}>{spot.name}</span>
+                          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: spot.locationType.includes('Inside') ? '#047857' : '#B45309', backgroundColor: spot.locationType.includes('Inside') ? '#ECFDF5' : '#FFFBEB', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
+                            {spot.locationType.includes('Inside') ? 'Campus Gate' : 'Outside Spot'}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '2px' }}>{spot.locationDetails}</div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <input
+                  type="text"
+                  placeholder="Meetup location (e.g. E-Mall, Banilad Canteen)"
+                  value={customSpotInput}
+                  onChange={(e) => setCustomSpotInput(e.target.value)}
+                  className="clean-input"
+                  required
+                />
+              )}
+            </div>
+
+            {/* Date & Time */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+                  Date *
+                </label>
+                <select
+                  value={meetupDate}
+                  onChange={(e) => setMeetupDate(e.target.value)}
+                  style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.82rem' }}
+                >
+                  <option value="Today">Today</option>
+                  <option value="Tomorrow">Tomorrow</option>
+                  <option value="Monday">Monday</option>
+                  <option value="Tuesday">Tuesday</option>
+                  <option value="Wednesday">Wednesday</option>
+                  <option value="Thursday">Thursday</option>
+                  <option value="Friday">Friday</option>
+                  <option value="Saturday">Saturday</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+                  Time *
+                </label>
+                <select
+                  value={meetupTime}
+                  onChange={(e) => setMeetupTime(e.target.value)}
+                  style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.82rem' }}
+                >
+                  <option value="9:00 AM">9:00 AM</option>
+                  <option value="10:30 AM">10:30 AM</option>
+                  <option value="12:00 PM (Lunch)">12:00 PM</option>
+                  <option value="1:30 PM">1:30 PM</option>
+                  <option value="3:00 PM">3:00 PM</option>
+                  <option value="4:30 PM">4:30 PM</option>
+                  <option value="5:30 PM">5:30 PM</option>
+                  <option value="6:30 PM (Evening Mall)">6:30 PM</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Note to Seller */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+                Note to Seller (Optional)
+              </label>
+              <input
+                type="text"
+                value={buyerNotes}
+                onChange={(e) => setBuyerNotes(e.target.value)}
+                placeholder="Notes for seller (optional)"
+                className="clean-input"
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button
+                type="button"
+                onClick={() => setStep('checkout')}
+                className="btn-secondary"
+                style={{ padding: '0.7rem 1rem' }}
+              >
+                Back
+              </button>
+              <button type="submit" className="btn-gold" style={{ flex: 1, padding: '0.7rem', fontSize: '0.9rem' }}>
+                <CheckCircle2 size={16} /> Confirm Order & Schedule
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* STEP 3: SUCCESS & HANDSHAKE CODE */}
+        {step === 'success' && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '1.25rem', padding: '1rem 0' }}>
+            <div style={{ width: '60px', height: '60px', borderRadius: '50%', backgroundColor: '#ECFDF5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <CheckCircle2 size={36} />
+            </div>
+
+            <div>
+              <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#002B7F' }}>
+                Order & Meetup Confirmed!
+              </h3>
+              <p style={{ fontSize: '0.82rem', color: '#64748B', marginTop: '0.25rem' }}>
+                A notification and chat message have been dispatched to {listing.sellerName}.
+              </p>
+            </div>
+
+            {/* Security Code Card */}
+            <div
+              style={{
+                backgroundColor: '#002B7F',
+                color: '#FFFFFF',
+                borderRadius: '12px',
+                padding: '1.25rem',
+                width: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '0.4rem'
+              }}
+            >
+              <span style={{ fontSize: '0.72rem', color: '#FFC72C', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Your 4-Digit Handshake Code
+              </span>
+              <span style={{ fontSize: '2.5rem', fontWeight: 900, letterSpacing: '0.25em', color: '#FFFFFF', fontFamily: 'monospace' }}>
+                {generatedCode}
+              </span>
+              <span style={{ fontSize: '0.72rem', color: '#CBD5E1' }}>
+                Show or share this code with {listing.sellerName} after inspecting the item to complete the trade.
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn-primary"
+              style={{ width: '100%', padding: '0.75rem' }}
+            >
+              Done & View Meetups
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
