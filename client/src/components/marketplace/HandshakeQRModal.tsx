@@ -93,71 +93,77 @@ export const HandshakeQRModal: React.FC<HandshakeQRModalProps> = ({
           }}
         >
           <svg
-            width="180"
-            height="180"
-            viewBox="0 0 180 180"
+            width="170"
+            height="170"
+            viewBox="0 0 170 170"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
           >
             {/* Background */}
-            <rect width="180" height="180" rx="8" fill="#FFFFFF" />
+            <rect width="170" height="170" rx="8" fill="#FFFFFF" />
 
-            {/* Position Detection Squares Top-Left */}
-            <rect x="15" y="15" width="45" height="45" rx="4" fill="#002B7F" />
-            <rect x="22" y="22" width="31" height="31" rx="2" fill="#FFFFFF" />
-            <rect x="28" y="28" width="19" height="19" rx="2" fill="#002B7F" />
+            {/* Position Detection Top-Left */}
+            <rect x="12" y="12" width="40" height="40" rx="3" fill="#0F172A" />
+            <rect x="18" y="18" width="28" height="28" rx="2" fill="#FFFFFF" />
+            <rect x="23" y="23" width="18" height="18" rx="1" fill="#0F172A" />
 
-            {/* Position Detection Squares Top-Right */}
-            <rect x="120" y="15" width="45" height="45" rx="4" fill="#002B7F" />
-            <rect x="127" y="22" width="31" height="31" rx="2" fill="#FFFFFF" />
-            <rect x="133" y="28" width="19" height="19" rx="2" fill="#002B7F" />
+            {/* Position Detection Top-Right */}
+            <rect x="118" y="12" width="40" height="40" rx="3" fill="#0F172A" />
+            <rect x="124" y="18" width="28" height="28" rx="2" fill="#FFFFFF" />
+            <rect x="129" y="23" width="18" height="18" rx="1" fill="#0F172A" />
 
-            {/* Position Detection Squares Bottom-Left */}
-            <rect x="15" y="120" width="45" height="45" rx="4" fill="#002B7F" />
-            <rect x="22" y="127" width="31" height="31" rx="2" fill="#FFFFFF" />
-            <rect x="28" y="133" width="19" height="19" rx="2" fill="#002B7F" />
+            {/* Position Detection Bottom-Left */}
+            <rect x="12" y="118" width="40" height="40" rx="3" fill="#0F172A" />
+            <rect x="18" y="124" width="28" height="28" rx="2" fill="#FFFFFF" />
+            <rect x="23" y="129" width="18" height="18" rx="1" fill="#0F172A" />
 
-            {/* Simulated Data Grid */}
-            <rect x="70" y="20" width="10" height="10" fill="#002B7F" />
-            <rect x="85" y="20" width="10" height="10" fill="#002B7F" />
-            <rect x="100" y="20" width="10" height="10" fill="#FFC72C" />
+            {/* Standard Monochrome QR Data Modules */}
+            <rect x="62" y="16" width="8" height="8" fill="#0F172A" />
+            <rect x="76" y="16" width="8" height="8" fill="#0F172A" />
+            <rect x="90" y="16" width="8" height="8" fill="#0F172A" />
+            <rect x="104" y="16" width="8" height="8" fill="#0F172A" />
 
-            <rect x="70" y="35" width="10" height="10" fill="#002B7F" />
-            <rect x="100" y="35" width="10" height="10" fill="#002B7F" />
+            <rect x="62" y="30" width="8" height="8" fill="#0F172A" />
+            <rect x="90" y="30" width="8" height="8" fill="#0F172A" />
 
-            <rect x="20" y="70" width="10" height="10" fill="#002B7F" />
-            <rect x="35" y="70" width="10" height="10" fill="#FFC72C" />
-            <rect x="50" y="70" width="10" height="10" fill="#002B7F" />
-            <rect x="65" y="70" width="10" height="10" fill="#002B7F" />
-            <rect x="80" y="70" width="10" height="10" fill="#002B7F" />
-            <rect x="95" y="70" width="10" height="10" fill="#FFC72C" />
-            <rect x="110" y="70" width="10" height="10" fill="#002B7F" />
-            <rect x="125" y="70" width="10" height="10" fill="#002B7F" />
-            <rect x="140" y="70" width="10" height="10" fill="#002B7F" />
-            <rect x="155" y="70" width="10" height="10" fill="#002B7F" />
+            <rect x="16" y="62" width="8" height="8" fill="#0F172A" />
+            <rect x="30" y="62" width="8" height="8" fill="#0F172A" />
+            <rect x="44" y="62" width="8" height="8" fill="#0F172A" />
+            <rect x="58" y="62" width="8" height="8" fill="#0F172A" />
+            <rect x="72" y="62" width="8" height="8" fill="#0F172A" />
+            <rect x="86" y="62" width="8" height="8" fill="#0F172A" />
+            <rect x="100" y="62" width="8" height="8" fill="#0F172A" />
+            <rect x="114" y="62" width="8" height="8" fill="#0F172A" />
+            <rect x="128" y="62" width="8" height="8" fill="#0F172A" />
+            <rect x="142" y="62" width="8" height="8" fill="#0F172A" />
 
-            <rect x="20" y="85" width="10" height="10" fill="#FFC72C" />
-            <rect x="50" y="85" width="10" height="10" fill="#002B7F" />
-            <rect x="80" y="85" width="20" height="20" rx="4" fill="#002B7F" />
-            <circle cx="90" cy="95" r="5" fill="#FFC72C" />
-            <rect x="125" y="85" width="10" height="10" fill="#002B7F" />
-            <rect x="155" y="85" width="10" height="10" fill="#FFC72C" />
+            <rect x="16" y="76" width="8" height="8" fill="#0F172A" />
+            <rect x="44" y="76" width="8" height="8" fill="#0F172A" />
+            <rect x="72" y="76" width="24" height="24" rx="3" fill="#002B7F" />
+            <rect x="114" y="76" width="8" height="8" fill="#0F172A" />
+            <rect x="142" y="76" width="8" height="8" fill="#0F172A" />
 
-            <rect x="20" y="100" width="10" height="10" fill="#002B7F" />
-            <rect x="35" y="100" width="10" height="10" fill="#002B7F" />
-            <rect x="140" y="100" width="10" height="10" fill="#002B7F" />
+            <rect x="16" y="90" width="8" height="8" fill="#0F172A" />
+            <rect x="30" y="90" width="8" height="8" fill="#0F172A" />
+            <rect x="128" y="90" width="8" height="8" fill="#0F172A" />
+            <rect x="142" y="90" width="8" height="8" fill="#0F172A" />
 
-            <rect x="70" y="125" width="10" height="10" fill="#002B7F" />
-            <rect x="85" y="125" width="10" height="10" fill="#002B7F" />
-            <rect x="100" y="125" width="10" height="10" fill="#002B7F" />
-            <rect x="130" y="125" width="10" height="10" fill="#FFC72C" />
-            <rect x="145" y="125" width="10" height="10" fill="#002B7F" />
+            <rect x="62" y="118" width="8" height="8" fill="#0F172A" />
+            <rect x="76" y="118" width="8" height="8" fill="#0F172A" />
+            <rect x="104" y="118" width="8" height="8" fill="#0F172A" />
+            <rect x="132" y="118" width="8" height="8" fill="#0F172A" />
+            <rect x="146" y="118" width="8" height="8" fill="#0F172A" />
 
-            <rect x="70" y="145" width="10" height="10" fill="#FFC72C" />
-            <rect x="95" y="145" width="10" height="10" fill="#002B7F" />
-            <rect x="115" y="145" width="10" height="10" fill="#002B7F" />
-            <rect x="130" y="145" width="10" height="10" fill="#002B7F" />
-            <rect x="150" y="145" width="10" height="10" fill="#002B7F" />
+            <rect x="62" y="132" width="8" height="8" fill="#0F172A" />
+            <rect x="90" y="132" width="8" height="8" fill="#0F172A" />
+            <rect x="104" y="132" width="8" height="8" fill="#0F172A" />
+            <rect x="118" y="132" width="8" height="8" fill="#0F172A" />
+            <rect x="146" y="132" width="8" height="8" fill="#0F172A" />
+
+            <rect x="62" y="146" width="8" height="8" fill="#0F172A" />
+            <rect x="76" y="146" width="8" height="8" fill="#0F172A" />
+            <rect x="104" y="146" width="8" height="8" fill="#0F172A" />
+            <rect x="132" y="146" width="8" height="8" fill="#0F172A" />
           </svg>
 
           {/* 4-Digit Code Box */}

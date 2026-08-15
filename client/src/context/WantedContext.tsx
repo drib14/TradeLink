@@ -86,6 +86,7 @@ interface WantedContextType {
   }) => WantedRequest;
   respondToRequest: (requestId: string) => void;
   fulfillRequest: (requestId: string) => void;
+  deleteRequest: (requestId: string) => void;
 }
 
 const WantedContext = createContext<WantedContextType | undefined>(undefined);
@@ -148,13 +149,18 @@ export const WantedProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     );
   };
 
+  const deleteRequest = (requestId: string) => {
+    setRequests((prev) => prev.filter((r) => r.id !== requestId));
+  };
+
   return (
     <WantedContext.Provider
       value={{
         requests,
         addRequest,
         respondToRequest,
-        fulfillRequest
+        fulfillRequest,
+        deleteRequest
       }}
     >
       {children}

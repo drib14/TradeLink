@@ -134,13 +134,13 @@ export const Navbar: React.FC<NavbarProps> = ({
         }}
       >
         {/* Left: Brand Logo & Campus Selector */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
           <button onClick={() => onNavigate('home')} style={{ display: 'flex', alignItems: 'center' }}>
             <Logo size="sm" showSubtitle={false} />
           </button>
 
-          {/* Minimal Campus Dropdown */}
-          <div style={{ position: 'relative' }}>
+          {/* Minimal Campus Dropdown (Desktop Only) */}
+          <div className="desktop-only" style={{ position: 'relative' }}>
             <button
               onClick={() => setIsCampusDropdownOpen(!isCampusDropdownOpen)}
               style={{
@@ -199,7 +199,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       justifyContent: 'space-between'
                     }}
                   >
-                    <span>{c === 'All' ? '🏫 All UC Campuses' : c}</span>
+                    <span>{c === 'All' ? 'All UC Campuses' : c}</span>
                   </button>
                 ))}
               </div>
@@ -208,7 +208,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Center: Search Input */}
-        <div style={{ flex: 1, maxWidth: '400px', position: 'relative' }}>
+        <div style={{ flex: 1, minWidth: 0, maxWidth: '400px', position: 'relative' }}>
           <Search
             size={15}
             color="#64748B"
@@ -408,65 +408,67 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           )}
 
-          <div style={{ width: '1px', height: '18px', backgroundColor: '#E2E8F0', margin: '0 0.2rem' }} />
+          <div className="desktop-only" style={{ alignItems: 'center', gap: '0.5rem' }}>
+            <div style={{ width: '1px', height: '18px', backgroundColor: '#E2E8F0', margin: '0 0.1rem' }} />
+
+            {/* Chat Drawer */}
+            <button
+              onClick={handleChatClick}
+              style={{
+                position: 'relative',
+                padding: '0.45rem',
+                borderRadius: '8px',
+                color: '#334155',
+                backgroundColor: '#F8FAFC',
+                border: '1px solid #CBD5E1',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              title="Messages"
+            >
+              <MessageSquare size={16} color="#002B7F" />
+              {unreadTotal > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '-4px',
+                    right: '-4px',
+                    backgroundColor: '#002B7F',
+                    color: '#FFC72C',
+                    fontSize: '0.6rem',
+                    fontWeight: 800,
+                    width: '14px',
+                    height: '14px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  {unreadTotal}
+                </span>
+              )}
+            </button>
+
+            {/* Post Listing CTA */}
+            <button
+              onClick={handlePostClick}
+              className="btn-primary"
+              style={{
+                padding: '0.45rem 0.85rem',
+                borderRadius: '8px',
+                fontSize: '0.8rem',
+                fontWeight: 800
+              }}
+            >
+              <Plus size={14} />
+              <span>Post</span>
+            </button>
+          </div>
 
           {/* Live Notification Bell */}
           <NotificationDropdown onNavigate={onNavigate} />
-
-          {/* Chat Drawer */}
-          <button
-            onClick={handleChatClick}
-            style={{
-              position: 'relative',
-              padding: '0.45rem',
-              borderRadius: '8px',
-              color: '#334155',
-              backgroundColor: '#F8FAFC',
-              border: '1px solid #CBD5E1',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-            title="Messages"
-          >
-            <MessageSquare size={16} color="#002B7F" />
-            {unreadTotal > 0 && (
-              <span
-                style={{
-                  position: 'absolute',
-                  top: '-4px',
-                  right: '-4px',
-                  backgroundColor: '#002B7F',
-                  color: '#FFC72C',
-                  fontSize: '0.6rem',
-                  fontWeight: 800,
-                  width: '14px',
-                  height: '14px',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                {unreadTotal}
-              </span>
-            )}
-          </button>
-
-          {/* Post Listing CTA */}
-          <button
-            onClick={handlePostClick}
-            className="btn-primary"
-            style={{
-              padding: '0.45rem 0.85rem',
-              borderRadius: '8px',
-              fontSize: '0.8rem',
-              fontWeight: 800
-            }}
-          >
-            <Plus size={14} />
-            <span>Post</span>
-          </button>
 
           {/* Auth State (Logged In User Avatar or Log In CTA) */}
           {isAuthenticated && currentUser ? (
@@ -549,6 +551,30 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <User size={14} color="#002B7F" />
                     <span>My Profile & Listings</span>
                   </button>
+
+                  {currentUser.role === 'admin' && (
+                    <button
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        onNavigate('admin');
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        padding: '0.5rem 0.65rem',
+                        borderRadius: '6px',
+                        fontSize: '0.8rem',
+                        fontWeight: 800,
+                        color: '#002B7F',
+                        backgroundColor: '#EBF1FC',
+                        textAlign: 'left'
+                      }}
+                    >
+                      <ShieldCheck size={14} color="#002B7F" />
+                      <span>Admin Moderation Desk</span>
+                    </button>
+                  )}
 
                   <button
                     onClick={handleLogout}

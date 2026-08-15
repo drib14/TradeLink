@@ -138,8 +138,8 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          gap: '2.5rem',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
+          gap: 'clamp(1.25rem, 3vw, 2.5rem)',
           alignItems: 'start'
         }}
       >

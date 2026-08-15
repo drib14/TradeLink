@@ -111,20 +111,55 @@ input, select, textarea {
   background: #001D59;
 }
 
-/* Responsive Container with Proportional Max-Width */
+/* Responsive Container with Fluid Expansion on Large Screens */
 .container {
   width: 100%;
-  max-width: 1360px;
+  max-width: 1560px;
   margin-left: auto;
   margin-right: auto;
-  padding-left: 1.5rem;
-  padding-right: 1.5rem;
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+
+@media (min-width: 1920px) {
+  .container {
+    max-width: 1780px;
+    padding-left: 2.5rem;
+    padding-right: 2.5rem;
+  }
+}
+
+@media (max-width: 1280px) {
+  .container {
+    max-width: 1280px;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
 }
 
 @media (max-width: 768px) {
   .container {
     padding-left: 1rem;
     padding-right: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+}
+
+/* Smooth Fade-In Up */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -331,7 +366,7 @@ input, select, textarea {
 /* 1. Universal Responsive Listing Grid */
 .grid-responsive-listings {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1.25rem;
   width: 100%;
 }
@@ -339,7 +374,7 @@ input, select, textarea {
 /* 2. Universal Responsive Wanted Grid */
 .grid-responsive-wanted {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1.25rem;
   width: 100%;
 }
@@ -369,23 +404,32 @@ input, select, textarea {
 }
 
 /* ==========================================================================
-   MEDIA QUERY: ULTRA-WIDE & 4K SCREENS (>= 1440px)
+   MEDIA QUERY: ULTRA-WIDE & 4K SCREENS (>= 1800px)
    ========================================================================== */
-@media (min-width: 1440px) {
-  .container {
-    max-width: 1680px;
-    padding-left: 2.5rem;
-    padding-right: 2.5rem;
-  }
-
+@media (min-width: 1800px) {
   .grid-responsive-listings {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 1.5rem;
   }
 
   .grid-responsive-wanted {
-    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 1.5rem;
+  }
+}
+
+/* ==========================================================================
+   MEDIA QUERY: LARGE DESKTOP SCREENS (1440px to 1799px)
+   ========================================================================== */
+@media (min-width: 1440px) and (max-width: 1799px) {
+  .grid-responsive-listings {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 1.35rem;
+  }
+
+  .grid-responsive-wanted {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1.35rem;
   }
 }
 
@@ -399,12 +443,12 @@ input, select, textarea {
   }
 
   .grid-responsive-listings {
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 1rem;
   }
 
   .grid-responsive-wanted {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1rem;
   }
 }

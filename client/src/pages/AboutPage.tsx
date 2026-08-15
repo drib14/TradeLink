@@ -9,7 +9,7 @@ interface AboutPageProps {
 
 export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
   const stats = [
-    { label: 'Campuses Connected', value: '7 Official Hubs' },
+    { label: 'Campuses Connected', value: '8 Official Hubs' },
     { label: 'Active Students & SHS', value: '60,000+ UCians' },
     { label: 'Average Savings per Book', value: '65% Off' },
     { label: 'Verified Campus Meetups', value: '100% Guarded' }
@@ -40,7 +40,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
           Democratizing Quality Education Across All UC Campuses
         </h1>
         <p style={{ fontSize: '0.95rem', color: '#475569', marginTop: '0.75rem', lineHeight: 1.6 }}>
-          UC TradeLink is the premier campus marketplace built specifically for the University of Cebu student body—from Senior High School (STEM, ABM, HUMSS, TVL) to College undergraduates and maritime cadets.
+          UC TradeLink is the premier campus marketplace built specifically for the University of Cebu student body—from Junior High School (Grades 7–10) and Senior High School (STEM, ABM, HUMSS, TVL, GAS) to College undergraduates, maritime cadets, and medical students.
         </p>
       </div>
 

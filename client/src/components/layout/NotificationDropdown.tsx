@@ -105,7 +105,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ onNa
             position: 'absolute',
             top: 'calc(100% + 8px)',
             right: 0,
-            width: '320px',
+            width: 'min(320px, 90vw)',
             backgroundColor: '#FFFFFF',
             border: '1.5px solid #CBD5E1',
             borderRadius: '12px',

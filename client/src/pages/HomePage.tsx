@@ -32,13 +32,13 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
 
   const popularTags = [
     { label: 'All Items', tag: 'All' },
-    { label: '🎒 High School (JHS/SHS)', tag: 'Junior High School Books & Reviewers' },
-    { label: '📱 Phones & Tablets', tag: 'Electronics' },
-    { label: '👟 Sneakers & Footwear', tag: 'Fashion' },
-    { label: '📐 STEM Kits & Drafting', tag: 'Senior High School Modules & Kits' },
-    { label: '📚 Textbooks & Reviewers', tag: 'College Textbooks & Notes' },
-    { label: '🩺 Scrubs & Uniforms', tag: 'Uniforms, PE Attire & Scrubs' },
-    { label: '🎮 Keyboards & Gaming', tag: 'Gaming' }
+    { label: 'Junior & Senior High', tag: 'Junior High School Books & Reviewers' },
+    { label: 'Phones & Tablets', tag: 'Electronics' },
+    { label: 'Sneakers & Footwear', tag: 'Fashion' },
+    { label: 'STEM & Drafting Kits', tag: 'Senior High School Modules & Kits' },
+    { label: 'Textbooks & Notes', tag: 'College Textbooks & Notes' },
+    { label: 'Uniforms & Scrubs', tag: 'Uniforms, PE Attire & Scrubs' },
+    { label: 'Keyboards & Gaming', tag: 'Gaming' }
   ];
 
   const handleTagClick = (tag: string) => {
@@ -53,7 +53,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem', paddingBottom: '5rem' }}>
-      {/* 1. University of Cebu 5-Slide Carousel Banner */}
+      {/* 1. University of Cebu Carousel Banner */}
       <section className="container" style={{ paddingTop: '1.25rem' }}>
         <CampusCarouselBanner
           onSelectCampus={handleCampusSelect}
@@ -75,9 +75,9 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
           }}
         >
           {/* Campuses */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
-            <div className="touch-scroll-row" style={{ flex: 1, paddingBottom: '2px' }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#002B7F', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap', marginRight: '0.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', minWidth: 0, width: '100%' }}>
+            <div className="touch-scroll-row" style={{ flex: '1 1 0%', minWidth: 0, width: '100%', paddingBottom: '2px' }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#002B7F', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap', marginRight: '0.25rem', flexShrink: 0 }}>
                 Filter Campus:
               </span>
               <button
@@ -94,10 +94,11 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                   color: selectedCampus === 'All' ? '#FFFFFF' : '#334155',
                   border: selectedCampus === 'All' ? '1px solid #002B7F' : '1px solid #E2E8F0',
                   whiteSpace: 'nowrap',
-                  transition: 'all 0.15s ease'
+                  transition: 'all 0.15s ease',
+                  flexShrink: 0
                 }}
               >
-                🏫 All Campuses
+                All Campuses
               </button>
               {([
                 'UC Main',
@@ -124,7 +125,8 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                     color: selectedCampus === c ? '#FFFFFF' : '#334155',
                     border: selectedCampus === c ? '1px solid #002B7F' : '1px solid #E2E8F0',
                     whiteSpace: 'nowrap',
-                    transition: 'all 0.15s ease'
+                    transition: 'all 0.15s ease',
+                    flexShrink: 0
                   }}
                 >
                   {c}
@@ -132,7 +134,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
               ))}
             </div>
 
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <div className="desktop-only" style={{ gap: '0.5rem' }}>
               <button
                 onClick={() => onNavigate('create-listing')}
                 className="btn-gold"
@@ -144,7 +146,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
           </div>
 
           {/* Tags Chips */}
-          <div className="touch-scroll-row" style={{ borderTop: '1px solid #F1F5F9', paddingTop: '0.85rem' }}>
+          <div className="touch-scroll-row" style={{ width: '100%', minWidth: 0, borderTop: '1px solid #F1F5F9', paddingTop: '0.85rem' }}>
             {popularTags.map((item, idx) => (
               <button
                 key={idx}

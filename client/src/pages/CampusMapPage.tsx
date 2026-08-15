@@ -61,7 +61,7 @@ export const CampusMapPage: React.FC<CampusMapPageProps> = ({ onNavigate }) => {
           Meetup Spots Guide (Inside & Outside Campus)
         </h1>
         <p style={{ fontSize: '0.88rem', color: '#64748B' }}>
-          Explore guarded security booths inside campus or high-traffic public spots outside campus (malls, fastfood, cafes) across all 7 University of Cebu hubs.
+          Explore guarded security booths inside campus or high-traffic public spots outside campus (malls, fastfood, cafes) across all 8 University of Cebu hubs.
         </p>
       </div>
 

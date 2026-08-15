@@ -30,15 +30,15 @@ export const FilterBar: React.FC = () => {
 
   const tagChips = [
     { id: 'All', label: 'All Items' },
-    { id: 'Junior High', label: '🎒 Junior High (JHS)' },
-    { id: 'Senior High', label: '📐 Senior High (SHS)' },
-    { id: 'Electronics', label: '📱 Tech & Gadgets' },
-    { id: 'Fashion', label: '👟 Sneakers & Apparel' },
-    { id: 'Music', label: '🎸 Music & Instruments' },
-    { id: 'Textbooks', label: '📚 Textbooks & Reviewers' },
-    { id: 'Uniforms', label: '🩺 Scrubs & Uniforms' },
-    { id: 'Gaming', label: '🎮 Gaming & PC' },
-    { id: 'Dorm', label: '🏠 Dorm Living' }
+    { id: 'Junior High', label: 'Junior High (JHS)' },
+    { id: 'Senior High', label: 'Senior High (SHS)' },
+    { id: 'Electronics', label: 'Tech & Gadgets' },
+    { id: 'Fashion', label: 'Fashion & Footwear' },
+    { id: 'Music', label: 'Music & Audio' },
+    { id: 'Textbooks', label: 'Textbooks & Reviewers' },
+    { id: 'Uniforms', label: 'Uniforms & Scrubs' },
+    { id: 'Gaming', label: 'Gaming & PC Gear' },
+    { id: 'Dorm', label: 'Dorm & Living' }
   ];
 
   const hasActiveFilters =
@@ -47,7 +47,7 @@ export const FilterBar: React.FC = () => {
     selectedTradeMode !== 'All';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', width: '100%', minWidth: 0 }}>
       {/* Row 1: Campus Segmented Control + Trade Mode & Sort dropdowns */}
       <div
         style={{
@@ -55,20 +55,24 @@ export const FilterBar: React.FC = () => {
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
-          gap: '0.75rem'
+          gap: '0.75rem',
+          width: '100%',
+          minWidth: 0
         }}
       >
         {/* Campus Tabs */}
         <div
           className="touch-scroll-row"
           style={{
-            display: 'inline-flex',
+            display: 'flex',
             alignItems: 'center',
             backgroundColor: '#F1F5F9',
             padding: '3px',
             borderRadius: '9999px',
             border: '1px solid #CBD5E1',
-            maxWidth: '100%'
+            width: '100%',
+            maxWidth: '100%',
+            minWidth: 0
           }}
         >
           {campuses.map((campus) => {
@@ -86,7 +90,8 @@ export const FilterBar: React.FC = () => {
                   color: isSelected ? '#FFFFFF' : '#475569',
                   transition: 'all 0.15s ease',
                   whiteSpace: 'nowrap',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  flexShrink: 0
                 }}
               >
                 {campus === 'All' ? 'All Campuses' : campus}
@@ -96,7 +101,7 @@ export const FilterBar: React.FC = () => {
         </div>
 
         {/* Trade Mode & Sort dropdowns */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', width: '100%', minWidth: 0 }}>
           {/* Trade Mode Filter */}
           <select
             value={selectedTradeMode}
@@ -109,7 +114,9 @@ export const FilterBar: React.FC = () => {
               fontWeight: 600,
               backgroundColor: '#FFFFFF',
               color: '#334155',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              flex: '1 1 auto',
+              minWidth: '130px'
             }}
           >
             <option value="All">All Types (Buy / Swap / Free)</option>
@@ -130,7 +137,9 @@ export const FilterBar: React.FC = () => {
               fontWeight: 600,
               backgroundColor: '#FFFFFF',
               color: '#334155',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              flex: '1 1 auto',
+              minWidth: '130px'
             }}
           >
             <option value="newest">Recently Listed</option>
@@ -152,7 +161,8 @@ export const FilterBar: React.FC = () => {
                 padding: '0.35rem 0.55rem',
                 backgroundColor: '#FEF2F2',
                 borderRadius: '6px',
-                border: '1px solid #FECACA'
+                border: '1px solid #FECACA',
+                whiteSpace: 'nowrap'
               }}
               title="Reset all filters"
             >
@@ -164,11 +174,10 @@ export const FilterBar: React.FC = () => {
 
       {/* Row 2: Tag Chips */}
       <div
+        className="touch-scroll-row"
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.4rem',
-          overflowX: 'auto',
+          width: '100%',
+          minWidth: 0,
           paddingBottom: '2px'
         }}
       >
@@ -188,7 +197,8 @@ export const FilterBar: React.FC = () => {
                 border: isSelected ? '1.5px solid #002B7F' : '1px solid #CBD5E1',
                 whiteSpace: 'nowrap',
                 transition: 'all 0.15s ease',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                flexShrink: 0
               }}
             >
               {chip.label}

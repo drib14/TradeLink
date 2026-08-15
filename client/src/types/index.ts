@@ -60,6 +60,31 @@ export interface User {
   joinedDate: string;
   isProMerchant?: boolean;
   password?: string;
+  isBanned?: boolean;
+  banReason?: string;
+  bannedAt?: string;
+  warningsCount?: number;
+}
+
+export interface CampusAnnouncement {
+  id: string;
+  title: string;
+  message: string;
+  campus: Campus | 'All';
+  type: 'info' | 'alert' | 'event';
+  authorName: string;
+  createdAt: string;
+  isActive: boolean;
+}
+
+export interface AdminAuditLog {
+  id: string;
+  adminName: string;
+  action: string;
+  targetType: 'user' | 'listing' | 'verification' | 'wanted' | 'meetup' | 'announcement';
+  targetId: string;
+  details: string;
+  timestamp: string;
 }
 
 export interface Listing {

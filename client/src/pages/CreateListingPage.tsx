@@ -12,7 +12,10 @@ import {
   ChevronLeft,
   X,
   MapPin,
-  Sparkles
+  Sparkles,
+  ShoppingBag,
+  ArrowLeftRight,
+  Gift
 } from 'lucide-react';
 
 interface CreateListingPageProps {
@@ -335,9 +338,9 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
             {[
-              { id: 'buy_sell', label: '💵 For Sale' },
-              { id: 'swap', label: '🔄 Swap' },
-              { id: 'free_donation', label: '🎁 Free' }
+              { id: 'buy_sell', label: 'For Sale', icon: <ShoppingBag size={14} /> },
+              { id: 'swap', label: 'Swap', icon: <ArrowLeftRight size={14} /> },
+              { id: 'free_donation', label: 'Free Donation', icon: <Gift size={14} /> }
             ].map((mode) => {
               const isSelected = tradeMode === mode.id;
               return (
@@ -353,10 +356,14 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
                     backgroundColor: isSelected ? '#002B7F' : '#F1F5F9',
                     color: isSelected ? '#FFFFFF' : '#334155',
                     border: isSelected ? '1px solid #002B7F' : '1px solid #CBD5E1',
-                    textAlign: 'center'
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.35rem'
                   }}
                 >
-                  {mode.label}
+                  {mode.icon}
+                  <span>{mode.label}</span>
                 </button>
               );
             })}

@@ -35,6 +35,11 @@ interface AuthContextType {
   switchUser: (userId: string) => void;
   updateProfile: (data: Partial<User>) => void;
   submitIdVerification: (studentIdNumber: string, idPhotoUrl: string) => void;
+  banUser: (userId: string, reason: string) => void;
+  unbanUser: (userId: string) => void;
+  warnUser: (userId: string, note?: string) => void;
+  toggleVerifyUser: (userId: string) => void;
+  deleteUser: (userId: string) => void;
   resetAllData: () => void;
 }
 
@@ -42,7 +47,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [users, setUsers] = useLocalStorage<User[]>('tradelink_users_v2', SEED_USERS);
-  const [currentUserId, setCurrentUserId] = useLocalStorage<string | null>('tradelink_current_user_id', 'user-maria');
+  const [currentUserId, setCurrentUserId] = useLocalStorage<string | null>('tradelink_current_user_id', null);
 
   const currentUser = currentUserId ? (users.find((u) => u.id === currentUserId) || null) : null;
   const isAuthenticated = !!currentUser;
@@ -60,6 +65,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (!matchedUser) {
       return { success: false, message: 'No student account found with this ID or email.' };
+    }
+
+    if (matchedUser.isBanned) {
+      return {
+        success: false,
+        message: `Account suspended by campus administration. Reason: ${matchedUser.banReason || 'Violation of community safety guidelines'}`
+      };
     }
 
     // If password provided and user has password, check
@@ -194,6 +206,74 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
   };
 
+  const banUser = (userId: string, reason: string) => {
+    setUsers((prev) =>
+      prev.map((u) =>
+        u.id === userId
+          ? {
+              ...u,
+              isBanned: true,
+              banReason: reason,
+              bannedAt: new Date().toISOString()
+            }
+          : u
+      )
+    );
+    if (currentUserId === userId) {
+      setCurrentUserId(null);
+    }
+  };
+
+  const unbanUser = (userId: string) => {
+    setUsers((prev) =>
+      prev.map((u) =>
+        u.id === userId
+          ? {
+              ...u,
+              isBanned: false,
+              banReason: undefined,
+              bannedAt: undefined
+            }
+          : u
+      )
+    );
+  };
+
+  const warnUser = (userId: string, note?: string) => {
+    setUsers((prev) =>
+      prev.map((u) =>
+        u.id === userId
+          ? {
+              ...u,
+              warningsCount: (u.warningsCount || 0) + 1,
+              trustScore: Math.max(10, (u.trustScore || 80) - 15)
+            }
+          : u
+      )
+    );
+  };
+
+  const toggleVerifyUser = (userId: string) => {
+    setUsers((prev) =>
+      prev.map((u) =>
+        u.id === userId
+          ? {
+              ...u,
+              isVerified: !u.isVerified,
+              trustScore: !u.isVerified ? Math.min(100, (u.trustScore || 60) + 25) : Math.max(50, (u.trustScore || 80) - 25)
+            }
+          : u
+      )
+    );
+  };
+
+  const deleteUser = (userId: string) => {
+    setUsers((prev) => prev.filter((u) => u.id !== userId));
+    if (currentUserId === userId) {
+      setCurrentUserId(null);
+    }
+  };
+
   const resetAllData = () => {
     window.localStorage.clear();
     window.location.reload();
@@ -214,6 +294,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         switchUser,
         updateProfile,
         submitIdVerification,
+        banUser,
+        unbanUser,
+        warnUser,
+        toggleVerifyUser,
+        deleteUser,
         resetAllData
       }}
     >

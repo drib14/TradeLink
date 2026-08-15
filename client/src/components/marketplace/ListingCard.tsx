@@ -234,11 +234,11 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
               ) : listing.tradeMode === 'free_donation' ? (
                 <>
                   <Gift size={13} />
-                  <span>Claim for Free</span>
+                  <span>Claim Free</span>
                 </>
               ) : (
                 <>
-                  <Zap size={13} color="#FFC72C" />
+                  <ShoppingBag size={13} />
                   <span>Buy Now</span>
                 </>
               )}

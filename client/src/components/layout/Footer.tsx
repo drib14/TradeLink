@@ -12,6 +12,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
     'UC Banilad',
     'UC LM',
     'UC METC',
+    'UC PRI',
     'UC Pardo-Talisay',
     'UC South Campus',
     'UC Medical Center'
@@ -41,7 +42,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
             <Logo size="sm" showSubtitle={true} />
             <p style={{ fontSize: '0.82rem', lineHeight: 1.6, color: '#64748B' }}>
-              Official student marketplace for the University of Cebu community. Dedicated to everyone from Senior High School to College undergraduates across all 7 campuses and neighboring student hubs.
+              Official campus marketplace for the University of Cebu community. Dedicated to Junior High School, Senior High School, and College students across all 8 official campuses.
             </p>
           </div>
 

@@ -138,11 +138,8 @@ export const MainApp: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#F8FAFC' }}>
-      {/* 1. Floating Demo Persona Switcher & Custom Pages Shortcuts */}
-      <DemoBanner onNavigate={handleNavigate} />
-
-      {/* 2. Official Campus Navbar */}
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#F8FAFC', width: '100%', maxWidth: '100vw', overflowX: 'hidden' }}>
+      {/* 1. Official Campus Navbar */}
       <Navbar
         currentView={currentView}
         onNavigate={handleNavigate}
@@ -151,7 +148,7 @@ export const MainApp: React.FC = () => {
       />
 
       {/* 3. Main Page Content View */}
-      <main style={{ flex: 1 }}>{renderCurrentPage()}</main>
+      <main style={{ flex: 1, width: '100%', maxWidth: '100vw', overflowX: 'hidden' }}>{renderCurrentPage()}</main>
 
       {/* 4. Campus Footer */}
       <Footer onNavigate={handleNavigate} />

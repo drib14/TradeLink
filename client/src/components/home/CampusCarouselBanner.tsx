@@ -133,7 +133,7 @@ export const CampusCarouselBanner: React.FC<CampusCarouselBannerProps> = ({
     if (isPaused) return;
     const timer = setInterval(() => {
       setCurrentIdx((prev) => (prev + 1) % CAMPUS_SLIDES.length);
-    }, 5500);
+    }, 6000);
     return () => clearInterval(timer);
   }, [isPaused]);
 
@@ -168,33 +168,45 @@ export const CampusCarouselBanner: React.FC<CampusCarouselBannerProps> = ({
         boxShadow: '0 20px 40px -10px rgba(0, 43, 127, 0.35)',
         backgroundColor: '#001D59',
         height: 'clamp(350px, 45vw, 440px)',
-        width: '100%',
-        transition: 'all 0.3s ease'
+        width: '100%'
       }}
     >
-      {/* 1. Authentic Local Campus Photograph (100% Guaranteed Render) */}
-      <img
-        key={slide.imageUrl}
-        src={slide.imageUrl}
-        alt={slide.title}
-        style={{
-          position: 'absolute',
-          inset: 0,
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-          objectPosition: 'center',
-          transition: 'opacity 0.5s ease-in-out',
-          zIndex: 1
-        }}
-      />
+      {/* 1. Silky Smooth Crossfade Slide Backgrounds */}
+      {CAMPUS_SLIDES.map((s, index) => {
+        const isCurrent = index === currentIdx;
+        return (
+          <div
+            key={s.id}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              opacity: isCurrent ? 1 : 0,
+              transform: isCurrent ? 'scale(1)' : 'scale(1.04)',
+              transition: 'opacity 750ms cubic-bezier(0.4, 0, 0.2, 1), transform 1000ms cubic-bezier(0.4, 0, 0.2, 1)',
+              pointerEvents: isCurrent ? 'auto' : 'none',
+              zIndex: isCurrent ? 1 : 0
+            }}
+          >
+            <img
+              src={s.imageUrl}
+              alt={s.title}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                objectPosition: 'center'
+              }}
+            />
+          </div>
+        );
+      })}
 
       {/* 2. Layered High-Contrast Gradient & Glass Overlay for Maximum Readability */}
       <div
         style={{
           position: 'absolute',
           inset: 0,
-          background: 'linear-gradient(90deg, rgba(0, 29, 89, 0.94) 0%, rgba(0, 43, 127, 0.85) 45%, rgba(0, 29, 89, 0.45) 100%)',
+          background: 'linear-gradient(90deg, rgba(0, 29, 89, 0.94) 0%, rgba(0, 43, 127, 0.86) 45%, rgba(0, 29, 89, 0.45) 100%)',
           backdropFilter: 'blur(1.5px)',
           zIndex: 2
         }}
@@ -210,7 +222,7 @@ export const CampusCarouselBanner: React.FC<CampusCarouselBannerProps> = ({
           justifyContent: 'space-between',
           padding: 'clamp(1.25rem, 3.5vw, 2.5rem)',
           zIndex: 5,
-          maxWidth: '860px'
+          maxWidth: '1200px'
         }}
       >
         {/* Top Badges & Campus Index Counter */}
@@ -253,14 +265,14 @@ export const CampusCarouselBanner: React.FC<CampusCarouselBannerProps> = ({
           </span>
         </div>
 
-        {/* Hero Title & Subtitle */}
-        <div>
+        {/* Hero Title & Subtitle with Keyframe Smooth Transition */}
+        <div key={slide.id} style={{ animation: 'fadeInUp 0.45s ease-out' }}>
           <h2
             style={{
-              fontSize: 'clamp(1.75rem, 3.8vw, 2.75rem)',
+              fontSize: 'clamp(1.35rem, 3.2vw, 2.4rem)',
               fontWeight: 800,
               color: '#FFFFFF',
-              lineHeight: 1.15,
+              lineHeight: 1.2,
               textShadow: '0 2px 10px rgba(0,0,0,0.3)',
               fontFamily: 'var(--font-display)'
             }}
@@ -270,12 +282,16 @@ export const CampusCarouselBanner: React.FC<CampusCarouselBannerProps> = ({
 
           <p
             style={{
-              fontSize: 'clamp(0.85rem, 1.5vw, 1.05rem)',
+              fontSize: 'clamp(0.82rem, 1.3vw, 0.95rem)',
               color: '#E2E8F0',
-              marginTop: '0.65rem',
-              lineHeight: 1.55,
-              maxWidth: '650px',
-              textShadow: '0 1px 4px rgba(0,0,0,0.4)'
+              marginTop: '0.5rem',
+              lineHeight: 1.45,
+              maxWidth: '620px',
+              textShadow: '0 1px 4px rgba(0,0,0,0.4)',
+              display: '-webkit-box',
+              WebkitLineClamp: 3,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden'
             }}
           >
             {slide.subtitle}
@@ -297,52 +313,77 @@ export const CampusCarouselBanner: React.FC<CampusCarouselBannerProps> = ({
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap', width: '100%' }}>
+        {/* 4. Modern, Compact, Non-Stretched CTA Buttons */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
           <button
             onClick={() => handleCampusClick(slide)}
-            className="btn-gold"
             style={{
-              padding: '0.7rem 1.25rem',
+              backgroundColor: '#FFC72C',
+              color: '#002B7F',
+              padding: '0.65rem 1.4rem',
+              borderRadius: '10px',
               fontSize: '0.86rem',
               fontWeight: 800,
-              boxShadow: '0 6px 20px rgba(255, 199, 44, 0.35)',
-              flex: '1 1 auto',
-              justifyContent: 'center'
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              border: 'none',
+              boxShadow: '0 4px 14px rgba(255, 199, 44, 0.35)',
+              cursor: 'pointer',
+              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 6px 20px rgba(255, 199, 44, 0.5)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 14px rgba(255, 199, 44, 0.35)';
             }}
           >
-            <span>{slide.shortTag === 'All Campuses' ? 'Browse All Campuses' : `Browse ${slide.campusName}`}</span>
+            <span>{slide.shortTag === 'All Campuses' ? 'Browse All Items' : `Browse ${slide.shortTag}`}</span>
             <ArrowRight size={15} />
           </button>
 
           <button
             onClick={() => onPostListing?.()}
             style={{
-              backgroundColor: 'rgba(255, 255, 255, 0.15)',
-              backdropFilter: 'blur(8px)',
+              backgroundColor: 'rgba(255, 255, 255, 0.12)',
+              backdropFilter: 'blur(10px)',
               color: '#FFFFFF',
-              border: '1.5px solid rgba(255, 255, 255, 0.4)',
-              padding: '0.68rem 1.2rem',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              padding: '0.65rem 1.3rem',
               borderRadius: '10px',
               fontSize: '0.84rem',
               fontWeight: 700,
               cursor: 'pointer',
-              transition: 'all 0.15s ease',
-              flex: '1 1 auto',
-              textAlign: 'center'
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.25)')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)')}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.22)';
+              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.5)';
+              e.currentTarget.style.transform = 'translateY(-2px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.12)';
+              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
           >
-            Post Item for Sale / Swap
+            <Sparkles size={14} color="#FFC72C" />
+            <span>Post Listing</span>
           </button>
         </div>
       </div>
 
-      {/* Navigation Arrows */}
+      {/* Navigation Arrows (Desktop Only) */}
       <button
         onClick={handlePrev}
         aria-label="Previous campus slide"
+        className="desktop-only"
         style={{
           position: 'absolute',
           left: '1rem',
@@ -355,7 +396,6 @@ export const CampusCarouselBanner: React.FC<CampusCarouselBannerProps> = ({
           borderRadius: '50%',
           width: '38px',
           height: '38px',
-          display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 20,
@@ -371,6 +411,7 @@ export const CampusCarouselBanner: React.FC<CampusCarouselBannerProps> = ({
       <button
         onClick={handleNext}
         aria-label="Next campus slide"
+        className="desktop-only"
         style={{
           position: 'absolute',
           right: '1rem',
@@ -383,7 +424,6 @@ export const CampusCarouselBanner: React.FC<CampusCarouselBannerProps> = ({
           borderRadius: '50%',
           width: '38px',
           height: '38px',
-          display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 20,
@@ -426,8 +466,9 @@ export const CampusCarouselBanner: React.FC<CampusCarouselBannerProps> = ({
                 height: '7px',
                 borderRadius: '9999px',
                 backgroundColor: isActive ? '#FFC72C' : 'rgba(255, 255, 255, 0.4)',
-                transition: 'all 0.25s ease',
-                cursor: 'pointer'
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                cursor: 'pointer',
+                border: 'none'
               }}
             />
           );

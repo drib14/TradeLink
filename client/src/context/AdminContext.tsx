@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
-import { VerificationRequest, Campus } from '../types';
+import { VerificationRequest, Campus, CampusAnnouncement, AdminAuditLog, User } from '../types';
 import { SEED_VERIFICATION_REQUESTS } from '../data/seedData';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useAuth } from './AuthContext';
@@ -20,19 +20,34 @@ export interface FlaggedListingItem {
 interface AdminContextType {
   verificationRequests: VerificationRequest[];
   flaggedListings: FlaggedListingItem[];
+  announcements: CampusAnnouncement[];
+  auditLogs: AdminAuditLog[];
   pendingVerificationsCount: number;
   pendingFlagsCount: number;
   approveVerification: (requestId: string) => void;
-  rejectVerification: (requestId: string) => void;
+  rejectVerification: (requestId: string, reason?: string) => void;
   reportListing: (listingId: string, listingTitle: string, listingImage: string, sellerName: string, campus: Campus, reason: string) => void;
   resolveFlag: (flagId: string) => void;
-  removeListingByAdmin: (flagId: string, listingId: string) => void;
+  removeListingByAdmin: (flagId: string, listingId: string, reason?: string) => void;
+  boostListingByAdmin: (listingId: string) => void;
+  banUserByAdmin: (userId: string, reason: string) => void;
+  unbanUserByAdmin: (userId: string) => void;
+  warnUserByAdmin: (userId: string, note?: string) => void;
+  toggleVerifyByAdmin: (userId: string) => void;
+  deleteUserByAdmin: (userId: string) => void;
+  createAnnouncement: (title: string, message: string, campus: Campus | 'All', type: 'info' | 'alert' | 'event') => void;
+  deleteAnnouncement: (id: string) => void;
+  toggleAnnouncement: (id: string) => void;
+  removeWantedByAdmin: (wantedId: string, reason?: string) => void;
+  cancelMeetupByAdmin: (meetupId: string, reason?: string) => void;
+  completeMeetupByAdmin: (meetupId: string) => void;
 }
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
 
 export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { allUsers, updateProfile } = useAuth();
+  const { allUsers, banUser, unbanUser, warnUser, toggleVerifyUser, deleteUser, currentUser } = useAuth();
+  
   const [verificationRequests, setVerificationRequests] = useLocalStorage<VerificationRequest[]>(
     'tradelink_verifications',
     SEED_VERIFICATION_REQUESTS
@@ -56,6 +71,65 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     ]
   );
 
+  const [announcements, setAnnouncements] = useLocalStorage<CampusAnnouncement[]>(
+    'tradelink_announcements',
+    [
+      {
+        id: 'ann-1',
+        title: 'Guarded Meetup Reminder',
+        message: 'Always meet inside official UC campus security gates during daytime hours. Inspect items before scanning the Handshake QR code.',
+        campus: 'All',
+        type: 'alert',
+        authorName: 'UC Administration',
+        createdAt: '2026-08-14T08:00:00Z',
+        isActive: true
+      },
+      {
+        id: 'ann-2',
+        title: 'Junior High & Senior High Trading Desk Live',
+        message: 'Students from UC PRI and UC South high school departments can now trade textbooks and PE uniforms with zero platform fees.',
+        campus: 'UC PRI',
+        type: 'info',
+        authorName: 'High School Coordinator',
+        createdAt: '2026-08-15T09:00:00Z',
+        isActive: true
+      }
+    ]
+  );
+
+  const [auditLogs, setAuditLogs] = useLocalStorage<AdminAuditLog[]>(
+    'tradelink_audit_logs',
+    [
+      {
+        id: 'log-1',
+        adminName: 'UC Admin Moderator',
+        action: 'Platform Initialized',
+        targetType: 'user',
+        targetId: 'system',
+        details: 'Admin desk initialized for University of Cebu campus network',
+        timestamp: '2026-08-14T08:00:00Z'
+      }
+    ]
+  );
+
+  const logAction = (
+    action: string,
+    targetType: 'user' | 'listing' | 'verification' | 'wanted' | 'meetup' | 'announcement',
+    targetId: string,
+    details: string
+  ) => {
+    const newLog: AdminAuditLog = {
+      id: `log-${Date.now()}`,
+      adminName: currentUser?.name || 'UC Admin Moderator',
+      action,
+      targetType,
+      targetId,
+      details,
+      timestamp: new Date().toISOString()
+    };
+    setAuditLogs((prev) => [newLog, ...prev]);
+  };
+
   const pendingVerificationsCount = verificationRequests.filter((r) => r.status === 'pending').length;
   const pendingFlagsCount = flaggedListings.filter((f) => f.status === 'pending').length;
 
@@ -63,28 +137,27 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const req = verificationRequests.find((r) => r.id === requestId);
     if (!req) return;
 
-    // Update request
     setVerificationRequests((prev) =>
       prev.map((r) =>
         r.id === requestId ? { ...r, status: 'approved', reviewedAt: new Date().toISOString() } : r
       )
     );
 
-    // Update user's verification state in users store
-    const usersInStorage = JSON.parse(window.localStorage.getItem('tradelink_users') || '[]');
-    const updatedUsers = usersInStorage.map((u: any) =>
-      u.id === req.userId ? { ...u, isVerified: true, trustScore: Math.min(100, u.trustScore + 30) } : u
-    );
-    window.localStorage.setItem('tradelink_users', JSON.stringify(updatedUsers));
-    window.dispatchEvent(new Event('local-storage-tradelink_users'));
+    // Verify user in Auth store
+    toggleVerifyUser(req.userId);
+    logAction('Approved Student Verification', 'verification', requestId, `Verified ${req.userName} (${req.campus})`);
   };
 
-  const rejectVerification = (requestId: string) => {
+  const rejectVerification = (requestId: string, reason: string = 'Incomplete or unreadable ID photo') => {
+    const req = verificationRequests.find((r) => r.id === requestId);
     setVerificationRequests((prev) =>
       prev.map((r) =>
         r.id === requestId ? { ...r, status: 'rejected', reviewedAt: new Date().toISOString() } : r
       )
     );
+    if (req) {
+      logAction('Rejected Verification', 'verification', requestId, `Declined ${req.userName}: ${reason}`);
+    }
   };
 
   const reportListing = (
@@ -112,21 +185,129 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const resolveFlag = (flagId: string) => {
+    const flag = flaggedListings.find((f) => f.id === flagId);
     setFlaggedListings((prev) =>
       prev.map((f) => (f.id === flagId ? { ...f, status: 'resolved' } : f))
     );
+    if (flag) {
+      logAction('Resolved Listing Report', 'listing', flag.listingId, `Marked listing "${flag.listingTitle}" as safe`);
+    }
   };
 
-  const removeListingByAdmin = (flagId: string, listingId: string) => {
+  const removeListingByAdmin = (flagId: string, listingId: string, reason: string = 'Violation of prohibited items policy') => {
+    const flag = flaggedListings.find((f) => f.id === flagId || f.listingId === listingId);
     setFlaggedListings((prev) =>
-      prev.map((f) => (f.id === flagId ? { ...f, status: 'removed' } : f))
+      prev.map((f) => (f.id === flagId || f.listingId === listingId ? { ...f, status: 'removed' } : f))
     );
 
-    // Remove listing from market
+    // Remove listing from market localStorage
     const listingsInStorage = JSON.parse(window.localStorage.getItem('tradelink_listings') || '[]');
     const updated = listingsInStorage.filter((l: any) => l.id !== listingId);
     window.localStorage.setItem('tradelink_listings', JSON.stringify(updated));
     window.dispatchEvent(new Event('local-storage-tradelink_listings'));
+
+    logAction('Deleted Listing', 'listing', listingId, `Removed item "${flag?.listingTitle || listingId}": ${reason}`);
+  };
+
+  const boostListingByAdmin = (listingId: string) => {
+    const listingsInStorage = JSON.parse(window.localStorage.getItem('tradelink_listings') || '[]');
+    const target = listingsInStorage.find((l: any) => l.id === listingId);
+    const updated = listingsInStorage.map((l: any) =>
+      l.id === listingId ? { ...l, isBoosted: !l.isBoosted } : l
+    );
+    window.localStorage.setItem('tradelink_listings', JSON.stringify(updated));
+    window.dispatchEvent(new Event('local-storage-tradelink_listings'));
+
+    logAction(
+      target?.isBoosted ? 'Removed Boost' : 'Boosted Listing',
+      'listing',
+      listingId,
+      `Toggled hero boost for "${target?.title || listingId}"`
+    );
+  };
+
+  const banUserByAdmin = (userId: string, reason: string) => {
+    const targetUser = allUsers.find((u) => u.id === userId);
+    banUser(userId, reason);
+    logAction('Banned User Account', 'user', userId, `Banned ${targetUser?.name || userId} (${targetUser?.campus}): ${reason}`);
+  };
+
+  const unbanUserByAdmin = (userId: string) => {
+    const targetUser = allUsers.find((u) => u.id === userId);
+    unbanUser(userId);
+    logAction('Unbanned User Account', 'user', userId, `Restored account access for ${targetUser?.name || userId}`);
+  };
+
+  const warnUserByAdmin = (userId: string, note: string = 'Warning issued for inappropriate activity') => {
+    const targetUser = allUsers.find((u) => u.id === userId);
+    warnUser(userId, note);
+    logAction('Issued User Warning', 'user', userId, `Warned ${targetUser?.name || userId}: ${note}`);
+  };
+
+  const toggleVerifyByAdmin = (userId: string) => {
+    const targetUser = allUsers.find((u) => u.id === userId);
+    toggleVerifyUser(userId);
+    logAction('Toggled Verification', 'user', userId, `Updated verification status for ${targetUser?.name || userId}`);
+  };
+
+  const deleteUserByAdmin = (userId: string) => {
+    const targetUser = allUsers.find((u) => u.id === userId);
+    deleteUser(userId);
+    logAction('Deleted User Account', 'user', userId, `Permanently deleted ${targetUser?.name || userId}`);
+  };
+
+  const createAnnouncement = (title: string, message: string, campus: Campus | 'All', type: 'info' | 'alert' | 'event') => {
+    const newAnn: CampusAnnouncement = {
+      id: `ann-${Date.now()}`,
+      title,
+      message,
+      campus,
+      type,
+      authorName: currentUser?.name || 'UC Administration',
+      createdAt: new Date().toISOString(),
+      isActive: true
+    };
+    setAnnouncements((prev) => [newAnn, ...prev]);
+    logAction('Created Campus Announcement', 'announcement', newAnn.id, `Posted "${title}" for ${campus}`);
+  };
+
+  const deleteAnnouncement = (id: string) => {
+    setAnnouncements((prev) => prev.filter((a) => a.id !== id));
+    logAction('Deleted Announcement', 'announcement', id, `Removed announcement ${id}`);
+  };
+
+  const toggleAnnouncement = (id: string) => {
+    setAnnouncements((prev) =>
+      prev.map((a) => (a.id === id ? { ...a, isActive: !a.isActive } : a))
+    );
+  };
+
+  const removeWantedByAdmin = (wantedId: string, reason: string = 'Inappropriate wanted request') => {
+    const wantedInStorage = JSON.parse(window.localStorage.getItem('tradelink_wanted_requests') || '[]');
+    const updated = wantedInStorage.filter((w: any) => w.id !== wantedId);
+    window.localStorage.setItem('tradelink_wanted_requests', JSON.stringify(updated));
+    window.dispatchEvent(new Event('local-storage-tradelink_wanted_requests'));
+    logAction('Deleted Wanted Request', 'wanted', wantedId, `Removed wanted post: ${reason}`);
+  };
+
+  const cancelMeetupByAdmin = (meetupId: string, reason: string = 'Safety dispute or cancelled by administration') => {
+    const meetupsInStorage = JSON.parse(window.localStorage.getItem('tradelink_meetups') || '[]');
+    const updated = meetupsInStorage.map((m: any) =>
+      m.id === meetupId ? { ...m, status: 'cancelled' } : m
+    );
+    window.localStorage.setItem('tradelink_meetups', JSON.stringify(updated));
+    window.dispatchEvent(new Event('local-storage-tradelink_meetups'));
+    logAction('Cancelled Meetup Transaction', 'meetup', meetupId, `Admin cancelled meetup: ${reason}`);
+  };
+
+  const completeMeetupByAdmin = (meetupId: string) => {
+    const meetupsInStorage = JSON.parse(window.localStorage.getItem('tradelink_meetups') || '[]');
+    const updated = meetupsInStorage.map((m: any) =>
+      m.id === meetupId ? { ...m, status: 'completed', completedAt: new Date().toISOString() } : m
+    );
+    window.localStorage.setItem('tradelink_meetups', JSON.stringify(updated));
+    window.dispatchEvent(new Event('local-storage-tradelink_meetups'));
+    logAction('Force-Completed Meetup', 'meetup', meetupId, `Admin verified & completed handshake`);
   };
 
   return (
@@ -134,13 +315,27 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       value={{
         verificationRequests,
         flaggedListings,
+        announcements,
+        auditLogs,
         pendingVerificationsCount,
         pendingFlagsCount,
         approveVerification,
         rejectVerification,
         reportListing,
         resolveFlag,
-        removeListingByAdmin
+        removeListingByAdmin,
+        boostListingByAdmin,
+        banUserByAdmin,
+        unbanUserByAdmin,
+        warnUserByAdmin,
+        toggleVerifyByAdmin,
+        deleteUserByAdmin,
+        createAnnouncement,
+        deleteAnnouncement,
+        toggleAnnouncement,
+        removeWantedByAdmin,
+        cancelMeetupByAdmin,
+        completeMeetupByAdmin
       }}
     >
       {children}
@@ -155,3 +350,4 @@ export const useAdmin = () => {
   }
   return context;
 };
+

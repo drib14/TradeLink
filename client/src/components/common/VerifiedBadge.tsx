@@ -1,30 +1,30 @@
 import React, { useState } from 'react';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck, Check } from 'lucide-react';
 
 interface VerifiedBadgeProps {
   size?: 'xs' | 'sm' | 'md' | 'lg';
-  variant?: 'gold' | 'blue';
+  variant?: 'gold' | 'blue' | 'green';
   showTooltip?: boolean;
   tooltipText?: string;
 }
 
 export const VerifiedBadge: React.FC<VerifiedBadgeProps> = ({
   size = 'sm',
-  variant = 'gold',
+  variant = 'blue',
   showTooltip = true,
-  tooltipText = 'Verified UC Student • Campus ID & Enrollment Confirmed'
+  tooltipText = 'Verified UC Student'
 }) => {
   const [isHovered, setIsHovered] = useState(false);
 
   const dimensionMap = {
-    xs: 14,
-    sm: 17,
-    md: 20,
-    lg: 24
+    xs: 13,
+    sm: 15,
+    md: 18,
+    lg: 22
   };
 
   const currentSize = dimensionMap[size];
-  const isBlue = variant === 'blue';
+  const bgColor = variant === 'gold' ? '#D97706' : variant === 'green' ? '#059669' : '#002B7F';
 
   return (
     <span
@@ -35,85 +35,56 @@ export const VerifiedBadge: React.FC<VerifiedBadgeProps> = ({
         justifyContent: 'center',
         verticalAlign: 'middle',
         cursor: showTooltip ? 'help' : 'default',
-        marginLeft: '0.2rem'
+        marginLeft: '0.25rem',
+        flexShrink: 0
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      aria-label={tooltipText}
     >
-      {/* Official Circular Gold / Blue Verified Badge */}
-      <svg
-        width={currentSize}
-        height={currentSize}
-        viewBox="0 0 24 24"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
+      <span
         style={{
-          filter: isBlue
-            ? 'drop-shadow(0 1px 2px rgba(0, 43, 127, 0.35))'
-            : 'drop-shadow(0 1px 3px rgba(229, 168, 0, 0.45))',
-          transition: 'transform 0.15s ease'
+          width: `${currentSize}px`,
+          height: `${currentSize}px`,
+          borderRadius: '50%',
+          backgroundColor: bgColor,
+          color: '#FFFFFF',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center'
         }}
       >
-        <defs>
-          <linearGradient id="verifiedGoldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#FFE082" />
-            <stop offset="45%" stopColor="#FFC72C" />
-            <stop offset="100%" stopColor="#D49400" />
-          </linearGradient>
-          <linearGradient id="verifiedBlueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#0A3EA8" />
-            <stop offset="100%" stopColor="#002B7F" />
-          </linearGradient>
-        </defs>
-
-        {/* Smooth Circular Badge */}
-        <circle
-          cx="12"
-          cy="12"
-          r="10"
-          fill={isBlue ? 'url(#verifiedBlueGrad)' : 'url(#verifiedGoldGrad)'}
-          stroke={isBlue ? '#BCD1F7' : '#FFE082'}
-          strokeWidth="1"
-        />
-
-        {/* Crisp Checkmark */}
-        <path
-          d="M7.5 12.2L10.5 15.2L16.5 9"
-          stroke="#FFFFFF"
-          strokeWidth="2.2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
+        <Check size={currentSize * 0.65} strokeWidth={3} />
+      </span>
 
       {/* Popover Tooltip */}
       {showTooltip && isHovered && (
         <div
           style={{
             position: 'absolute',
-            bottom: '130%',
+            bottom: 'calc(100% + 6px)',
             left: '50%',
             transform: 'translateX(-50%)',
-            backgroundColor: '#001D59',
+            backgroundColor: '#0F172A',
             color: '#FFFFFF',
             fontSize: '0.72rem',
-            fontWeight: 700,
-            padding: '0.35rem 0.65rem',
+            fontWeight: 600,
+            padding: '0.3rem 0.6rem',
             borderRadius: '6px',
             whiteSpace: 'nowrap',
             zIndex: 100,
-            boxShadow: '0 10px 20px rgba(0, 43, 127, 0.3)',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
             display: 'flex',
             alignItems: 'center',
             gap: '0.35rem',
-            pointerEvents: 'none',
-            border: '1px solid rgba(255, 199, 44, 0.4)'
+            pointerEvents: 'none'
           }}
         >
-          <ShieldCheck size={13} color="#FFC72C" />
+          <ShieldCheck size={12} color="#FFC72C" />
           <span>{tooltipText}</span>
         </div>
       )}
     </span>
   );
 };
+

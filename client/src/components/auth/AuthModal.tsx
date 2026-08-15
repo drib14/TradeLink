@@ -54,6 +54,55 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [newPassword, setNewPassword] = useState('');
   const [generatedCode, setGeneratedCode] = useState('');
 
+  // Helper to filter department options dynamically by year level
+  const getDepartmentsForYearLevel = (year: string): { value: College; label: string }[] => {
+    if (year.includes('Grade 7') || year.includes('Grade 8') || year.includes('Grade 9') || year.includes('Grade 10') || year.includes('Junior High')) {
+      return [
+        { value: 'Junior High School', label: 'Junior High School General' },
+        { value: 'Junior High (Grade 7-10)', label: 'Junior High (Grades 7–10 Academics)' }
+      ];
+    }
+    if (year.includes('Grade 11') || year.includes('Grade 12') || year.includes('SHS') || year.includes('Senior High')) {
+      return [
+        { value: 'Senior High (STEM)', label: 'Senior High - STEM Strand' },
+        { value: 'Senior High (ABM)', label: 'Senior High - ABM Strand' },
+        { value: 'Senior High (HUMSS)', label: 'Senior High - HUMSS Strand' },
+        { value: 'Senior High (TVL/GAS)', label: 'Senior High - TVL / GAS Strand' },
+        { value: 'Senior High School', label: 'Senior High General' }
+      ];
+    }
+    if (year.includes('Law')) {
+      return [
+        { value: 'Law', label: 'College of Law (Juris Doctor)' }
+      ];
+    }
+    if (year.includes('Medicine')) {
+      return [
+        { value: 'Medicine', label: 'College of Medicine (MD)' }
+      ];
+    }
+    return [
+      { value: 'CCS', label: 'CCS (Computer Studies)' },
+      { value: 'Engineering', label: 'College of Engineering' },
+      { value: 'Nursing', label: 'College of Nursing' },
+      { value: 'CBA', label: 'CBA (Business Administration)' },
+      { value: 'Maritime', label: 'Maritime Education' },
+      { value: 'Criminology', label: 'College of Criminology' },
+      { value: 'Arts & Sciences', label: 'Arts & Sciences' },
+      { value: 'Education', label: 'College of Education' },
+      { value: 'Hospitality & Tourism', label: 'Hospitality & Tourism' },
+      { value: 'General Student', label: 'General / Other Program' }
+    ];
+  };
+
+  const handleYearLevelChange = (newYear: string) => {
+    setRegYearLevel(newYear);
+    const availableDepts = getDepartmentsForYearLevel(newYear);
+    if (!availableDepts.some((d) => d.value === regCollege)) {
+      setRegCollege(availableDepts[0].value);
+    }
+  };
+
   if (!isOpen) return null;
 
   const handleLoginSubmit = (e: React.FormEvent) => {
@@ -206,70 +255,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <button onClick={onClose} style={{ color: '#64748B', padding: '0.25rem' }}>
             <X size={18} />
           </button>
-        </div>
-
-        {/* Quick Demo Selector */}
-        <div
-          style={{
-            backgroundColor: '#F8FAFC',
-            borderRadius: '8px',
-            border: '1px solid #E2E8F0',
-            padding: '0.65rem 0.85rem',
-            marginBottom: '1.25rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '0.5rem'
-          }}
-        >
-          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B' }}>Quick demo:</span>
-          <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('user-maria', 'Maria (Banilad)')}
-              style={{
-                backgroundColor: '#EBF1FC',
-                color: '#002B7F',
-                padding: '0.25rem 0.55rem',
-                borderRadius: '5px',
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                border: '1px solid #BCD1F7'
-              }}
-            >
-              Maria
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('user-ken', 'Kenzo (LM)')}
-              style={{
-                backgroundColor: '#EBF1FC',
-                color: '#002B7F',
-                padding: '0.25rem 0.55rem',
-                borderRadius: '5px',
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                border: '1px solid #BCD1F7'
-              }}
-            >
-              Kenzo
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('user-admin', 'Admin')}
-              style={{
-                backgroundColor: '#002B7F',
-                color: '#FFC72C',
-                padding: '0.25rem 0.55rem',
-                borderRadius: '5px',
-                fontSize: '0.72rem',
-                fontWeight: 800
-              }}
-            >
-              Admin
-            </button>
-          </div>
         </div>
 
         {/* 1. LOGIN FORM */}
@@ -462,10 +447,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.65rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
-                  Campus
+                  1. Campus
                 </label>
                 <select
                   value={regCampus}
@@ -484,7 +469,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <option value="UC Banilad">UC Banilad</option>
                   <option value="UC LM">UC LM</option>
                   <option value="UC METC">UC METC</option>
-                  <option value="UC PRI">UC PRI (Junior & Senior High)</option>
+                  <option value="UC PRI">UC PRI (JHS & SHS)</option>
                   <option value="UC Pardo-Talisay">UC Pardo-Talisay</option>
                   <option value="UC South Campus">UC South Campus</option>
                   <option value="UC Medical Center">UC Medical Center</option>
@@ -492,8 +477,51 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
 
               <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#002B7F', marginBottom: '0.3rem' }}>
+                  2. Year / Grade Level *
+                </label>
+                <select
+                  value={regYearLevel}
+                  onChange={(e) => handleYearLevelChange(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.55rem 0.5rem',
+                    borderRadius: '8px',
+                    border: '1.5px solid #002B7F',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    backgroundColor: '#F8FAFC',
+                    color: '#002B7F',
+                    outline: 'none'
+                  }}
+                >
+                  <optgroup label="Junior High School (JHS)">
+                    <option value="Grade 7 (Junior High)">Grade 7 (Junior High)</option>
+                    <option value="Grade 8 (Junior High)">Grade 8 (Junior High)</option>
+                    <option value="Grade 9 (Junior High)">Grade 9 (Junior High)</option>
+                    <option value="Grade 10 (Junior High)">Grade 10 (Junior High)</option>
+                  </optgroup>
+                  <optgroup label="Senior High School (SHS)">
+                    <option value="Grade 11 (Senior High)">Grade 11 (Senior High)</option>
+                    <option value="Grade 12 (Senior High)">Grade 12 (Senior High)</option>
+                  </optgroup>
+                  <optgroup label="College Undergraduate">
+                    <option value="1st Year College">1st Year College</option>
+                    <option value="2nd Year College">2nd Year College</option>
+                    <option value="3rd Year College">3rd Year College</option>
+                    <option value="4th Year College">4th Year College</option>
+                    <option value="5th Year College (Eng/Arch)">5th Year (Engineering/Arch)</option>
+                  </optgroup>
+                  <optgroup label="Post-Graduate / Professional">
+                    <option value="College of Law">College of Law (JD)</option>
+                    <option value="College of Medicine">College of Medicine (MD)</option>
+                  </optgroup>
+                </select>
+              </div>
+
+              <div>
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
-                  Department
+                  3. Department / Strand *
                 </label>
                 <select
                   value={regCollege}
@@ -508,55 +536,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     outline: 'none'
                   }}
                 >
-                  <option value="CCS">CCS (Computer Studies)</option>
-                  <option value="Engineering">Engineering</option>
-                  <option value="Nursing">Nursing / Allied Health</option>
-                  <option value="Business">CBA (Business / Accountancy)</option>
-                  <option value="Criminology">Criminology</option>
-                  <option value="Maritime">Maritime (METC / LM)</option>
-                  <option value="Senior High (STEM)">Senior High (STEM)</option>
-                  <option value="Senior High (ABM)">Senior High (ABM)</option>
-                  <option value="Senior High (HUMSS)">Senior High (HUMSS)</option>
-                  <option value="Senior High (TVL / ICT)">Senior High (TVL / ICT)</option>
-                  <option value="Junior High School">Junior High School</option>
-                  <option value="Arts & Sciences">Arts & Sciences</option>
-                  <option value="Education">Education</option>
-                  <option value="Hotel & Restaurant Mgt">Hospitality / HRM</option>
-                  <option value="Law">School of Law</option>
-                  <option value="Medicine">School of Medicine</option>
-                  <option value="Customs Admin">Customs Administration</option>
-                  <option value="Naval Architecture">Naval Architecture</option>
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
-                  Year Level
-                </label>
-                <select
-                  value={regYearLevel}
-                  onChange={(e) => setRegYearLevel(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '0.55rem 0.5rem',
-                    borderRadius: '8px',
-                    border: '1px solid #CBD5E1',
-                    fontSize: '0.82rem',
-                    backgroundColor: '#FFFFFF',
-                    outline: 'none'
-                  }}
-                >
-                  <option value="Grade 7">Grade 7</option>
-                  <option value="Grade 8">Grade 8</option>
-                  <option value="Grade 9">Grade 9</option>
-                  <option value="Grade 10">Grade 10</option>
-                  <option value="Grade 11">Grade 11 (SHS)</option>
-                  <option value="Grade 12">Grade 12 (SHS)</option>
-                  <option value="1st Year">1st Year College</option>
-                  <option value="2nd Year">2nd Year College</option>
-                  <option value="3rd Year">3rd Year College</option>
-                  <option value="4th Year">4th Year College</option>
-                  <option value="Post-Graduate / Alumni">Post-Grad / Alumni</option>
+                  {getDepartmentsForYearLevel(regYearLevel).map((dept) => (
+                    <option key={dept.value} value={dept.value}>
+                      {dept.label}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
