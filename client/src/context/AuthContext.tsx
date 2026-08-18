@@ -15,18 +15,12 @@ export interface RegisterData {
   idPhotoUrl?: string;
 }
 
-export const ADMIN_CREDENTIALS = {
-  email: 'admin@uc.edu.ph',
-  studentId: 'UC-ADM-2024',
-  password: 'admin123',
-  name: 'UC Admin Moderator'
-};
-
 interface AuthContextType {
   currentUser: User | null;
   allUsers: User[];
   isAuthenticated: boolean;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
   login: (emailOrStudentId: string, password?: string) => { success: boolean; message: string };
   register: (data: RegisterData) => { success: boolean; message: string };
   forgotPassword: (email: string) => { success: boolean; resetCode?: string; message: string };
@@ -51,12 +45,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const currentUser = currentUserId ? (users.find((u) => u.id === currentUserId) || null) : null;
   const isAuthenticated = !!currentUser;
-  const isAdmin = currentUser?.role === 'admin';
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'superadmin';
+  const isSuperAdmin = currentUser?.role === 'superadmin';
 
   const login = (emailOrStudentId: string, password?: string): { success: boolean; message: string } => {
     const cleanQuery = emailOrStudentId.trim().toLowerCase();
 
-    // Check if user exists
+    if (!cleanQuery) {
+      return { success: false, message: 'Please enter your Student ID or Email.' };
+    }
+
+    if (!password) {
+      return { success: false, message: 'Please enter your password.' };
+    }
+
+    // Check if matching user exists in database
     const matchedUser = users.find(
       (u) =>
         u.email.toLowerCase() === cleanQuery ||
@@ -64,7 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 
     if (!matchedUser) {
-      return { success: false, message: 'No student account found with this ID or email.' };
+      return { success: false, message: 'No account found with this Student ID or email address.' };
     }
 
     if (matchedUser.isBanned) {
@@ -74,15 +77,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
     }
 
-    // If password provided and user has password, check
-    if (password && matchedUser.password && matchedUser.password !== password) {
-      return { success: false, message: 'Incorrect password entered.' };
+    // Strictly verify password against user account record
+    if (matchedUser.password && matchedUser.password !== password) {
+      return { success: false, message: 'Incorrect password entered. Please check your credentials.' };
     }
 
     setCurrentUserId(matchedUser.id);
     return {
       success: true,
-      message: `Welcome back, ${matchedUser.name}! (${matchedUser.role === 'admin' ? 'Admin Access' : matchedUser.campus})`
+      message: `Welcome back, ${matchedUser.name}!`
     };
   };
 
@@ -286,6 +289,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         allUsers: users,
         isAuthenticated,
         isAdmin,
+        isSuperAdmin,
         login,
         register,
         forgotPassword,

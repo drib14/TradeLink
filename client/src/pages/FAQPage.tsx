@@ -19,7 +19,7 @@ export const FAQPage: React.FC<FAQPageProps> = ({ onNavigate }) => {
     {
       category: 'General',
       question: 'Who can register and trade on UC TradeLink?',
-      answer: 'TradeLink is open to all enrolled University of Cebu students across all 7 campuses—including Senior High School (STEM, ABM, HUMSS, TVL/GAS), College undergraduates, and maritime cadets.'
+      answer: 'TradeLink is open to all enrolled University of Cebu students across all 8 official campuses—including Junior High School, Senior High School (STEM, ABM, HUMSS, TVL/GAS), College undergraduates, maritime cadets, and medical students.'
     },
     {
       category: 'Meetups & Safety',

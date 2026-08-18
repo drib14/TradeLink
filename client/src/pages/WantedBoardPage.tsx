@@ -47,6 +47,7 @@ export const WantedBoardPage: React.FC<WantedBoardPageProps> = ({ onNavigate, on
     'UC Banilad',
     'UC LM',
     'UC METC',
+    'UC PRI',
     'UC Pardo-Talisay',
     'UC South Campus',
     'UC Medical Center'
@@ -93,26 +94,26 @@ export const WantedBoardPage: React.FC<WantedBoardPageProps> = ({ onNavigate, on
       {/* Header Banner */}
       <div
         style={{
-          backgroundColor: '#002B7F',
+          background: 'linear-gradient(135deg, #002B7F 0%, #001D59 100%)',
           color: '#FFFFFF',
-          borderRadius: '16px',
-          padding: '2rem clamp(1.25rem, 4vw, 2.5rem)',
+          borderRadius: '18px',
+          padding: '2.25rem clamp(1.25rem, 4vw, 2.5rem)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
-          gap: '1.25rem',
-          boxShadow: '0 10px 25px rgba(0, 43, 127, 0.2)'
+          gap: '1.5rem',
+          boxShadow: '0 12px 30px rgba(0, 43, 127, 0.22)'
         }}
       >
         <div style={{ maxWidth: '600px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#FFC72C', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            <Sparkles size={16} /> Student Request Hub (LTB / Pasabuy)
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#FFC72C', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <Sparkles size={16} style={{ flexShrink: 0 }} /> <span>Student Request Hub (LTB / Pasabuy)</span>
           </div>
-          <h1 style={{ fontSize: 'clamp(1.5rem, 3vw, 2.1rem)', fontWeight: 800, color: '#FFFFFF', marginTop: '0.35rem', lineHeight: 1.2 }}>
+          <h1 style={{ fontSize: 'clamp(1.5rem, 3vw, 2.1rem)', fontWeight: 900, color: '#FFFFFF', marginTop: '0.4rem', lineHeight: 1.2, fontFamily: 'var(--font-display)' }}>
             University of Cebu Wanted Board
           </h1>
-          <p style={{ fontSize: '0.88rem', color: '#E2E8F0', marginTop: '0.5rem', lineHeight: 1.55 }}>
+          <p style={{ fontSize: '0.88rem', color: '#E2E8F0', marginTop: '0.55rem', lineHeight: 1.6 }}>
             Need a specific textbook, scrub set, drawing board, or calculator? Post your target budget, and fellow UCians will reach out to fulfill it!
           </p>
         </div>
@@ -120,9 +121,9 @@ export const WantedBoardPage: React.FC<WantedBoardPageProps> = ({ onNavigate, on
         <button
           onClick={handleOpenCreateModal}
           className="btn-gold"
-          style={{ padding: '0.75rem 1.4rem', fontSize: '0.9rem', fontWeight: 800 }}
+          style={{ padding: '0.75rem 1.5rem', fontSize: '0.9rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
         >
-          <Plus size={18} /> Post a "Looking For" Item
+          <Plus size={18} style={{ flexShrink: 0 }} /> <span>Post a "Looking For" Item</span>
         </button>
       </div>
 

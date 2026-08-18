@@ -385,7 +385,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate }) 
         <button
           onClick={() => setActiveTab('listings')}
           style={{
-            padding: '0.5rem 1rem',
+            padding: '0.55rem 1.05rem',
             borderRadius: '8px',
             fontSize: '0.82rem',
             fontWeight: activeTab === 'listings' ? 800 : 600,
@@ -393,17 +393,18 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate }) 
             color: activeTab === 'listings' ? '#FFFFFF' : '#475569',
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '0.35rem',
-            whiteSpace: 'nowrap'
+            gap: '0.45rem',
+            whiteSpace: 'nowrap',
+            cursor: 'pointer'
           }}
         >
-          <ShoppingBag size={14} /> Active Listings ({userActiveListings.length})
+          <ShoppingBag size={14} style={{ flexShrink: 0 }} /> <span>Active Listings ({userActiveListings.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab('sold')}
           style={{
-            padding: '0.5rem 1rem',
+            padding: '0.55rem 1.05rem',
             borderRadius: '8px',
             fontSize: '0.82rem',
             fontWeight: activeTab === 'sold' ? 800 : 600,
@@ -411,17 +412,18 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate }) 
             color: activeTab === 'sold' ? '#FFFFFF' : '#475569',
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '0.35rem',
-            whiteSpace: 'nowrap'
+            gap: '0.45rem',
+            whiteSpace: 'nowrap',
+            cursor: 'pointer'
           }}
         >
-          <CheckCircle2 size={14} /> Fulfilled Trades ({userSoldListings.length})
+          <CheckCircle2 size={14} style={{ flexShrink: 0 }} /> <span>Fulfilled Trades ({userSoldListings.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab('reviews')}
           style={{
-            padding: '0.5rem 1rem',
+            padding: '0.55rem 1.05rem',
             borderRadius: '8px',
             fontSize: '0.82rem',
             fontWeight: activeTab === 'reviews' ? 800 : 600,
@@ -429,17 +431,18 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate }) 
             color: activeTab === 'reviews' ? '#FFFFFF' : '#475569',
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '0.35rem',
-            whiteSpace: 'nowrap'
+            gap: '0.45rem',
+            whiteSpace: 'nowrap',
+            cursor: 'pointer'
           }}
         >
-          <Star size={14} /> Reviews & Feedback ({userReviews.length})
+          <Star size={14} style={{ flexShrink: 0 }} /> <span>Reviews & Feedback ({userReviews.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab('wanted')}
           style={{
-            padding: '0.5rem 1rem',
+            padding: '0.55rem 1.05rem',
             borderRadius: '8px',
             fontSize: '0.82rem',
             fontWeight: activeTab === 'wanted' ? 800 : 600,
@@ -447,11 +450,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate }) 
             color: activeTab === 'wanted' ? '#FFFFFF' : '#475569',
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '0.35rem',
-            whiteSpace: 'nowrap'
+            gap: '0.45rem',
+            whiteSpace: 'nowrap',
+            cursor: 'pointer'
           }}
         >
-          <Sparkles size={14} /> Wanted Requests ({userWanted.length})
+          <Sparkles size={14} style={{ flexShrink: 0 }} /> <span>Wanted Requests ({userWanted.length})</span>
         </button>
 
         {/* Only show verification submission tab if unverified user viewing their own profile! */}
@@ -459,7 +463,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate }) 
           <button
             onClick={() => setActiveTab('verify')}
             style={{
-              padding: '0.5rem 1rem',
+              padding: '0.55rem 1.05rem',
               borderRadius: '8px',
               fontSize: '0.82rem',
               fontWeight: activeTab === 'verify' ? 800 : 600,
@@ -467,11 +471,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate }) 
               color: activeTab === 'verify' ? '#FFFFFF' : '#DC2626',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.35rem',
-              whiteSpace: 'nowrap'
+              gap: '0.45rem',
+              whiteSpace: 'nowrap',
+              cursor: 'pointer'
             }}
           >
-            <AlertCircle size={14} /> Get ID Verified
+            <AlertCircle size={14} style={{ flexShrink: 0 }} /> <span>Get ID Verified</span>
           </button>
         )}
       </div>

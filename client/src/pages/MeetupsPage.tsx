@@ -191,34 +191,35 @@ export const MeetupsPage: React.FC<MeetupsPageProps> = ({ onNavigate }) => {
                     >
                       {isCompleted ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', textAlign: 'center' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', color: '#047857', fontWeight: 800, fontSize: '0.88rem' }}>
-                            <CheckCircle2 size={18} />
+                          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem', color: '#047857', fontWeight: 800, fontSize: '0.88rem' }}>
+                            <CheckCircle2 size={18} style={{ flexShrink: 0 }} />
                             <span>Handshake Verified (+10 Trust)</span>
                           </div>
 
                           <button
                             onClick={() => setSelectedReviewMeetup(meetup)}
                             className="btn-gold"
-                            style={{ padding: '0.45rem 0.85rem', fontSize: '0.78rem', fontWeight: 800, width: '100%' }}
+                            style={{ padding: '0.55rem 0.85rem', fontSize: '0.8rem', fontWeight: 800, width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
                           >
-                            <Star size={14} /> Rate & Award Badges
+                            <Star size={15} style={{ flexShrink: 0 }} />
+                            <span>Rate & Award Badges</span>
                           </button>
                         </div>
                       ) : (
                         <>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                              <KeyRound size={14} color="#002B7F" /> Handshake Code:
+                            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                              <KeyRound size={14} color="#002B7F" style={{ flexShrink: 0 }} /> Handshake Code:
                             </span>
                             <span
                               style={{
                                 backgroundColor: '#002B7F',
                                 color: '#FFFFFF',
-                                padding: '0.2rem 0.65rem',
+                                padding: '0.25rem 0.75rem',
                                 borderRadius: '6px',
                                 fontWeight: 900,
                                 fontFamily: 'monospace',
-                                fontSize: '1rem',
+                                fontSize: '1.05rem',
                                 letterSpacing: '0.1em'
                               }}
                             >
@@ -227,23 +228,23 @@ export const MeetupsPage: React.FC<MeetupsPageProps> = ({ onNavigate }) => {
                           </div>
 
                           {/* QR Buttons */}
-                          <div style={{ display: 'flex', gap: '0.4rem' }}>
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
                             <button
                               type="button"
                               onClick={() => setSelectedQRMeetup(meetup)}
                               className="btn-secondary"
-                              style={{ flex: 1, padding: '0.5rem', fontSize: '0.78rem', fontWeight: 700 }}
+                              style={{ flex: 1, padding: '0.55rem', fontSize: '0.8rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}
                             >
-                              <QrCode size={14} /> Show QR
+                              <QrCode size={14} style={{ flexShrink: 0 }} /> <span>Show QR</span>
                             </button>
 
                             <button
                               type="button"
                               onClick={() => setSelectedScanMeetup(meetup)}
                               className="btn-primary"
-                              style={{ flex: 1, padding: '0.5rem', fontSize: '0.78rem', fontWeight: 700 }}
+                              style={{ flex: 1, padding: '0.55rem', fontSize: '0.8rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}
                             >
-                              <Camera size={14} /> Scan QR
+                              <Camera size={14} style={{ flexShrink: 0 }} /> <span>Scan QR</span>
                             </button>
                           </div>
                         </>

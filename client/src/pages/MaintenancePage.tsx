@@ -64,7 +64,7 @@ export const MaintenancePage: React.FC<MaintenancePageProps> = ({ onNavigate }) 
       </h1>
 
       <p style={{ fontSize: '0.95rem', color: '#64748B', marginTop: '0.75rem', lineHeight: 1.6 }}>
-        Our university server infrastructure is currently undergoing scheduled semester optimization to enhance student verification speed and handshake encryption across all 7 campuses.
+        Our university server infrastructure is currently undergoing scheduled semester optimization to enhance student verification speed and handshake encryption across all 8 official campuses.
       </p>
 
       <div

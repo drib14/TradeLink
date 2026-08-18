@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ConditionGrade, ItemCategory } from '../../types';
 import { useSmartPrice } from '../../hooks/useSmartPrice';
-import { Check } from 'lucide-react';
+import { Check, Sparkles, Calculator } from 'lucide-react';
 
 interface SmartPriceWidgetProps {
   initialSrp?: number;
@@ -36,21 +36,22 @@ export const SmartPriceWidget: React.FC<SmartPriceWidgetProps> = ({
 
   return (
     <div
+      className="clean-card"
       style={{
-        backgroundColor: '#FFFFFF',
-        borderRadius: '12px',
-        border: '1px solid #E4E4E7',
-        padding: isCompact ? '1rem' : '1.5rem',
+        padding: isCompact ? '1.15rem' : '1.5rem',
         display: 'flex',
         flexDirection: 'column',
         gap: '1rem'
       }}
     >
       <div>
-        <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#18181B' }}>
-          Smart Price Advisor
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#002B7F', fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          <Calculator size={14} /> Fair Pricing Engine
+        </div>
+        <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A', marginTop: '0.2rem' }}>
+          Smart Campus Price Estimator
         </h4>
-        <p style={{ fontSize: '0.78rem', color: '#71717A' }}>
+        <p style={{ fontSize: '0.8rem', color: '#64748B', marginTop: '0.15rem' }}>
           Recommended second-hand resale range based on wear & student demand
         </p>
       </div>
@@ -60,16 +61,16 @@ export const SmartPriceWidget: React.FC<SmartPriceWidgetProps> = ({
         style={{
           display: 'grid',
           gridTemplateColumns: isCompact ? '1fr' : 'repeat(auto-fit, minmax(180px, 1fr))',
-          gap: '0.75rem'
+          gap: '0.85rem'
         }}
       >
         {/* SRP Input */}
         <div>
-          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#52525B', marginBottom: '0.25rem' }}>
+          <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
             Original Mall Price (SRP)
           </label>
           <div style={{ position: 'relative' }}>
-            <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontWeight: 600, color: '#71717A' }}>
+            <span style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: '#64748B' }}>
               ₱
             </span>
             <input
@@ -77,15 +78,11 @@ export const SmartPriceWidget: React.FC<SmartPriceWidgetProps> = ({
               value={srp || ''}
               onChange={(e) => setSrp(Number(e.target.value))}
               placeholder="1250"
+              className="clean-input"
               style={{
-                width: '100%',
-                padding: '0.45rem 0.65rem 0.45rem 1.75rem',
-                borderRadius: '6px',
-                border: '1px solid #E4E4E7',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                color: '#18181B',
-                outline: 'none'
+                paddingLeft: '1.85rem',
+                fontSize: '0.86rem',
+                fontWeight: 700
               }}
             />
           </div>
@@ -93,22 +90,17 @@ export const SmartPriceWidget: React.FC<SmartPriceWidgetProps> = ({
 
         {/* Condition Grade */}
         <div>
-          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#52525B', marginBottom: '0.25rem' }}>
+          <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
             Condition Grade
           </label>
           <select
             value={condition}
             onChange={(e: any) => setCondition(e.target.value)}
+            className="clean-input"
             style={{
-              width: '100%',
-              padding: '0.45rem 0.65rem',
-              borderRadius: '6px',
-              border: '1px solid #E4E4E7',
-              fontSize: '0.82rem',
-              fontWeight: 500,
-              color: '#18181B',
-              backgroundColor: '#FFFFFF',
-              outline: 'none'
+              fontSize: '0.84rem',
+              fontWeight: 600,
+              cursor: 'pointer'
             }}
           >
             {conditionOptions.map((opt) => (
@@ -123,21 +115,21 @@ export const SmartPriceWidget: React.FC<SmartPriceWidgetProps> = ({
       {/* Output Range Box */}
       <div
         style={{
-          backgroundColor: '#FAFAFA',
-          borderRadius: '8px',
-          border: '1px solid #F4F4F5',
-          padding: '1rem',
+          backgroundColor: '#F8FAFC',
+          borderRadius: '10px',
+          border: '1.5px solid #BCD1F7',
+          padding: '1.15rem',
           display: 'flex',
           flexDirection: 'column',
-          gap: '0.5rem'
+          gap: '0.65rem'
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
           <div>
-            <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#71717A', textTransform: 'uppercase' }}>
-              Fair Campus Price
+            <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#002B7F', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Fair Campus Price Range
             </div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#18181B', fontFamily: 'var(--font-display)', marginTop: '0.15rem' }}>
+            <div style={{ fontSize: '1.45rem', fontWeight: 900, color: '#002B7F', fontFamily: 'var(--font-display)', marginTop: '0.15rem' }}>
               ₱{priceResult.recommendedMin.toLocaleString()} – ₱{priceResult.recommendedMax.toLocaleString()}
             </div>
           </div>
@@ -145,39 +137,34 @@ export const SmartPriceWidget: React.FC<SmartPriceWidgetProps> = ({
           <span
             style={{
               fontSize: '0.75rem',
-              fontWeight: 700,
-              padding: '0.2rem 0.6rem',
+              fontWeight: 800,
+              padding: '0.25rem 0.65rem',
               borderRadius: '9999px',
               backgroundColor: priceResult.dealRating === 'Super Bargain' || priceResult.dealRating === 'Fair Campus Price' ? '#ECFDF5' : '#FFFBEB',
-              color: priceResult.dealRating === 'Super Bargain' || priceResult.dealRating === 'Fair Campus Price' ? '#047857' : '#B45309'
+              color: priceResult.dealRating === 'Super Bargain' || priceResult.dealRating === 'Fair Campus Price' ? '#047857' : '#B45309',
+              border: priceResult.dealRating === 'Super Bargain' || priceResult.dealRating === 'Fair Campus Price' ? '1px solid #A7F3D0' : '1px solid #FDE68A'
             }}
           >
             {priceResult.dealRating}
           </span>
         </div>
 
-        <p style={{ fontSize: '0.78rem', color: '#52525B', lineHeight: 1.45 }}>
+        <p style={{ fontSize: '0.8rem', color: '#475569', lineHeight: 1.5 }}>
           {priceResult.reasoning}
         </p>
 
         {onApplyPrice && (
           <button
             onClick={() => onApplyPrice(priceResult.recommendedAverage)}
+            className="btn-primary"
             style={{
-              marginTop: '0.25rem',
+              marginTop: '0.35rem',
               alignSelf: 'flex-start',
-              backgroundColor: '#0B1E3B',
-              color: '#FFFFFF',
-              padding: '0.35rem 0.75rem',
-              borderRadius: '6px',
-              fontSize: '0.78rem',
-              fontWeight: 600,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.3rem'
+              padding: '0.45rem 0.95rem',
+              fontSize: '0.8rem'
             }}
           >
-            <Check size={13} /> Apply ₱{priceResult.recommendedAverage}
+            <Check size={14} /> Apply Recommended ₱{priceResult.recommendedAverage}
           </button>
         )}
       </div>

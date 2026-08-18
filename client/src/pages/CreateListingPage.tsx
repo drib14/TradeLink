@@ -336,11 +336,11 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
         <div style={{ backgroundColor: '#FFFFFF', borderRadius: '14px', border: '1px solid #CBD5E1', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0F172A' }}>Pricing & Mode</h3>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.65rem' }}>
             {[
-              { id: 'buy_sell', label: 'For Sale', icon: <ShoppingBag size={14} /> },
-              { id: 'swap', label: 'Swap', icon: <ArrowLeftRight size={14} /> },
-              { id: 'free_donation', label: 'Free Donation', icon: <Gift size={14} /> }
+              { id: 'buy_sell', label: 'For Sale', icon: <ShoppingBag size={15} style={{ flexShrink: 0 }} /> },
+              { id: 'swap', label: 'Swap', icon: <ArrowLeftRight size={15} style={{ flexShrink: 0 }} /> },
+              { id: 'free_donation', label: 'Free Donation', icon: <Gift size={15} style={{ flexShrink: 0 }} /> }
             ].map((mode) => {
               const isSelected = tradeMode === mode.id;
               return (
@@ -349,17 +349,19 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
                   type="button"
                   onClick={() => setTradeMode(mode.id as TradeMode)}
                   style={{
-                    padding: '0.55rem',
-                    borderRadius: '8px',
-                    fontSize: '0.82rem',
+                    padding: '0.65rem 0.75rem',
+                    borderRadius: '10px',
+                    fontSize: '0.84rem',
                     fontWeight: isSelected ? 800 : 600,
                     backgroundColor: isSelected ? '#002B7F' : '#F1F5F9',
                     color: isSelected ? '#FFFFFF' : '#334155',
-                    border: isSelected ? '1px solid #002B7F' : '1px solid #CBD5E1',
-                    display: 'flex',
+                    border: isSelected ? '1.5px solid #002B7F' : '1px solid #CBD5E1',
+                    display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '0.35rem'
+                    gap: '0.45rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
                   }}
                 >
                   {mode.icon}
@@ -518,7 +520,7 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
         </div>
 
         {/* Action Buttons */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.85rem', marginTop: '0.5rem' }}>
           <button
             type="button"
             onClick={() => onNavigate('marketplace')}
@@ -530,9 +532,10 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
           <button
             type="submit"
             className="btn-gold"
-            style={{ padding: '0.65rem 1.6rem', fontSize: '0.88rem' }}
+            style={{ padding: '0.65rem 1.6rem', fontSize: '0.88rem', display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
           >
-            <Sparkles size={16} /> Publish to UC TradeLink
+            <Sparkles size={16} style={{ flexShrink: 0 }} />
+            <span>Publish to UC TradeLink</span>
           </button>
         </div>
       </form>

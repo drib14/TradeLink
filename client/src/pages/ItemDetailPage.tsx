@@ -395,10 +395,10 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '0.4rem'
+                    gap: '0.45rem'
                   }}
                 >
-                  <Zap size={17} color="#002B7F" />
+                  <Zap size={17} color="#002B7F" style={{ flexShrink: 0 }} />
                   <span>{listing.tradeMode === 'free_donation' ? 'Claim for Free' : 'Buy Now'}</span>
                 </button>
 
@@ -406,22 +406,38 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
                 <button
                   onClick={handleSwapClick}
                   className="btn-secondary"
-                  style={{ padding: '0.75rem 1.15rem' }}
+                  style={{
+                    padding: '0.75rem 1.25rem',
+                    fontSize: '0.88rem',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.45rem'
+                  }}
                 >
-                  <ArrowLeftRight size={15} /> Propose Swap
+                  <ArrowLeftRight size={15} style={{ flexShrink: 0 }} />
+                  <span>Propose Swap</span>
                 </button>
 
                 {/* 3. Contact Seller Chat */}
                 <button
                   onClick={handleContactSeller}
                   className="btn-primary"
-                  style={{ padding: '0.75rem 1.15rem' }}
+                  style={{
+                    padding: '0.75rem 1.25rem',
+                    fontSize: '0.88rem',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.45rem'
+                  }}
                 >
-                  <MessageSquare size={16} /> Chat
+                  <MessageSquare size={16} style={{ flexShrink: 0 }} />
+                  <span>Chat</span>
                 </button>
               </>
             ) : (
-              <div style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', backgroundColor: '#F1F5F9', textAlign: 'center', fontSize: '0.8rem', color: '#64748B' }}>
+              <div style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', backgroundColor: '#F1F5F9', textAlign: 'center', fontSize: '0.82rem', fontWeight: 600, color: '#64748B' }}>
                 You posted this listing.
               </div>
             )}
@@ -429,56 +445,54 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
 
           {/* Seller Trust Profile Card */}
           <div
+            className="clean-card"
             style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: '12px',
-              border: '1px solid #CBD5E1',
               padding: '1.25rem',
               display: 'flex',
               flexDirection: 'column',
-              gap: '0.85rem',
+              gap: '0.95rem',
               marginTop: '0.5rem'
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <img
                   src={listing.sellerAvatar}
                   alt={listing.sellerName}
-                  style={{ width: '42px', height: '42px', borderRadius: '50%', objectFit: 'cover' }}
+                  style={{ width: '44px', height: '44px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '1.5px solid #BCD1F7' }}
                 />
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                    <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#0F172A' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', lineHeight: 1.2 }}>
+                    <span style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0F172A' }}>
                       {listing.sellerName}
                     </span>
                     {listing.sellerIsVerified && <VerifiedBadge size="xs" variant="gold" />}
                   </div>
-                  <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '2px' }}>
                     {listing.sellerCollege} • {listing.sellerCampus}
-                  </span>
+                  </div>
                 </div>
               </div>
 
               <button
                 onClick={() => onNavigate('profile', { userId: listing.sellerId })}
-                style={{ fontSize: '0.78rem', fontWeight: 700, color: '#002B7F' }}
+                style={{ fontSize: '0.8rem', fontWeight: 800, color: '#002B7F', cursor: 'pointer' }}
               >
                 View Profile
               </button>
             </div>
 
             {/* Trust Meter */}
-            <div style={{ backgroundColor: '#F8FAFC', borderRadius: '8px', padding: '0.65rem 0.85rem', border: '1px solid #E2E8F0' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <ShieldCheck size={13} color="#059669" /> Campus Trust Score
+            <div style={{ backgroundColor: '#F8FAFC', borderRadius: '8px', padding: '0.75rem 0.95rem', border: '1px solid #E2E8F0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <ShieldCheck size={14} color="#059669" style={{ flexShrink: 0 }} /> Campus Trust Score
                 </span>
-                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#059669' }}>
+                <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#059669' }}>
                   {listing.sellerTrustScore}%
                 </span>
               </div>
-              <div style={{ width: '100%', height: '4px', backgroundColor: '#CBD5E1', borderRadius: '2px', overflow: 'hidden' }}>
+              <div style={{ width: '100%', height: '5px', backgroundColor: '#CBD5E1', borderRadius: '3px', overflow: 'hidden' }}>
                 <div style={{ width: `${listing.sellerTrustScore}%`, height: '100%', backgroundColor: '#059669' }} />
               </div>
             </div>
@@ -486,9 +500,9 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <button
                 onClick={() => setIsReportModalOpen(true)}
-                style={{ fontSize: '0.72rem', color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                style={{ fontSize: '0.74rem', color: '#94A3B8', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', cursor: 'pointer' }}
               >
-                <AlertTriangle size={12} /> Report safety concern
+                <AlertTriangle size={13} style={{ flexShrink: 0 }} /> Report safety concern
               </button>
             </div>
           </div>

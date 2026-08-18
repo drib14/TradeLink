@@ -17,10 +17,10 @@ export const VerifiedBadge: React.FC<VerifiedBadgeProps> = ({
   const [isHovered, setIsHovered] = useState(false);
 
   const dimensionMap = {
-    xs: 13,
-    sm: 15,
-    md: 18,
-    lg: 22
+    xs: 14,
+    sm: 16,
+    md: 19,
+    lg: 23
   };
 
   const currentSize = dimensionMap[size];
@@ -35,8 +35,8 @@ export const VerifiedBadge: React.FC<VerifiedBadgeProps> = ({
         justifyContent: 'center',
         verticalAlign: 'middle',
         cursor: showTooltip ? 'help' : 'default',
-        marginLeft: '0.25rem',
-        flexShrink: 0
+        flexShrink: 0,
+        lineHeight: 1
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -51,7 +51,8 @@ export const VerifiedBadge: React.FC<VerifiedBadgeProps> = ({
           color: '#FFFFFF',
           display: 'inline-flex',
           alignItems: 'center',
-          justifyContent: 'center'
+          justifyContent: 'center',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
         }}
       >
         <Check size={currentSize * 0.65} strokeWidth={3} />
@@ -68,23 +69,22 @@ export const VerifiedBadge: React.FC<VerifiedBadgeProps> = ({
             backgroundColor: '#0F172A',
             color: '#FFFFFF',
             fontSize: '0.72rem',
-            fontWeight: 600,
-            padding: '0.3rem 0.6rem',
+            fontWeight: 700,
+            padding: '0.35rem 0.65rem',
             borderRadius: '6px',
             whiteSpace: 'nowrap',
             zIndex: 100,
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-            display: 'flex',
+            boxShadow: '0 4px 14px rgba(0, 0, 0, 0.2)',
+            display: 'inline-flex',
             alignItems: 'center',
             gap: '0.35rem',
             pointerEvents: 'none'
           }}
         >
-          <ShieldCheck size={12} color="#FFC72C" />
+          <ShieldCheck size={13} color="#FFC72C" />
           <span>{tooltipText}</span>
         </div>
       )}
     </span>
   );
 };
-

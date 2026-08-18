@@ -2,6 +2,27 @@ import { User, Listing, SwapOffer, MeetupTransaction, Conversation, Verification
 
 export const SEED_USERS: User[] = [
   {
+    id: 'user-superadmin',
+    name: 'UC Super Administrator',
+    email: 'superadmin@uc.edu.ph',
+    studentId: 'UC-SA-2024',
+    role: 'superadmin',
+    campus: 'UC Main',
+    college: 'CCS',
+    yearLevel: 'System Administrator',
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=300&q=80',
+    isVerified: true,
+    idPhotoUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80',
+    trustScore: 100,
+    rating: 5.0,
+    totalReviews: 0,
+    completedTrades: 0,
+    punctualityRate: 100,
+    bio: 'TradeLink Platform Super Administrator. Full system access across all UC campuses.',
+    joinedDate: 'Jan 2024',
+    password: 'superadmin123'
+  },
+  {
     id: 'user-admin',
     name: 'UC Admin Moderator',
     email: 'admin@uc.edu.ph',
@@ -19,7 +40,8 @@ export const SEED_USERS: User[] = [
     completedTrades: 120,
     punctualityRate: 100,
     bio: 'Official TradeLink Campus Moderation & Safety Desk. Verified student marketplace.',
-    joinedDate: 'Jan 2024'
+    joinedDate: 'Jan 2024',
+    password: 'admin123'
   },
   {
     id: 'user-maria',

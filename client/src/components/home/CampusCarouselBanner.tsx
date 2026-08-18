@@ -252,16 +252,18 @@ export const CampusCarouselBanner: React.FC<CampusCarouselBannerProps> = ({
               backdropFilter: 'blur(8px)',
               color: '#FFFFFF',
               border: '1px solid rgba(255, 255, 255, 0.25)',
-              padding: '0.3rem 0.75rem',
+              padding: '0.35rem 0.8rem',
               borderRadius: '9999px',
-              fontSize: '0.75rem',
+              fontSize: '0.78rem',
               fontWeight: 700,
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.35rem'
+              gap: '0.4rem',
+              lineHeight: 1
             }}
           >
-            <MapPin size={12} color="#FFC72C" /> {slide.highlight}
+            <MapPin size={13} color="#FFC72C" style={{ flexShrink: 0 }} />
+            <span>{slide.highlight}</span>
           </span>
         </div>
 
@@ -285,7 +287,7 @@ export const CampusCarouselBanner: React.FC<CampusCarouselBannerProps> = ({
               fontSize: 'clamp(0.82rem, 1.3vw, 0.95rem)',
               color: '#E2E8F0',
               marginTop: '0.5rem',
-              lineHeight: 1.45,
+              lineHeight: 1.5,
               maxWidth: '620px',
               textShadow: '0 1px 4px rgba(0,0,0,0.4)',
               display: '-webkit-box',
@@ -299,22 +301,23 @@ export const CampusCarouselBanner: React.FC<CampusCarouselBannerProps> = ({
 
           <div
             style={{
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
               gap: '0.45rem',
-              marginTop: '0.75rem',
+              marginTop: '0.85rem',
               color: '#FFC72C',
-              fontSize: '0.8rem',
-              fontWeight: 700
+              fontSize: '0.82rem',
+              fontWeight: 700,
+              lineHeight: 1
             }}
           >
-            <GraduationCap size={15} />
+            <GraduationCap size={16} style={{ flexShrink: 0 }} />
             <span>{slide.colleges}</span>
           </div>
         </div>
 
         {/* 4. Modern, Compact, Non-Stretched CTA Buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
           <button
             onClick={() => handleCampusClick(slide)}
             style={{
@@ -342,7 +345,7 @@ export const CampusCarouselBanner: React.FC<CampusCarouselBannerProps> = ({
             }}
           >
             <span>{slide.shortTag === 'All Campuses' ? 'Browse All Items' : `Browse ${slide.shortTag}`}</span>
-            <ArrowRight size={15} />
+            <ArrowRight size={15} style={{ flexShrink: 0 }} />
           </button>
 
           <button
@@ -359,7 +362,7 @@ export const CampusCarouselBanner: React.FC<CampusCarouselBannerProps> = ({
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.4rem',
+              gap: '0.45rem',
               transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
             }}
             onMouseEnter={(e) => {
@@ -373,7 +376,7 @@ export const CampusCarouselBanner: React.FC<CampusCarouselBannerProps> = ({
               e.currentTarget.style.transform = 'translateY(0)';
             }}
           >
-            <Sparkles size={14} color="#FFC72C" />
+            <Sparkles size={14} color="#FFC72C" style={{ flexShrink: 0 }} />
             <span>Post Listing</span>
           </button>
         </div>

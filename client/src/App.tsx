@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { ToastProvider } from './components/common/Toast';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { MarketProvider } from './context/MarketContext';
 import { ChatProvider } from './context/ChatContext';
 import { AdminProvider } from './context/AdminContext';
 import { WantedProvider } from './context/WantedContext';
-import { DemoBanner } from './components/layout/DemoBanner';
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
 import { MobileBottomNav } from './components/layout/MobileBottomNav';
@@ -21,6 +20,7 @@ import { SwapsPage } from './pages/SwapsPage';
 import { MeetupsPage } from './pages/MeetupsPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { AdminDashboard } from './pages/AdminDashboard';
+import { SuperAdminDashboard } from './pages/SuperAdminDashboard';
 import { PricingAdvisorPage } from './pages/PricingAdvisorPage';
 import { WantedBoardPage } from './pages/WantedBoardPage';
 import { CampusMapPage } from './pages/CampusMapPage';
@@ -42,6 +42,7 @@ const pathToView = (path: string): { view: string; params: any } => {
   if (cleanPath === 'campus-map' || cleanPath === 'landmarks' || cleanPath === 'map') return { view: 'campus-map', params: {} };
   if (cleanPath === 'profile') return { view: 'profile', params: {} };
   if (cleanPath === 'admin') return { view: 'admin', params: {} };
+  if (cleanPath === 'superadmin' || cleanPath === 'super-admin' || cleanPath === 'sa') return { view: 'superadmin', params: {} };
   if (cleanPath === 'price-advisor' || cleanPath === 'advisor') return { view: 'price-advisor', params: {} };
   if (cleanPath === 'about') return { view: 'about', params: {} };
   if (cleanPath === 'faq') return { view: 'faq', params: {} };
@@ -57,23 +58,69 @@ const pathToView = (path: string): { view: string; params: any } => {
 };
 
 export const MainApp: React.FC = () => {
+  const { currentUser, isAdmin, isSuperAdmin } = useAuth();
   const initial = pathToView(window.location.pathname);
-  const [currentView, setCurrentView] = useState<string>(initial.view);
+  const defaultAdminView = isSuperAdmin ? 'superadmin' : 'admin';
+  const [currentView, setCurrentView] = useState<string>(isAdmin ? defaultAdminView : initial.view);
   const [viewParams, setViewParams] = useState<any>(initial.params);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
+  // If user is superadmin or admin, strictly lock and enforce the corresponding dashboard view
+  useEffect(() => {
+    if (isSuperAdmin && currentView !== 'superadmin') {
+      setCurrentView('superadmin');
+      try {
+        window.history.replaceState(null, '', '/superadmin');
+      } catch (e) {}
+    } else if (isAdmin && !isSuperAdmin && currentView !== 'admin') {
+      setCurrentView('admin');
+      try {
+        window.history.replaceState(null, '', '/admin');
+      } catch (e) {}
+    }
+  }, [isAdmin, isSuperAdmin, currentView]);
+
   useEffect(() => {
     const handlePopState = () => {
+      if (isSuperAdmin) {
+        setCurrentView('superadmin');
+        return;
+      }
+      if (isAdmin) {
+        setCurrentView('admin');
+        return;
+      }
       const parsed = pathToView(window.location.pathname);
       setCurrentView(parsed.view);
       setViewParams(parsed.params);
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
+  }, [isAdmin, isSuperAdmin]);
 
   const handleNavigate = (view: string, params: any = {}) => {
+    // If logged in as super admin or admin, strictly stay on their respective console
+    if (isSuperAdmin) {
+      setCurrentView('superadmin');
+      setViewParams({});
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      try {
+        window.history.pushState(null, '', '/superadmin');
+      } catch (e) {}
+      return;
+    }
+
+    if (isAdmin) {
+      setCurrentView('admin');
+      setViewParams({});
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      try {
+        window.history.pushState(null, '', '/admin');
+      } catch (e) {}
+      return;
+    }
+
     setCurrentView(view);
     setViewParams(params);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -92,6 +139,14 @@ export const MainApp: React.FC = () => {
   };
 
   const renderCurrentPage = () => {
+    if (isSuperAdmin) {
+      return <SuperAdminDashboard onNavigate={handleNavigate} />;
+    }
+
+    if (isAdmin) {
+      return <AdminDashboard onNavigate={handleNavigate} />;
+    }
+
     switch (currentView) {
       case 'home':
         return <HomePage onNavigate={handleNavigate} />;
@@ -141,38 +196,42 @@ export const MainApp: React.FC = () => {
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#F8FAFC', width: '100%', maxWidth: '100vw', overflowX: 'hidden' }}>
       {/* 1. Official Campus Navbar */}
       <Navbar
-        currentView={currentView}
+        currentView={isAdmin ? 'admin' : currentView}
         onNavigate={handleNavigate}
-        onOpenChat={() => setIsChatOpen(true)}
+        onOpenChat={() => !isAdmin && setIsChatOpen(true)}
         onOpenAuth={() => setIsAuthModalOpen(true)}
       />
 
-      {/* 3. Main Page Content View */}
+      {/* 2. Main Page Content View */}
       <main style={{ flex: 1, width: '100%', maxWidth: '100vw', overflowX: 'hidden' }}>{renderCurrentPage()}</main>
 
-      {/* 4. Campus Footer */}
+      {/* 3. Campus Footer */}
       <Footer onNavigate={handleNavigate} />
 
-      {/* 5. Live Campus Messaging Drawer */}
-      <ChatDrawer
-        isOpen={isChatOpen}
-        onClose={() => setIsChatOpen(false)}
-        onNavigateToItem={(id) => handleNavigate('item-detail', { id })}
-      />
+      {/* 4. Live Campus Messaging Drawer (Disabled for Admin) */}
+      {!isAdmin && (
+        <ChatDrawer
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+          onNavigateToItem={(id) => handleNavigate('item-detail', { id })}
+        />
+      )}
 
-      {/* 6. Authentication Modal (Login / Register / Forgot Password / Admin Login) */}
+      {/* 5. Authentication Modal */}
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
       />
 
-      {/* 7. Mobile Bottom Navigation Bar (Smartphones & Tablets) */}
-      <MobileBottomNav
-        currentView={currentView}
-        onNavigate={handleNavigate}
-        onOpenChat={() => setIsChatOpen(true)}
-        onOpenAuth={() => setIsAuthModalOpen(true)}
-      />
+      {/* 6. Mobile Bottom Navigation Bar (Disabled for Admin) */}
+      {!isAdmin && (
+        <MobileBottomNav
+          currentView={currentView}
+          onNavigate={handleNavigate}
+          onOpenChat={() => setIsChatOpen(true)}
+          onOpenAuth={() => setIsAuthModalOpen(true)}
+        />
+      )}
     </div>
   );
 };

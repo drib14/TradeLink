@@ -1,17 +1,12 @@
 import React, { useState } from 'react';
-import { useAuth, ADMIN_CREDENTIALS } from '../../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../common/Toast';
 import { Campus, College } from '../../types';
 import {
   X,
   Lock,
   Mail,
-  User as UserIcon,
   ShieldCheck,
-  Building2,
-  KeyRound,
-  CheckCircle2,
-  Upload,
   Hash
 } from 'lucide-react';
 import { DragDropUpload } from '../common/DragDropUpload';
@@ -28,7 +23,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onClose,
   initialMode = 'login'
 }) => {
-  const { login, register, forgotPassword, resetPassword, switchUser } = useAuth();
+  const { login, register, forgotPassword, resetPassword } = useAuth();
   const { showToast } = useToast();
 
   const [mode, setMode] = useState<'login' | 'register' | 'forgot' | 'reset'>(initialMode);
@@ -52,7 +47,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [forgotEmail, setForgotEmail] = useState('');
   const [resetCode, setResetCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [generatedCode, setGeneratedCode] = useState('');
 
   // Helper to filter department options dynamically by year level
   const getDepartmentsForYearLevel = (year: string): { value: College; label: string }[] => {
@@ -111,6 +105,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       showToast('Input Required', loginMethod === 'id' ? 'Please enter your Student ID.' : 'Please enter your email.', 'warning');
       return;
     }
+    if (!loginPassword) {
+      showToast('Password Required', 'Please enter your password.', 'warning');
+      return;
+    }
     const res = login(loginIdentifier, loginPassword);
     if (res.success) {
       showToast('Logged In', res.message, 'success');
@@ -145,63 +143,41 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     });
 
     if (res.success) {
-      showToast('Welcome!', res.message, 'success');
+      showToast('Account Created! 🎉', res.message, 'success');
       onClose();
     } else {
-      showToast('Error', res.message, 'error');
+      showToast('Registration Error', res.message, 'error');
     }
   };
 
   const handleForgotSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!forgotEmail.trim()) {
-      showToast('Email Required', 'Please enter your email.', 'warning');
+      showToast('Email Required', 'Please enter your account email address.', 'warning');
       return;
     }
     const res = forgotPassword(forgotEmail);
-    if (res.success && res.resetCode) {
-      setGeneratedCode(res.resetCode);
-      setResetCode(res.resetCode);
+    if (res.success) {
+      showToast('Verification Code Sent', res.message, 'success');
       setMode('reset');
-      showToast('Code Sent', `Code: ${res.resetCode}`, 'info');
     } else {
-      showToast('Error', res.message, 'error');
+      showToast('Password Reset Failed', res.message, 'error');
     }
   };
 
   const handleResetSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!resetCode.trim() || !newPassword.trim()) {
-      showToast('Missing Info', 'Please enter the code and new password.', 'warning');
+      showToast('Missing Details', 'Please enter the code and your new password.', 'warning');
       return;
     }
     const res = resetPassword(forgotEmail, resetCode, newPassword);
     if (res.success) {
-      showToast('Password Reset', res.message, 'success');
+      showToast('Password Updated! 🔒', res.message, 'success');
       setMode('login');
-      setLoginIdentifier(forgotEmail);
-      setLoginPassword(newPassword);
+      setLoginPassword('');
     } else {
-      showToast('Error', res.message, 'error');
-    }
-  };
-
-  const handleQuickLogin = (userId: string, name: string) => {
-    switchUser(userId);
-    showToast('Logged In', `Switched to ${name}`, 'info');
-    onClose();
-  };
-
-  const handleIdUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          setRegIdPhoto(reader.result as string);
-        }
-      };
-      reader.readAsDataURL(file);
+      showToast('Reset Failed', res.message, 'error');
     }
   };
 
@@ -210,13 +186,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       style={{
         position: 'fixed',
         inset: 0,
-        backgroundColor: 'rgba(0, 29, 89, 0.65)',
+        backgroundColor: 'rgba(0, 43, 127, 0.65)',
         backdropFilter: 'blur(6px)',
-        zIndex: 2000,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '1rem'
+        zIndex: 9999,
+        padding: '1rem',
+        animation: 'modalSlideUpAnim 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
       }}
       onClick={onClose}
     >
@@ -252,7 +229,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </p>
           </div>
 
-          <button onClick={onClose} style={{ color: '#64748B', padding: '0.25rem' }}>
+          <button onClick={onClose} style={{ color: '#64748B', padding: '0.25rem', cursor: 'pointer' }}>
             <X size={18} />
           </button>
         </div>
@@ -261,22 +238,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {mode === 'login' && (
           <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {/* Method switch: Student ID or Email */}
-            <div style={{ display: 'flex', backgroundColor: '#F1F5F9', padding: '3px', borderRadius: '8px' }}>
+            <div style={{ display: 'flex', backgroundColor: '#F1F5F9', padding: '3px', borderRadius: '8px', border: '1px solid #CBD5E1' }}>
               <button
                 type="button"
                 onClick={() => {
                   setLoginMethod('id');
                   setLoginIdentifier('');
+                  setLoginPassword('');
                 }}
                 style={{
                   flex: 1,
-                  padding: '0.4rem',
+                  padding: '0.45rem',
                   borderRadius: '6px',
-                  fontSize: '0.78rem',
+                  fontSize: '0.8rem',
                   fontWeight: loginMethod === 'id' ? 800 : 600,
                   backgroundColor: loginMethod === 'id' ? '#FFFFFF' : 'transparent',
                   color: loginMethod === 'id' ? '#002B7F' : '#64748B',
-                  boxShadow: loginMethod === 'id' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'
+                  boxShadow: loginMethod === 'id' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                  cursor: 'pointer'
                 }}
               >
                 Student ID
@@ -286,25 +265,27 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 onClick={() => {
                   setLoginMethod('email');
                   setLoginIdentifier('');
+                  setLoginPassword('');
                 }}
                 style={{
                   flex: 1,
-                  padding: '0.4rem',
+                  padding: '0.45rem',
                   borderRadius: '6px',
-                  fontSize: '0.78rem',
+                  fontSize: '0.8rem',
                   fontWeight: loginMethod === 'email' ? 800 : 600,
                   backgroundColor: loginMethod === 'email' ? '#FFFFFF' : 'transparent',
                   color: loginMethod === 'email' ? '#002B7F' : '#64748B',
-                  boxShadow: loginMethod === 'email' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'
+                  boxShadow: loginMethod === 'email' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                  cursor: 'pointer'
                 }}
               >
-                Email
+                Email Address
               </button>
             </div>
 
             <div>
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
-                {loginMethod === 'id' ? 'Student ID' : 'Email'}
+                {loginMethod === 'id' ? 'Student ID Number' : 'Email Address'}
               </label>
               <div style={{ position: 'relative' }}>
                 {loginMethod === 'id' ? (
@@ -312,13 +293,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     <Hash size={15} color="#64748B" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
                     <input
                       type="text"
-                      inputMode="numeric"
                       value={loginIdentifier}
-                      onChange={(e) => setLoginIdentifier(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                      placeholder="Student ID"
+                      onChange={(e) => setLoginIdentifier(e.target.value)}
+                      placeholder="e.g. 202104982"
                       className="clean-input"
                       style={{ paddingLeft: '2.25rem' }}
-                      maxLength={10}
+                      maxLength={15}
                       required
                     />
                   </>
@@ -329,7 +309,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       type="email"
                       value={loginIdentifier}
                       onChange={(e) => setLoginIdentifier(e.target.value)}
-                      placeholder="Email"
+                      placeholder="e.g. student@uc.edu.ph"
                       className="clean-input"
                       style={{ paddingLeft: '2.25rem' }}
                       required

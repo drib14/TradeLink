@@ -5,8 +5,8 @@ import { useMarket } from '../context/MarketContext';
 import { useWanted } from '../context/WantedContext';
 import { useChat } from '../context/ChatContext';
 import { useToast } from '../components/common/Toast';
-import { VerificationRequest, User, Listing, WantedRequest, MeetupTransaction, Campus, CampusAnnouncement, AdminAuditLog } from '../types';
-import { FlaggedListingItem } from '../context/AdminContext';
+import { VerificationRequest, User, Listing, Campus, TradeDispute } from '../types';
+import { CAMPUS_MEETUP_SPOTS } from '../data/campusLocations';
 import {
   ShieldAlert,
   ShieldCheck,
@@ -22,14 +22,19 @@ import {
   Eye,
   Sparkles,
   MapPin,
-  Clock,
   Building2,
-  FileText,
   BadgeCheck,
-  ArrowUpRight,
   TrendingUp,
-  Radio,
-  Plus
+  Plus,
+  LogIn,
+  LogOut,
+  ArrowLeft,
+  Download,
+  Scale,
+  Award,
+  DollarSign,
+  AlertCircle,
+  Shield
 } from 'lucide-react';
 import { VerifiedBadge } from '../components/common/VerifiedBadge';
 import { CampusBadge } from '../components/common/CampusBadge';
@@ -44,8 +49,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     flaggedListings,
     announcements,
     auditLogs,
+    prohibitedKeywords,
+    disputes,
     pendingVerificationsCount,
     pendingFlagsCount,
+    pendingDisputesCount,
     approveVerification,
     rejectVerification,
     resolveFlag,
@@ -61,24 +69,68 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     toggleAnnouncement,
     removeWantedByAdmin,
     cancelMeetupByAdmin,
-    completeMeetupByAdmin
+    completeMeetupByAdmin,
+    addProhibitedKeyword,
+    removeProhibitedKeyword,
+    resolveDispute,
+    adjustUserTrustScore
   } = useAdmin();
 
-  const { allUsers, currentUser } = useAuth();
+  const { allUsers, currentUser, login, logout, isAdmin } = useAuth();
   const { listings } = useMarket();
   const { requests: wantedRequests, deleteRequest: deleteWantedRequest } = useWanted();
   const { meetups } = useChat();
   const { showToast } = useToast();
 
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'verifications' | 'users' | 'listings' | 'wanted' | 'meetups' | 'announcements' | 'audit'
+    | 'overview'
+    | 'verifications'
+    | 'users'
+    | 'listings'
+    | 'scanner'
+    | 'disputes'
+    | 'reputation'
+    | 'wanted'
+    | 'meetups'
+    | 'landmarks'
+    | 'priceAdvisor'
+    | 'announcements'
+    | 'audit'
   >('overview');
+
+  // Admin gate login input state
+  const [adminEmailInput, setAdminEmailInput] = useState('');
+  const [adminPasswordInput, setAdminPasswordInput] = useState('');
 
   // Search and filters
   const [userSearch, setUserSearch] = useState('');
   const [userCampusFilter, setUserCampusFilter] = useState<string>('All');
-  const [listingSearch, setListingSearch] = useState('');
   const [verificationFilter, setVerificationFilter] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending');
+
+  // Scanner Tool State
+  const [newKeywordInput, setNewKeywordInput] = useState('');
+  const [isScanning, setIsScanning] = useState(false);
+
+  // Dispute Tool State
+  const [selectedDispute, setSelectedDispute] = useState<TradeDispute | null>(null);
+  const [disputeVerdictNote, setDisputeVerdictNote] = useState('');
+
+  // Reputation Tool State
+  const [repTargetUserId, setRepTargetUserId] = useState<string>(allUsers[0]?.id || '');
+  const [repDelta, setRepDelta] = useState<number>(10);
+  const [repReason, setRepReason] = useState<string>('Exemplary honest trading & punctuality');
+
+  // Landmark Configurator State
+  const [landmarkCampusFilter, setLandmarkCampusFilter] = useState<string>('All');
+  const [activeLandmarks, setActiveLandmarks] = useState<Record<string, boolean>>(() => {
+    const map: Record<string, boolean> = {};
+    CAMPUS_MEETUP_SPOTS.forEach((s) => (map[s.id] = true));
+    return map;
+  });
+
+  // Audit Log Filters
+  const [auditTypeFilter, setAuditTypeFilter] = useState<string>('all');
+  const [auditSearch, setAuditSearch] = useState<string>('');
 
   // Modals state
   const [inspectedImage, setInspectedImage] = useState<string | null>(null);
@@ -95,6 +147,136 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   const pendingRequests = verificationRequests.filter((r) => r.status === 'pending');
   const pendingFlags = flaggedListings.filter((f) => f.status === 'pending');
   const bannedUsers = allUsers.filter((u) => u.isBanned);
+
+  const handleAdminGateSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminEmailInput.trim() || !adminPasswordInput.trim()) {
+      showToast('Input Required', 'Please enter your administrator ID/email and password.', 'warning');
+      return;
+    }
+    const res = login(adminEmailInput, adminPasswordInput);
+    if (res.success) {
+      showToast('Admin Authorized', res.message, 'success');
+    } else {
+      showToast('Access Denied', res.message, 'error');
+    }
+  };
+
+  // If user is not authenticated as admin, show the official Admin Access Gate
+  if (!isAdmin) {
+    return (
+      <div className="container" style={{ padding: '3.5rem 1.5rem 6rem 1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '75vh' }}>
+        <div
+          className="clean-card"
+          style={{
+            maxWidth: '480px',
+            width: '100%',
+            padding: '2.25rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1.25rem',
+            border: '2px solid #BCD1F7',
+            boxShadow: '0 20px 40px rgba(0, 43, 127, 0.12)'
+          }}
+        >
+          {/* Header */}
+          <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.65rem' }}>
+            <div
+              style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '16px',
+                backgroundColor: '#EBF1FC',
+                border: '1.5px solid #BCD1F7',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#002B7F'
+              }}
+            >
+              <ShieldAlert size={30} />
+            </div>
+
+            <div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: '#002B7F', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', backgroundColor: '#EBF1FC', padding: '0.2rem 0.6rem', borderRadius: '6px' }}>
+                Restricted Access
+              </div>
+              <h1 style={{ fontSize: '1.45rem', fontWeight: 900, color: '#0F172A', marginTop: '0.35rem', fontFamily: 'var(--font-display)' }}>
+                Campus Moderation & Safety Desk
+              </h1>
+              <p style={{ fontSize: '0.82rem', color: '#64748B', marginTop: '0.25rem' }}>
+                Please authenticate with official University of Cebu Administrator credentials to access moderation tools, KYC queues, and safety escrows.
+              </p>
+            </div>
+          </div>
+
+          {/* Standard Secure Login Form */}
+          <form onSubmit={handleAdminGateSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+                Administrator ID or Email
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  value={adminEmailInput}
+                  onChange={(e) => setAdminEmailInput(e.target.value)}
+                  placeholder="e.g. admin@uc.edu.ph"
+                  className="clean-input"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+                Password
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="password"
+                  value={adminPasswordInput}
+                  onChange={(e) => setAdminPasswordInput(e.target.value)}
+                  placeholder="Enter administrator password"
+                  className="clean-input"
+                  required
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className="btn-primary"
+              style={{ padding: '0.75rem', width: '100%', fontWeight: 800, fontSize: '0.88rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem', marginTop: '0.25rem' }}
+            >
+              <LogIn size={16} style={{ flexShrink: 0 }} />
+              <span>Authenticate as Administrator</span>
+            </button>
+          </form>
+
+          {/* Back button */}
+          <div style={{ textAlign: 'center', paddingTop: '0.5rem', borderTop: '1px solid #F1F5F9' }}>
+            <button
+              type="button"
+              onClick={() => onNavigate('home')}
+              style={{
+                fontSize: '0.8rem',
+                color: '#64748B',
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                cursor: 'pointer'
+              }}
+            >
+              <ArrowLeft size={14} style={{ flexShrink: 0 }} />
+              <span>Back to Student Marketplace</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // User Actions
   const handleOpenBanModal = (user: User) => {
@@ -162,6 +344,56 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     showToast('Boost Updated', `Hero carousel boost toggled for "${listing.title}".`, 'success');
   };
 
+  // Scanner Tool Actions
+  const handleAddKeyword = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newKeywordInput.trim()) return;
+    addProhibitedKeyword(newKeywordInput.trim());
+    showToast('Keyword Filter Added', `Added "${newKeywordInput.trim()}" to blacklist.`, 'success');
+    setNewKeywordInput('');
+  };
+
+  const handleTriggerScanner = () => {
+    setIsScanning(true);
+    setTimeout(() => {
+      setIsScanning(false);
+      showToast('Scan Completed', `Analyzed ${listings.length} active listings across 8 campuses.`, 'info');
+    }, 600);
+  };
+
+  // Scan Listings for Prohibited Keywords
+  const scannedViolations = listings
+    .map((item) => {
+      const textToSearch = `${item.title} ${item.description} ${item.category} ${(item.tags || []).join(' ')}`.toLowerCase();
+      const matched = prohibitedKeywords.filter((kw) => textToSearch.includes(kw.toLowerCase()));
+      return {
+        listing: item,
+        matchedKeywords: matched,
+        riskScore: matched.length >= 2 ? 'High Risk' : matched.length === 1 ? 'Medium Risk' : 'Clean'
+      };
+    })
+    .filter((res) => res.matchedKeywords.length > 0);
+
+  // Dispute Actions
+  const handleConfirmDisputeVerdict = (action: 'refund' | 'warning' | 'dismissed' | 'ban') => {
+    if (!selectedDispute) return;
+    resolveDispute(selectedDispute.id, action, disputeVerdictNote.trim() || `Verdict rendered: ${action}`);
+    showToast('Dispute Resolved', `Applied verdict: ${action.toUpperCase()}`, 'success');
+    setSelectedDispute(null);
+    setDisputeVerdictNote('');
+  };
+
+  // Reputation Adjustment Action
+  const handleApplyTrustAdjustment = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!repTargetUserId) {
+      showToast('Select User', 'Please choose a student to adjust.', 'warning');
+      return;
+    }
+    adjustUserTrustScore(repTargetUserId, repDelta, repReason.trim() || 'Moderator trust adjustment');
+    showToast('Trust Score Updated', `Score adjusted by ${repDelta >= 0 ? '+' : ''}${repDelta} points.`, 'success');
+  };
+
   // Announcement Actions
   const handleCreateAnnouncementSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,6 +408,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     setIsNewAnnModalOpen(false);
   };
 
+  // Export Audit Trail to CSV
+  const handleExportAuditCSV = () => {
+    const headers = ['ID', 'Admin Name', 'Action', 'Target Type', 'Target ID', 'Details', 'Timestamp'];
+    const rows = auditLogs.map((log) => [
+      log.id,
+      `"${log.adminName}"`,
+      `"${log.action}"`,
+      `"${log.targetType}"`,
+      `"${log.targetId}"`,
+      `"${log.details.replace(/"/g, '""')}"`,
+      `"${log.timestamp}"`
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `UC_TradeLink_Audit_Log_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showToast('Export Successful', 'Downloaded audit compliance report as CSV.', 'success');
+  };
+
   // Filtered Users
   const filteredUsers = allUsers.filter((u) => {
     const matchesSearch =
@@ -184,6 +441,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
       u.email.toLowerCase().includes(userSearch.toLowerCase());
     const matchesCampus = userCampusFilter === 'All' || u.campus === userCampusFilter;
     return matchesSearch && matchesCampus;
+  });
+
+  // Filtered Audit Logs
+  const filteredAuditLogs = auditLogs.filter((log) => {
+    const matchesType = auditTypeFilter === 'all' || log.targetType === auditTypeFilter;
+    const matchesSearch =
+      log.action.toLowerCase().includes(auditSearch.toLowerCase()) ||
+      log.details.toLowerCase().includes(auditSearch.toLowerCase()) ||
+      log.adminName.toLowerCase().includes(auditSearch.toLowerCase());
+    return matchesType && matchesSearch;
   });
 
   return (
@@ -197,9 +464,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
           <h1 style={{ fontSize: '1.85rem', fontWeight: 900, color: '#0F172A', marginTop: '0.45rem', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}>
             Campus Administration & Safety Center
           </h1>
-          <p style={{ fontSize: '0.85rem', color: '#64748B', marginTop: '0.15rem' }}>
-            Manage student verification requests, user suspensions, listing reports, safe meetup escrows, and campus broadcasts.
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.82rem', color: '#64748B' }}>
+              Logged in as: <strong style={{ color: '#002B7F' }}>{currentUser?.name || 'UC Admin Moderator'}</strong> ({currentUser?.email ? <code>{currentUser.email}</code> : 'Authenticated'})
+            </span>
+            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#059669', backgroundColor: '#ECFDF5', padding: '0.15rem 0.5rem', borderRadius: '4px' }}>
+              ● All 8 Campuses Moderation Active
+            </span>
+          </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
@@ -210,6 +482,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
           >
             <Megaphone size={14} />
             <span>Post Broadcast</span>
+          </button>
+          <button
+            onClick={() => {
+              logout();
+              showToast('Signed Out', 'Signed out of administrator account.', 'info');
+              onNavigate('home');
+            }}
+            style={{
+              padding: '0.55rem 0.85rem',
+              fontSize: '0.82rem',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              backgroundColor: '#F1F5F9',
+              color: '#475569',
+              borderRadius: '8px',
+              border: '1px solid #CBD5E1'
+            }}
+          >
+            <LogOut size={14} />
+            <span>Exit Admin</span>
           </button>
         </div>
       </div>
@@ -231,8 +525,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
           { id: 'verifications', label: `ID Verifications (${pendingRequests.length})`, icon: <BadgeCheck size={14} /> },
           { id: 'users', label: `Users & Moderation (${allUsers.length})`, icon: <UserCheck size={14} /> },
           { id: 'listings', label: `Listings & Flags (${pendingFlags.length})`, icon: <ShieldAlert size={14} /> },
+          { id: 'scanner', label: `Prohibited Scanner (${scannedViolations.length})`, icon: <Shield size={14} /> },
+          { id: 'disputes', label: `Trade Disputes (${pendingDisputesCount})`, icon: <Scale size={14} /> },
+          { id: 'reputation', label: 'Trust & Reputation', icon: <Award size={14} /> },
           { id: 'wanted', label: `Wanted Board (${wantedRequests.length})`, icon: <Sparkles size={14} /> },
           { id: 'meetups', label: `Meetup Escrows (${meetups.length})`, icon: <MapPin size={14} /> },
+          { id: 'landmarks', label: 'Guarded Hubs', icon: <Building2 size={14} /> },
+          { id: 'priceAdvisor', label: 'Price Compliance', icon: <DollarSign size={14} /> },
           { id: 'announcements', label: `Broadcasts (${announcements.length})`, icon: <Megaphone size={14} /> },
           { id: 'audit', label: `Audit Log (${auditLogs.length})`, icon: <History size={14} /> }
         ].map((tab) => {
@@ -242,21 +541,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
               style={{
-                padding: '0.5rem 0.95rem',
+                padding: '0.55rem 0.95rem',
                 borderRadius: '8px',
-                fontSize: '0.82rem',
+                fontSize: '0.8rem',
                 fontWeight: isActive ? 800 : 600,
                 backgroundColor: isActive ? '#002B7F' : 'transparent',
                 color: isActive ? '#FFFFFF' : '#475569',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '0.4rem',
+                gap: '0.45rem',
                 whiteSpace: 'nowrap',
                 transition: 'all 0.15s ease',
-                flexShrink: 0
+                flexShrink: 0,
+                cursor: 'pointer'
               }}
             >
-              {tab.icon}
+              <span style={{ display: 'inline-flex', flexShrink: 0 }}>{tab.icon}</span>
               <span>{tab.label}</span>
             </button>
           );
@@ -269,7 +569,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
       {activeTab === 'overview' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {/* Key Metrics Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '1rem' }}>
             <div className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Registered UCians</span>
               <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#002B7F', fontFamily: 'var(--font-display)' }}>
@@ -299,11 +599,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
             </div>
 
             <div className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Reported / Flagged Items</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Reported / Flagged</span>
               <div style={{ fontSize: '1.75rem', fontWeight: 900, color: pendingFlags.length > 0 ? '#DC2626' : '#059669', fontFamily: 'var(--font-display)' }}>
                 {pendingFlags.length}
               </div>
               <span style={{ fontSize: '0.75rem', color: '#DC2626', fontWeight: 700 }}>Action required</span>
+            </div>
+
+            <div className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Active Trade Disputes</span>
+              <div style={{ fontSize: '1.75rem', fontWeight: 900, color: pendingDisputesCount > 0 ? '#D97706' : '#059669', fontFamily: 'var(--font-display)' }}>
+                {pendingDisputesCount}
+              </div>
+              <span style={{ fontSize: '0.75rem', color: '#64748B' }}>Mediation queue</span>
             </div>
 
             <div className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
@@ -503,7 +811,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
       )}
 
       {/* =========================================================================
-          TAB 3: USER ACCOUNTS & MODERATION (BANNING / SUSPENSION)
+          TAB 3: USER ACCOUNTS & MODERATION
           ========================================================================= */}
       {activeTab === 'users' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -790,7 +1098,367 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
       )}
 
       {/* =========================================================================
-          TAB 5: WANTED BOARD & PASABUY MODERATION
+          TAB 5: PROHIBITED CONTENT SCANNER & AUTO-MODERATION TOOL
+          ========================================================================= */}
+      {activeTab === 'scanner' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Top Config Card */}
+          <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#002B7F', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Shield size={20} /> Prohibited Keywords & Auto-Moderation Blacklist
+                </h3>
+                <p style={{ fontSize: '0.82rem', color: '#64748B', marginTop: '0.2rem' }}>
+                  Define prohibited term patterns to automatically scan listings for academic leaks, contraband, and hazardous goods.
+                </p>
+              </div>
+
+              <button
+                onClick={handleTriggerScanner}
+                disabled={isScanning}
+                className="btn-gold"
+                style={{ padding: '0.55rem 1.1rem', fontSize: '0.82rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+              >
+                <Search size={14} />
+                <span>{isScanning ? 'Scanning Marketplace...' : 'Run Auto-Scan Now'}</span>
+              </button>
+            </div>
+
+            {/* Keyword Pills List */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '0.5rem' }}>
+                Active Blacklisted Terms ({prohibitedKeywords.length}):
+              </label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                {prohibitedKeywords.map((kw) => (
+                  <span
+                    key={kw}
+                    style={{
+                      backgroundColor: '#FEF2F2',
+                      color: '#DC2626',
+                      border: '1px solid #FECACA',
+                      padding: '0.25rem 0.6rem',
+                      borderRadius: '6px',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem'
+                    }}
+                  >
+                    <span>{kw}</span>
+                    <button
+                      onClick={() => removeProhibitedKeyword(kw)}
+                      style={{ color: '#DC2626', cursor: 'pointer', display: 'flex' }}
+                      title="Remove keyword"
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Add New Keyword Form */}
+            <form onSubmit={handleAddKeyword} style={{ display: 'flex', gap: '0.5rem', maxWidth: '420px' }}>
+              <input
+                type="text"
+                placeholder="Add prohibited term e.g. 'vape' or 'exam leak'..."
+                value={newKeywordInput}
+                onChange={(e) => setNewKeywordInput(e.target.value)}
+                className="clean-input"
+                style={{ fontSize: '0.82rem' }}
+              />
+              <button
+                type="submit"
+                className="btn-primary"
+                style={{ padding: '0.5rem 0.9rem', fontSize: '0.8rem', fontWeight: 800, whiteSpace: 'nowrap' }}
+              >
+                <Plus size={14} /> Add Filter
+              </button>
+            </form>
+          </div>
+
+          {/* Scanner Match Results */}
+          <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <AlertCircle size={18} color="#DC2626" /> Scanner Detection Queue ({scannedViolations.length} Detected)
+              </h3>
+            </div>
+
+            {scannedViolations.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2.5rem', color: '#059669', fontSize: '0.85rem' }}>
+                <Check size={32} color="#059669" style={{ margin: '0 auto 0.5rem' }} />
+                <div style={{ fontWeight: 800, fontSize: '0.95rem' }}>Clean Marketplace</div>
+                <p style={{ color: '#64748B', marginTop: '0.2rem' }}>No active listings match blacklisted prohibited terms.</p>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
+                {scannedViolations.map(({ listing, matchedKeywords }) => (
+                  <div
+                    key={listing.id}
+                    style={{
+                      border: '1.5px solid #FECACA',
+                      backgroundColor: '#FFF5F5',
+                      borderRadius: '10px',
+                      padding: '1rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.75rem'
+                    }}
+                  >
+                    <div style={{ display: 'flex', gap: '0.75rem' }}>
+                      <img src={listing.images[0]} alt={listing.title} style={{ width: '60px', height: '60px', borderRadius: '8px', objectFit: 'cover' }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <h4 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {listing.title}
+                        </h4>
+                        <div style={{ fontSize: '0.75rem', color: '#64748B' }}>Seller: {listing.sellerName} ({listing.sellerCampus})</div>
+                        <div style={{ marginTop: '0.35rem', display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                          {matchedKeywords.map((kw) => (
+                            <span key={kw} style={{ fontSize: '0.68rem', fontWeight: 800, backgroundColor: '#DC2626', color: '#FFFFFF', padding: '0.15rem 0.4rem', borderRadius: '4px' }}>
+                              ⚠️ Matched: {kw}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto' }}>
+                      <button
+                        onClick={() => handleRemoveListing('scanner', listing.id, listing.title)}
+                        style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 800, backgroundColor: '#DC2626', color: '#FFFFFF' }}
+                      >
+                        Takedown Listing
+                      </button>
+                      <button
+                        onClick={() => handleOpenBanModal(allUsers.find((u) => u.id === listing.sellerId) || allUsers[0])}
+                        style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 700, backgroundColor: '#FEF2F2', color: '#DC2626', border: '1px solid #FECACA' }}
+                      >
+                        Ban Seller
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          TAB 6: TRADE DISPUTE & MEDIATION DESK
+          ========================================================================= */}
+      {activeTab === 'disputes' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#002B7F', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Scale size={20} /> Student Trade Dispute & Mediation Cases ({disputes.length})
+                </h3>
+                <p style={{ fontSize: '0.82rem', color: '#64748B', marginTop: '0.2rem' }}>
+                  Mediate disputes regarding item condition discrepancies, landmark meetup ghosting, and payment settlement.
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.25rem' }}>
+              {disputes.map((disp) => (
+                <div
+                  key={disp.id}
+                  className="clean-card"
+                  style={{
+                    padding: '1.25rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.85rem',
+                    border: disp.status === 'pending' ? '1.5px solid #FDE68A' : '1px solid #E2E8F0',
+                    backgroundColor: disp.status === 'pending' ? '#FFFDF5' : '#FFFFFF'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                    <CampusBadge campus={disp.campus} size="sm" />
+                    <span
+                      style={{
+                        padding: '0.2rem 0.5rem',
+                        borderRadius: '4px',
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                        textTransform: 'uppercase',
+                        backgroundColor: disp.status === 'pending' ? '#FFFBEB' : '#ECFDF5',
+                        color: disp.status === 'pending' ? '#D97706' : '#059669'
+                      }}
+                    >
+                      {disp.status}
+                    </span>
+                  </div>
+
+                  <div>
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0F172A' }}>{disp.listingTitle}</h4>
+                    <div style={{ fontSize: '0.78rem', color: '#475569', marginTop: '0.25rem' }}>
+                      Buyer: <strong>{disp.buyerName}</strong> ↔ Seller: <strong>{disp.sellerName}</strong>
+                    </div>
+                  </div>
+
+                  <div style={{ backgroundColor: '#F8FAFC', padding: '0.75rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem', color: '#334155', lineHeight: 1.45 }}>
+                    <strong>Dispute Claim:</strong> "{disp.reason}"
+                  </div>
+
+                  {disp.status === 'pending' ? (
+                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto' }}>
+                      <button
+                        onClick={() => {
+                          setSelectedDispute(disp);
+                          setDisputeVerdictNote('Seller verified condition discrepancy. Warning strike recorded and partial remedy noted.');
+                        }}
+                        className="btn-primary"
+                        style={{ flex: 1, padding: '0.5rem', fontSize: '0.78rem', fontWeight: 800, justifyContent: 'center' }}
+                      >
+                        Render Verdict
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 700 }}>
+                      ✓ Case Resolved ({disp.verdictAction?.toUpperCase()}): {disp.verdictNote}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          TAB 7: STUDENT TRUST & HONOR CODE MANAGER
+          ========================================================================= */}
+      {activeTab === 'reputation' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Quick Adjustment Card */}
+          <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#002B7F', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <Award size={20} /> Student Trust Score & Honor Code Manager
+            </h3>
+            <p style={{ fontSize: '0.82rem', color: '#64748B' }}>
+              Manually adjust student reputation points to reward verified honest barter merchants or penalize code of conduct infractions.
+            </p>
+
+            <form onSubmit={handleApplyTrustAdjustment} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+                  Target Student
+                </label>
+                <select
+                  value={repTargetUserId}
+                  onChange={(e) => setRepTargetUserId(e.target.value)}
+                  style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.82rem' }}
+                >
+                  {allUsers.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name} ({u.campus} • Trust: {u.trustScore || 80}/100)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+                  Point Delta (+/-)
+                </label>
+                <select
+                  value={repDelta}
+                  onChange={(e) => setRepDelta(Number(e.target.value))}
+                  style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.82rem', fontWeight: 700 }}
+                >
+                  <option value={15}>+15 Points (Honor Roll Trading)</option>
+                  <option value={10}>+10 Points (Verified Punctual Handshake)</option>
+                  <option value={-10}>-10 Points (Late Arrival at Landmark)</option>
+                  <option value={-20}>-20 Points (Condition Misrepresentation)</option>
+                  <option value={-35}>-35 Points (Severe Community Warning)</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+                  Compliance Reason
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Excellent conduct / Disciplinary deduction"
+                  value={repReason}
+                  onChange={(e) => setRepReason(e.target.value)}
+                  className="clean-input"
+                  style={{ fontSize: '0.82rem' }}
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="btn-primary"
+                style={{ padding: '0.65rem 1rem', fontSize: '0.82rem', fontWeight: 800, justifyContent: 'center' }}
+              >
+                Apply Score Adjustment
+              </button>
+            </form>
+          </div>
+
+          {/* Honor Roll & Watchlist Grids */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem' }}>
+            {/* Honor Roll Merchants */}
+            <div className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#059669', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <Check size={16} /> Campus Honor Roll (Trust ≥ 90%)
+              </h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {allUsers
+                  .filter((u) => (u.trustScore || 80) >= 90)
+                  .map((u) => (
+                    <div key={u.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0.65rem', borderRadius: '6px', backgroundColor: '#ECFDF5', fontSize: '0.8rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <img src={u.avatar} alt={u.name} style={{ width: '28px', height: '28px', borderRadius: '50%' }} />
+                        <div>
+                          <strong style={{ color: '#065F46' }}>{u.name}</strong>
+                          <div style={{ fontSize: '0.7rem', color: '#64748B' }}>{u.campus}</div>
+                        </div>
+                      </div>
+                      <span style={{ fontWeight: 900, color: '#059669' }}>{u.trustScore || 90}/100</span>
+                    </div>
+                  ))}
+              </div>
+            </div>
+
+            {/* Low Trust Watchlist */}
+            <div className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#DC2626', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <AlertTriangle size={16} /> Moderation Watchlist (Trust &lt; 75%)
+              </h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {allUsers
+                  .filter((u) => (u.trustScore || 80) < 75)
+                  .map((u) => (
+                    <div key={u.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0.65rem', borderRadius: '6px', backgroundColor: '#FEF2F2', fontSize: '0.8rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <img src={u.avatar} alt={u.name} style={{ width: '28px', height: '28px', borderRadius: '50%' }} />
+                        <div>
+                          <strong style={{ color: '#991B1B' }}>{u.name}</strong>
+                          <div style={{ fontSize: '0.7rem', color: '#64748B' }}>{u.campus} • {u.warningsCount || 0} Strikes</div>
+                        </div>
+                      </div>
+                      <span style={{ fontWeight: 900, color: '#DC2626' }}>{u.trustScore || 60}/100</span>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          TAB 8: WANTED BOARD & PASABUY MODERATION
           ========================================================================= */}
       {activeTab === 'wanted' && (
         <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -841,7 +1509,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
       )}
 
       {/* =========================================================================
-          TAB 6: SAFE MEETUP ESCROWS & LANDMARK HANDSHAKES
+          TAB 9: SAFE MEETUP ESCROWS & LANDMARK HANDSHAKES
           ========================================================================= */}
       {activeTab === 'meetups' && (
         <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -922,7 +1590,153 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
       )}
 
       {/* =========================================================================
-          TAB 7: CAMPUS BROADCAST ANNOUNCEMENTS
+          TAB 10: GUARDED LANDMARK HUBS CONFIGURATOR
+          ========================================================================= */}
+      {activeTab === 'landmarks' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#002B7F', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Building2 size={20} /> Guarded Campus Meetup Landmarks ({CAMPUS_MEETUP_SPOTS.length} Designated Spots)
+                </h3>
+                <p style={{ fontSize: '0.82rem', color: '#64748B', marginTop: '0.2rem' }}>
+                  Configure active security-supervised student trade rendezvous hubs across all 8 UC campuses.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <select
+                  value={landmarkCampusFilter}
+                  onChange={(e) => setLandmarkCampusFilter(e.target.value)}
+                  style={{ padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.8rem' }}
+                >
+                  <option value="All">All Campuses</option>
+                  <option value="UC Main">UC Main</option>
+                  <option value="UC Banilad">UC Banilad</option>
+                  <option value="UC LM">UC LM</option>
+                  <option value="UC METC">UC METC</option>
+                  <option value="UC PRI">UC PRI</option>
+                  <option value="UC Pardo-Talisay">UC Pardo-Talisay</option>
+                  <option value="UC South Campus">UC South Campus</option>
+                  <option value="UC Medical Center">UC Medical Center</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
+              {CAMPUS_MEETUP_SPOTS.filter(
+                (spot) => landmarkCampusFilter === 'All' || spot.campus === landmarkCampusFilter
+              ).map((spot) => {
+                const isSpotActive = activeLandmarks[spot.id] !== false;
+                return (
+                  <div key={spot.id} className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                      <CampusBadge campus={spot.campus as Campus} size="sm" />
+                      <button
+                        onClick={() => {
+                          setActiveLandmarks((prev) => ({ ...prev, [spot.id]: !isSpotActive }));
+                          showToast('Landmark Status', `${spot.name} is now ${!isSpotActive ? 'Active' : 'Disabled'}.`, 'info');
+                        }}
+                        style={{
+                          padding: '0.2rem 0.5rem',
+                          borderRadius: '4px',
+                          fontSize: '0.7rem',
+                          fontWeight: 800,
+                          backgroundColor: isSpotActive ? '#ECFDF5' : '#F1F5F9',
+                          color: isSpotActive ? '#059669' : '#64748B'
+                        }}
+                      >
+                        {isSpotActive ? '● Active Guard Hub' : '○ Offline'}
+                      </button>
+                    </div>
+
+                    <h4 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0F172A' }}>{spot.name}</h4>
+                    <p style={{ fontSize: '0.78rem', color: '#64748B' }}>{spot.locationDetails}</p>
+
+                    <div style={{ marginTop: 'auto', paddingTop: '0.5rem', borderTop: '1px solid #F1F5F9', fontSize: '0.72rem', color: '#002B7F', fontWeight: 700 }}>
+                      🕒 {spot.bestHours}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          TAB 11: FAIR PRICE COMPLIANCE & GOUGING INSPECTOR
+          ========================================================================= */}
+      {activeTab === 'priceAdvisor' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#002B7F', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <DollarSign size={20} /> Campus Fair-Pricing & Anti-Gouging Inspector
+            </h3>
+            <p style={{ fontSize: '0.82rem', color: '#64748B' }}>
+              Automatically checks student listings against official SRP campus benchmarks to prevent uniform and textbook price gouging.
+            </p>
+
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid #E2E8F0', color: '#64748B' }}>
+                    <th style={{ padding: '0.65rem 0.75rem' }}>Item</th>
+                    <th style={{ padding: '0.65rem 0.75rem' }}>Campus</th>
+                    <th style={{ padding: '0.65rem 0.75rem' }}>Listed Price</th>
+                    <th style={{ padding: '0.65rem 0.75rem' }}>Original SRP</th>
+                    <th style={{ padding: '0.65rem 0.75rem' }}>Pricing Evaluation</th>
+                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>Compliance Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {listings.map((l) => {
+                    const pctOfSrp = l.originalSrp > 0 ? Math.round((l.price / l.originalSrp) * 100) : 100;
+                    const isGouging = l.originalSrp > 0 && l.price > l.originalSrp * 0.9;
+                    return (
+                      <tr key={l.id} style={{ borderBottom: '1px solid #F1F5F9', backgroundColor: isGouging ? '#FFFBEB' : 'transparent' }}>
+                        <td style={{ padding: '0.75rem', fontWeight: 700, color: '#0F172A' }}>{l.title}</td>
+                        <td style={{ padding: '0.75rem' }}><CampusBadge campus={l.sellerCampus} size="sm" /></td>
+                        <td style={{ padding: '0.75rem', fontWeight: 800, color: '#002B7F' }}>₱{l.price.toLocaleString()}</td>
+                        <td style={{ padding: '0.75rem', color: '#64748B' }}>₱{l.originalSrp.toLocaleString()}</td>
+                        <td style={{ padding: '0.75rem' }}>
+                          <span
+                            style={{
+                              padding: '0.2rem 0.5rem',
+                              borderRadius: '4px',
+                              fontSize: '0.7rem',
+                              fontWeight: 800,
+                              backgroundColor: pctOfSrp <= 50 ? '#ECFDF5' : pctOfSrp <= 85 ? '#EBF1FC' : '#FEF2F2',
+                              color: pctOfSrp <= 50 ? '#059669' : pctOfSrp <= 85 ? '#002B7F' : '#DC2626'
+                            }}
+                          >
+                            {pctOfSrp <= 50 ? 'Great Bargain' : pctOfSrp <= 85 ? 'Fair Campus Price' : '⚠️ High / Review'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '0.75rem', textAlign: 'right' }}>
+                          <button
+                            onClick={() => {
+                              warnUserByAdmin(l.sellerId, `Pricing notice for "${l.title}". Please verify compliance with student affordability guidelines.`);
+                              showToast('Price Notice Sent', `Issued pricing notice to seller ${l.sellerName}.`, 'warning');
+                            }}
+                            style={{ padding: '0.35rem 0.65rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700, backgroundColor: '#FFFBEB', color: '#D97706', border: '1px solid #FDE68A' }}
+                          >
+                            Send Notice
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          TAB 12: CAMPUS BROADCAST ANNOUNCEMENTS
           ========================================================================= */}
       {activeTab === 'announcements' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -992,13 +1806,47 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
       )}
 
       {/* =========================================================================
-          TAB 8: REAL-TIME ADMIN AUDIT LOG
+          TAB 13: REAL-TIME ADMIN AUDIT LOG & CSV EXPORTER
           ========================================================================= */}
       {activeTab === 'audit' && (
         <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <History size={18} color="#002B7F" /> Administrative Activity & Audit Trail ({auditLogs.length})
-          </h3>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <History size={18} color="#002B7F" /> Administrative Activity & Audit Trail ({auditLogs.length})
+              </h3>
+              <p style={{ fontSize: '0.8rem', color: '#64748B', marginTop: '0.15rem' }}>
+                Immutable record of every moderator action, KYC verification, ban, dispute verdict, and takedown.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <select
+                value={auditTypeFilter}
+                onChange={(e) => setAuditTypeFilter(e.target.value)}
+                style={{ padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.8rem' }}
+              >
+                <option value="all">All Action Types</option>
+                <option value="verification">ID KYC Verifications</option>
+                <option value="user">User Bans & Warnings</option>
+                <option value="listing">Listing Takedowns</option>
+                <option value="dispute">Dispute Verdicts</option>
+                <option value="meetup">Meetup Escrows</option>
+                <option value="announcement">Broadcasts</option>
+                <option value="system">System Config</option>
+              </select>
+
+              <button
+                onClick={handleExportAuditCSV}
+                className="btn-gold"
+                style={{ padding: '0.45rem 0.9rem', fontSize: '0.8rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+              >
+                <Download size={14} />
+                <span>Export CSV Report</span>
+              </button>
+            </div>
+          </div>
+
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
               <thead>
@@ -1011,7 +1859,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 </tr>
               </thead>
               <tbody>
-                {auditLogs.map((log) => (
+                {filteredAuditLogs.map((log) => (
                   <tr key={log.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                     <td style={{ padding: '0.75rem', fontWeight: 800, color: '#002B7F' }}>{log.action}</td>
                     <td style={{ padding: '0.75rem' }}>
@@ -1082,6 +1930,77 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 style={{ flex: 1, padding: '0.6rem', borderRadius: '8px', fontSize: '0.84rem', fontWeight: 800, backgroundColor: '#DC2626', color: '#FFFFFF' }}
               >
                 Confirm Ban
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODALS: DISPUTE VERDICT MODAL
+          ========================================================================= */}
+      {selectedDispute && (
+        <div
+          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0, 29, 89, 0.65)', backdropFilter: 'blur(6px)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
+          onClick={() => setSelectedDispute(null)}
+        >
+          <div
+            style={{ backgroundColor: '#FFFFFF', borderRadius: '14px', border: '1.5px solid #CBD5E1', width: '100%', maxWidth: '480px', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#002B7F', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Scale size={18} /> Dispute Mediation Desk
+              </h3>
+              <button onClick={() => setSelectedDispute(null)} style={{ color: '#64748B' }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ backgroundColor: '#F8FAFC', padding: '0.75rem', borderRadius: '8px', fontSize: '0.82rem', color: '#334155' }}>
+              <div><strong>Item:</strong> {selectedDispute.listingTitle}</div>
+              <div><strong>Buyer:</strong> {selectedDispute.buyerName}</div>
+              <div><strong>Seller:</strong> {selectedDispute.sellerName}</div>
+              <div style={{ marginTop: '0.25rem' }}><strong>Reason:</strong> "{selectedDispute.reason}"</div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+                Official Verdict & Resolution Note:
+              </label>
+              <textarea
+                rows={3}
+                value={disputeVerdictNote}
+                onChange={(e) => setDisputeVerdictNote(e.target.value)}
+                className="clean-input"
+                style={{ fontSize: '0.82rem' }}
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+              <button
+                onClick={() => handleConfirmDisputeVerdict('refund')}
+                style={{ padding: '0.55rem', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 800, backgroundColor: '#059669', color: '#FFFFFF' }}
+              >
+                ✓ Remedy / Refund
+              </button>
+              <button
+                onClick={() => handleConfirmDisputeVerdict('warning')}
+                style={{ padding: '0.55rem', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 800, backgroundColor: '#D97706', color: '#FFFFFF' }}
+              >
+                ⚠️ Issue Strike Warning
+              </button>
+              <button
+                onClick={() => handleConfirmDisputeVerdict('dismissed')}
+                style={{ padding: '0.55rem', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 700, backgroundColor: '#F1F5F9', color: '#475569' }}
+              >
+                Dismiss Report
+              </button>
+              <button
+                onClick={() => handleConfirmDisputeVerdict('ban')}
+                style={{ padding: '0.55rem', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 800, backgroundColor: '#DC2626', color: '#FFFFFF' }}
+              >
+                Ban Offender
               </button>
             </div>
           </div>

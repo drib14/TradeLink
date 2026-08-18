@@ -6,7 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../common/Toast';
 import { BuyNowModal } from './BuyNowModal';
 import { SwapProposalModal } from './SwapProposalModal';
-import { Bookmark, ArrowLeftRight, Gift, ShoppingBag, Zap } from 'lucide-react';
+import { Bookmark, ArrowLeftRight, Gift, ShoppingBag, Eye, Sparkles } from 'lucide-react';
 
 interface ListingCardProps {
   listing: Listing;
@@ -20,6 +20,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
 
   const [isBuyModalOpen, setIsBuyModalOpen] = useState(false);
   const [isSwapModalOpen, setIsSwapModalOpen] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   const isFavorite = favorites.includes(listing.id);
 
@@ -32,7 +33,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
     toggleFavorite(listing.id);
     showToast(
       isFavorite ? 'Removed' : 'Saved',
-      isFavorite ? `"${listing.title}" removed.` : `"${listing.title}" saved.`,
+      isFavorite ? `"${listing.title}" removed from saved items.` : `"${listing.title}" added to saved items.`,
       'info'
     );
   };
@@ -59,47 +60,59 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
     <>
       <div
         onClick={onClick}
-        className="clean-card"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        className="premium-card"
         style={{
           display: 'flex',
           flexDirection: 'column',
           cursor: 'pointer',
-          overflow: 'hidden',
-          position: 'relative'
+          position: 'relative',
+          borderRadius: '14px',
+          border: isHovered ? '1.5px solid #BCD1F7' : '1px solid #E2E8F0',
+          transform: isHovered ? 'translateY(-5px)' : 'translateY(0)',
+          boxShadow: isHovered
+            ? '0 16px 32px -4px rgba(0, 43, 127, 0.12), 0 4px 12px rgba(0, 0, 0, 0.04)'
+            : '0 2px 8px -2px rgba(0, 43, 127, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03)',
+          transition: 'all 0.22s cubic-bezier(0.16, 1, 0.3, 1)'
         }}
       >
-        {/* Bookmark Button */}
+        {/* Bookmark Favorite Button */}
         <button
           onClick={handleFavoriteClick}
           style={{
             position: 'absolute',
-            top: '8px',
-            right: '8px',
-            backgroundColor: isFavorite ? '#002B7F' : 'rgba(255, 255, 255, 0.9)',
+            top: '10px',
+            right: '10px',
+            backgroundColor: isFavorite ? '#002B7F' : 'rgba(255, 255, 255, 0.92)',
             color: isFavorite ? '#FFC72C' : '#64748B',
-            padding: '0.4rem',
+            padding: '0.45rem',
             borderRadius: '50%',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 5,
-            backdropFilter: 'blur(4px)',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-            transition: 'all 0.15s ease'
+            zIndex: 6,
+            backdropFilter: 'blur(8px)',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
+            transform: isFavorite ? 'scale(1.05)' : 'scale(1)',
+            transition: 'all 0.15s ease',
+            cursor: 'pointer'
           }}
           title={isFavorite ? 'Remove saved' : 'Save item'}
         >
-          <Bookmark size={13} fill={isFavorite ? '#FFC72C' : 'none'} />
+          <Bookmark size={14} fill={isFavorite ? '#FFC72C' : 'none'} style={{ flexShrink: 0 }} />
         </button>
 
-        {/* Image Container */}
+        {/* Image Container with Zoom Effect */}
         <div
           style={{
             width: '100%',
-            height: 'clamp(135px, 16vw, 195px)',
+            height: 'clamp(145px, 16vw, 205px)',
             position: 'relative',
             overflow: 'hidden',
-            backgroundColor: '#F1F5F9'
+            backgroundColor: '#F1F5F9',
+            borderTopLeftRadius: '13px',
+            borderTopRightRadius: '13px'
           }}
         >
           <img
@@ -108,66 +121,96 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
             style={{
               width: '100%',
               height: '100%',
-              objectFit: 'cover'
+              objectFit: 'cover',
+              transform: isHovered ? 'scale(1.06)' : 'scale(1)',
+              transition: 'transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)'
             }}
           />
 
-          {/* Mode Tag on Corner */}
+          {/* Trade Mode Pill Badge */}
           {listing.tradeMode === 'swap' ? (
             <div
               style={{
                 position: 'absolute',
-                bottom: '6px',
-                left: '6px',
-                backgroundColor: '#002B7F',
+                bottom: '8px',
+                left: '8px',
+                background: 'linear-gradient(135deg, #002B7F 0%, #001D59 100%)',
                 color: '#FFC72C',
-                padding: '0.15rem 0.45rem',
-                borderRadius: '4px',
-                fontSize: '0.62rem',
+                padding: '0.2rem 0.6rem',
+                borderRadius: '6px',
+                fontSize: '0.68rem',
                 fontWeight: 800,
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
-                gap: '0.2rem',
-                letterSpacing: '0.04em'
+                gap: '0.3rem',
+                letterSpacing: '0.04em',
+                boxShadow: '0 2px 6px rgba(0, 43, 127, 0.3)',
+                lineHeight: 1
               }}
             >
-              <ArrowLeftRight size={10} /> SWAP
+              <ArrowLeftRight size={11} style={{ flexShrink: 0 }} /> <span>SWAP</span>
             </div>
           ) : listing.tradeMode === 'free_donation' ? (
             <div
               style={{
                 position: 'absolute',
-                bottom: '6px',
-                left: '6px',
-                backgroundColor: '#059669',
+                bottom: '8px',
+                left: '8px',
+                background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
                 color: '#FFFFFF',
-                padding: '0.15rem 0.45rem',
-                borderRadius: '4px',
-                fontSize: '0.62rem',
+                padding: '0.2rem 0.6rem',
+                borderRadius: '6px',
+                fontSize: '0.68rem',
                 fontWeight: 800,
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
-                gap: '0.2rem'
+                gap: '0.3rem',
+                boxShadow: '0 2px 6px rgba(5, 150, 105, 0.3)',
+                lineHeight: 1
               }}
             >
-              <Gift size={10} /> FREE
+              <Gift size={11} style={{ flexShrink: 0 }} /> <span>FREE</span>
             </div>
           ) : null}
+
+          {/* Boosted Indicator */}
+          {listing.isBoosted && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '10px',
+                left: '10px',
+                background: 'linear-gradient(135deg, #FFC72C 0%, #E5A800 100%)',
+                color: '#002B7F',
+                padding: '0.2rem 0.55rem',
+                borderRadius: '6px',
+                fontSize: '0.65rem',
+                fontWeight: 900,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+                boxShadow: '0 2px 6px rgba(229, 168, 0, 0.35)',
+                lineHeight: 1
+              }}
+            >
+              <Sparkles size={11} style={{ flexShrink: 0 }} /> <span>FEATURED</span>
+            </div>
+          )}
         </div>
 
-        {/* Card Info */}
-        <div style={{ padding: 'clamp(0.65rem, 1.2vw, 0.95rem)', display: 'flex', flexDirection: 'column', flex: 1, gap: '0.3rem' }}>
+        {/* Card Body */}
+        <div style={{ padding: 'clamp(0.75rem, 1.4vw, 1rem)', display: 'flex', flexDirection: 'column', flex: 1, gap: '0.35rem' }}>
           {/* Campus & Condition Line */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748B' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748B' }}>
             <span style={{ fontWeight: 800, color: '#002B7F' }}>{listing.sellerCampus}</span>
             <span style={{ color: '#CBD5E1' }}>•</span>
-            <span>{listing.condition}</span>
+            <span style={{ fontWeight: 600, color: '#475569' }}>{listing.condition}</span>
           </div>
 
-          {/* Title */}
+          {/* Item Title */}
           <h4
             style={{
-              fontSize: '0.88rem',
+              fontSize: '0.92rem',
               fontWeight: 700,
               color: '#0F172A',
               lineHeight: 1.35,
@@ -181,20 +224,20 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
             {listing.title}
           </h4>
 
-          {/* Price Row */}
-          <div style={{ marginTop: 'auto', paddingTop: '0.35rem', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+          {/* Price & Savings Row */}
+          <div style={{ marginTop: 'auto', paddingTop: '0.4rem', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
             <div>
               {listing.tradeMode === 'free_donation' ? (
-                <span style={{ fontSize: '1.05rem', fontWeight: 800, color: '#059669' }}>
+                <span style={{ fontSize: '1.15rem', fontWeight: 900, color: '#059669', letterSpacing: '-0.01em' }}>
                   FREE
                 </span>
               ) : (
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.35rem' }}>
-                  <span style={{ fontSize: '1.15rem', fontWeight: 800, color: '#002B7F', fontFamily: 'var(--font-display)' }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem' }}>
+                  <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#002B7F', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}>
                     ₱{listing.price.toLocaleString()}
                   </span>
                   {listing.originalSrp > listing.price && (
-                    <span style={{ fontSize: '0.72rem', color: '#94A3B8', textDecoration: 'line-through' }}>
+                    <span style={{ fontSize: '0.75rem', color: '#94A3B8', textDecoration: 'line-through' }}>
                       ₱{listing.originalSrp.toLocaleString()}
                     </span>
                   )}
@@ -203,77 +246,89 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
             </div>
 
             {savingsPct > 0 && listing.tradeMode !== 'free_donation' && (
-              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#059669', backgroundColor: '#ECFDF5', padding: '0.15rem 0.4rem', borderRadius: '4px' }}>
-                {savingsPct}% off
+              <span
+                style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  color: '#047857',
+                  backgroundColor: '#ECFDF5',
+                  border: '1px solid #A7F3D0',
+                  padding: '0.15rem 0.5rem',
+                  borderRadius: '6px'
+                }}
+              >
+                {savingsPct}% OFF
               </span>
             )}
           </div>
 
-          {/* Direct Action Button: Buy Now / Propose Swap */}
-          <div style={{ paddingTop: '0.45rem', marginTop: '0.2rem', display: 'flex', gap: '0.35rem' }}>
+          {/* Direct Action Button */}
+          <div style={{ paddingTop: '0.45rem', marginTop: '0.25rem' }}>
             <button
               onClick={handleActionClick}
               className={listing.tradeMode === 'swap' ? 'btn-secondary' : 'btn-primary'}
               style={{
                 width: '100%',
-                padding: '0.45rem 0.65rem',
-                fontSize: '0.78rem',
+                padding: '0.5rem 0.75rem',
+                fontSize: '0.82rem',
                 fontWeight: 800,
-                borderRadius: '6px',
+                borderRadius: '8px',
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '0.35rem'
+                gap: '0.4rem'
               }}
             >
               {listing.tradeMode === 'swap' ? (
                 <>
-                  <ArrowLeftRight size={13} />
+                  <ArrowLeftRight size={13} style={{ flexShrink: 0 }} />
                   <span>Propose Swap</span>
                 </>
               ) : listing.tradeMode === 'free_donation' ? (
                 <>
-                  <Gift size={13} />
+                  <Gift size={13} style={{ flexShrink: 0 }} />
                   <span>Claim Free</span>
                 </>
               ) : (
                 <>
-                  <ShoppingBag size={13} />
+                  <ShoppingBag size={13} style={{ flexShrink: 0 }} />
                   <span>Buy Now</span>
                 </>
               )}
             </button>
           </div>
 
-          {/* Seller Footer */}
+          {/* Seller Footer Info */}
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              paddingTop: '0.4rem',
+              paddingTop: '0.45rem',
               borderTop: '1px solid #F1F5F9',
-              marginTop: '0.2rem'
+              marginTop: '0.25rem'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
               <img
                 src={listing.sellerAvatar}
                 alt={listing.sellerName}
-                style={{ width: '18px', height: '18px', borderRadius: '50%', objectFit: 'cover' }}
+                style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #E2E8F0', flexShrink: 0 }}
               />
-              <span style={{ fontSize: '0.72rem', color: '#475569', fontWeight: 600 }}>
+              <span style={{ fontSize: '0.74rem', color: '#475569', fontWeight: 600 }}>
                 {listing.sellerName.split(' ')[0]}
               </span>
               {listing.sellerIsVerified && <VerifiedBadge size="xs" variant="gold" showTooltip={false} />}
             </div>
 
-            <span style={{ fontSize: '0.68rem', color: '#94A3B8' }}>{listing.views} views</span>
+            <span style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+              <Eye size={12} style={{ flexShrink: 0 }} /> <span>{listing.views}</span>
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Modals */}
+      {/* Buy Now & Swap Proposals Modals */}
       {isBuyModalOpen && (
         <BuyNowModal
           isOpen={isBuyModalOpen}

@@ -4,9 +4,10 @@ interface LogoProps {
   size?: 'sm' | 'md' | 'lg';
   showSubtitle?: boolean;
   variant?: 'full' | 'emblem-only' | 'text-only';
+  isDark?: boolean;
 }
 
-export const Logo: React.FC<LogoProps> = ({ size = 'md', showSubtitle = true, variant = 'full' }) => {
+export const Logo: React.FC<LogoProps> = ({ size = 'md', showSubtitle = true, variant = 'full', isDark = false }) => {
   const iconDimensions = {
     sm: { width: 44, height: 32 },
     md: { width: 56, height: 40 },
@@ -70,11 +71,11 @@ export const Logo: React.FC<LogoProps> = ({ size = 'md', showSubtitle = true, va
               fontFamily: 'var(--font-display)',
               fontWeight: 800,
               fontSize: textSizes[size],
-              color: '#002B7F',
+              color: isDark ? '#FFFFFF' : '#002B7F',
               letterSpacing: '-0.025em'
             }}
           >
-            Trade<span style={{ color: '#E5A800' }}>Link</span>
+            Trade<span style={{ color: '#FFC72C' }}>Link</span>
           </span>
         </div>
 
@@ -82,7 +83,7 @@ export const Logo: React.FC<LogoProps> = ({ size = 'md', showSubtitle = true, va
           <span
             style={{
               fontSize: '0.68rem',
-              color: '#64748B',
+              color: isDark ? '#94A3B8' : '#64748B',
               fontWeight: 600,
               letterSpacing: '0.02em',
               marginTop: '0.15rem'

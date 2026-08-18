@@ -44,7 +44,7 @@ export interface User {
   name: string;
   email: string;
   studentId: string;
-  role: 'student' | 'admin';
+  role: 'student' | 'admin' | 'superadmin';
   campus: Campus;
   college: College;
   yearLevel: string;
@@ -77,11 +77,27 @@ export interface CampusAnnouncement {
   isActive: boolean;
 }
 
+export interface TradeDispute {
+  id: string;
+  transactionId?: string;
+  listingTitle: string;
+  buyerName: string;
+  sellerName: string;
+  sellerId: string;
+  buyerId: string;
+  campus: Campus;
+  reason: string;
+  status: 'pending' | 'resolved' | 'dismissed';
+  filedAt: string;
+  verdictNote?: string;
+  verdictAction?: 'refund' | 'warning' | 'dismissed' | 'ban';
+}
+
 export interface AdminAuditLog {
   id: string;
   adminName: string;
   action: string;
-  targetType: 'user' | 'listing' | 'verification' | 'wanted' | 'meetup' | 'announcement';
+  targetType: 'user' | 'listing' | 'verification' | 'wanted' | 'meetup' | 'announcement' | 'dispute' | 'system';
   targetId: string;
   details: string;
   timestamp: string;
@@ -263,4 +279,25 @@ export interface PriceEstimationResult {
   dealRating: 'Super Bargain' | 'Fair Campus Price' | 'Slightly High' | 'Overpriced';
   estimatedSavingsPct: number;
   reasoning: string;
+}
+
+export interface FeatureFlag {
+  id: string;
+  name: string;
+  description: string;
+  enabled: boolean;
+  updatedAt: string;
+}
+
+export interface SuperAdminConfig {
+  maintenanceMode: boolean;
+  maxListingPrice: number;
+  maxImagesPerListing: number;
+  swapModeEnabled: boolean;
+  wantedBoardEnabled: boolean;
+  freeDonationEnabled: boolean;
+  maxListingsPerUser: number;
+  featureFlags: FeatureFlag[];
+  lastUpdatedBy: string;
+  lastUpdatedAt: string;
 }

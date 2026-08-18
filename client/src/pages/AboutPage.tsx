@@ -98,11 +98,11 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
 
           <div style={{ backgroundColor: '#FFFFFF', border: '1.5px solid #CBD5E1', borderRadius: '12px', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <div style={{ width: '36px', height: '36px', borderRadius: '8px', backgroundColor: '#ECFDF5', color: '#047857', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Users size={20} />
+              <Users size={20} style={{ flexShrink: 0 }} />
             </div>
-            <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#0F172A' }}>7-Campus Interconnectivity</h4>
+            <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#0F172A' }}>8-Campus Interconnectivity</h4>
             <p style={{ fontSize: '0.82rem', color: '#64748B', lineHeight: 1.5 }}>
-              Connecting UC Main, Banilad, LM, METC, Pardo-Talisay, South Campus, and UCMC into one united student trading ecosystem.
+              Connecting UC Main, Banilad, LM, METC, PRI, Pardo-Talisay, South Campus, and UC Medical Center into one united student trading ecosystem.
             </p>
           </div>
         </div>

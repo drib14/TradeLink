@@ -107,16 +107,16 @@ export const FilterBar: React.FC = () => {
             value={selectedTradeMode}
             onChange={(e: any) => setSelectedTradeMode(e.target.value)}
             style={{
-              padding: '0.35rem 0.65rem',
+              padding: '0.4rem 0.75rem',
               borderRadius: '8px',
               border: '1px solid #CBD5E1',
-              fontSize: '0.78rem',
+              fontSize: '0.8rem',
               fontWeight: 600,
               backgroundColor: '#FFFFFF',
               color: '#334155',
               cursor: 'pointer',
               flex: '1 1 auto',
-              minWidth: '130px'
+              minWidth: '140px'
             }}
           >
             <option value="All">All Types (Buy / Swap / Free)</option>
@@ -130,16 +130,16 @@ export const FilterBar: React.FC = () => {
             value={sortBy}
             onChange={(e: any) => setSortBy(e.target.value)}
             style={{
-              padding: '0.35rem 0.65rem',
+              padding: '0.4rem 0.75rem',
               borderRadius: '8px',
               border: '1px solid #CBD5E1',
-              fontSize: '0.78rem',
+              fontSize: '0.8rem',
               fontWeight: 600,
               backgroundColor: '#FFFFFF',
               color: '#334155',
               cursor: 'pointer',
               flex: '1 1 auto',
-              minWidth: '130px'
+              minWidth: '140px'
             }}
           >
             <option value="newest">Recently Listed</option>
@@ -154,19 +154,20 @@ export const FilterBar: React.FC = () => {
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '0.25rem',
-                fontSize: '0.75rem',
+                gap: '0.35rem',
+                fontSize: '0.78rem',
                 color: '#DC2626',
                 fontWeight: 700,
-                padding: '0.35rem 0.55rem',
+                padding: '0.4rem 0.75rem',
                 backgroundColor: '#FEF2F2',
-                borderRadius: '6px',
+                borderRadius: '8px',
                 border: '1px solid #FECACA',
-                whiteSpace: 'nowrap'
+                whiteSpace: 'nowrap',
+                cursor: 'pointer'
               }}
               title="Reset all filters"
             >
-              <RotateCcw size={12} /> Reset
+              <RotateCcw size={13} style={{ flexShrink: 0 }} /> <span>Reset</span>
             </button>
           )}
         </div>
@@ -188,7 +189,7 @@ export const FilterBar: React.FC = () => {
               key={chip.id}
               onClick={() => setSelectedCategory(chip.id)}
               style={{
-                padding: '0.3rem 0.75rem',
+                padding: '0.35rem 0.8rem',
                 borderRadius: '8px',
                 fontSize: '0.78rem',
                 fontWeight: isSelected ? 800 : 500,
