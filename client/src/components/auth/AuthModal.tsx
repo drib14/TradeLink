@@ -182,54 +182,36 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: 'rgba(0, 43, 127, 0.65)',
-        backdropFilter: 'blur(6px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 9999,
-        padding: '1rem',
-        animation: 'modalSlideUpAnim 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
-      }}
-      onClick={onClose}
-    >
+    <div className="modal-backdrop-custom" onClick={onClose}>
       <div
+        className="modal-card-custom"
         style={{
-          backgroundColor: '#FFFFFF',
-          borderRadius: 'clamp(12px, 2vw, 16px)',
-          border: '1.5px solid #BCD1F7',
-          width: '100%',
-          maxWidth: mode === 'register' ? '600px' : '440px',
-          maxHeight: '92vh',
-          overflowY: 'auto',
-          boxShadow: '0 20px 40px rgba(0, 43, 127, 0.25)',
-          padding: 'clamp(1.2rem, 3.5vw, 2rem)'
+          maxWidth: mode === 'register' ? '600px' : '440px'
         }}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Mobile Touch Drawer Grabber */}
+        <div className="drawer-grabber-handle" />
+
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
           <div>
             <Logo size="sm" showSubtitle={false} />
-            <h2 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#002B7F', marginTop: '0.65rem' }}>
-              {mode === 'login' && 'Sign In'}
-              {mode === 'register' && 'Create Account'}
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text-primary, #002B7F)', marginTop: '0.65rem', fontFamily: 'var(--font-display)' }}>
+              {mode === 'login' && 'Student Sign In'}
+              {mode === 'register' && 'Create Student Account'}
               {mode === 'forgot' && 'Reset Password'}
-              {mode === 'reset' && 'Enter Code'}
+              {mode === 'reset' && 'Enter Verification Code'}
             </h2>
-            <p style={{ fontSize: '0.8rem', color: '#64748B', marginTop: '2px' }}>
-              {mode === 'login' && 'Sign in to access your campus marketplace'}
-              {mode === 'register' && 'Register with your student details'}
-              {mode === 'forgot' && 'Enter your email to receive a reset code'}
-              {mode === 'reset' && 'Set a new password for your account'}
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted, #64748B)', marginTop: '2px' }}>
+              {mode === 'login' && 'Sign in to buy, sell, and swap across all 8 UC campuses'}
+              {mode === 'register' && 'Register with your official student details'}
+              {mode === 'forgot' && 'Enter your email to receive a password reset code'}
+              {mode === 'reset' && 'Set a secure new password for your account'}
             </p>
           </div>
 
-          <button onClick={onClose} style={{ color: '#64748B', padding: '0.25rem', cursor: 'pointer' }}>
+          <button onClick={onClose} style={{ color: 'var(--text-muted)', padding: '0.25rem', cursor: 'pointer', background: 'none', border: 'none' }}>
             <X size={18} />
           </button>
         </div>
@@ -238,7 +220,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {mode === 'login' && (
           <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {/* Method switch: Student ID or Email */}
-            <div style={{ display: 'flex', backgroundColor: '#F1F5F9', padding: '3px', borderRadius: '8px', border: '1px solid #CBD5E1' }}>
+            <div style={{ display: 'flex', backgroundColor: 'var(--bg-subtle)', padding: '3px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
               <button
                 type="button"
                 onClick={() => {
@@ -252,10 +234,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   borderRadius: '6px',
                   fontSize: '0.8rem',
                   fontWeight: loginMethod === 'id' ? 800 : 600,
-                  backgroundColor: loginMethod === 'id' ? '#FFFFFF' : 'transparent',
-                  color: loginMethod === 'id' ? '#002B7F' : '#64748B',
-                  boxShadow: loginMethod === 'id' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                  cursor: 'pointer'
+                  backgroundColor: loginMethod === 'id' ? 'var(--bg-surface)' : 'transparent',
+                  color: loginMethod === 'id' ? 'var(--uc-blue)' : 'var(--text-muted)',
+                  boxShadow: loginMethod === 'id' ? 'var(--shadow-sm)' : 'none',
+                  cursor: 'pointer',
+                  border: 'none'
                 }}
               >
                 Student ID
@@ -273,10 +256,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   borderRadius: '6px',
                   fontSize: '0.8rem',
                   fontWeight: loginMethod === 'email' ? 800 : 600,
-                  backgroundColor: loginMethod === 'email' ? '#FFFFFF' : 'transparent',
-                  color: loginMethod === 'email' ? '#002B7F' : '#64748B',
-                  boxShadow: loginMethod === 'email' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                  cursor: 'pointer'
+                  backgroundColor: loginMethod === 'email' ? 'var(--bg-surface)' : 'transparent',
+                  color: loginMethod === 'email' ? 'var(--uc-blue)' : 'var(--text-muted)',
+                  boxShadow: loginMethod === 'email' ? 'var(--shadow-sm)' : 'none',
+                  cursor: 'pointer',
+                  border: 'none'
                 }}
               >
                 Email Address
@@ -284,13 +268,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
                 {loginMethod === 'id' ? 'Student ID Number' : 'Email Address'}
               </label>
               <div style={{ position: 'relative' }}>
                 {loginMethod === 'id' ? (
                   <>
-                    <Hash size={15} color="#64748B" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
+                    <Hash size={15} color="var(--text-muted)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
                     <input
                       type="text"
                       value={loginIdentifier}
@@ -304,7 +288,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   </>
                 ) : (
                   <>
-                    <Mail size={15} color="#64748B" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
+                    <Mail size={15} color="var(--text-muted)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
                     <input
                       type="email"
                       value={loginIdentifier}
@@ -321,19 +305,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
-                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                   Password
                 </label>
                 <button
                   type="button"
                   onClick={() => setMode('forgot')}
-                  style={{ fontSize: '0.75rem', color: '#002B7F', fontWeight: 700 }}
+                  style={{ fontSize: '0.75rem', color: 'var(--uc-blue)', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer' }}
                 >
                   Forgot password?
                 </button>
               </div>
               <div style={{ position: 'relative' }}>
-                <Lock size={15} color="#64748B" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
+                <Lock size={15} color="var(--text-muted)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
                 <input
                   type="password"
                   value={loginPassword}
@@ -349,12 +333,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               Sign In
             </button>
 
-            <div style={{ textAlign: 'center', fontSize: '0.8rem', color: '#64748B', marginTop: '0.35rem' }}>
+            <div style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
               Don't have an account?{' '}
               <button
                 type="button"
                 onClick={() => setMode('register')}
-                style={{ color: '#002B7F', fontWeight: 800 }}
+                style={{ color: 'var(--uc-blue)', fontWeight: 800, background: 'none', border: 'none', cursor: 'pointer' }}
               >
                 Register
               </button>
@@ -367,31 +351,30 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <form onSubmit={handleRegisterSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
-                  Full Name
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
+                  Full Legal Name *
                 </label>
                 <input
                   type="text"
                   value={regName}
                   onChange={(e) => setRegName(e.target.value)}
-                  placeholder="Full name"
+                  placeholder="Juan Dela Cruz"
                   className="clean-input"
                   required
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
-                  Student ID
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
+                  UC Student ID Number *
                 </label>
                 <input
                   type="text"
-                  inputMode="numeric"
                   value={regStudentId}
-                  onChange={(e) => setRegStudentId(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                  placeholder="Student ID"
+                  onChange={(e) => setRegStudentId(e.target.value.replace(/\D/g, ''))}
+                  placeholder="e.g. 202104982"
                   className="clean-input"
-                  maxLength={10}
+                  maxLength={15}
                   required
                 />
               </div>
@@ -399,51 +382,44 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
-                  Email
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
+                  Email Address *
                 </label>
                 <input
                   type="email"
                   value={regEmail}
                   onChange={(e) => setRegEmail(e.target.value)}
-                  placeholder="Email"
+                  placeholder="student@uc.edu.ph"
                   className="clean-input"
                   required
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
-                  Password
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
+                  Create Password *
                 </label>
                 <input
                   type="password"
                   value={regPassword}
                   onChange={(e) => setRegPassword(e.target.value)}
-                  placeholder="Password"
+                  placeholder="Min. 6 characters"
                   className="clean-input"
                   required
                 />
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.65rem' }}>
+            {/* Academic Classification */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.65rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
                   1. Campus
                 </label>
                 <select
                   value={regCampus}
                   onChange={(e: any) => setRegCampus(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '0.55rem 0.5rem',
-                    borderRadius: '8px',
-                    border: '1px solid #CBD5E1',
-                    fontSize: '0.82rem',
-                    backgroundColor: '#FFFFFF',
-                    outline: 'none'
-                  }}
+                  className="clean-input"
                 >
                   <option value="UC Main">UC Main</option>
                   <option value="UC Banilad">UC Banilad</option>
@@ -457,23 +433,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#002B7F', marginBottom: '0.3rem' }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--uc-blue)', marginBottom: '0.3rem' }}>
                   2. Year / Grade Level *
                 </label>
                 <select
                   value={regYearLevel}
                   onChange={(e) => handleYearLevelChange(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '0.55rem 0.5rem',
-                    borderRadius: '8px',
-                    border: '1.5px solid #002B7F',
-                    fontSize: '0.82rem',
-                    fontWeight: 700,
-                    backgroundColor: '#F8FAFC',
-                    color: '#002B7F',
-                    outline: 'none'
-                  }}
+                  className="clean-input"
+                  style={{ fontWeight: 700, color: 'var(--uc-blue)' }}
                 >
                   <optgroup label="Junior High School (JHS)">
                     <option value="Grade 7 (Junior High)">Grade 7 (Junior High)</option>
@@ -500,21 +467,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
                   3. Department / Strand *
                 </label>
                 <select
                   value={regCollege}
                   onChange={(e: any) => setRegCollege(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '0.55rem 0.5rem',
-                    borderRadius: '8px',
-                    border: '1px solid #CBD5E1',
-                    fontSize: '0.82rem',
-                    backgroundColor: '#FFFFFF',
-                    outline: 'none'
-                  }}
+                  className="clean-input"
                 >
                   {getDepartmentsForYearLevel(regYearLevel).map((dept) => (
                     <option key={dept.value} value={dept.value}>

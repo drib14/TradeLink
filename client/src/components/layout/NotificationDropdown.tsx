@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Bell, ArrowLeftRight, Calendar, Sparkles, CheckCircle2, ShieldCheck, X } from 'lucide-react';
+import { Bell, ArrowLeftRight, Calendar, CheckCircle2, ShieldCheck, X } from 'lucide-react';
 import { AppNotification } from '../../types';
+import { useClickOutside } from '../../hooks/useClickOutside';
 
 interface NotificationDropdownProps {
   onNavigate: (view: string, param?: any) => void;
@@ -57,17 +58,19 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ onNa
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
   };
 
+  const dropdownRef = useClickOutside<HTMLDivElement>(() => setIsOpen(false), isOpen);
+
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative' }} ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         style={{
           position: 'relative',
           padding: '0.45rem',
           borderRadius: '8px',
-          color: '#334155',
-          backgroundColor: isOpen ? '#EBF1FC' : '#F8FAFC',
-          border: '1px solid #CBD5E1',
+          color: 'var(--text-primary)',
+          backgroundColor: isOpen ? 'var(--uc-blue-subtle)' : 'var(--bg-subtle)',
+          border: '1px solid var(--border-subtle)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -75,14 +78,14 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ onNa
         }}
         title="Notifications & Alerts"
       >
-        <Bell size={16} color="#002B7F" />
+        <Bell size={16} color="var(--uc-blue)" />
         {unreadCount > 0 && (
           <span
             style={{
               position: 'absolute',
               top: '-4px',
               right: '-4px',
-              backgroundColor: '#DC2626',
+              backgroundColor: 'var(--accent-red, #DC2626)',
               color: '#FFFFFF',
               fontSize: '0.6rem',
               fontWeight: 800,
@@ -106,10 +109,10 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ onNa
             top: 'calc(100% + 8px)',
             right: 0,
             width: 'min(320px, 90vw)',
-            backgroundColor: '#FFFFFF',
-            border: '1.5px solid #CBD5E1',
+            backgroundColor: 'var(--bg-surface, #FFFFFF)',
+            border: '1.5px solid var(--border-subtle, #CBD5E1)',
             borderRadius: '12px',
-            boxShadow: '0 12px 30px rgba(0, 43, 127, 0.15)',
+            boxShadow: 'var(--shadow-lg, 0 12px 30px rgba(0, 43, 127, 0.15))',
             zIndex: 100,
             overflow: 'hidden'
           }}
@@ -118,11 +121,11 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ onNa
           <div
             style={{
               padding: '0.75rem 1rem',
-              borderBottom: '1px solid #F1F5F9',
+              borderBottom: '1px solid var(--border-subtle)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              backgroundColor: '#002B7F',
+              backgroundColor: 'var(--uc-blue, #002B7F)',
               color: '#FFFFFF'
             }}
           >
@@ -130,7 +133,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ onNa
             {unreadCount > 0 && (
               <button
                 onClick={markAllRead}
-                style={{ fontSize: '0.7rem', color: '#FFC72C', fontWeight: 700 }}
+                style={{ fontSize: '0.7rem', color: 'var(--uc-gold, #FFC72C)', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer' }}
               >
                 Mark all read
               </button>
@@ -146,8 +149,8 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ onNa
                   onClick={() => handleNotificationClick(notif)}
                   style={{
                     padding: '0.75rem 1rem',
-                    borderBottom: '1px solid #F8FAFC',
-                    backgroundColor: notif.isRead ? '#FFFFFF' : '#EBF1FC',
+                    borderBottom: '1px solid var(--border-subtle)',
+                    backgroundColor: notif.isRead ? 'var(--bg-surface)' : 'var(--uc-blue-subtle)',
                     cursor: 'pointer',
                     display: 'flex',
                     flexDirection: 'column',
@@ -156,18 +159,18 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ onNa
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#002B7F' }}>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--uc-blue)' }}>
                       {notif.title}
                     </span>
-                    <span style={{ fontSize: '0.68rem', color: '#94A3B8' }}>{notif.createdAt}</span>
+                    <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{notif.createdAt}</span>
                   </div>
-                  <p style={{ fontSize: '0.74rem', color: '#475569', lineHeight: 1.4 }}>
+                  <p style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
                     {notif.message}
                   </p>
                 </div>
               ))
             ) : (
-              <div style={{ padding: '2rem 1rem', textAlign: 'center', fontSize: '0.8rem', color: '#94A3B8' }}>
+              <div style={{ padding: '2rem 1rem', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                 No notifications right now
               </div>
             )}

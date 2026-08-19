@@ -84,8 +84,8 @@ export const MeetupSchedulerModal: React.FC<MeetupSchedulerModalProps> = ({
         {/* Safety Desk Banner */}
         <div
           style={{
-            backgroundColor: '#ECFDF5',
-            border: '1px solid #A7F3D0',
+            backgroundColor: 'var(--accent-green-subtle, #ECFDF5)',
+            border: '1px solid var(--accent-green, #A7F3D0)',
             borderRadius: '10px',
             padding: '0.85rem',
             display: 'flex',
@@ -93,8 +93,8 @@ export const MeetupSchedulerModal: React.FC<MeetupSchedulerModalProps> = ({
             gap: '0.65rem'
           }}
         >
-          <ShieldCheck size={20} color="#059669" style={{ flexShrink: 0, marginTop: '2px' }} />
-          <div style={{ fontSize: '0.78rem', color: '#065F46', lineHeight: 1.45 }}>
+          <ShieldCheck size={20} color="var(--accent-green)" style={{ flexShrink: 0, marginTop: '2px' }} />
+          <div style={{ fontSize: '0.78rem', color: 'var(--accent-green)', lineHeight: 1.45 }}>
             <strong>Official UC Safe Trade Zone:</strong> Conduct meetups inside designated campus security landmarks during daylight or lighted hours.
           </div>
         </div>
@@ -102,13 +102,13 @@ export const MeetupSchedulerModal: React.FC<MeetupSchedulerModalProps> = ({
         {/* Spot Selector / Custom spot toggle */}
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
-            <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0F172A' }}>
+            <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
               1. Meetup Location on Campus
             </label>
             <button
               type="button"
               onClick={() => setUseCustomSpot(!useCustomSpot)}
-              style={{ fontSize: '0.75rem', color: '#002B7F', fontWeight: 700 }}
+              style={{ fontSize: '0.75rem', color: 'var(--uc-blue)', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer' }}
             >
               {useCustomSpot ? '← Pick Predefined Landmark' : '✏️ Enter Custom Spot'}
             </button>
@@ -119,16 +119,7 @@ export const MeetupSchedulerModal: React.FC<MeetupSchedulerModalProps> = ({
               <select
                 value={selectedSpotId}
                 onChange={(e) => setSelectedSpotId(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '0.65rem 0.75rem',
-                  borderRadius: '8px',
-                  border: '1px solid #CBD5E1',
-                  fontSize: '0.85rem',
-                  color: '#0F172A',
-                  backgroundColor: '#FFFFFF',
-                  outline: 'none'
-                }}
+                className="clean-input"
               >
                 {CAMPUS_MEETUP_SPOTS.map((spot) => (
                   <option key={spot.id} value={spot.id}>
@@ -140,18 +131,18 @@ export const MeetupSchedulerModal: React.FC<MeetupSchedulerModalProps> = ({
               <div
                 style={{
                   marginTop: '0.45rem',
-                  backgroundColor: '#F8FAFC',
-                  border: '1px solid #E2E8F0',
+                  backgroundColor: 'var(--bg-subtle)',
+                  border: '1px solid var(--border-subtle)',
                   borderRadius: '8px',
                   padding: '0.55rem 0.75rem',
                   fontSize: '0.75rem',
-                  color: '#475569',
+                  color: 'var(--text-secondary)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.35rem'
                 }}
               >
-                <MapPin size={13} color="#002B7F" />
+                <MapPin size={13} color="var(--uc-blue)" />
                 <span>{chosenSpot.locationDetails}</span>
               </div>
             </div>
@@ -169,7 +160,7 @@ export const MeetupSchedulerModal: React.FC<MeetupSchedulerModalProps> = ({
 
         {/* Date / Time */}
         <div>
-          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.4rem' }}>
+          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.4rem' }}>
             2. Scheduled Date & Time
           </label>
           <input
@@ -184,7 +175,7 @@ export const MeetupSchedulerModal: React.FC<MeetupSchedulerModalProps> = ({
 
         {/* Meeting Notes */}
         <div>
-          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.4rem' }}>
+          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.4rem' }}>
             3. Meetup Notes / Clothing / Details
           </label>
           <input

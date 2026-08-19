@@ -32,8 +32,8 @@ export const NotFoundPage: React.FC<NotFoundPageProps> = ({ onNavigate }) => {
           width: '72px',
           height: '72px',
           borderRadius: '50%',
-          backgroundColor: '#EBF1FC',
-          color: '#002B7F',
+          backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)',
+          color: 'var(--uc-blue, #002B7F)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -45,7 +45,7 @@ export const NotFoundPage: React.FC<NotFoundPageProps> = ({ onNavigate }) => {
 
       <span
         style={{
-          backgroundColor: '#FFF2CC',
+          backgroundColor: 'var(--uc-gold-light, #FFF2CC)',
           color: '#B45309',
           padding: '0.2rem 0.65rem',
           borderRadius: '9999px',
@@ -63,7 +63,7 @@ export const NotFoundPage: React.FC<NotFoundPageProps> = ({ onNavigate }) => {
         style={{
           fontSize: '2.25rem',
           fontWeight: 800,
-          color: '#002B7F',
+          color: 'var(--text-primary)',
           fontFamily: 'var(--font-display)',
           lineHeight: 1.2
         }}
@@ -71,17 +71,15 @@ export const NotFoundPage: React.FC<NotFoundPageProps> = ({ onNavigate }) => {
         Looks like you took a wrong turn in the campus corridors!
       </h1>
 
-      <p style={{ fontSize: '0.95rem', color: '#64748B', marginTop: '0.75rem', lineHeight: 1.6 }}>
+      <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)', marginTop: '0.75rem', lineHeight: 1.6 }}>
         The item or page you're searching for might have been sold, deleted, or moved to another UC campus hub.
       </p>
 
       {/* Shortcuts */}
       <div
+        className="clean-card"
         style={{
           width: '100%',
-          backgroundColor: '#FFFFFF',
-          borderRadius: '12px',
-          border: '1px solid #CBD5E1',
           padding: '1.25rem',
           marginTop: '2rem',
           display: 'flex',
@@ -89,7 +87,7 @@ export const NotFoundPage: React.FC<NotFoundPageProps> = ({ onNavigate }) => {
           gap: '0.75rem'
         }}
       >
-        <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0F172A' }}>
+        <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
           Explore Popular University of Cebu Campus Hubs:
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem' }}>

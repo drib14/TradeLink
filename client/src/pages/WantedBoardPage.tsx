@@ -11,12 +11,12 @@ import {
   Plus,
   Clock,
   MapPin,
-  Sparkles,
   MessageSquare,
   CheckCircle2,
   Filter,
   Flame,
-  Building2
+  Building2,
+  Megaphone
 } from 'lucide-react';
 
 interface WantedBoardPageProps {
@@ -90,7 +90,7 @@ export const WantedBoardPage: React.FC<WantedBoardPageProps> = ({ onNavigate, on
   };
 
   return (
-    <div className="container" style={{ padding: '2rem 1.5rem 5rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+    <div className="container page-enter" style={{ padding: '2rem 1.5rem 5rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
       {/* Header Banner */}
       <div
         style={{
@@ -108,10 +108,10 @@ export const WantedBoardPage: React.FC<WantedBoardPageProps> = ({ onNavigate, on
       >
         <div style={{ maxWidth: '600px' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#FFC72C', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            <Sparkles size={16} style={{ flexShrink: 0 }} /> <span>Student Request Hub (LTB / Pasabuy)</span>
+            <Megaphone size={16} style={{ flexShrink: 0 }} /> <span>Student Request Hub (LTB / Pasabuy)</span>
           </div>
           <h1 style={{ fontSize: 'clamp(1.5rem, 3vw, 2.1rem)', fontWeight: 900, color: '#FFFFFF', marginTop: '0.4rem', lineHeight: 1.2, fontFamily: 'var(--font-display)' }}>
-            University of Cebu Wanted Board
+            TradeLink Wanted Board
           </h1>
           <p style={{ fontSize: '0.88rem', color: '#E2E8F0', marginTop: '0.55rem', lineHeight: 1.6 }}>
             Need a specific textbook, scrub set, drawing board, or calculator? Post your target budget, and fellow UCians will reach out to fulfill it!
@@ -132,7 +132,7 @@ export const WantedBoardPage: React.FC<WantedBoardPageProps> = ({ onNavigate, on
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
           {/* Search Box */}
           <div style={{ flex: 1, minWidth: '260px', position: 'relative' }}>
-            <Search size={16} color="#64748B" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
+            <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
             <input
               type="text"
               value={searchQuery}
@@ -152,17 +152,12 @@ export const WantedBoardPage: React.FC<WantedBoardPageProps> = ({ onNavigate, on
               <button
                 key={c}
                 onClick={() => setSelectedCampus(c)}
+                className={`segmented-tab ${isSelected ? 'active' : ''}`}
                 style={{
+                  borderRadius: 'var(--radius-full)',
                   padding: '0.35rem 0.85rem',
-                  borderRadius: '9999px',
                   fontSize: '0.78rem',
-                  fontWeight: isSelected ? 800 : 600,
-                  backgroundColor: isSelected ? '#002B7F' : '#FFFFFF',
-                  color: isSelected ? '#FFFFFF' : '#475569',
-                  border: isSelected ? '1.5px solid #002B7F' : '1px solid #CBD5E1',
-                  whiteSpace: 'nowrap',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
+                  whiteSpace: 'nowrap'
                 }}
               >
                 {c === 'All' ? 'All UC Campuses' : c}
@@ -184,66 +179,62 @@ export const WantedBoardPage: React.FC<WantedBoardPageProps> = ({ onNavigate, on
           {filteredRequests.map((req) => (
             <div
               key={req.id}
+              className="clean-card"
               style={{
-                backgroundColor: '#FFFFFF',
-                borderRadius: '14px',
-                border: '1.5px solid #CBD5E1',
                 padding: '1.25rem',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '0.75rem',
-                boxShadow: '0 4px 12px rgba(0, 43, 127, 0.05)',
-                transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+                gap: '0.75rem'
               }}
             >
               {/* Top Meta Row */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.72rem', fontWeight: 800, color: '#002B7F' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.72rem', fontWeight: 800, color: 'var(--uc-blue)' }}>
                   <MapPin size={12} />
                   <span>{req.preferredCampus}</span>
-                  <span style={{ color: '#CBD5E1' }}>•</span>
+                  <span style={{ color: 'var(--border-subtle)' }}>•</span>
                   <span>{req.requesterCollege}</span>
                 </div>
 
                 {req.urgency === 'Immediate / Urgent' ? (
-                  <span style={{ backgroundColor: '#FEF2F2', color: '#DC2626', fontSize: '0.7rem', fontWeight: 800, padding: '0.15rem 0.5rem', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                  <span className="badge-pill badge-sold" style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
                     <Flame size={11} /> Urgent
                   </span>
                 ) : (
-                  <span style={{ backgroundColor: '#F1F5F9', color: '#475569', fontSize: '0.7rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '4px' }}>
+                  <span className="badge-pill badge-gray">
                     {req.urgency}
                   </span>
                 )}
               </div>
 
               {/* Title */}
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A', lineHeight: 1.35 }}>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.35 }}>
                 {req.itemTitle}
               </h3>
 
               {/* Description */}
-              <p style={{ fontSize: '0.82rem', color: '#475569', lineHeight: 1.5, flex: 1 }}>
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5, flex: 1 }}>
                 {req.description}
               </p>
 
               {/* Target Budget & Offers */}
-              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', backgroundColor: '#F8FAFC', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', backgroundColor: 'var(--bg-subtle)', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
                 <div>
-                  <span style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: 700, textTransform: 'uppercase' }}>
+                  <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>
                     Target Budget
                   </span>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#002B7F', fontFamily: 'var(--font-display)' }}>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--uc-blue)', fontFamily: 'var(--font-display)' }}>
                     ₱{req.targetBudget.toLocaleString()}
                   </div>
                 </div>
 
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#059669' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-green)' }}>
                   {req.offersCount} {req.offersCount === 1 ? 'student offered' : 'students offered'}
                 </span>
               </div>
 
               {/* Requester Profile & Action */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: '1px solid #F1F5F9' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: '1px solid var(--border-subtle)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
                   <img
                     src={req.requesterAvatar}
@@ -251,9 +242,9 @@ export const WantedBoardPage: React.FC<WantedBoardPageProps> = ({ onNavigate, on
                     style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }}
                   />
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.78rem', fontWeight: 700, color: '#0F172A' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                       <span>{req.requesterName}</span>
-                      <VerifiedBadge size="xs" variant="gold" showTooltip={false} />
+                      <VerifiedBadge size="xs" variant="green" showTooltip={false} />
                     </div>
                   </div>
                 </div>
@@ -270,15 +261,11 @@ export const WantedBoardPage: React.FC<WantedBoardPageProps> = ({ onNavigate, on
           ))}
         </div>
       ) : (
-        <div style={{ backgroundColor: '#FFFFFF', borderRadius: '12px', border: '1px solid #CBD5E1', padding: '3.5rem 1.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
-          <Sparkles size={32} color="#002B7F" />
-          <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0F172A' }}>
-            No Wanted Requests Found
-          </h3>
-          <p style={{ fontSize: '0.85rem', color: '#64748B', maxWidth: '420px' }}>
-            No student has posted a request matching your criteria. Be the first to broadcast what you need!
-          </p>
-          <button onClick={() => setIsCreateModalOpen(true)} className="btn-primary" style={{ padding: '0.6rem 1.25rem', marginTop: '0.5rem' }}>
+        <div className="empty-state">
+          <Search size={32} color="var(--uc-blue)" />
+          <h3 className="empty-state-title">No Wanted Requests Found</h3>
+          <p className="empty-state-desc">No student has posted a request matching your criteria. Be the first to broadcast what you need!</p>
+          <button onClick={() => setIsCreateModalOpen(true)} className="btn-primary" style={{ marginTop: '0.75rem' }}>
             <Plus size={15} /> Post Item Request
           </button>
         </div>

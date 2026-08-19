@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { X } from 'lucide-react';
 
 interface ModalProps {
@@ -18,84 +18,98 @@ export const Modal: React.FC<ModalProps> = ({
   children,
   maxWidth = '560px'
 }) => {
+  const [isClosing, setIsClosing] = useState(false);
+  const [shouldRender, setShouldRender] = useState(false);
+
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
     if (isOpen) {
+      setShouldRender(true);
+      setIsClosing(false);
       document.body.style.overflow = 'hidden';
-      window.addEventListener('keydown', handleKeyDown);
     }
     return () => {
       document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
+  const handleClose = useCallback(() => {
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsClosing(false);
+      setShouldRender(false);
+      document.body.style.overflow = 'unset';
+      onClose();
+    }, 220); // Match CSS animation duration
+  }, [onClose]);
+
+  useEffect(() => {
+    if (!isOpen && shouldRender && !isClosing) {
+      handleClose();
+    }
+  }, [isOpen, shouldRender, isClosing, handleClose]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleClose();
+    };
+    if (shouldRender) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, onClose]);
+  }, [shouldRender, handleClose]);
 
-  if (!isOpen) return null;
+  if (!shouldRender) return null;
 
   return (
     <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: 'rgba(15, 23, 42, 0.65)',
-        backdropFilter: 'blur(4px)',
-        zIndex: 1000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '1rem'
-      }}
-      onClick={onClose}
+      className={`modal-backdrop-custom ${isClosing ? 'closing' : ''}`}
+      onClick={handleClose}
     >
       <div
+        className="modal-card-custom"
         style={{
-          backgroundColor: '#FFFFFF',
-          borderRadius: '16px',
-          width: '100%',
           maxWidth,
-          maxHeight: '90vh',
+          padding: 0,
           display: 'flex',
           flexDirection: 'column',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-          overflow: 'hidden',
-          animation: 'modalSlideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+          overflow: 'hidden'
         }}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Mobile Grabber Handle */}
+        <div style={{ paddingTop: '0.75rem', backgroundColor: 'var(--bg-subtle, #F8FAFC)' }}>
+          <div className="drawer-grabber-handle" style={{ marginBottom: '0.25rem' }} />
+        </div>
+
         {/* Header */}
         <div
           style={{
-            padding: '1.25rem 1.5rem',
-            borderBottom: '1px solid #E2E8F0',
+            padding: '1rem 1.35rem 1.15rem 1.35rem',
+            borderBottom: '1px solid var(--border-subtle, #E2E8F0)',
             display: 'flex',
             alignItems: 'flex-start',
             justifyContent: 'space-between',
-            backgroundColor: '#F8FAFC'
+            backgroundColor: 'var(--bg-subtle, #F8FAFC)'
           }}
         >
           <div>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0F172A', fontFamily: 'Outfit, sans-serif' }}>
+            <h3 style={{ fontSize: '1.18rem', fontWeight: 800, color: 'var(--uc-blue, #002B7F)', fontFamily: 'var(--font-display)' }}>
               {title}
             </h3>
             {subtitle && (
-              <p style={{ fontSize: '0.8rem', color: '#64748B', marginTop: '0.15rem' }}>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted, #64748B)', marginTop: '0.2rem', lineHeight: 1.4 }}>
                 {subtitle}
               </p>
             )}
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
+            className="btn-icon"
             style={{
-              padding: '0.4rem',
-              borderRadius: '8px',
-              color: '#64748B',
-              backgroundColor: '#F1F5F9',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.15s ease'
+              backgroundColor: 'var(--bg-subtle, #F1F5F9)',
+              border: '1px solid var(--border-subtle, #E2E8F0)'
             }}
             title="Close modal"
           >
@@ -104,7 +118,7 @@ export const Modal: React.FC<ModalProps> = ({
         </div>
 
         {/* Body Content */}
-        <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
+        <div style={{ padding: '1.35rem', overflowY: 'auto', flex: 1, WebkitOverflowScrolling: 'touch' }}>
           {children}
         </div>
       </div>

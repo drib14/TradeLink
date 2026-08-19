@@ -18,8 +18,8 @@ export const FAQPage: React.FC<FAQPageProps> = ({ onNavigate }) => {
   const faqs: FAQItem[] = [
     {
       category: 'General',
-      question: 'Who can register and trade on UC TradeLink?',
-      answer: 'TradeLink is open to all enrolled University of Cebu students across all 8 official campuses—including Junior High School, Senior High School (STEM, ABM, HUMSS, TVL/GAS), College undergraduates, maritime cadets, and medical students.'
+      question: 'Who can register and trade on TradeLink?',
+      answer: 'TradeLink is open to all enrolled University of Cebu students across all 8 official campuses—including Junior High School (Grades 7–10), Senior High School (STEM, ABM, HUMSS, TVL/GAS), College undergraduates, maritime cadets, and medical students.'
     },
     {
       category: 'Meetups & Safety',
@@ -29,7 +29,7 @@ export const FAQPage: React.FC<FAQPageProps> = ({ onNavigate }) => {
     {
       category: 'Buying & Selling',
       question: 'Are there any transaction or listing fees on TradeLink?',
-      answer: 'No! UC TradeLink is 100% free for University of Cebu students. We do not charge fees or take commissions from student trades.'
+      answer: 'No! TradeLink is 100% free for University of Cebu students. We do not charge fees or take commissions from student trades.'
     },
     {
       category: 'Buying & Selling',
@@ -39,12 +39,12 @@ export const FAQPage: React.FC<FAQPageProps> = ({ onNavigate }) => {
     {
       category: 'Senior High',
       question: 'Can Senior High School students use TradeLink?',
-      answer: 'Absolutely! Senior High students from UC Main, Banilad, LM, South Campus, and Pardo-Talisay can buy and sell SHS track reviewers, textbooks, uniforms, and calculators safely.'
+      answer: 'Absolutely! Senior High students from UC Main, UC Banilad, UC LM, UC PRI, UC South Campus, UC Pardo-Talisay, and UC METC can buy and sell SHS track reviewers, textbooks, uniforms, and calculators safely.'
     },
     {
       category: 'Meetups & Safety',
       question: 'Where do meetups take place?',
-      answer: 'All meetups must occur strictly within designated campus security hubs (such as the UC Main Sanciangko Gate Security Desk, UC Banilad Open Atrium, UC LM Innovation Center Lobby, or UC METC Muster Area).'
+      answer: 'All meetups must occur strictly within designated campus security hubs (such as UC Main Sanciangko Gate, UC Banilad Cuenco Station, UC LM Innovation Lobby, UC METC Muster Station, UC PRI High School Gate, UC PT Talisay Booth, UC South Campus Lobby, or UCMC Hospital Atrium).'
     }
   ];
 
@@ -72,13 +72,13 @@ export const FAQPage: React.FC<FAQPageProps> = ({ onNavigate }) => {
         >
           <ChevronLeft size={16} /> Back to Home
         </button>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#002B7F', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--uc-blue)', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           <HelpCircle size={15} /> Student Knowledge Base
         </div>
-        <h1 style={{ fontSize: '2rem', fontWeight: 900, color: '#002B7F', marginTop: '0.25rem', fontFamily: 'var(--font-display)' }}>
+        <h1 style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--text-primary)', marginTop: '0.25rem', fontFamily: 'var(--font-display)' }}>
           Frequently Asked Questions
         </h1>
-        <p style={{ fontSize: '0.9rem', color: '#64748B' }}>
+        <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
           Everything you need to know about buying, selling, swapping, and safe meetups on campus.
         </p>
       </div>
@@ -94,9 +94,9 @@ export const FAQPage: React.FC<FAQPageProps> = ({ onNavigate }) => {
               borderRadius: '9999px',
               fontSize: '0.8rem',
               fontWeight: selectedCategory === cat ? 800 : 600,
-              backgroundColor: selectedCategory === cat ? '#002B7F' : '#FFFFFF',
-              color: selectedCategory === cat ? '#FFFFFF' : '#475569',
-              border: selectedCategory === cat ? '1.5px solid #002B7F' : '1px solid #CBD5E1',
+              backgroundColor: selectedCategory === cat ? 'var(--uc-blue)' : 'var(--bg-surface)',
+              color: selectedCategory === cat ? '#FFFFFF' : 'var(--text-secondary)',
+              border: selectedCategory === cat ? '1.5px solid var(--uc-blue)' : '1px solid var(--border-subtle)',
               whiteSpace: 'nowrap',
               cursor: 'pointer'
             }}
@@ -113,12 +113,11 @@ export const FAQPage: React.FC<FAQPageProps> = ({ onNavigate }) => {
           return (
             <div
               key={idx}
+              className="clean-card"
               style={{
-                backgroundColor: '#FFFFFF',
-                borderRadius: '12px',
-                border: '1.5px solid #CBD5E1',
                 overflow: 'hidden',
-                transition: 'all 0.15s ease'
+                transition: 'all 0.15s ease',
+                padding: 0
               }}
             >
               <button
@@ -130,20 +129,21 @@ export const FAQPage: React.FC<FAQPageProps> = ({ onNavigate }) => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  backgroundColor: isOpen ? '#F8FAFC' : '#FFFFFF',
-                  color: '#0F172A',
+                  backgroundColor: isOpen ? 'var(--bg-subtle)' : 'transparent',
+                  color: 'var(--text-primary)',
                   fontSize: '0.95rem',
                   fontWeight: 700,
                   textAlign: 'left',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  border: 'none'
                 }}
               >
                 <span>{faq.question}</span>
-                {isOpen ? <ChevronUp size={18} color="#002B7F" /> : <ChevronDown size={18} color="#64748B" />}
+                {isOpen ? <ChevronUp size={18} color="var(--uc-blue)" /> : <ChevronDown size={18} color="var(--text-muted)" />}
               </button>
 
               {isOpen && (
-                <div style={{ padding: '0 1.25rem 1.25rem 1.25rem', color: '#475569', fontSize: '0.85rem', lineHeight: 1.6, backgroundColor: '#F8FAFC', borderTop: '1px solid #F1F5F9' }}>
+                <div style={{ padding: '0 1.25rem 1.25rem 1.25rem', color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.6, backgroundColor: 'var(--bg-subtle)', borderTop: '1px solid var(--border-subtle)' }}>
                   {faq.answer}
                 </div>
               )}

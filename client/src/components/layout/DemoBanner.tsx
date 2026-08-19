@@ -67,7 +67,7 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({ onNavigate }) => {
             <span style={{ color: '#FFC72C', fontWeight: 800 }}>Role:</span>
             <span style={{ color: '#FFFFFF', fontWeight: 800 }}>{currentUser.name.split(' ')[0]}</span>
             {currentUser.isVerified && (
-              <VerifiedBadge size="xs" variant="gold" showTooltip={false} />
+              <VerifiedBadge size="xs" variant="green" showTooltip={false} />
             )}
             <span style={{ fontSize: '0.72rem', color: '#CBD5E1' }}>({currentUser.campus.replace('UC ', '')})</span>
           </>
@@ -90,10 +90,10 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({ onNavigate }) => {
             bottom: 'calc(100% + 8px)',
             right: 0,
             width: '300px',
-            backgroundColor: '#FFFFFF',
+            backgroundColor: 'var(--bg-surface, #FFFFFF)',
             borderRadius: '14px',
-            border: '1.5px solid #BCD1F7',
-            boxShadow: '0 16px 36px rgba(0, 43, 127, 0.2)',
+            border: '1.5px solid var(--border-subtle, #BCD1F7)',
+            boxShadow: 'var(--shadow-lg, 0 16px 36px rgba(0, 43, 127, 0.2))',
             overflow: 'hidden',
             padding: '0.5rem',
             display: 'flex',
@@ -103,20 +103,22 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({ onNavigate }) => {
           }}
         >
           {/* Header */}
-          <div style={{ padding: '0.45rem 0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#002B7F', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          <div style={{ padding: '0.45rem 0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--uc-blue)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               Quick Switch Persona
             </span>
             <button
               onClick={handleReset}
               style={{
                 fontSize: '0.72rem',
-                color: '#D97706',
+                color: 'var(--uc-gold-hover, #D97706)',
                 fontWeight: 700,
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '0.3rem',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                background: 'none',
+                border: 'none'
               }}
               title="Reset mock database"
             >
@@ -126,7 +128,7 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({ onNavigate }) => {
 
           {/* User List */}
           <div style={{ maxHeight: '220px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-            {allUsers.map((user: User) => {
+            {allUsers.filter(u => u.role === 'student').map((user: User) => {
               const isSelected = !!currentUser && user.id === currentUser.id;
               return (
                 <button
@@ -138,39 +140,40 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({ onNavigate }) => {
                     justifyContent: 'space-between',
                     padding: '0.45rem 0.65rem',
                     borderRadius: '8px',
-                    backgroundColor: isSelected ? '#EBF1FC' : 'transparent',
+                    backgroundColor: isSelected ? 'var(--uc-blue-subtle)' : 'transparent',
                     textAlign: 'left',
                     cursor: 'pointer',
-                    transition: 'background-color 0.15s ease'
+                    transition: 'background-color 0.15s ease',
+                    border: 'none'
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                     <img
                       src={user.avatar}
                       alt={user.name}
-                      style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: user.role === 'superadmin' ? '1.5px solid #DC2626' : user.role === 'admin' ? '1.5px solid #002B7F' : '1px solid #CBD5E1' }}
+                      style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: user.role === 'superadmin' ? '1.5px solid #DC2626' : user.role === 'admin' ? '1.5px solid #002B7F' : '1px solid var(--border-subtle)' }}
                     />
                     <div>
                       <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', lineHeight: 1.2 }}>
-                        <span style={{ fontSize: '0.8rem', fontWeight: isSelected ? 800 : 600, color: '#0F172A' }}>
+                        <span style={{ fontSize: '0.8rem', fontWeight: isSelected ? 800 : 600, color: 'var(--text-primary)' }}>
                           {user.name}
                         </span>
                         {user.role === 'superadmin' ? (
                           <span style={{ fontSize: '0.62rem', fontWeight: 800, backgroundColor: '#DC2626', color: '#FFFFFF', padding: '1px 4px', borderRadius: '4px' }}>SUPER</span>
                         ) : user.role === 'admin' ? (
-                          <span style={{ fontSize: '0.62rem', fontWeight: 800, backgroundColor: '#002B7F', color: '#FFC72C', padding: '1px 4px', borderRadius: '4px' }}>ADMIN</span>
+                          <span style={{ fontSize: '0.62rem', fontWeight: 800, backgroundColor: 'var(--uc-blue)', color: '#FFC72C', padding: '1px 4px', borderRadius: '4px' }}>ADMIN</span>
                         ) : null}
                         {user.isVerified && (
-                          <VerifiedBadge size="xs" variant="gold" showTooltip={false} />
+                          <VerifiedBadge size="xs" variant="green" showTooltip={false} />
                         )}
                       </div>
-                      <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '1px' }}>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '1px' }}>
                         {user.campus} • {user.college}
                       </div>
                     </div>
                   </div>
 
-                  {isSelected && <Check size={14} color="#002B7F" style={{ flexShrink: 0 }} />}
+                  {isSelected && <Check size={14} color="var(--uc-blue)" style={{ flexShrink: 0 }} />}
                 </button>
               );
             })}
@@ -178,7 +181,7 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({ onNavigate }) => {
 
           {/* Log out / Guest action */}
           {currentUser && (
-            <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '0.4rem', marginTop: '0.2rem' }}>
+            <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '0.4rem', marginTop: '0.2rem' }}>
               <button
                 onClick={handleLogout}
                 style={{
@@ -191,13 +194,13 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({ onNavigate }) => {
                   borderRadius: '6px',
                   fontSize: '0.78rem',
                   fontWeight: 700,
-                  color: '#DC2626',
-                  backgroundColor: '#FEF2F2',
-                  border: '1px solid #FECACA',
+                  color: 'var(--accent-red, #DC2626)',
+                  backgroundColor: 'var(--accent-red-subtle, #FEF2F2)',
+                  border: '1px solid var(--border-subtle, #FECACA)',
                   cursor: 'pointer'
                 }}
               >
-                <LogOut size={13} color="#DC2626" style={{ flexShrink: 0 }} />
+                <LogOut size={13} color="var(--accent-red, #DC2626)" style={{ flexShrink: 0 }} />
                 <span>Log Out (Browse as Guest)</span>
               </button>
             </div>

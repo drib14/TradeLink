@@ -142,16 +142,16 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onNavi
   };
 
   const cardStyle: React.CSSProperties = {
-    backgroundColor: '#FFFFFF',
-    border: '1px solid #E2E8F0',
+    backgroundColor: 'var(--bg-surface, #FFFFFF)',
+    border: '1px solid var(--border-subtle, #E2E8F0)',
     borderRadius: '14px',
     padding: '1.5rem',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+    boxShadow: 'var(--shadow-sm)'
   };
 
   const statCardStyle = (color: string, bg: string): React.CSSProperties => ({
-    backgroundColor: bg,
-    border: `1px solid ${color}20`,
+    backgroundColor: 'var(--bg-surface, #FFFFFF)',
+    border: `1px solid var(--border-subtle, #E2E8F0)`,
     borderRadius: '14px',
     padding: '1.25rem',
     display: 'flex',
@@ -160,7 +160,8 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onNavi
   });
 
   return (
-    <div className="container" style={{ padding: '2rem 1.5rem 5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div className="container page-enter" style={{ padding: '2rem 1.5rem 5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+
       {/* Header */}
       <div style={{
         background: 'linear-gradient(135deg, #7F1D1D 0%, #991B1B 50%, #DC2626 100%)',
@@ -220,7 +221,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onNavi
       {/* Tab Navigation */}
       <div style={{
         display: 'flex', gap: '0.5rem', overflowX: 'auto',
-        paddingBottom: '4px', borderBottom: '2px solid #F1F5F9'
+        paddingBottom: '4px', borderBottom: '2px solid var(--border-subtle)'
       }}>
         {tabs.map((tab) => (
           <button
@@ -230,11 +231,14 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onNavi
               display: 'inline-flex', alignItems: 'center', gap: '0.45rem',
               padding: '0.65rem 1.15rem', borderRadius: '10px 10px 0 0',
               fontSize: '0.82rem', fontWeight: activeTab === tab.id ? 800 : 600,
-              color: activeTab === tab.id ? '#DC2626' : '#64748B',
-              backgroundColor: activeTab === tab.id ? '#FEF2F2' : 'transparent',
-              borderBottom: activeTab === tab.id ? '2px solid #DC2626' : '2px solid transparent',
+              color: activeTab === tab.id ? 'var(--accent-red, #DC2626)' : 'var(--text-secondary)',
+              backgroundColor: activeTab === tab.id ? 'var(--accent-red-subtle, #FEF2F2)' : 'transparent',
+              borderBottom: activeTab === tab.id ? '2px solid var(--accent-red, #DC2626)' : '2px solid transparent',
               whiteSpace: 'nowrap', transition: 'all 0.15s ease',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              borderTop: 'none',
+              borderLeft: 'none',
+              borderRight: 'none'
             }}
           >
             <span style={{ display: 'inline-flex', flexShrink: 0 }}>{tab.icon}</span>
@@ -457,24 +461,24 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onNavi
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
             {/* Maintenance Mode */}
-            <div style={{ padding: '1.25rem', borderRadius: '12px', border: '1px solid #E2E8F0', backgroundColor: configDraft.maintenanceMode ? '#FEF2F2' : '#F8FAFC' }}>
+            <div style={{ padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--border-subtle, #E2E8F0)', backgroundColor: configDraft.maintenanceMode ? 'var(--accent-red-subtle, #FEF2F2)' : 'var(--bg-subtle, #F8FAFC)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>Maintenance Mode</span>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>Maintenance Mode</span>
                 <button
                   onClick={() => setConfigDraft(prev => ({ ...prev, maintenanceMode: !prev.maintenanceMode }))}
-                  style={{ color: configDraft.maintenanceMode ? '#DC2626' : '#059669' }}
+                  style={{ color: configDraft.maintenanceMode ? 'var(--accent-red, #DC2626)' : 'var(--accent-green, #059669)', background: 'none', border: 'none', cursor: 'pointer' }}
                 >
                   {configDraft.maintenanceMode ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
                 </button>
               </div>
-              <p style={{ fontSize: '0.78rem', color: '#64748B' }}>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                 When enabled, students see a maintenance page. Admins can still access the platform.
               </p>
             </div>
 
             {/* Max Listing Price */}
-            <div style={{ padding: '1.25rem', borderRadius: '12px', border: '1px solid #E2E8F0', backgroundColor: '#F8FAFC' }}>
-              <label style={{ fontWeight: 700, fontSize: '0.9rem', display: 'block', marginBottom: '0.5rem' }}>
+            <div style={{ padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--border-subtle, #E2E8F0)', backgroundColor: 'var(--bg-subtle, #F8FAFC)' }}>
+              <label style={{ fontWeight: 700, fontSize: '0.9rem', display: 'block', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
                 Max Listing Price (₱)
               </label>
               <input
@@ -487,8 +491,8 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onNavi
             </div>
 
             {/* Max Images */}
-            <div style={{ padding: '1.25rem', borderRadius: '12px', border: '1px solid #E2E8F0', backgroundColor: '#F8FAFC' }}>
-              <label style={{ fontWeight: 700, fontSize: '0.9rem', display: 'block', marginBottom: '0.5rem' }}>
+            <div style={{ padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--border-subtle, #E2E8F0)', backgroundColor: 'var(--bg-subtle, #F8FAFC)' }}>
+              <label style={{ fontWeight: 700, fontSize: '0.9rem', display: 'block', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
                 Max Images Per Listing
               </label>
               <input
@@ -501,8 +505,8 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onNavi
             </div>
 
             {/* Max Listings Per User */}
-            <div style={{ padding: '1.25rem', borderRadius: '12px', border: '1px solid #E2E8F0', backgroundColor: '#F8FAFC' }}>
-              <label style={{ fontWeight: 700, fontSize: '0.9rem', display: 'block', marginBottom: '0.5rem' }}>
+            <div style={{ padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--border-subtle, #E2E8F0)', backgroundColor: 'var(--bg-subtle, #F8FAFC)' }}>
+              <label style={{ fontWeight: 700, fontSize: '0.9rem', display: 'block', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
                 Max Listings Per User
               </label>
               <input
@@ -515,45 +519,45 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onNavi
             </div>
 
             {/* Swap Mode Toggle */}
-            <div style={{ padding: '1.25rem', borderRadius: '12px', border: '1px solid #E2E8F0', backgroundColor: '#F8FAFC' }}>
+            <div style={{ padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--border-subtle, #E2E8F0)', backgroundColor: 'var(--bg-subtle, #F8FAFC)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>Swap Mode</span>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>Swap Mode</span>
                 <button
                   onClick={() => setConfigDraft(prev => ({ ...prev, swapModeEnabled: !prev.swapModeEnabled }))}
-                  style={{ color: configDraft.swapModeEnabled ? '#059669' : '#DC2626' }}
+                  style={{ color: configDraft.swapModeEnabled ? 'var(--accent-green, #059669)' : 'var(--accent-red, #DC2626)', background: 'none', border: 'none', cursor: 'pointer' }}
                 >
                   {configDraft.swapModeEnabled ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
                 </button>
               </div>
-              <p style={{ fontSize: '0.78rem', color: '#64748B' }}>Allow item-for-item swap proposals</p>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Allow item-for-item swap proposals</p>
             </div>
 
             {/* Wanted Board Toggle */}
-            <div style={{ padding: '1.25rem', borderRadius: '12px', border: '1px solid #E2E8F0', backgroundColor: '#F8FAFC' }}>
+            <div style={{ padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--border-subtle, #E2E8F0)', backgroundColor: 'var(--bg-subtle, #F8FAFC)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>Wanted Board</span>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>Wanted Board</span>
                 <button
                   onClick={() => setConfigDraft(prev => ({ ...prev, wantedBoardEnabled: !prev.wantedBoardEnabled }))}
-                  style={{ color: configDraft.wantedBoardEnabled ? '#059669' : '#DC2626' }}
+                  style={{ color: configDraft.wantedBoardEnabled ? 'var(--accent-green, #059669)' : 'var(--accent-red, #DC2626)', background: 'none', border: 'none', cursor: 'pointer' }}
                 >
                   {configDraft.wantedBoardEnabled ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
                 </button>
               </div>
-              <p style={{ fontSize: '0.78rem', color: '#64748B' }}>Enable student wanted/request board</p>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Enable student wanted/request board</p>
             </div>
 
             {/* Free Donation Toggle */}
-            <div style={{ padding: '1.25rem', borderRadius: '12px', border: '1px solid #E2E8F0', backgroundColor: '#F8FAFC' }}>
+            <div style={{ padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--border-subtle, #E2E8F0)', backgroundColor: 'var(--bg-subtle, #F8FAFC)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>Free Donations</span>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>Free Donations</span>
                 <button
                   onClick={() => setConfigDraft(prev => ({ ...prev, freeDonationEnabled: !prev.freeDonationEnabled }))}
-                  style={{ color: configDraft.freeDonationEnabled ? '#059669' : '#DC2626' }}
+                  style={{ color: configDraft.freeDonationEnabled ? 'var(--accent-green, #059669)' : 'var(--accent-red, #DC2626)', background: 'none', border: 'none', cursor: 'pointer' }}
                 >
                   {configDraft.freeDonationEnabled ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
                 </button>
               </div>
-              <p style={{ fontSize: '0.78rem', color: '#64748B' }}>Allow free item donation listings</p>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Allow free item donation listings</p>
             </div>
           </div>
         </div>
@@ -619,31 +623,31 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onNavi
                 style={{
                   display: 'flex', alignItems: 'flex-start', gap: '0.75rem',
                   padding: '0.85rem 1rem', borderRadius: '10px',
-                  border: '1px solid #F1F5F9', backgroundColor: '#FAFAFA'
+                  border: '1px solid var(--border-subtle, #F1F5F9)', backgroundColor: 'var(--bg-subtle, #FAFAFA)'
                 }}
               >
                 <div style={{
                   width: '32px', height: '32px', borderRadius: '8px',
-                  backgroundColor: '#EBF1FC', display: 'flex',
+                  backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', display: 'flex',
                   alignItems: 'center', justifyContent: 'center', flexShrink: 0
                 }}>
-                  <Eye size={16} color="#002B7F" />
+                  <Eye size={16} color="var(--uc-blue, #002B7F)" />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: '0.82rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
-                    <span style={{ color: '#002B7F' }}>{log.adminName}</span>
-                    <span style={{ color: '#94A3B8' }}>•</span>
-                    <span>{log.action}</span>
+                    <span style={{ color: 'var(--uc-blue, #002B7F)' }}>{log.adminName}</span>
+                    <span style={{ color: 'var(--text-muted, #94A3B8)' }}>•</span>
+                    <span style={{ color: 'var(--text-primary)' }}>{log.action}</span>
                   </div>
-                  <p style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.1rem' }}>{log.details}</p>
-                  <div style={{ fontSize: '0.68rem', color: '#94A3B8', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary, #64748B)', marginTop: '0.1rem' }}>{log.details}</p>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted, #94A3B8)', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                     <Clock size={11} />
                     {new Date(log.timestamp).toLocaleString()}
                   </div>
                 </div>
                 <span style={{
                   fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.4rem',
-                  borderRadius: '4px', backgroundColor: '#F1F5F9', color: '#475569',
+                  borderRadius: '4px', backgroundColor: 'var(--bg-surface, #F1F5F9)', color: 'var(--text-secondary, #475569)',
                   whiteSpace: 'nowrap', flexShrink: 0
                 }}>
                   {log.targetType}

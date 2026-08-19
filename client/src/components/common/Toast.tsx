@@ -61,31 +61,34 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           <div
             key={toast.id}
             style={{
-              backgroundColor: '#FFFFFF',
+              backgroundColor: 'var(--bg-surface, #FFFFFF)',
               borderRadius: '12px',
-              border: '1px solid #E2E8F0',
+              border: '1px solid var(--border-subtle, #E2E8F0)',
               padding: '1rem',
               display: 'flex',
               alignItems: 'flex-start',
               gap: '0.75rem',
-              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05)',
+              boxShadow: 'var(--shadow-lg, 0 10px 25px -5px rgba(0, 0, 0, 0.1))',
               animation: 'slideInRight 0.25s ease'
             }}
           >
             <div style={{ flexShrink: 0, marginTop: '2px' }}>{getToastIcon(toast.type)}</div>
             <div style={{ flex: 1 }}>
-              <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0F172A' }}>{toast.title}</h5>
-              <p style={{ fontSize: '0.8rem', color: '#475569', marginTop: '0.15rem' }}>{toast.message}</p>
+              <h5 style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary, #0F172A)' }}>{toast.title}</h5>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary, #475569)', marginTop: '0.15rem' }}>{toast.message}</p>
             </div>
             <button
               onClick={() => removeToast(toast.id)}
               style={{
-                color: '#94A3B8',
+                color: 'var(--text-muted, #94A3B8)',
                 padding: '0.2rem',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                borderRadius: '4px'
+                borderRadius: '4px',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer'
               }}
             >
               <X size={16} />

@@ -138,7 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return [newUser, ...prev];
     });
     setCurrentUserId(newUser.id);
-    return { success: true, message: `Account created for ${newUser.name}! Welcome to UC TradeLink.` };
+    return { success: true, message: `Account created for ${newUser.name}! Welcome to TradeLink.` };
   };
 
   const forgotPassword = (email: string): { success: boolean; resetCode?: string; message: string } => {

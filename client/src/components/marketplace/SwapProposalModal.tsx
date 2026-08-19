@@ -81,8 +81,8 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
         {/* Target Item Summary Banner */}
         <div
           style={{
-            backgroundColor: '#EFF6FF',
-            border: '1px solid #BFDBFE',
+            backgroundColor: 'var(--uc-blue-subtle, #EFF6FF)',
+            border: '1px solid var(--border-subtle, #BFDBFE)',
             borderRadius: '10px',
             padding: '0.85rem',
             display: 'flex',
@@ -96,8 +96,8 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
             style={{ width: '48px', height: '48px', borderRadius: '8px', objectFit: 'cover' }}
           />
           <div style={{ flex: 1 }}>
-            <h5 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1E3A8A' }}>{targetListing.title}</h5>
-            <p style={{ fontSize: '0.75rem', color: '#3B82F6' }}>
+            <h5 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>{targetListing.title}</h5>
+            <p style={{ fontSize: '0.75rem', color: 'var(--uc-blue)' }}>
               Seller: {targetListing.sellerName} ({targetListing.sellerCampus}) • Est. Value: ₱{targetListing.price.toLocaleString()}
             </p>
           </div>
@@ -105,7 +105,7 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
 
         {/* Section 1: Choose Item to Offer */}
         <div>
-          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.5rem' }}>
+          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
             1. Select What You Are Offering in Return
           </label>
 
@@ -114,16 +114,7 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
               <select
                 value={selectedMyListingId}
                 onChange={(e) => setSelectedMyListingId(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '0.65rem 0.75rem',
-                  borderRadius: '8px',
-                  border: '1px solid #CBD5E1',
-                  fontSize: '0.85rem',
-                  color: '#0F172A',
-                  backgroundColor: '#FFFFFF',
-                  outline: 'none'
-                }}
+                className="clean-input"
               >
                 {myListings.map((item) => (
                   <option key={item.id} value={item.id}>
@@ -134,7 +125,7 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
               </select>
             </div>
           ) : (
-            <p style={{ fontSize: '0.78rem', color: '#64748B', marginBottom: '0.4rem' }}>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>
               You have no active listings posted yet. You can describe your item below:
             </p>
           )}
@@ -146,15 +137,7 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
                 value={customDescription}
                 onChange={(e) => setCustomDescription(e.target.value)}
                 placeholder="Describe offered item and condition"
-                style={{
-                  width: '100%',
-                  padding: '0.65rem 0.75rem',
-                  borderRadius: '8px',
-                  border: '1px solid #CBD5E1',
-                  fontSize: '0.85rem',
-                  color: '#0F172A',
-                  outline: 'none'
-                }}
+                className="clean-input"
               />
             </div>
           )}
@@ -162,11 +145,11 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
 
         {/* Section 2: Cash Adjustment (Top-up) */}
         <div>
-          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.35rem' }}>
+          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
             2. Cash Top-Up Adjustment (Optional)
           </label>
           <div style={{ position: 'relative' }}>
-            <span style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: '#64748B' }}>
+            <span style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: 'var(--text-muted)' }}>
               ₱
             </span>
             <input
@@ -174,38 +157,21 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
               value={cashTopUp || ''}
               onChange={(e) => setCashTopUp(Number(e.target.value))}
               placeholder="0"
-              style={{
-                width: '100%',
-                padding: '0.6rem 0.75rem 0.6rem 2.2rem',
-                borderRadius: '8px',
-                border: '1px solid #CBD5E1',
-                fontSize: '0.88rem',
-                fontWeight: 700,
-                color: '#0F172A',
-                outline: 'none'
-              }}
+              className="clean-input"
+              style={{ paddingLeft: '2.2rem', fontWeight: 700 }}
             />
           </div>
         </div>
 
         {/* Section 3: Campus Meetup Spot */}
         <div>
-          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.35rem' }}>
+          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
             3. Proposed Campus Meetup Landmark
           </label>
           <select
             value={selectedSpot}
             onChange={(e) => setSelectedSpot(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '0.65rem 0.75rem',
-              borderRadius: '8px',
-              border: '1px solid #CBD5E1',
-              fontSize: '0.85rem',
-              color: '#0F172A',
-              backgroundColor: '#FFFFFF',
-              outline: 'none'
-            }}
+            className="clean-input"
           >
             {CAMPUS_MEETUP_SPOTS.map((spot) => (
               <option key={spot.id} value={spot.name}>
@@ -217,7 +183,7 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
 
         {/* Section 4: Preferred Date & Time */}
         <div>
-          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.35rem' }}>
+          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
             4. Preferred Meetup Date & Time
           </label>
           <input
@@ -225,15 +191,7 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
             value={scheduledDate}
             onChange={(e) => setScheduledDate(e.target.value)}
             placeholder="e.g. Tomorrow at 3:00 PM during break"
-            style={{
-              width: '100%',
-              padding: '0.65rem 0.75rem',
-              borderRadius: '8px',
-              border: '1px solid #CBD5E1',
-              fontSize: '0.85rem',
-              color: '#0F172A',
-              outline: 'none'
-            }}
+            className="clean-input"
           />
         </div>
 
@@ -242,31 +200,14 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            style={{
-              padding: '0.6rem 1.1rem',
-              borderRadius: '8px',
-              fontSize: '0.85rem',
-              fontWeight: 600,
-              color: '#64748B',
-              backgroundColor: '#F1F5F9'
-            }}
+            className="btn-secondary"
           >
             Cancel
           </button>
           <button
             type="submit"
-            style={{
-              padding: '0.6rem 1.4rem',
-              borderRadius: '8px',
-              fontSize: '0.85rem',
-              fontWeight: 700,
-              color: '#FFFFFF',
-              backgroundColor: '#2563EB',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              boxShadow: '0 2px 4px rgba(37, 99, 235, 0.3)'
-            }}
+            className="btn-primary"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
           >
             <ArrowLeftRight size={16} /> Send Swap Proposal
           </button>

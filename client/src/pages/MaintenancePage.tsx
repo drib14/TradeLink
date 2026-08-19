@@ -24,7 +24,7 @@ export const MaintenancePage: React.FC<MaintenancePageProps> = ({ onNavigate }) 
           width: '72px',
           height: '72px',
           borderRadius: '50%',
-          backgroundColor: '#FFF2CC',
+          backgroundColor: 'var(--uc-gold-light, #FFF2CC)',
           color: '#B45309',
           display: 'flex',
           alignItems: 'center',
@@ -37,8 +37,8 @@ export const MaintenancePage: React.FC<MaintenancePageProps> = ({ onNavigate }) 
 
       <span
         style={{
-          backgroundColor: '#EBF1FC',
-          color: '#002B7F',
+          backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)',
+          color: 'var(--uc-blue, #002B7F)',
           padding: '0.2rem 0.65rem',
           borderRadius: '9999px',
           fontSize: '0.78rem',
@@ -55,23 +55,21 @@ export const MaintenancePage: React.FC<MaintenancePageProps> = ({ onNavigate }) 
         style={{
           fontSize: '2.2rem',
           fontWeight: 900,
-          color: '#002B7F',
+          color: 'var(--text-primary)',
           fontFamily: 'var(--font-display)',
           lineHeight: 1.2
         }}
       >
-        UC TradeLink System Maintenance
+        TradeLink System Maintenance
       </h1>
 
-      <p style={{ fontSize: '0.95rem', color: '#64748B', marginTop: '0.75rem', lineHeight: 1.6 }}>
+      <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)', marginTop: '0.75rem', lineHeight: 1.6 }}>
         Our university server infrastructure is currently undergoing scheduled semester optimization to enhance student verification speed and handshake encryption across all 8 official campuses.
       </p>
 
       <div
+        className="clean-card"
         style={{
-          backgroundColor: '#FFFFFF',
-          border: '1.5px solid #CBD5E1',
-          borderRadius: '12px',
           padding: '1.25rem',
           marginTop: '1.75rem',
           width: '100%',
@@ -81,10 +79,10 @@ export const MaintenancePage: React.FC<MaintenancePageProps> = ({ onNavigate }) 
           textAlign: 'left'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: 700, color: '#002B7F' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: 700, color: 'var(--uc-blue)' }}>
           <Clock size={16} /> Estimated Service Resumption:
         </div>
-        <div style={{ fontSize: '0.82rem', color: '#475569' }}>
+        <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
           Tonight at 11:30 PM PHT • All active scheduled meetups remain saved in offline secure storage.
         </div>
       </div>

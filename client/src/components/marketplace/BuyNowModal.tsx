@@ -15,7 +15,6 @@ import {
   CheckCircle2,
   Lock,
   ArrowRight,
-  Sparkles,
   ShoppingBag,
   Building2
 } from 'lucide-react';
@@ -94,47 +93,29 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
   };
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: 'rgba(0, 29, 89, 0.65)',
-        backdropFilter: 'blur(6px)',
-        zIndex: 2100,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '1rem'
-      }}
-      onClick={onClose}
-    >
+    <div className="modal-backdrop-custom" onClick={onClose}>
       <div
+        className="modal-card-custom"
         style={{
-          backgroundColor: '#FFFFFF',
-          borderRadius: '16px',
-          border: '1.5px solid #BCD1F7',
-          width: '100%',
-          maxWidth: '560px',
-          maxHeight: '92vh',
-          overflowY: 'auto',
-          boxShadow: '0 20px 40px rgba(0, 43, 127, 0.25)',
-          padding: '1.75rem'
+          maxWidth: '560px'
         }}
         onClick={(e) => e.stopPropagation()}
       >
+        <div className="drawer-grabber-handle" />
+
         {/* Modal Top Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.85rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.85rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <div style={{ width: '34px', height: '34px', borderRadius: '8px', backgroundColor: '#EBF1FC', color: '#002B7F', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: '34px', height: '34px', borderRadius: '8px', backgroundColor: 'var(--uc-blue-subtle)', color: 'var(--uc-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <ShoppingBag size={18} />
             </div>
             <div>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#002B7F' }}>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                 {step === 'checkout' && 'Complete Purchase'}
                 {step === 'meetup' && 'Schedule Handshake (Inside or Outside Campus)'}
                 {step === 'success' && 'Transaction Confirmed!'}
               </h3>
-              <p style={{ fontSize: '0.75rem', color: '#64748B' }}>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                 {step === 'checkout' && 'Step 1 of 2 • Order Summary & Payment'}
                 {step === 'meetup' && 'Step 2 of 2 • Pick Guarded Spot or Nearby Mall'}
                 {step === 'success' && 'Your 4-digit code is ready'}
@@ -142,7 +123,7 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
             </div>
           </div>
 
-          <button onClick={onClose} style={{ color: '#64748B', padding: '0.25rem' }}>
+          <button onClick={onClose} style={{ color: 'var(--text-muted)', padding: '0.25rem', background: 'none', border: 'none', cursor: 'pointer' }}>
             <X size={18} />
           </button>
         </div>
@@ -155,8 +136,8 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
               style={{
                 display: 'flex',
                 gap: '1rem',
-                backgroundColor: '#F8FAFC',
-                border: '1px solid #CBD5E1',
+                backgroundColor: 'var(--bg-subtle)',
+                border: '1px solid var(--border-subtle)',
                 borderRadius: '12px',
                 padding: '0.85rem',
                 alignItems: 'center'
@@ -168,20 +149,20 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
                 style={{ width: '68px', height: '68px', borderRadius: '8px', objectFit: 'cover' }}
               />
               <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.72rem', color: '#002B7F', fontWeight: 700 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.72rem', color: 'var(--uc-blue)', fontWeight: 700 }}>
                   <span>{listing.sellerCampus}</span>
                   <span>•</span>
                   <span>{listing.condition}</span>
                 </div>
-                <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: '#0F172A', lineHeight: 1.3, marginTop: '2px' }}>
+                <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3, marginTop: '2px' }}>
                   {listing.title}
                 </h4>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem', marginTop: '4px' }}>
-                  <span style={{ fontSize: '1.15rem', fontWeight: 800, color: '#002B7F', fontFamily: 'var(--font-display)' }}>
+                  <span style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--uc-blue)', fontFamily: 'var(--font-display)' }}>
                     {isFree ? 'FREE DONATION' : `₱${listing.price.toLocaleString()}`}
                   </span>
                   {listing.originalSrp > listing.price && (
-                    <span style={{ fontSize: '0.75rem', color: '#94A3B8', textDecoration: 'line-through' }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'line-through' }}>
                       ₱{listing.originalSrp.toLocaleString()}
                     </span>
                   )}
@@ -195,8 +176,8 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                backgroundColor: '#FFFFFF',
-                border: '1px solid #E2E8F0',
+                backgroundColor: 'var(--bg-surface)',
+                border: '1px solid var(--border-subtle)',
                 borderRadius: '10px',
                 padding: '0.75rem 0.95rem'
               }}
@@ -209,14 +190,14 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
                 />
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0F172A' }}>{listing.sellerName}</span>
-                    {listing.sellerIsVerified && <VerifiedBadge size="xs" variant="gold" />}
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>{listing.sellerName}</span>
+                    {listing.sellerIsVerified && <VerifiedBadge size="xs" variant="green" />}
                   </div>
-                  <span style={{ fontSize: '0.72rem', color: '#64748B' }}>{listing.sellerCollege} • Trust Score {listing.sellerTrustScore}%</span>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{listing.sellerCollege} • Trust Score {listing.sellerTrustScore}%</span>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#059669', fontSize: '0.75rem', fontWeight: 700 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--accent-green)', fontSize: '0.75rem', fontWeight: 700 }}>
                 <ShieldCheck size={14} />
                 <span>Verified Seller</span>
               </div>
@@ -225,7 +206,7 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
             {/* Payment Method Selector */}
             {!isFree && (
               <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.45rem' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.45rem' }}>
                   Payment Preference (Paid on Handshake Inspection)
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
@@ -235,18 +216,19 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
                     style={{
                       padding: '0.75rem',
                       borderRadius: '10px',
-                      border: paymentMethod === 'cash' ? '2px solid #002B7F' : '1px solid #CBD5E1',
-                      backgroundColor: paymentMethod === 'cash' ? '#EBF1FC' : '#FFFFFF',
+                      border: paymentMethod === 'cash' ? '2px solid var(--uc-blue)' : '1px solid var(--border-subtle)',
+                      backgroundColor: paymentMethod === 'cash' ? 'var(--uc-blue-subtle)' : 'var(--bg-surface)',
                       textAlign: 'left',
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: '0.25rem'
+                      gap: '0.25rem',
+                      cursor: 'pointer'
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#002B7F', fontWeight: 700, fontSize: '0.84rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--uc-blue)', fontWeight: 700, fontSize: '0.84rem' }}>
                       <Banknote size={16} /> Cash on Meetup
                     </div>
-                    <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Inspect item and pay physical cash</span>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Inspect item and pay physical cash</span>
                   </button>
 
                   <button
@@ -255,30 +237,31 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
                     style={{
                       padding: '0.75rem',
                       borderRadius: '10px',
-                      border: paymentMethod === 'gcash' ? '2px solid #002B7F' : '1px solid #CBD5E1',
-                      backgroundColor: paymentMethod === 'gcash' ? '#EBF1FC' : '#FFFFFF',
+                      border: paymentMethod === 'gcash' ? '2px solid var(--uc-blue)' : '1px solid var(--border-subtle)',
+                      backgroundColor: paymentMethod === 'gcash' ? 'var(--uc-blue-subtle)' : 'var(--bg-surface)',
                       textAlign: 'left',
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: '0.25rem'
+                      gap: '0.25rem',
+                      cursor: 'pointer'
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#002B7F', fontWeight: 700, fontSize: '0.84rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--uc-blue)', fontWeight: 700, fontSize: '0.84rem' }}>
                       <CreditCard size={16} /> GCash / Maya
                     </div>
-                    <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Scan seller QR code in person</span>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Scan seller QR code in person</span>
                   </button>
                 </div>
               </div>
             )}
 
             {/* Buyer Guarantee Callout */}
-            <div style={{ backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '10px', padding: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', color: '#166534' }}>
-              <Lock size={15} color="#16a34a" style={{ flexShrink: 0 }} />
-              <span><strong>UC TradeLink Protection:</strong> No advance payments required. You only exchange payment after inspecting the item during the meetup (inside campus or at public malls/cafes).</span>
+            <div style={{ backgroundColor: 'var(--accent-green-subtle)', border: '1px solid var(--accent-green)', borderRadius: '10px', padding: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', color: 'var(--accent-green)' }}>
+              <Lock size={15} color="var(--accent-green)" style={{ flexShrink: 0 }} />
+              <span><strong>TradeLink Protection:</strong> No advance payments required. You only exchange payment after inspecting the item during the meetup (inside campus or at public malls/cafes).</span>
             </div>
 
-            <button type="submit" className="btn-primary" style={{ padding: '0.75rem', width: '100%', fontSize: '0.9rem' }}>
+            <button type="submit" className="btn-primary" style={{ padding: '0.75rem', width: '100%', fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem' }}>
               <span>Proceed to Schedule Meetup</span>
               <ArrowRight size={16} />
             </button>
@@ -290,21 +273,14 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
           <form onSubmit={handleFinalizeOrder} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             {/* Campus Select */}
             <div>
-              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
                 Primary UC Campus / Area *
               </label>
               <select
                 value={selectedCampus}
                 onChange={(e: any) => setSelectedCampus(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '0.65rem 0.85rem',
-                  borderRadius: '8px',
-                  border: '1.5px solid #CBD5E1',
-                  fontSize: '0.85rem',
-                  backgroundColor: '#FFFFFF',
-                  fontWeight: 600
-                }}
+                className="clean-input"
+                style={{ fontWeight: 600 }}
               >
                 <option value="UC Main">UC Main (Downtown Cebu / E-Mall)</option>
                 <option value="UC Banilad">UC Banilad (Gov. Cuenco / Country Mall / IT Park)</option>
@@ -319,13 +295,13 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
             {/* Meetup Spot Selection (Inside & Outside Options) */}
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-                <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#334155' }}>
+                <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                   Meetup Spot (Inside Gate or Outside Mall/Cafe) *
                 </label>
                 <button
                   type="button"
                   onClick={() => setIsCustomSpot(!isCustomSpot)}
-                  style={{ fontSize: '0.75rem', color: '#002B7F', fontWeight: 800 }}
+                  style={{ fontSize: '0.75rem', color: 'var(--uc-blue)', fontWeight: 800, background: 'none', border: 'none', cursor: 'pointer' }}
                 >
                   {isCustomSpot ? 'Select from List' : '+ Custom Spot (Inside or Outside)'}
                 </button>
@@ -342,8 +318,8 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
                         gap: '0.65rem',
                         padding: '0.65rem 0.85rem',
                         borderRadius: '8px',
-                        border: selectedSpot === spot.name ? '2px solid #002B7F' : '1px solid #CBD5E1',
-                        backgroundColor: selectedSpot === spot.name ? '#EBF1FC' : '#FFFFFF',
+                        border: selectedSpot === spot.name ? '2px solid var(--uc-blue)' : '1px solid var(--border-subtle)',
+                        backgroundColor: selectedSpot === spot.name ? 'var(--uc-blue-subtle)' : 'var(--bg-surface)',
                         cursor: 'pointer'
                       }}
                     >
@@ -356,12 +332,12 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
                       />
                       <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0F172A' }}>{spot.name}</span>
-                          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: spot.locationType.includes('Inside') ? '#047857' : '#B45309', backgroundColor: spot.locationType.includes('Inside') ? '#ECFDF5' : '#FFFBEB', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
+                          <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>{spot.name}</span>
+                          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: spot.locationType.includes('Inside') ? 'var(--accent-green)' : '#B45309', backgroundColor: spot.locationType.includes('Inside') ? 'var(--accent-green-subtle)' : 'var(--uc-gold-light)', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
                             {spot.locationType.includes('Inside') ? 'Campus Gate' : 'Outside Spot'}
                           </span>
                         </div>
-                        <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '2px' }}>{spot.locationDetails}</div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>{spot.locationDetails}</div>
                       </div>
                     </label>
                   ))}
@@ -381,13 +357,13 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
             {/* Date & Time */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
                   Date *
                 </label>
                 <select
                   value={meetupDate}
                   onChange={(e) => setMeetupDate(e.target.value)}
-                  style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.82rem' }}
+                  className="clean-input"
                 >
                   <option value="Today">Today</option>
                   <option value="Tomorrow">Tomorrow</option>
@@ -401,13 +377,13 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
                   Time *
                 </label>
                 <select
                   value={meetupTime}
                   onChange={(e) => setMeetupTime(e.target.value)}
-                  style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.82rem' }}
+                  className="clean-input"
                 >
                   <option value="9:00 AM">9:00 AM</option>
                   <option value="10:30 AM">10:30 AM</option>
@@ -423,7 +399,7 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
 
             {/* Note to Seller */}
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
                 Note to Seller (Optional)
               </label>
               <input
@@ -444,7 +420,7 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
               >
                 Back
               </button>
-              <button type="submit" className="btn-gold" style={{ flex: 1, padding: '0.7rem', fontSize: '0.9rem' }}>
+              <button type="submit" className="btn-gold" style={{ flex: 1, padding: '0.7rem', fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem' }}>
                 <CheckCircle2 size={16} /> Confirm Order & Schedule
               </button>
             </div>
@@ -454,18 +430,19 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
         {/* STEP 3: SUCCESS & HANDSHAKE CODE */}
         {step === 'success' && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '1.25rem', padding: '1rem 0' }}>
-            <div style={{ width: '60px', height: '60px', borderRadius: '50%', backgroundColor: '#ECFDF5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: '60px', height: '60px', borderRadius: '50%', backgroundColor: 'var(--accent-green-subtle)', color: 'var(--accent-green)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <CheckCircle2 size={36} />
             </div>
 
             <div>
-              <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#002B7F' }}>
+              <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                 Order & Meetup Confirmed!
               </h3>
-              <p style={{ fontSize: '0.82rem', color: '#64748B', marginTop: '0.25rem' }}>
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
                 A notification and chat message have been dispatched to {listing.sellerName}.
               </p>
             </div>
+
 
             {/* Security Code Card */}
             <div

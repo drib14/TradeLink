@@ -1,95 +1,110 @@
 import React from 'react';
+import { TradeLinkIcon } from './TradeLinkIcon';
 
 interface LogoProps {
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   showSubtitle?: boolean;
-  variant?: 'full' | 'emblem-only' | 'text-only';
+  variant?: 'text-only' | 'with-mark' | 'mark-only';
   isDark?: boolean;
+  iconOnlyOnMobile?: boolean;
 }
 
-export const Logo: React.FC<LogoProps> = ({ size = 'md', showSubtitle = true, variant = 'full', isDark = false }) => {
-  const iconDimensions = {
-    sm: { width: 44, height: 32 },
-    md: { width: 56, height: 40 },
-    lg: { width: 72, height: 52 }
+export const Logo: React.FC<LogoProps> = ({
+  size = 'md',
+  showSubtitle = false,
+  variant = 'with-mark',
+  isDark = false,
+  iconOnlyOnMobile = false
+}) => {
+  const fontSizes = {
+    sm: '1.28rem',
+    md: '1.65rem',
+    lg: '2.1rem',
+    xl: '2.6rem'
   };
 
-  const textSizes = {
-    sm: '1.2rem',
-    md: '1.45rem',
-    lg: '1.85rem'
+  const iconSizes = {
+    sm: 28,
+    md: 34,
+    lg: 44,
+    xl: 56
   };
 
-  const currentDim = iconDimensions[size];
+  const currentIconSize = iconSizes[size];
 
-  const [imgError, setImgError] = React.useState(false);
-
-  const UCEmblem = !imgError ? (
-    <img
-      src="/uc-logo.png"
-      alt="University of Cebu Emblem"
-      onError={() => setImgError(true)}
-      style={{
-        width: currentDim.width,
-        height: currentDim.height,
-        objectFit: 'contain',
-        flexShrink: 0
-      }}
-    />
-  ) : (
-    <div
-      style={{
-        width: currentDim.width,
-        height: currentDim.height,
-        borderRadius: '8px',
-        backgroundColor: '#002B7F',
-        color: '#FFC72C',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontWeight: 900,
-        fontSize: size === 'sm' ? '0.85rem' : size === 'md' ? '1.05rem' : '1.3rem',
-        letterSpacing: '-0.02em',
-        flexShrink: 0,
-        border: '1.5px solid #FFC72C'
-      }}
-    >
-      UC
-    </div>
-  );
-
-  if (variant === 'emblem-only') return UCEmblem;
+  if (variant === 'mark-only') {
+    return <TradeLinkIcon size={currentIconSize} />;
+  }
 
   return (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.65rem', textDecoration: 'none' }}>
-      {variant !== 'text-only' && UCEmblem}
+    <div
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '0.65rem',
+        textDecoration: 'none',
+        userSelect: 'none'
+      }}
+    >
+      {variant === 'with-mark' && (
+        <TradeLinkIcon size={currentIconSize} />
+      )}
 
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <div style={{ display: 'flex', alignItems: 'center', lineHeight: 1 }}>
+      <div
+        className={iconOnlyOnMobile ? 'desktop-only' : ''}
+        style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', lineHeight: 1, letterSpacing: '-0.035em' }}>
           <span
             style={{
               fontFamily: 'var(--font-display)',
-              fontWeight: 800,
-              fontSize: textSizes[size],
+              fontWeight: 900,
+              fontSize: fontSizes[size],
               color: isDark ? '#FFFFFF' : '#002B7F',
-              letterSpacing: '-0.025em'
+              letterSpacing: '-0.035em'
             }}
           >
-            Trade<span style={{ color: '#FFC72C' }}>Link</span>
+            Trade
           </span>
+          <span
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontWeight: 900,
+              fontSize: fontSizes[size],
+              color: '#FFC72C',
+              letterSpacing: '-0.035em'
+            }}
+          >
+            Link
+          </span>
+          {/* Subtle nexus dot */}
+          <span
+            style={{
+              display: 'inline-block',
+              width: size === 'sm' ? '5px' : size === 'md' ? '6px' : '7px',
+              height: size === 'sm' ? '5px' : size === 'md' ? '6px' : '7px',
+              borderRadius: '50%',
+              backgroundColor: '#FFC72C',
+              marginLeft: '2px',
+              marginBottom: '2px',
+              alignSelf: 'flex-end',
+              boxShadow: '0 0 6px rgba(255, 199, 44, 0.6)'
+            }}
+          />
         </div>
 
         {showSubtitle && (
           <span
             style={{
-              fontSize: '0.68rem',
-              color: isDark ? '#94A3B8' : '#64748B',
-              fontWeight: 600,
-              letterSpacing: '0.02em',
-              marginTop: '0.15rem'
+              fontSize: size === 'sm' ? '0.62rem' : size === 'md' ? '0.7rem' : '0.8rem',
+              color: isDark ? '#CBD5E1' : '#64748B',
+              fontWeight: 700,
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              marginTop: '0.22rem'
             }}
           >
-            Campus Marketplace
+            Campus Marketplace & Barter
           </span>
         )}
       </div>

@@ -10,7 +10,6 @@ import {
   Plus,
   Building2,
   Calendar,
-  Sparkles,
   CheckCircle,
   XCircle,
   Clock,
@@ -38,17 +37,17 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({ onNavigate, onOpenChat }) 
     : [];
 
   return (
-    <div className="container" style={{ padding: '2rem 1.5rem 5rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div className="container page-enter" style={{ padding: '2rem 1.5rem 5rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: '#002B7F', fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: 'var(--uc-blue, #002B7F)', fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
             <ArrowLeftRight size={14} style={{ flexShrink: 0 }} /> Cashless Student Barter
           </div>
-          <h1 style={{ fontSize: '1.85rem', fontWeight: 900, color: '#002B7F', marginTop: '0.2rem' }}>
+          <h1 style={{ fontSize: '1.85rem', fontWeight: 900, color: 'var(--text-primary, #002B7F)', marginTop: '0.2rem' }}>
             Campus Swap Hub
           </h1>
-          <p style={{ fontSize: '0.86rem', color: '#64748B', marginTop: '0.15rem' }}>
+          <p style={{ fontSize: '0.86rem', color: 'var(--text-muted, #64748B)', marginTop: '0.15rem' }}>
             Direct item-for-item student barter across all 8 University of Cebu campuses
           </p>
         </div>
@@ -64,13 +63,13 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({ onNavigate, onOpenChat }) 
       </div>
 
       {/* Segmented Control Tabs */}
-      <div style={{ display: 'inline-flex', backgroundColor: '#F1F5F9', padding: '3px', borderRadius: '9999px', alignSelf: 'flex-start', border: '1px solid #CBD5E1' }}>
+      <div style={{ display: 'inline-flex', backgroundColor: 'var(--bg-subtle, #F1F5F9)', padding: '3px', borderRadius: 'var(--radius-full)', alignSelf: 'flex-start', border: '1px solid var(--border-subtle, #CBD5E1)' }}>
         <button
           onClick={() => setActiveTab('catalog')}
           className={`segmented-tab ${activeTab === 'catalog' ? 'active' : ''}`}
           style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
         >
-          <Sparkles size={14} style={{ flexShrink: 0 }} />
+          <ArrowLeftRight size={14} style={{ flexShrink: 0 }} />
           <span>Available Swaps ({swapListings.length})</span>
         </button>
 
@@ -119,8 +118,12 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({ onNavigate, onOpenChat }) 
               ))}
             </div>
           ) : (
-            <div style={{ textAlign: 'center', padding: '3.5rem', color: '#64748B', backgroundColor: '#FFFFFF', borderRadius: '14px', border: '1px solid #E2E8F0' }}>
-              No items currently listed for swap. Post an item to initiate peer barter.
+            <div className="empty-state">
+              <h3 className="empty-state-title">No items currently listed for swap</h3>
+              <p className="empty-state-desc">Post an item and choose Swap mode to initiate student peer barter.</p>
+              <button onClick={() => onNavigate('create-listing')} className="btn-primary" style={{ marginTop: '0.75rem' }}>
+                Post a Swap Item
+              </button>
             </div>
           )}
         </div>
@@ -146,11 +149,11 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({ onNavigate, onOpenChat }) 
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem' }}>
-                      <span style={{ fontWeight: 800, color: '#002B7F' }}>
+                      <span style={{ fontWeight: 800, color: 'var(--uc-blue)' }}>
                         {isReceiver ? 'Received Swap Proposal' : 'Your Sent Proposal'}
                       </span>
-                      <span style={{ color: '#CBD5E1' }}>•</span>
-                      <span style={{ color: '#64748B' }}>
+                      <span style={{ color: 'var(--border-subtle)' }}>•</span>
+                      <span style={{ color: 'var(--text-muted)' }}>
                         {new Date(swap.createdAt).toLocaleDateString()}
                       </span>
                     </div>
@@ -163,22 +166,22 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({ onNavigate, onOpenChat }) 
                         borderRadius: '6px',
                         backgroundColor:
                           swap.status === 'accepted'
-                            ? '#ECFDF5'
+                            ? 'var(--accent-green-subtle, #ECFDF5)'
                             : swap.status === 'declined'
-                            ? '#FEF2F2'
-                            : '#FFFBEB',
+                            ? 'var(--accent-red-subtle, #FEF2F2)'
+                            : 'var(--uc-gold-light, #FFFBEB)',
                         color:
                           swap.status === 'accepted'
-                            ? '#047857'
+                            ? 'var(--accent-green, #047857)'
                             : swap.status === 'declined'
-                            ? '#DC2626'
+                            ? 'var(--accent-red, #DC2626)'
                             : '#B45309',
                         border:
                           swap.status === 'accepted'
-                            ? '1px solid #A7F3D0'
+                            ? '1px solid var(--accent-green)'
                             : swap.status === 'declined'
-                            ? '1px solid #FECACA'
-                            : '1px solid #FDE68A'
+                            ? '1px solid var(--accent-red)'
+                            : '1px solid var(--uc-gold-border)'
                       }}
                     >
                       {swap.status.toUpperCase()}
@@ -192,10 +195,10 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({ onNavigate, onOpenChat }) 
                       gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
                       gap: '1rem',
                       alignItems: 'center',
-                      backgroundColor: '#F8FAFC',
+                      backgroundColor: 'var(--bg-subtle, #F8FAFC)',
                       padding: '1.15rem',
                       borderRadius: '10px',
-                      border: '1px solid #E2E8F0'
+                      border: '1px solid var(--border-subtle, #E2E8F0)'
                     }}
                   >
                     {/* Target Item */}
@@ -203,20 +206,20 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({ onNavigate, onOpenChat }) 
                       <img
                         src={swap.targetListingImage}
                         alt=""
-                        style={{ width: '52px', height: '52px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0, border: '1px solid #CBD5E1' }}
+                        style={{ width: '52px', height: '52px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0, border: '1px solid var(--border-subtle)' }}
                       />
                       <div>
-                        <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0F172A' }}>
+                        <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                           {swap.targetListingTitle}
                         </div>
-                        <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '2px' }}>Owner: {swap.targetSellerName}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>Owner: {swap.targetSellerName}</div>
                       </div>
                     </div>
 
                     {/* Arrow Divider */}
-                    <div style={{ display: 'flex', justifyContent: 'center', color: '#002B7F' }}>
-                      <div style={{ background: '#EBF1FC', padding: '0.5rem', borderRadius: '50%', border: '1px solid #BCD1F7' }}>
-                        <ArrowLeftRight size={18} color="#002B7F" style={{ flexShrink: 0 }} />
+                    <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--uc-blue)' }}>
+                      <div style={{ background: 'var(--uc-blue-subtle, #EBF1FC)', padding: '0.5rem', borderRadius: '50%', border: '1px solid var(--border-subtle)' }}>
+                        <ArrowLeftRight size={18} color="var(--uc-blue)" style={{ flexShrink: 0 }} />
                       </div>
                     </div>
 
@@ -226,21 +229,22 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({ onNavigate, onOpenChat }) 
                         <img
                           src={swap.offeredListingImage}
                           alt=""
-                          style={{ width: '52px', height: '52px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0, border: '1px solid #CBD5E1' }}
+                          style={{ width: '52px', height: '52px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0, border: '1px solid var(--border-subtle)' }}
                         />
                       )}
                       <div>
-                        <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0F172A' }}>
+                        <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                           {swap.offeredDescription}
                         </div>
                         {swap.cashTopUp !== 0 && (
-                          <div style={{ fontSize: '0.75rem', fontWeight: 800, color: swap.cashTopUp > 0 ? '#059669' : '#D97706', marginTop: '2px' }}>
+                          <div style={{ fontSize: '0.75rem', fontWeight: 800, color: swap.cashTopUp > 0 ? 'var(--accent-green)' : '#D97706', marginTop: '2px' }}>
                             Top-up Adjustment: {swap.cashTopUp > 0 ? `+₱${swap.cashTopUp}` : `-₱${Math.abs(swap.cashTopUp)}`}
                           </div>
                         )}
                       </div>
                     </div>
                   </div>
+
 
                   {/* Proposed Spot & Date */}
                   <div style={{ fontSize: '0.8rem', color: '#475569', display: 'flex', gap: '1.25rem', flexWrap: 'wrap' }}>
@@ -286,7 +290,7 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({ onNavigate, onOpenChat }) 
               );
             })
           ) : (
-            <div style={{ textAlign: 'center', padding: '3.5rem', color: '#64748B', backgroundColor: '#FFFFFF', borderRadius: '14px', border: '1px solid #E2E8F0' }}>
+            <div className="clean-card" style={{ textAlign: 'center', padding: '3.5rem', color: 'var(--text-muted)' }}>
               You have no active swap proposals yet. Propose a swap on any listing with the SWAP badge!
             </div>
           )}

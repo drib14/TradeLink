@@ -7,6 +7,7 @@ import { useChat } from '../context/ChatContext';
 import { useToast } from '../components/common/Toast';
 import { VerificationRequest, User, Listing, Campus, TradeDispute } from '../types';
 import { CAMPUS_MEETUP_SPOTS } from '../data/campusLocations';
+import { Modal } from '../components/common/Modal';
 import {
   ShieldAlert,
   ShieldCheck,
@@ -20,7 +21,8 @@ import {
   Megaphone,
   History,
   Eye,
-  Sparkles,
+  Flame,
+  Zap,
   MapPin,
   Building2,
   BadgeCheck,
@@ -34,7 +36,8 @@ import {
   Award,
   DollarSign,
   AlertCircle,
-  Shield
+  Shield,
+  Layers
 } from 'lucide-react';
 import { VerifiedBadge } from '../components/common/VerifiedBadge';
 import { CampusBadge } from '../components/common/CampusBadge';
@@ -87,14 +90,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     | 'verifications'
     | 'users'
     | 'listings'
-    | 'scanner'
     | 'disputes'
-    | 'reputation'
-    | 'wanted'
     | 'meetups'
-    | 'landmarks'
-    | 'priceAdvisor'
-    | 'announcements'
     | 'audit'
   >('overview');
 
@@ -281,7 +278,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   // User Actions
   const handleOpenBanModal = (user: User) => {
     setBanModalUser(user);
-    setBanReasonInput('Violation of UC TradeLink Safety & Campus Community Guidelines');
+    setBanReasonInput('Violation of TradeLink Safety & Campus Community Guidelines');
   };
 
   const handleConfirmBan = () => {
@@ -496,10 +493,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.35rem',
-              backgroundColor: '#F1F5F9',
-              color: '#475569',
+              backgroundColor: 'var(--bg-subtle)',
+              color: 'var(--text-secondary)',
               borderRadius: '8px',
-              border: '1px solid #CBD5E1'
+              border: '1px solid var(--border-subtle)'
             }}
           >
             <LogOut size={14} />
@@ -512,10 +509,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
       <div
         className="touch-scroll-row"
         style={{
-          backgroundColor: '#FFFFFF',
+          backgroundColor: 'var(--bg-surface, #FFFFFF)',
           padding: '0.35rem',
           borderRadius: '12px',
-          border: '1px solid #E2E8F0',
+          border: '1px solid var(--border-subtle, #E2E8F0)',
           width: '100%',
           minWidth: 0
         }}
@@ -523,17 +520,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
         {[
           { id: 'overview', label: 'Overview', icon: <TrendingUp size={14} /> },
           { id: 'verifications', label: `ID Verifications (${pendingRequests.length})`, icon: <BadgeCheck size={14} /> },
-          { id: 'users', label: `Users & Moderation (${allUsers.length})`, icon: <UserCheck size={14} /> },
+          { id: 'users', label: `Users & Trust (${allUsers.length})`, icon: <UserCheck size={14} /> },
           { id: 'listings', label: `Listings & Flags (${pendingFlags.length})`, icon: <ShieldAlert size={14} /> },
-          { id: 'scanner', label: `Prohibited Scanner (${scannedViolations.length})`, icon: <Shield size={14} /> },
           { id: 'disputes', label: `Trade Disputes (${pendingDisputesCount})`, icon: <Scale size={14} /> },
-          { id: 'reputation', label: 'Trust & Reputation', icon: <Award size={14} /> },
-          { id: 'wanted', label: `Wanted Board (${wantedRequests.length})`, icon: <Sparkles size={14} /> },
           { id: 'meetups', label: `Meetup Escrows (${meetups.length})`, icon: <MapPin size={14} /> },
-          { id: 'landmarks', label: 'Guarded Hubs', icon: <Building2 size={14} /> },
-          { id: 'priceAdvisor', label: 'Price Compliance', icon: <DollarSign size={14} /> },
-          { id: 'announcements', label: `Broadcasts (${announcements.length})`, icon: <Megaphone size={14} /> },
-          { id: 'audit', label: `Audit Log (${auditLogs.length})`, icon: <History size={14} /> }
+          { id: 'audit', label: `Audit & Broadcasts (${auditLogs.length})`, icon: <History size={14} /> }
         ].map((tab) => {
           const isActive = activeTab === tab.id;
           return (
@@ -545,15 +536,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 borderRadius: '8px',
                 fontSize: '0.8rem',
                 fontWeight: isActive ? 800 : 600,
-                backgroundColor: isActive ? '#002B7F' : 'transparent',
-                color: isActive ? '#FFFFFF' : '#475569',
+                backgroundColor: isActive ? 'var(--uc-blue)' : 'transparent',
+                color: isActive ? '#FFFFFF' : 'var(--text-secondary)',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '0.45rem',
                 whiteSpace: 'nowrap',
                 transition: 'all 0.15s ease',
                 flexShrink: 0,
-                cursor: 'pointer'
+                cursor: 'pointer',
+                border: 'none'
               }}
             >
               <span style={{ display: 'inline-flex', flexShrink: 0 }}>{tab.icon}</span>
@@ -623,15 +615,96 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
             </div>
           </div>
 
+          {/* Interactive Analytics & Trends Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: '1.25rem' }}>
+            {/* Chart 1: Trade Volume Trends */}
+            <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                    <TrendingUp size={17} color="var(--uc-blue)" /> Campus Trade Volume & Velocity
+                  </h3>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Monthly completed handshakes and barter trades</p>
+                </div>
+                <span className="badge-pill badge-green">+28.4% vs prev</span>
+              </div>
+
+              {/* Bar Chart Visual */}
+              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', height: '140px', gap: '0.75rem', paddingTop: '1rem', borderBottom: '1px solid var(--border-subtle)' }}>
+                {[
+                  { month: 'Mar', val: 45, max: 100, gmv: '₱38k' },
+                  { month: 'Apr', val: 62, max: 100, gmv: '₱54k' },
+                  { month: 'May', val: 58, max: 100, gmv: '₱49k' },
+                  { month: 'Jun', val: 84, max: 100, gmv: '₱76k' },
+                  { month: 'Jul', val: 92, max: 100, gmv: '₱88k' },
+                  { month: 'Aug', val: 100, max: 100, gmv: '₱112k', current: true },
+                ].map((bar) => (
+                  <div key={bar.month} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem', height: '100%', justifyContent: 'flex-end' }}>
+                    <span style={{ fontSize: '0.7rem', fontWeight: 700, color: bar.current ? 'var(--uc-blue)' : 'var(--text-muted)' }}>{bar.gmv}</span>
+                    <div
+                      style={{
+                        width: '100%',
+                        maxWidth: '36px',
+                        height: `${bar.val}%`,
+                        borderRadius: '6px 6px 0 0',
+                        background: bar.current
+                          ? 'linear-gradient(180deg, var(--uc-blue) 0%, #1D4ED8 100%)'
+                          : 'linear-gradient(180deg, var(--uc-gold) 0%, #F59E0B 100%)',
+                        transition: 'height 0.4s ease'
+                      }}
+                      title={`${bar.month}: ${bar.gmv} volume (${bar.val} trades)`}
+                    />
+                    <span style={{ fontSize: '0.74rem', fontWeight: bar.current ? 800 : 600, color: bar.current ? 'var(--uc-blue)' : 'var(--text-secondary)' }}>{bar.month}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', color: 'var(--text-muted)' }}>
+                <span>Total GMV Exchanged: <strong style={{ color: 'var(--text-primary)' }}>₱417,000</strong></span>
+                <span>Handshake Success Rate: <strong style={{ color: 'var(--accent-green)' }}>99.2%</strong></span>
+              </div>
+            </div>
+
+            {/* Chart 2: Category Distribution Breakdown */}
+            <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                  <Layers size={17} color="#D97706" /> Trading Demand by Category
+                </h3>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{listings.length} Active Items</span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {[
+                  { label: 'College Uniforms & Scrubs', percent: 34, color: 'var(--uc-blue)', count: '142 listings' },
+                  { label: 'Electronics, Phones & Tabs', percent: 28, color: '#D97706', count: '118 listings' },
+                  { label: 'Textbooks & SHS Modules', percent: 20, color: 'var(--accent-green)', count: '84 listings' },
+                  { label: 'Footwear & Campus Fashion', percent: 12, color: '#8B5CF6', count: '50 listings' },
+                  { label: 'STEM & Engineering Kits', percent: 6, color: '#EC4899', count: '26 listings' }
+                ].map((cat) => (
+                  <div key={cat.label} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}>
+                      <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{cat.label}</span>
+                      <span style={{ color: 'var(--text-muted)' }}>{cat.count} ({cat.percent}%)</span>
+                    </div>
+                    <div className="progress-bar" style={{ height: '7px' }}>
+                      <div style={{ width: `${cat.percent}%`, height: '100%', backgroundColor: cat.color, borderRadius: '4px' }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
           {/* Campus Breakdown Table */}
           <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Building2 size={18} color="#002B7F" /> 8 Official Campuses Trading Hub Distribution
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Building2 size={18} color="var(--uc-blue)" /> 8 Official Campuses Trading Hub Distribution
             </h3>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.84rem' }}>
                 <thead>
-                  <tr style={{ borderBottom: '2px solid #E2E8F0', color: '#64748B' }}>
+                  <tr style={{ borderBottom: '2px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
                     <th style={{ padding: '0.65rem 0.75rem' }}>Campus Hub</th>
                     <th style={{ padding: '0.65rem 0.75rem' }}>Registered Students</th>
                     <th style={{ padding: '0.65rem 0.75rem' }}>Active Listings</th>
@@ -656,15 +729,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     const campusWanted = wantedRequests.filter((w) => w.preferredCampus === campus);
                     const rate = campusUsers.length > 0 ? Math.round((campusVerified.length / campusUsers.length) * 100) : 0;
                     return (
-                      <tr key={campus} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                      <tr key={campus} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                         <td style={{ padding: '0.75rem' }}>
                           <CampusBadge campus={campus} size="sm" />
                         </td>
-                        <td style={{ padding: '0.75rem', fontWeight: 700, color: '#0F172A' }}>{campusUsers.length}</td>
-                        <td style={{ padding: '0.75rem', color: '#002B7F', fontWeight: 700 }}>{campusListings.length}</td>
+                        <td style={{ padding: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>{campusUsers.length}</td>
+                        <td style={{ padding: '0.75rem', color: 'var(--uc-blue)', fontWeight: 700 }}>{campusListings.length}</td>
                         <td style={{ padding: '0.75rem', color: '#D97706', fontWeight: 700 }}>{campusWanted.length}</td>
                         <td style={{ padding: '0.75rem' }}>
-                          <span style={{ fontWeight: 800, color: rate >= 50 ? '#059669' : '#D97706' }}>{rate}%</span>
+                          <span style={{ fontWeight: 800, color: rate >= 50 ? 'var(--accent-green)' : '#D97706' }}>{rate}%</span>
                         </td>
                       </tr>
                     );
@@ -832,14 +905,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
             <select
               value={userCampusFilter}
               onChange={(e) => setUserCampusFilter(e.target.value)}
+              className="clean-input"
               style={{
                 padding: '0.45rem 0.85rem',
-                borderRadius: '8px',
-                border: '1px solid #CBD5E1',
                 fontSize: '0.82rem',
                 fontWeight: 600,
-                backgroundColor: '#FFFFFF',
-                color: '#334155'
+                width: 'auto'
               }}
             >
               <option value="All">All Campuses</option>
@@ -917,7 +988,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                             VERIFIED
                           </span>
                         ) : (
-                          <span style={{ padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, backgroundColor: '#F1F5F9', color: '#475569' }}>
+                          <span style={{ padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, backgroundColor: 'var(--bg-subtle)', color: 'var(--text-secondary)' }}>
                             ACTIVE
                           </span>
                         )}
@@ -974,6 +1045,105 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
               </tbody>
             </table>
           </div>
+
+          {/* Student Trust Score & Honor Code Manager */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem', marginTop: '0.75rem' }}>
+            {/* Quick Adjustment Card */}
+            <div className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--uc-blue)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Award size={18} /> Adjust Student Trust Score
+              </h4>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                Reward honest student barter merchants or penalize code of conduct infractions.
+              </p>
+
+              <form onSubmit={handleApplyTrustAdjustment} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                    Target Student
+                  </label>
+                  <select
+                    value={repTargetUserId}
+                    onChange={(e) => setRepTargetUserId(e.target.value)}
+                    className="clean-input"
+                    style={{ fontSize: '0.8rem' }}
+                  >
+                    {allUsers.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.name} ({u.campus} • Trust: {u.trustScore || 80}/100)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                      Point Delta
+                    </label>
+                    <select
+                      value={repDelta}
+                      onChange={(e) => setRepDelta(Number(e.target.value))}
+                      className="clean-input"
+                      style={{ fontSize: '0.8rem', fontWeight: 700 }}
+                    >
+                      <option value={15}>+15 (Honor Roll)</option>
+                      <option value={10}>+10 (Verified Handshake)</option>
+                      <option value={-10}>-10 (Late Arrival)</option>
+                      <option value={-20}>-20 (Misrepresentation)</option>
+                      <option value={-35}>-35 (Severe Warning)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                      Reason
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Conduct bonus"
+                      value={repReason}
+                      onChange={(e) => setRepReason(e.target.value)}
+                      className="clean-input"
+                      style={{ fontSize: '0.8rem' }}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  style={{ padding: '0.55rem 1rem', fontSize: '0.8rem', fontWeight: 800, justifyContent: 'center' }}
+                >
+                  Apply Score Adjustment
+                </button>
+              </form>
+            </div>
+
+            {/* Honor Roll & Watchlist */}
+            <div className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--accent-green)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <Check size={16} /> Campus Honor Roll (Trust ≥ 90%)
+              </h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', maxHeight: '180px', overflowY: 'auto' }}>
+                {allUsers
+                  .filter((u) => (u.trustScore || 80) >= 90)
+                  .map((u) => (
+                    <div key={u.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.4rem 0.6rem', borderRadius: '6px', backgroundColor: 'var(--accent-green-subtle)', fontSize: '0.78rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <img src={u.avatar} alt={u.name} style={{ width: '24px', height: '24px', borderRadius: '50%' }} />
+                        <div>
+                          <strong style={{ color: 'var(--accent-green)' }}>{u.name}</strong>
+                          <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{u.campus}</div>
+                        </div>
+                      </div>
+                      <span style={{ fontWeight: 900, color: 'var(--accent-green)' }}>{u.trustScore || 90}/100</span>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -984,27 +1154,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {/* Flagged Queue */}
           <div className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#DC2626', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--accent-red)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <ShieldAlert size={18} /> Reported Items Queue ({pendingFlags.length})
             </h3>
 
             {pendingFlags.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '2rem', color: '#64748B', fontSize: '0.85rem' }}>
-                <Check size={28} color="#059669" style={{ margin: '0 auto 0.5rem' }} />
+              <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                <Check size={24} color="var(--accent-green)" style={{ margin: '0 auto 0.4rem' }} />
                 <span>All reported listings have been reviewed and resolved.</span>
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
                 {pendingFlags.map((flag) => (
-                  <div key={flag.id} style={{ border: '1.5px solid #FECACA', borderRadius: '10px', padding: '1rem', backgroundColor: '#FFF5F5', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <div key={flag.id} style={{ border: '1.5px solid var(--border-subtle)', borderRadius: '10px', padding: '1rem', backgroundColor: 'var(--accent-red-subtle)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     <div style={{ display: 'flex', gap: '0.75rem' }}>
                       <img src={flag.listingImage} alt={flag.listingTitle} style={{ width: '60px', height: '60px', borderRadius: '8px', objectFit: 'cover' }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <h4 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <h4 style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {flag.listingTitle}
                         </h4>
-                        <div style={{ fontSize: '0.75rem', color: '#64748B' }}>Seller: {flag.sellerName} ({flag.campus})</div>
-                        <div style={{ fontSize: '0.72rem', color: '#DC2626', fontWeight: 700, marginTop: '0.2rem' }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Seller: {flag.sellerName} ({flag.campus})</div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--accent-red)', fontWeight: 700, marginTop: '0.2rem' }}>
                           Reason: {flag.reason}
                         </div>
                       </div>
@@ -1013,13 +1183,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto' }}>
                       <button
                         onClick={() => handleResolveFlag(flag.id)}
-                        style={{ flex: 1, padding: '0.45rem', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 800, backgroundColor: '#059669', color: '#FFFFFF' }}
+                        className="btn-success"
+                        style={{ flex: 1, padding: '0.45rem', fontSize: '0.78rem' }}
                       >
                         Mark Safe
                       </button>
                       <button
                         onClick={() => handleRemoveListing(flag.id, flag.listingId, flag.listingTitle)}
-                        style={{ flex: 1, padding: '0.45rem', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 800, backgroundColor: '#DC2626', color: '#FFFFFF' }}
+                        className="btn-danger"
+                        style={{ flex: 1, padding: '0.45rem', fontSize: '0.78rem' }}
                       >
                         Take Down
                       </button>
@@ -1030,13 +1202,86 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
             )}
           </div>
 
+          {/* Prohibited Keywords Scanner */}
+          <div className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--uc-blue)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Shield size={18} /> Prohibited Keywords & Auto-Moderation Blacklist
+                </h3>
+                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                  Scan listings for contraband, unauthorized items, and hazardous goods.
+                </p>
+              </div>
+
+              <button
+                onClick={handleTriggerScanner}
+                disabled={isScanning}
+                className="btn-gold"
+                style={{ padding: '0.45rem 1rem', fontSize: '0.8rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+              >
+                <Search size={14} />
+                <span>{isScanning ? 'Scanning...' : 'Run Auto-Scan'}</span>
+              </button>
+            </div>
+
+            {/* Keyword Pills */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+              {prohibitedKeywords.map((kw) => (
+                <span
+                  key={kw}
+                  style={{
+                    backgroundColor: 'var(--accent-red-subtle)',
+                    color: 'var(--accent-red)',
+                    border: '1px solid var(--border-subtle)',
+                    padding: '0.2rem 0.55rem',
+                    borderRadius: '6px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.3rem'
+                  }}
+                >
+                  <span>{kw}</span>
+                  <button
+                    onClick={() => removeProhibitedKeyword(kw)}
+                    style={{ color: 'var(--accent-red)', cursor: 'pointer', display: 'flex', background: 'none', border: 'none', padding: 0 }}
+                    title="Remove keyword"
+                  >
+                    <X size={12} />
+                  </button>
+                </span>
+              ))}
+            </div>
+
+            {/* Add New Keyword Form */}
+            <form onSubmit={handleAddKeyword} style={{ display: 'flex', gap: '0.5rem', maxWidth: '380px' }}>
+              <input
+                type="text"
+                placeholder="Add prohibited term..."
+                value={newKeywordInput}
+                onChange={(e) => setNewKeywordInput(e.target.value)}
+                className="clean-input"
+                style={{ fontSize: '0.8rem' }}
+              />
+              <button
+                type="submit"
+                className="btn-primary"
+                style={{ padding: '0.45rem 0.85rem', fontSize: '0.78rem', fontWeight: 800, whiteSpace: 'nowrap' }}
+              >
+                <Plus size={14} /> Add Filter
+              </button>
+            </form>
+          </div>
+
           {/* All Listings Manager */}
           <div className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A' }}>All Active Marketplace Items ({listings.length})</h3>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>All Active Marketplace Items ({listings.length})</h3>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
                 <thead>
-                  <tr style={{ borderBottom: '2px solid #E2E8F0', color: '#64748B' }}>
+                  <tr style={{ borderBottom: '2px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
                     <th style={{ padding: '0.65rem 0.75rem' }}>Listing</th>
                     <th style={{ padding: '0.65rem 0.75rem' }}>Campus</th>
                     <th style={{ padding: '0.65rem 0.75rem' }}>Price / Mode</th>
@@ -1046,23 +1291,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 </thead>
                 <tbody>
                   {listings.map((l) => (
-                    <tr key={l.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                    <tr key={l.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                       <td style={{ padding: '0.75rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                           <img src={l.images[0]} alt={l.title} style={{ width: '38px', height: '38px', borderRadius: '6px', objectFit: 'cover' }} />
                           <div>
-                            <div style={{ fontWeight: 700, color: '#0F172A' }}>{l.title}</div>
-                            <div style={{ fontSize: '0.7rem', color: '#64748B' }}>{l.condition}</div>
+                            <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{l.title}</div>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{l.condition}</div>
                           </div>
                         </div>
                       </td>
                       <td style={{ padding: '0.75rem' }}>
                         <CampusBadge campus={l.sellerCampus} size="sm" />
                       </td>
-                      <td style={{ padding: '0.75rem', fontWeight: 800, color: '#002B7F' }}>
+                      <td style={{ padding: '0.75rem', fontWeight: 800, color: 'var(--uc-blue)' }}>
                         {l.tradeMode === 'free_donation' ? 'FREE' : `₱${l.price.toLocaleString()}`}
                       </td>
-                      <td style={{ padding: '0.75rem', color: '#334155' }}>{l.sellerName}</td>
+                      <td style={{ padding: '0.75rem', color: 'var(--text-secondary)' }}>{l.sellerName}</td>
                       <td style={{ padding: '0.75rem', textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', gap: '0.35rem' }}>
                           <button
@@ -1073,16 +1318,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                               borderRadius: '6px',
                               fontSize: '0.72rem',
                               fontWeight: 800,
-                              backgroundColor: l.isBoosted ? '#FFC72C' : '#F1F5F9',
-                              color: '#002B7F'
+                              backgroundColor: l.isBoosted ? 'var(--uc-gold)' : 'var(--bg-subtle)',
+                              color: 'var(--uc-blue)',
+                              border: 'none',
+                              cursor: 'pointer'
                             }}
                           >
-                            <Sparkles size={12} /> {l.isBoosted ? 'Boosted' : 'Boost'}
+                            <Zap size={12} fill={l.isBoosted ? 'var(--uc-blue)' : 'none'} /> {l.isBoosted ? 'Boosted' : 'Boost'}
                           </button>
                           <button
                             onClick={() => handleRemoveListing('direct', l.id, l.title)}
                             title="Delete Listing"
-                            style={{ padding: '0.35rem 0.55rem', borderRadius: '6px', color: '#DC2626', backgroundColor: '#FEF2F2', border: '1px solid #FECACA' }}
+                            className="btn-icon"
+                            style={{ color: 'var(--accent-red)', backgroundColor: 'var(--accent-red-subtle)', border: '1px solid var(--border-subtle)', padding: '0.35rem' }}
                           >
                             <Trash2 size={13} />
                           </button>
@@ -1098,168 +1346,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
       )}
 
       {/* =========================================================================
-          TAB 5: PROHIBITED CONTENT SCANNER & AUTO-MODERATION TOOL
-          ========================================================================= */}
-      {activeTab === 'scanner' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {/* Top Config Card */}
-          <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
-              <div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#002B7F', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <Shield size={20} /> Prohibited Keywords & Auto-Moderation Blacklist
-                </h3>
-                <p style={{ fontSize: '0.82rem', color: '#64748B', marginTop: '0.2rem' }}>
-                  Define prohibited term patterns to automatically scan listings for academic leaks, contraband, and hazardous goods.
-                </p>
-              </div>
-
-              <button
-                onClick={handleTriggerScanner}
-                disabled={isScanning}
-                className="btn-gold"
-                style={{ padding: '0.55rem 1.1rem', fontSize: '0.82rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
-              >
-                <Search size={14} />
-                <span>{isScanning ? 'Scanning Marketplace...' : 'Run Auto-Scan Now'}</span>
-              </button>
-            </div>
-
-            {/* Keyword Pills List */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '0.5rem' }}>
-                Active Blacklisted Terms ({prohibitedKeywords.length}):
-              </label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                {prohibitedKeywords.map((kw) => (
-                  <span
-                    key={kw}
-                    style={{
-                      backgroundColor: '#FEF2F2',
-                      color: '#DC2626',
-                      border: '1px solid #FECACA',
-                      padding: '0.25rem 0.6rem',
-                      borderRadius: '6px',
-                      fontSize: '0.78rem',
-                      fontWeight: 700,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.35rem'
-                    }}
-                  >
-                    <span>{kw}</span>
-                    <button
-                      onClick={() => removeProhibitedKeyword(kw)}
-                      style={{ color: '#DC2626', cursor: 'pointer', display: 'flex' }}
-                      title="Remove keyword"
-                    >
-                      <X size={12} />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Add New Keyword Form */}
-            <form onSubmit={handleAddKeyword} style={{ display: 'flex', gap: '0.5rem', maxWidth: '420px' }}>
-              <input
-                type="text"
-                placeholder="Add prohibited term e.g. 'vape' or 'exam leak'..."
-                value={newKeywordInput}
-                onChange={(e) => setNewKeywordInput(e.target.value)}
-                className="clean-input"
-                style={{ fontSize: '0.82rem' }}
-              />
-              <button
-                type="submit"
-                className="btn-primary"
-                style={{ padding: '0.5rem 0.9rem', fontSize: '0.8rem', fontWeight: 800, whiteSpace: 'nowrap' }}
-              >
-                <Plus size={14} /> Add Filter
-              </button>
-            </form>
-          </div>
-
-          {/* Scanner Match Results */}
-          <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <AlertCircle size={18} color="#DC2626" /> Scanner Detection Queue ({scannedViolations.length} Detected)
-              </h3>
-            </div>
-
-            {scannedViolations.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '2.5rem', color: '#059669', fontSize: '0.85rem' }}>
-                <Check size={32} color="#059669" style={{ margin: '0 auto 0.5rem' }} />
-                <div style={{ fontWeight: 800, fontSize: '0.95rem' }}>Clean Marketplace</div>
-                <p style={{ color: '#64748B', marginTop: '0.2rem' }}>No active listings match blacklisted prohibited terms.</p>
-              </div>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
-                {scannedViolations.map(({ listing, matchedKeywords }) => (
-                  <div
-                    key={listing.id}
-                    style={{
-                      border: '1.5px solid #FECACA',
-                      backgroundColor: '#FFF5F5',
-                      borderRadius: '10px',
-                      padding: '1rem',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '0.75rem'
-                    }}
-                  >
-                    <div style={{ display: 'flex', gap: '0.75rem' }}>
-                      <img src={listing.images[0]} alt={listing.title} style={{ width: '60px', height: '60px', borderRadius: '8px', objectFit: 'cover' }} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <h4 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {listing.title}
-                        </h4>
-                        <div style={{ fontSize: '0.75rem', color: '#64748B' }}>Seller: {listing.sellerName} ({listing.sellerCampus})</div>
-                        <div style={{ marginTop: '0.35rem', display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
-                          {matchedKeywords.map((kw) => (
-                            <span key={kw} style={{ fontSize: '0.68rem', fontWeight: 800, backgroundColor: '#DC2626', color: '#FFFFFF', padding: '0.15rem 0.4rem', borderRadius: '4px' }}>
-                              ⚠️ Matched: {kw}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto' }}>
-                      <button
-                        onClick={() => handleRemoveListing('scanner', listing.id, listing.title)}
-                        style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 800, backgroundColor: '#DC2626', color: '#FFFFFF' }}
-                      >
-                        Takedown Listing
-                      </button>
-                      <button
-                        onClick={() => handleOpenBanModal(allUsers.find((u) => u.id === listing.sellerId) || allUsers[0])}
-                        style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 700, backgroundColor: '#FEF2F2', color: '#DC2626', border: '1px solid #FECACA' }}
-                      >
-                        Ban Seller
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* =========================================================================
-          TAB 6: TRADE DISPUTE & MEDIATION DESK
+          TAB 5: TRADE DISPUTE & MEDIATION DESK
           ========================================================================= */}
       {activeTab === 'disputes' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
               <div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#002B7F', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--uc-blue)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                   <Scale size={20} /> Student Trade Dispute & Mediation Cases ({disputes.length})
                 </h3>
-                <p style={{ fontSize: '0.82rem', color: '#64748B', marginTop: '0.2rem' }}>
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
                   Mediate disputes regarding item condition discrepancies, landmark meetup ghosting, and payment settlement.
                 </p>
               </div>
@@ -1275,8 +1372,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '0.85rem',
-                    border: disp.status === 'pending' ? '1.5px solid #FDE68A' : '1px solid #E2E8F0',
-                    backgroundColor: disp.status === 'pending' ? '#FFFDF5' : '#FFFFFF'
+                    border: disp.status === 'pending' ? '1.5px solid var(--uc-gold)' : '1px solid var(--border-subtle)',
+                    backgroundColor: disp.status === 'pending' ? 'var(--uc-gold-subtle)' : 'var(--bg-surface)'
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
@@ -1288,8 +1385,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                         fontSize: '0.72rem',
                         fontWeight: 800,
                         textTransform: 'uppercase',
-                        backgroundColor: disp.status === 'pending' ? '#FFFBEB' : '#ECFDF5',
-                        color: disp.status === 'pending' ? '#D97706' : '#059669'
+                        backgroundColor: disp.status === 'pending' ? 'var(--uc-gold-light)' : 'var(--accent-green-subtle)',
+                        color: disp.status === 'pending' ? '#D97706' : 'var(--accent-green)'
                       }}
                     >
                       {disp.status}
@@ -1297,13 +1394,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                   </div>
 
                   <div>
-                    <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0F172A' }}>{disp.listingTitle}</h4>
-                    <div style={{ fontSize: '0.78rem', color: '#475569', marginTop: '0.25rem' }}>
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)' }}>{disp.listingTitle}</h4>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
                       Buyer: <strong>{disp.buyerName}</strong> ↔ Seller: <strong>{disp.sellerName}</strong>
                     </div>
                   </div>
 
-                  <div style={{ backgroundColor: '#F8FAFC', padding: '0.75rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem', color: '#334155', lineHeight: 1.45 }}>
+                  <div style={{ backgroundColor: 'var(--bg-subtle)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-subtle)', fontSize: '0.8rem', color: 'var(--text-primary)', lineHeight: 1.45 }}>
                     <strong>Dispute Claim:</strong> "{disp.reason}"
                   </div>
 
@@ -1321,7 +1418,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                       </button>
                     </div>
                   ) : (
-                    <div style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 700 }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--accent-green)', fontWeight: 700 }}>
                       ✓ Case Resolved ({disp.verdictAction?.toUpperCase()}): {disp.verdictNote}
                     </div>
                   )}
@@ -1333,191 +1430,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
       )}
 
       {/* =========================================================================
-          TAB 7: STUDENT TRUST & HONOR CODE MANAGER
-          ========================================================================= */}
-      {activeTab === 'reputation' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {/* Quick Adjustment Card */}
-          <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#002B7F', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <Award size={20} /> Student Trust Score & Honor Code Manager
-            </h3>
-            <p style={{ fontSize: '0.82rem', color: '#64748B' }}>
-              Manually adjust student reputation points to reward verified honest barter merchants or penalize code of conduct infractions.
-            </p>
-
-            <form onSubmit={handleApplyTrustAdjustment} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
-                  Target Student
-                </label>
-                <select
-                  value={repTargetUserId}
-                  onChange={(e) => setRepTargetUserId(e.target.value)}
-                  style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.82rem' }}
-                >
-                  {allUsers.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.name} ({u.campus} • Trust: {u.trustScore || 80}/100)
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
-                  Point Delta (+/-)
-                </label>
-                <select
-                  value={repDelta}
-                  onChange={(e) => setRepDelta(Number(e.target.value))}
-                  style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.82rem', fontWeight: 700 }}
-                >
-                  <option value={15}>+15 Points (Honor Roll Trading)</option>
-                  <option value={10}>+10 Points (Verified Punctual Handshake)</option>
-                  <option value={-10}>-10 Points (Late Arrival at Landmark)</option>
-                  <option value={-20}>-20 Points (Condition Misrepresentation)</option>
-                  <option value={-35}>-35 Points (Severe Community Warning)</option>
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
-                  Compliance Reason
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Excellent conduct / Disciplinary deduction"
-                  value={repReason}
-                  onChange={(e) => setRepReason(e.target.value)}
-                  className="clean-input"
-                  style={{ fontSize: '0.82rem' }}
-                  required
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="btn-primary"
-                style={{ padding: '0.65rem 1rem', fontSize: '0.82rem', fontWeight: 800, justifyContent: 'center' }}
-              >
-                Apply Score Adjustment
-              </button>
-            </form>
-          </div>
-
-          {/* Honor Roll & Watchlist Grids */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem' }}>
-            {/* Honor Roll Merchants */}
-            <div className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#059669', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <Check size={16} /> Campus Honor Roll (Trust ≥ 90%)
-              </h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {allUsers
-                  .filter((u) => (u.trustScore || 80) >= 90)
-                  .map((u) => (
-                    <div key={u.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0.65rem', borderRadius: '6px', backgroundColor: '#ECFDF5', fontSize: '0.8rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <img src={u.avatar} alt={u.name} style={{ width: '28px', height: '28px', borderRadius: '50%' }} />
-                        <div>
-                          <strong style={{ color: '#065F46' }}>{u.name}</strong>
-                          <div style={{ fontSize: '0.7rem', color: '#64748B' }}>{u.campus}</div>
-                        </div>
-                      </div>
-                      <span style={{ fontWeight: 900, color: '#059669' }}>{u.trustScore || 90}/100</span>
-                    </div>
-                  ))}
-              </div>
-            </div>
-
-            {/* Low Trust Watchlist */}
-            <div className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#DC2626', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <AlertTriangle size={16} /> Moderation Watchlist (Trust &lt; 75%)
-              </h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {allUsers
-                  .filter((u) => (u.trustScore || 80) < 75)
-                  .map((u) => (
-                    <div key={u.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0.65rem', borderRadius: '6px', backgroundColor: '#FEF2F2', fontSize: '0.8rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <img src={u.avatar} alt={u.name} style={{ width: '28px', height: '28px', borderRadius: '50%' }} />
-                        <div>
-                          <strong style={{ color: '#991B1B' }}>{u.name}</strong>
-                          <div style={{ fontSize: '0.7rem', color: '#64748B' }}>{u.campus} • {u.warningsCount || 0} Strikes</div>
-                        </div>
-                      </div>
-                      <span style={{ fontWeight: 900, color: '#DC2626' }}>{u.trustScore || 60}/100</span>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* =========================================================================
-          TAB 8: WANTED BOARD & PASABUY MODERATION
-          ========================================================================= */}
-      {activeTab === 'wanted' && (
-        <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A' }}>Student Wanted & Pasabuy Requests ({wantedRequests.length})</h3>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
-              <thead>
-                <tr style={{ borderBottom: '2px solid #E2E8F0', color: '#64748B' }}>
-                  <th style={{ padding: '0.65rem 0.75rem' }}>Requested Item</th>
-                  <th style={{ padding: '0.65rem 0.75rem' }}>Campus</th>
-                  <th style={{ padding: '0.65rem 0.75rem' }}>Target Budget</th>
-                  <th style={{ padding: '0.65rem 0.75rem' }}>Requester</th>
-                  <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {wantedRequests.map((w) => (
-                  <tr key={w.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                    <td style={{ padding: '0.75rem' }}>
-                      <div style={{ fontWeight: 800, color: '#0F172A' }}>{w.itemTitle}</div>
-                      <div style={{ fontSize: '0.72rem', color: '#64748B' }}>{w.description}</div>
-                    </td>
-                    <td style={{ padding: '0.75rem' }}>
-                      <CampusBadge campus={w.preferredCampus} size="sm" />
-                    </td>
-                    <td style={{ padding: '0.75rem', fontWeight: 800, color: '#002B7F' }}>₱{w.targetBudget.toLocaleString()}</td>
-                    <td style={{ padding: '0.75rem', color: '#334155' }}>{w.requesterName}</td>
-                    <td style={{ padding: '0.75rem', textAlign: 'right' }}>
-                      <button
-                        onClick={() => {
-                          if (window.confirm(`Delete request "${w.itemTitle}"?`)) {
-                            removeWantedByAdmin(w.id, 'Moderator removed request');
-                            deleteWantedRequest(w.id);
-                            showToast('Deleted', 'Wanted post deleted.', 'info');
-                          }
-                        }}
-                        style={{ padding: '0.35rem 0.55rem', borderRadius: '6px', color: '#DC2626', backgroundColor: '#FEF2F2', border: '1px solid #FECACA' }}
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* =========================================================================
-          TAB 9: SAFE MEETUP ESCROWS & LANDMARK HANDSHAKES
+          TAB 6: SAFE MEETUP ESCROWS & LANDMARK HANDSHAKES
           ========================================================================= */}
       {activeTab === 'meetups' && (
         <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A' }}>Campus Safe Meetup Escrow Monitor ({meetups.length})</h3>
+          <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>Campus Safe Meetup Escrow Monitor ({meetups.length})</h3>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
               <thead>
-                <tr style={{ borderBottom: '2px solid #E2E8F0', color: '#64748B' }}>
+                <tr style={{ borderBottom: '2px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
                   <th style={{ padding: '0.65rem 0.75rem' }}>Item & Code</th>
                   <th style={{ padding: '0.65rem 0.75rem' }}>Guarded Meetup Spot</th>
                   <th style={{ padding: '0.65rem 0.75rem' }}>Buyer & Seller</th>
@@ -1527,19 +1448,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
               </thead>
               <tbody>
                 {meetups.map((m) => (
-                  <tr key={m.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                  <tr key={m.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                     <td style={{ padding: '0.75rem' }}>
-                      <div style={{ fontWeight: 800, color: '#0F172A' }}>{m.listingTitle}</div>
-                      <div style={{ fontSize: '0.72rem', color: '#002B7F', fontFamily: 'monospace', fontWeight: 800 }}>
+                      <div style={{ fontWeight: 800, color: 'var(--text-primary)' }}>{m.listingTitle}</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--uc-blue)', fontFamily: 'monospace', fontWeight: 800 }}>
                         Code: {m.verificationCode}
                       </div>
                     </td>
                     <td style={{ padding: '0.75rem' }}>
-                      <div style={{ fontWeight: 700, color: '#002B7F' }}>{m.landmarkSpot}</div>
-                      <div style={{ fontSize: '0.72rem', color: '#64748B' }}>{m.campus} • {m.scheduledDateTime}</div>
+                      <div style={{ fontWeight: 700, color: 'var(--uc-blue)' }}>{m.landmarkSpot}</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{m.campus} • {m.scheduledDateTime}</div>
                     </td>
                     <td style={{ padding: '0.75rem' }}>
-                      <div style={{ fontSize: '0.78rem', color: '#334155' }}>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
                         <strong>{m.buyerName}</strong> ↔ <strong>{m.sellerName}</strong>
                       </div>
                     </td>
@@ -1550,8 +1471,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                           borderRadius: '4px',
                           fontSize: '0.7rem',
                           fontWeight: 800,
-                          backgroundColor: m.status === 'completed' ? '#ECFDF5' : m.status === 'cancelled' ? '#FEF2F2' : '#FFFBEB',
-                          color: m.status === 'completed' ? '#059669' : m.status === 'cancelled' ? '#DC2626' : '#D97706'
+                          backgroundColor: m.status === 'completed' ? 'var(--accent-green-subtle)' : m.status === 'cancelled' ? 'var(--accent-red-subtle)' : 'var(--uc-gold-light)',
+                          color: m.status === 'completed' ? 'var(--accent-green)' : m.status === 'cancelled' ? 'var(--accent-red)' : '#D97706'
                         }}
                       >
                         {m.status.toUpperCase()}
@@ -1565,7 +1486,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                               completeMeetupByAdmin(m.id);
                               showToast('Completed', 'Handshake marked as completed.', 'success');
                             }}
-                            style={{ padding: '0.35rem 0.6rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 800, backgroundColor: '#059669', color: '#FFFFFF' }}
+                            className="btn-success"
+                            style={{ padding: '0.35rem 0.6rem', fontSize: '0.72rem', fontWeight: 800 }}
                           >
                             Verify
                           </button>
@@ -1574,7 +1496,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                               cancelMeetupByAdmin(m.id, 'Cancelled by admin safety desk');
                               showToast('Cancelled', 'Meetup cancelled and flagged.', 'info');
                             }}
-                            style={{ padding: '0.35rem 0.6rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 800, backgroundColor: '#DC2626', color: '#FFFFFF' }}
+                            className="btn-danger"
+                            style={{ padding: '0.35rem 0.6rem', fontSize: '0.72rem', fontWeight: 800 }}
                           >
                             Cancel
                           </button>
@@ -1590,26 +1513,355 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
       )}
 
       {/* =========================================================================
-          TAB 10: GUARDED LANDMARK HUBS CONFIGURATOR
+          TAB 7: AUDIT LOG & CAMPUS BROADCASTS
           ========================================================================= */}
-      {activeTab === 'landmarks' && (
+      {activeTab === 'audit' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Broadcast Announcements */}
+          <div className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Megaphone size={18} color="var(--uc-blue)" /> Campus Broadcast Announcements ({announcements.length})
+                </h3>
+                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Publish campus-wide safety alerts or schedules for students.</p>
+              </div>
+              <button
+                onClick={() => setIsNewAnnModalOpen(true)}
+                className="btn-primary"
+                style={{ padding: '0.45rem 0.85rem', fontSize: '0.8rem', fontWeight: 800 }}
+              >
+                <Plus size={14} /> New Broadcast
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
+              {announcements.map((ann) => (
+                <div key={ann.id} style={{ border: '1px solid var(--border-subtle)', borderRadius: '10px', padding: '1rem', backgroundColor: 'var(--bg-subtle)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <span
+                        style={{
+                          padding: '0.2rem 0.45rem',
+                          borderRadius: '4px',
+                          fontSize: '0.68rem',
+                          fontWeight: 800,
+                          textTransform: 'uppercase',
+                          backgroundColor: ann.type === 'alert' ? 'var(--accent-red-subtle)' : 'var(--uc-blue-subtle)',
+                          color: ann.type === 'alert' ? 'var(--accent-red)' : 'var(--uc-blue)'
+                        }}
+                      >
+                        {ann.type}
+                      </span>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700 }}>• {ann.campus}</span>
+                    </div>
+
+                    <button
+                      onClick={() => deleteAnnouncement(ann.id)}
+                      style={{ color: 'var(--accent-red)', padding: '0.2rem', background: 'none', border: 'none', cursor: 'pointer' }}
+                      title="Delete Announcement"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+
+                  <h4 style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-primary)' }}>{ann.title}</h4>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>{ann.message}</p>
+
+                  <div style={{ marginTop: 'auto', paddingTop: '0.5rem', borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                    <span>By: {ann.authorName}</span>
+                    <button
+                      onClick={() => toggleAnnouncement(ann.id)}
+                      style={{
+                        padding: '0.2rem 0.5rem',
+                        borderRadius: '4px',
+                        fontWeight: 800,
+                        backgroundColor: ann.isActive ? 'var(--accent-green-subtle)' : 'var(--bg-surface)',
+                        color: ann.isActive ? 'var(--accent-green)' : 'var(--text-muted)',
+                        border: 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {ann.isActive ? 'Active' : 'Disabled'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Audit Logs Table */}
           <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
               <div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#002B7F', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <Building2 size={20} /> Guarded Campus Meetup Landmarks ({CAMPUS_MEETUP_SPOTS.length} Designated Spots)
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <History size={18} color="var(--uc-blue)" /> Administrative Activity & Audit Trail ({auditLogs.length})
                 </h3>
-                <p style={{ fontSize: '0.82rem', color: '#64748B', marginTop: '0.2rem' }}>
-                  Configure active security-supervised student trade rendezvous hubs across all 8 UC campuses.
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                  Immutable record of every moderator action, KYC verification, ban, dispute verdict, and takedown.
                 </p>
               </div>
 
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <select
-                  value={landmarkCampusFilter}
-                  onChange={(e) => setLandmarkCampusFilter(e.target.value)}
-                  style={{ padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.8rem' }}
+                  value={auditTypeFilter}
+                  onChange={(e) => setAuditTypeFilter(e.target.value)}
+                  className="clean-input"
+                  style={{ fontSize: '0.8rem' }}
+                >
+                  <option value="all">All Action Types</option>
+                  <option value="verification">ID KYC Verifications</option>
+                  <option value="user">User Bans & Warnings</option>
+                  <option value="listing">Listing Takedowns</option>
+                  <option value="dispute">Dispute Verdicts</option>
+                  <option value="meetup">Meetup Escrows</option>
+                  <option value="announcement">Broadcasts</option>
+                  <option value="system">System Config</option>
+                </select>
+
+                <button
+                  onClick={handleExportAuditCSV}
+                  className="btn-gold"
+                  style={{ padding: '0.45rem 0.9rem', fontSize: '0.8rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                >
+                  <Download size={14} />
+                  <span>Export CSV Report</span>
+                </button>
+              </div>
+            </div>
+
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
+                    <th style={{ padding: '0.65rem 0.75rem' }}>Action</th>
+                    <th style={{ padding: '0.65rem 0.75rem' }}>Target Type</th>
+                    <th style={{ padding: '0.65rem 0.75rem' }}>Details</th>
+                    <th style={{ padding: '0.65rem 0.75rem' }}>Moderator</th>
+                    <th style={{ padding: '0.65rem 0.75rem' }}>Timestamp</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredAuditLogs.map((log) => (
+                    <tr key={log.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                      <td style={{ padding: '0.75rem', fontWeight: 800, color: 'var(--uc-blue)' }}>{log.action}</td>
+                      <td style={{ padding: '0.75rem' }}>
+                        <span style={{ padding: '0.2rem 0.45rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, backgroundColor: 'var(--bg-subtle)', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                          {log.targetType}
+                        </span>
+                      </td>
+                      <td style={{ padding: '0.75rem', color: 'var(--text-primary)' }}>{log.details}</td>
+                      <td style={{ padding: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>{log.adminName}</td>
+                      <td style={{ padding: '0.75rem', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                        {new Date(log.timestamp).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODALS: BAN USER MODAL
+          ========================================================================= */}
+      {banModalUser && (
+        <Modal
+          isOpen={!!banModalUser}
+          onClose={() => setBanModalUser(null)}
+          title="Ban Student Account"
+          subtitle={`You are about to suspend ${banModalUser.name} (${banModalUser.studentId} • ${banModalUser.campus}).`}
+          maxWidth="460px"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
+              They will be locked out of buying, selling, and chatting on TradeLink.
+            </p>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+                Reason for Suspension:
+              </label>
+              <textarea
+                rows={3}
+                value={banReasonInput}
+                onChange={(e) => setBanReasonInput(e.target.value)}
+                className="clean-textarea"
+                style={{ fontSize: '0.84rem' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.65rem' }}>
+              <button
+                type="button"
+                onClick={() => setBanModalUser(null)}
+                className="btn-secondary"
+                style={{ flex: 1, padding: '0.6rem', fontSize: '0.84rem' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmBan}
+                className="btn-danger"
+                style={{ flex: 1, padding: '0.6rem', fontSize: '0.84rem' }}
+              >
+                Confirm Ban
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* =========================================================================
+          MODALS: DISPUTE VERDICT MODAL
+          ========================================================================= */}
+      {selectedDispute && (
+        <Modal
+          isOpen={!!selectedDispute}
+          onClose={() => setSelectedDispute(null)}
+          title="Dispute Mediation Desk"
+          subtitle="Review conflict evidence and render an official administrative verdict."
+          maxWidth="480px"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ backgroundColor: 'var(--bg-subtle)', padding: '0.75rem', borderRadius: '8px', fontSize: '0.82rem', color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)' }}>
+              <div><strong>Item:</strong> {selectedDispute.listingTitle}</div>
+              <div><strong>Buyer:</strong> {selectedDispute.buyerName}</div>
+              <div><strong>Seller:</strong> {selectedDispute.sellerName}</div>
+              <div style={{ marginTop: '0.25rem' }}><strong>Reason:</strong> "{selectedDispute.reason}"</div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
+                Official Verdict & Resolution Note:
+              </label>
+              <textarea
+                rows={3}
+                value={disputeVerdictNote}
+                onChange={(e) => setDisputeVerdictNote(e.target.value)}
+                className="clean-textarea"
+                style={{ fontSize: '0.82rem' }}
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+              <button
+                type="button"
+                onClick={() => handleConfirmDisputeVerdict('refund')}
+                className="btn-success"
+                style={{ padding: '0.55rem', fontSize: '0.78rem' }}
+              >
+                ✓ Remedy / Refund
+              </button>
+              <button
+                type="button"
+                onClick={() => handleConfirmDisputeVerdict('warning')}
+                className="btn-gold"
+                style={{ padding: '0.55rem', fontSize: '0.78rem' }}
+              >
+                ⚠️ Issue Strike Warning
+              </button>
+              <button
+                type="button"
+                onClick={() => handleConfirmDisputeVerdict('dismissed')}
+                className="btn-secondary"
+                style={{ padding: '0.55rem', fontSize: '0.78rem' }}
+              >
+                Dismiss Report
+              </button>
+              <button
+                type="button"
+                onClick={() => handleConfirmDisputeVerdict('ban')}
+                className="btn-danger"
+                style={{ padding: '0.55rem', fontSize: '0.78rem' }}
+              >
+                Ban Offender
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* =========================================================================
+          MODALS: REJECT VERIFICATION MODAL
+          ========================================================================= */}
+      {rejectReqModal && (
+        <Modal
+          isOpen={!!rejectReqModal}
+          onClose={() => setRejectReqModal(null)}
+          title="Decline Student ID"
+          subtitle={`Specify reason for declining ${rejectReqModal.userName}'s verification request.`}
+          maxWidth="440px"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <textarea
+              rows={3}
+              value={rejectReasonInput}
+              onChange={(e) => setRejectReasonInput(e.target.value)}
+              className="clean-textarea"
+              style={{ fontSize: '0.84rem' }}
+            />
+
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button
+                type="button"
+                onClick={() => setRejectReqModal(null)}
+                className="btn-secondary"
+                style={{ flex: 1, padding: '0.55rem', fontSize: '0.82rem' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmRejectVerification}
+                className="btn-danger"
+                style={{ flex: 1, padding: '0.55rem', fontSize: '0.82rem' }}
+              >
+                Decline Request
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* =========================================================================
+          MODALS: NEW ANNOUNCEMENT MODAL
+          ========================================================================= */}
+      {isNewAnnModalOpen && (
+        <Modal
+          isOpen={isNewAnnModalOpen}
+          onClose={() => setIsNewAnnModalOpen(false)}
+          title="Post Campus Broadcast"
+          subtitle="Publish a campus-wide alert or update for students."
+          maxWidth="480px"
+        >
+          <form onSubmit={handleCreateAnnouncementSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
+                Broadcast Title *
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Guarded Trade Desk Schedule"
+                value={newAnnTitle}
+                onChange={(e) => setNewAnnTitle(e.target.value)}
+                className="clean-input"
+                required
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
+                  Target Campus
+                </label>
+                <select
+                  value={newAnnCampus}
+                  onChange={(e: any) => setNewAnnCampus(e.target.value)}
+                  className="clean-input"
                 >
                   <option value="All">All Campuses</option>
                   <option value="UC Main">UC Main</option>
@@ -1622,547 +1874,56 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                   <option value="UC Medical Center">UC Medical Center</option>
                 </select>
               </div>
-            </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
-              {CAMPUS_MEETUP_SPOTS.filter(
-                (spot) => landmarkCampusFilter === 'All' || spot.campus === landmarkCampusFilter
-              ).map((spot) => {
-                const isSpotActive = activeLandmarks[spot.id] !== false;
-                return (
-                  <div key={spot.id} className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                      <CampusBadge campus={spot.campus as Campus} size="sm" />
-                      <button
-                        onClick={() => {
-                          setActiveLandmarks((prev) => ({ ...prev, [spot.id]: !isSpotActive }));
-                          showToast('Landmark Status', `${spot.name} is now ${!isSpotActive ? 'Active' : 'Disabled'}.`, 'info');
-                        }}
-                        style={{
-                          padding: '0.2rem 0.5rem',
-                          borderRadius: '4px',
-                          fontSize: '0.7rem',
-                          fontWeight: 800,
-                          backgroundColor: isSpotActive ? '#ECFDF5' : '#F1F5F9',
-                          color: isSpotActive ? '#059669' : '#64748B'
-                        }}
-                      >
-                        {isSpotActive ? '● Active Guard Hub' : '○ Offline'}
-                      </button>
-                    </div>
-
-                    <h4 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0F172A' }}>{spot.name}</h4>
-                    <p style={{ fontSize: '0.78rem', color: '#64748B' }}>{spot.locationDetails}</p>
-
-                    <div style={{ marginTop: 'auto', paddingTop: '0.5rem', borderTop: '1px solid #F1F5F9', fontSize: '0.72rem', color: '#002B7F', fontWeight: 700 }}>
-                      🕒 {spot.bestHours}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* =========================================================================
-          TAB 11: FAIR PRICE COMPLIANCE & GOUGING INSPECTOR
-          ========================================================================= */}
-      {activeTab === 'priceAdvisor' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#002B7F', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <DollarSign size={20} /> Campus Fair-Pricing & Anti-Gouging Inspector
-            </h3>
-            <p style={{ fontSize: '0.82rem', color: '#64748B' }}>
-              Automatically checks student listings against official SRP campus benchmarks to prevent uniform and textbook price gouging.
-            </p>
-
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
-                <thead>
-                  <tr style={{ borderBottom: '2px solid #E2E8F0', color: '#64748B' }}>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>Item</th>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>Campus</th>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>Listed Price</th>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>Original SRP</th>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>Pricing Evaluation</th>
-                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>Compliance Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {listings.map((l) => {
-                    const pctOfSrp = l.originalSrp > 0 ? Math.round((l.price / l.originalSrp) * 100) : 100;
-                    const isGouging = l.originalSrp > 0 && l.price > l.originalSrp * 0.9;
-                    return (
-                      <tr key={l.id} style={{ borderBottom: '1px solid #F1F5F9', backgroundColor: isGouging ? '#FFFBEB' : 'transparent' }}>
-                        <td style={{ padding: '0.75rem', fontWeight: 700, color: '#0F172A' }}>{l.title}</td>
-                        <td style={{ padding: '0.75rem' }}><CampusBadge campus={l.sellerCampus} size="sm" /></td>
-                        <td style={{ padding: '0.75rem', fontWeight: 800, color: '#002B7F' }}>₱{l.price.toLocaleString()}</td>
-                        <td style={{ padding: '0.75rem', color: '#64748B' }}>₱{l.originalSrp.toLocaleString()}</td>
-                        <td style={{ padding: '0.75rem' }}>
-                          <span
-                            style={{
-                              padding: '0.2rem 0.5rem',
-                              borderRadius: '4px',
-                              fontSize: '0.7rem',
-                              fontWeight: 800,
-                              backgroundColor: pctOfSrp <= 50 ? '#ECFDF5' : pctOfSrp <= 85 ? '#EBF1FC' : '#FEF2F2',
-                              color: pctOfSrp <= 50 ? '#059669' : pctOfSrp <= 85 ? '#002B7F' : '#DC2626'
-                            }}
-                          >
-                            {pctOfSrp <= 50 ? 'Great Bargain' : pctOfSrp <= 85 ? 'Fair Campus Price' : '⚠️ High / Review'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '0.75rem', textAlign: 'right' }}>
-                          <button
-                            onClick={() => {
-                              warnUserByAdmin(l.sellerId, `Pricing notice for "${l.title}". Please verify compliance with student affordability guidelines.`);
-                              showToast('Price Notice Sent', `Issued pricing notice to seller ${l.sellerName}.`, 'warning');
-                            }}
-                            style={{ padding: '0.35rem 0.65rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700, backgroundColor: '#FFFBEB', color: '#D97706', border: '1px solid #FDE68A' }}
-                          >
-                            Send Notice
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* =========================================================================
-          TAB 12: CAMPUS BROADCAST ANNOUNCEMENTS
-          ========================================================================= */}
-      {activeTab === 'announcements' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A' }}>Active Campus Broadcasts ({announcements.length})</h3>
-            <button
-              onClick={() => setIsNewAnnModalOpen(true)}
-              className="btn-primary"
-              style={{ padding: '0.45rem 0.85rem', fontSize: '0.8rem', fontWeight: 800 }}
-            >
-              <Plus size={14} /> New Broadcast
-            </button>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
-            {announcements.map((ann) => (
-              <div key={ann.id} className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                    <span
-                      style={{
-                        padding: '0.2rem 0.5rem',
-                        borderRadius: '4px',
-                        fontSize: '0.68rem',
-                        fontWeight: 800,
-                        textTransform: 'uppercase',
-                        backgroundColor: ann.type === 'alert' ? '#FEF2F2' : '#EBF1FC',
-                        color: ann.type === 'alert' ? '#DC2626' : '#002B7F'
-                      }}
-                    >
-                      {ann.type}
-                    </span>
-                    <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 700 }}>• {ann.campus}</span>
-                  </div>
-
-                  <button
-                    onClick={() => deleteAnnouncement(ann.id)}
-                    style={{ color: '#DC2626', padding: '0.2rem' }}
-                    title="Delete Announcement"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-
-                <h4 style={{ fontSize: '0.98rem', fontWeight: 800, color: '#0F172A' }}>{ann.title}</h4>
-                <p style={{ fontSize: '0.82rem', color: '#475569', lineHeight: 1.45 }}>{ann.message}</p>
-
-                <div style={{ marginTop: 'auto', paddingTop: '0.5rem', borderTop: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748B' }}>
-                  <span>By: {ann.authorName}</span>
-                  <button
-                    onClick={() => toggleAnnouncement(ann.id)}
-                    style={{
-                      padding: '0.2rem 0.5rem',
-                      borderRadius: '4px',
-                      fontWeight: 800,
-                      backgroundColor: ann.isActive ? '#ECFDF5' : '#F1F5F9',
-                      color: ann.isActive ? '#059669' : '#64748B'
-                    }}
-                  >
-                    {ann.isActive ? 'Active' : 'Disabled'}
-                  </button>
-                </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
+                  Category
+                </label>
+                <select
+                  value={newAnnType}
+                  onChange={(e: any) => setNewAnnType(e.target.value)}
+                  className="clean-input"
+                >
+                  <option value="info">Information</option>
+                  <option value="alert">Safety Alert</option>
+                  <option value="event">Trading Event</option>
+                </select>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* =========================================================================
-          TAB 13: REAL-TIME ADMIN AUDIT LOG & CSV EXPORTER
-          ========================================================================= */}
-      {activeTab === 'audit' && (
-        <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
-            <div>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <History size={18} color="#002B7F" /> Administrative Activity & Audit Trail ({auditLogs.length})
-              </h3>
-              <p style={{ fontSize: '0.8rem', color: '#64748B', marginTop: '0.15rem' }}>
-                Immutable record of every moderator action, KYC verification, ban, dispute verdict, and takedown.
-              </p>
             </div>
-
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <select
-                value={auditTypeFilter}
-                onChange={(e) => setAuditTypeFilter(e.target.value)}
-                style={{ padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.8rem' }}
-              >
-                <option value="all">All Action Types</option>
-                <option value="verification">ID KYC Verifications</option>
-                <option value="user">User Bans & Warnings</option>
-                <option value="listing">Listing Takedowns</option>
-                <option value="dispute">Dispute Verdicts</option>
-                <option value="meetup">Meetup Escrows</option>
-                <option value="announcement">Broadcasts</option>
-                <option value="system">System Config</option>
-              </select>
-
-              <button
-                onClick={handleExportAuditCSV}
-                className="btn-gold"
-                style={{ padding: '0.45rem 0.9rem', fontSize: '0.8rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-              >
-                <Download size={14} />
-                <span>Export CSV Report</span>
-              </button>
-            </div>
-          </div>
-
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
-              <thead>
-                <tr style={{ borderBottom: '2px solid #E2E8F0', color: '#64748B' }}>
-                  <th style={{ padding: '0.65rem 0.75rem' }}>Action</th>
-                  <th style={{ padding: '0.65rem 0.75rem' }}>Target Type</th>
-                  <th style={{ padding: '0.65rem 0.75rem' }}>Details</th>
-                  <th style={{ padding: '0.65rem 0.75rem' }}>Moderator</th>
-                  <th style={{ padding: '0.65rem 0.75rem' }}>Timestamp</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredAuditLogs.map((log) => (
-                  <tr key={log.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                    <td style={{ padding: '0.75rem', fontWeight: 800, color: '#002B7F' }}>{log.action}</td>
-                    <td style={{ padding: '0.75rem' }}>
-                      <span style={{ padding: '0.2rem 0.45rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, backgroundColor: '#F1F5F9', color: '#334155', textTransform: 'uppercase' }}>
-                        {log.targetType}
-                      </span>
-                    </td>
-                    <td style={{ padding: '0.75rem', color: '#334155' }}>{log.details}</td>
-                    <td style={{ padding: '0.75rem', fontWeight: 600, color: '#64748B' }}>{log.adminName}</td>
-                    <td style={{ padding: '0.75rem', color: '#94A3B8', fontSize: '0.75rem' }}>
-                      {new Date(log.timestamp).toLocaleString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* =========================================================================
-          MODALS: BAN USER MODAL
-          ========================================================================= */}
-      {banModalUser && (
-        <div
-          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0, 29, 89, 0.65)', backdropFilter: 'blur(6px)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
-          onClick={() => setBanModalUser(null)}
-        >
-          <div
-            style={{ backgroundColor: '#FFFFFF', borderRadius: '14px', border: '1.5px solid #FECACA', width: '100%', maxWidth: '460px', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#DC2626', fontWeight: 800, fontSize: '1.1rem' }}>
-                <UserX size={20} /> Ban Student Account
-              </div>
-              <button onClick={() => setBanModalUser(null)} style={{ color: '#64748B' }}>
-                <X size={18} />
-              </button>
-            </div>
-
-            <p style={{ fontSize: '0.84rem', color: '#475569' }}>
-              You are about to suspend <strong>{banModalUser.name}</strong> ({banModalUser.studentId} • {banModalUser.campus}). They will be locked out of buying, selling, and chatting on UC TradeLink.
-            </p>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
-                Reason for Suspension:
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
+                Broadcast Message *
               </label>
               <textarea
                 rows={3}
-                value={banReasonInput}
-                onChange={(e) => setBanReasonInput(e.target.value)}
-                className="clean-input"
-                style={{ fontSize: '0.84rem' }}
+                placeholder="Type the announcement details..."
+                value={newAnnMessage}
+                onChange={(e) => setNewAnnMessage(e.target.value)}
+                className="clean-textarea"
+                required
               />
             </div>
 
-            <div style={{ display: 'flex', gap: '0.65rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
               <button
-                onClick={() => setBanModalUser(null)}
-                style={{ flex: 1, padding: '0.6rem', borderRadius: '8px', fontSize: '0.84rem', fontWeight: 700, backgroundColor: '#F1F5F9', color: '#475569' }}
+                type="button"
+                onClick={() => setIsNewAnnModalOpen(false)}
+                className="btn-secondary"
+                style={{ flex: 1, padding: '0.6rem', fontSize: '0.82rem' }}
               >
                 Cancel
               </button>
               <button
-                onClick={handleConfirmBan}
-                style={{ flex: 1, padding: '0.6rem', borderRadius: '8px', fontSize: '0.84rem', fontWeight: 800, backgroundColor: '#DC2626', color: '#FFFFFF' }}
+                type="submit"
+                className="btn-primary"
+                style={{ flex: 1, padding: '0.6rem', fontSize: '0.82rem', justifyContent: 'center' }}
               >
-                Confirm Ban
+                Publish Broadcast
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* =========================================================================
-          MODALS: DISPUTE VERDICT MODAL
-          ========================================================================= */}
-      {selectedDispute && (
-        <div
-          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0, 29, 89, 0.65)', backdropFilter: 'blur(6px)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
-          onClick={() => setSelectedDispute(null)}
-        >
-          <div
-            style={{ backgroundColor: '#FFFFFF', borderRadius: '14px', border: '1.5px solid #CBD5E1', width: '100%', maxWidth: '480px', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#002B7F', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Scale size={18} /> Dispute Mediation Desk
-              </h3>
-              <button onClick={() => setSelectedDispute(null)} style={{ color: '#64748B' }}>
-                <X size={18} />
-              </button>
-            </div>
-
-            <div style={{ backgroundColor: '#F8FAFC', padding: '0.75rem', borderRadius: '8px', fontSize: '0.82rem', color: '#334155' }}>
-              <div><strong>Item:</strong> {selectedDispute.listingTitle}</div>
-              <div><strong>Buyer:</strong> {selectedDispute.buyerName}</div>
-              <div><strong>Seller:</strong> {selectedDispute.sellerName}</div>
-              <div style={{ marginTop: '0.25rem' }}><strong>Reason:</strong> "{selectedDispute.reason}"</div>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
-                Official Verdict & Resolution Note:
-              </label>
-              <textarea
-                rows={3}
-                value={disputeVerdictNote}
-                onChange={(e) => setDisputeVerdictNote(e.target.value)}
-                className="clean-input"
-                style={{ fontSize: '0.82rem' }}
-              />
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-              <button
-                onClick={() => handleConfirmDisputeVerdict('refund')}
-                style={{ padding: '0.55rem', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 800, backgroundColor: '#059669', color: '#FFFFFF' }}
-              >
-                ✓ Remedy / Refund
-              </button>
-              <button
-                onClick={() => handleConfirmDisputeVerdict('warning')}
-                style={{ padding: '0.55rem', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 800, backgroundColor: '#D97706', color: '#FFFFFF' }}
-              >
-                ⚠️ Issue Strike Warning
-              </button>
-              <button
-                onClick={() => handleConfirmDisputeVerdict('dismissed')}
-                style={{ padding: '0.55rem', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 700, backgroundColor: '#F1F5F9', color: '#475569' }}
-              >
-                Dismiss Report
-              </button>
-              <button
-                onClick={() => handleConfirmDisputeVerdict('ban')}
-                style={{ padding: '0.55rem', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 800, backgroundColor: '#DC2626', color: '#FFFFFF' }}
-              >
-                Ban Offender
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* =========================================================================
-          MODALS: REJECT VERIFICATION MODAL
-          ========================================================================= */}
-      {rejectReqModal && (
-        <div
-          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0, 29, 89, 0.65)', backdropFilter: 'blur(6px)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
-          onClick={() => setRejectReqModal(null)}
-        >
-          <div
-            style={{ backgroundColor: '#FFFFFF', borderRadius: '14px', border: '1.5px solid #CBD5E1', width: '100%', maxWidth: '440px', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A' }}>Decline Student ID</h3>
-              <button onClick={() => setRejectReqModal(null)} style={{ color: '#64748B' }}>
-                <X size={18} />
-              </button>
-            </div>
-
-            <p style={{ fontSize: '0.84rem', color: '#475569' }}>
-              Specify the reason for declining <strong>{rejectReqModal.userName}</strong>'s verification request:
-            </p>
-
-            <textarea
-              rows={3}
-              value={rejectReasonInput}
-              onChange={(e) => setRejectReasonInput(e.target.value)}
-              className="clean-input"
-              style={{ fontSize: '0.84rem' }}
-            />
-
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button
-                onClick={() => setRejectReqModal(null)}
-                style={{ flex: 1, padding: '0.55rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, backgroundColor: '#F1F5F9', color: '#475569' }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmRejectVerification}
-                style={{ flex: 1, padding: '0.55rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 800, backgroundColor: '#DC2626', color: '#FFFFFF' }}
-              >
-                Decline Request
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* =========================================================================
-          MODALS: NEW ANNOUNCEMENT MODAL
-          ========================================================================= */}
-      {isNewAnnModalOpen && (
-        <div
-          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0, 29, 89, 0.65)', backdropFilter: 'blur(6px)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
-          onClick={() => setIsNewAnnModalOpen(false)}
-        >
-          <div
-            style={{ backgroundColor: '#FFFFFF', borderRadius: '14px', border: '1.5px solid #CBD5E1', width: '100%', maxWidth: '480px', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#002B7F', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Megaphone size={18} /> Post Campus Broadcast
-              </h3>
-              <button onClick={() => setIsNewAnnModalOpen(false)} style={{ color: '#64748B' }}>
-                <X size={18} />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateAnnouncementSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
-                  Broadcast Title *
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Guarded Trade Desk Schedule"
-                  value={newAnnTitle}
-                  onChange={(e) => setNewAnnTitle(e.target.value)}
-                  className="clean-input"
-                  required
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
-                    Target Campus
-                  </label>
-                  <select
-                    value={newAnnCampus}
-                    onChange={(e: any) => setNewAnnCampus(e.target.value)}
-                    style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.82rem' }}
-                  >
-                    <option value="All">All Campuses</option>
-                    <option value="UC Main">UC Main</option>
-                    <option value="UC Banilad">UC Banilad</option>
-                    <option value="UC LM">UC LM</option>
-                    <option value="UC METC">UC METC</option>
-                    <option value="UC PRI">UC PRI</option>
-                    <option value="UC Pardo-Talisay">UC Pardo-Talisay</option>
-                    <option value="UC South Campus">UC South Campus</option>
-                    <option value="UC Medical Center">UC Medical Center</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
-                    Category
-                  </label>
-                  <select
-                    value={newAnnType}
-                    onChange={(e: any) => setNewAnnType(e.target.value)}
-                    style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.82rem' }}
-                  >
-                    <option value="info">Information</option>
-                    <option value="alert">Safety Alert</option>
-                    <option value="event">Trading Event</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
-                  Broadcast Message *
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder="Type the announcement details..."
-                  value={newAnnMessage}
-                  onChange={(e) => setNewAnnMessage(e.target.value)}
-                  className="clean-input"
-                  required
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-                <button
-                  type="button"
-                  onClick={() => setIsNewAnnModalOpen(false)}
-                  style={{ flex: 1, padding: '0.6rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, backgroundColor: '#F1F5F9', color: '#475569' }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn-primary"
-                  style={{ flex: 1, padding: '0.6rem', fontSize: '0.82rem', fontWeight: 800, justifyContent: 'center' }}
-                >
-                  Publish Broadcast
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+          </form>
+        </Modal>
       )}
 
       {/* =========================================================================
@@ -2170,14 +1931,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
           ========================================================================= */}
       {inspectedImage && (
         <div
-          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(8px)', zIndex: 4000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}
+          className="modal-backdrop-custom"
+          style={{ zIndex: 4000, backgroundColor: 'rgba(0, 0, 0, 0.85)' }}
           onClick={() => setInspectedImage(null)}
         >
-          <div style={{ position: 'relative', maxWidth: '700px', width: '100%', maxHeight: '85vh', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div
+            style={{ position: 'relative', maxWidth: '700px', width: '100%', maxHeight: '85vh', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+            onClick={(e) => e.stopPropagation()}
+          >
             <img src={inspectedImage} alt="ID Document Inspection" style={{ maxWidth: '100%', maxHeight: '75vh', borderRadius: '12px', objectFit: 'contain' }} />
             <button
+              type="button"
               onClick={() => setInspectedImage(null)}
-              style={{ marginTop: '1rem', backgroundColor: '#FFFFFF', color: '#0F172A', padding: '0.5rem 1.25rem', borderRadius: '9999px', fontSize: '0.85rem', fontWeight: 800 }}
+              className="btn-secondary"
+              style={{ marginTop: '1rem', borderRadius: 'var(--radius-full)', padding: '0.5rem 1.25rem', fontSize: '0.85rem' }}
             >
               Close Viewer
             </button>
@@ -2187,3 +1954,4 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     </div>
   );
 };
+

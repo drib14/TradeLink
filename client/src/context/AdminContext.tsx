@@ -208,7 +208,6 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       )
     );
 
-    // Verify user in Auth store
     toggleVerifyUser(req.userId);
     logAction('Approved Student Verification', 'verification', requestId, `Verified ${req.userName} (${req.campus})`);
   };
@@ -265,7 +264,6 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       prev.map((f) => (f.id === flagId || f.listingId === listingId ? { ...f, status: 'removed' } : f))
     );
 
-    // Remove listing from market localStorage
     const listingsInStorage = JSON.parse(window.localStorage.getItem('tradelink_listings') || '[]');
     const updated = listingsInStorage.filter((l: any) => l.id !== listingId);
     window.localStorage.setItem('tradelink_listings', JSON.stringify(updated));
@@ -451,7 +449,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       { id: 'ff-1', name: 'Price Advisor AI', description: 'Enable AI-powered pricing suggestions', enabled: true, updatedAt: new Date().toISOString() },
       { id: 'ff-2', name: 'Campus Map', description: 'Interactive campus meetup map', enabled: true, updatedAt: new Date().toISOString() },
       { id: 'ff-3', name: 'Pro Merchant Badge', description: 'Allow pro merchant status for top sellers', enabled: true, updatedAt: new Date().toISOString() },
-      { id: 'ff-4', name: 'Dark Mode', description: 'Dark mode toggle for all users', enabled: false, updatedAt: new Date().toISOString() },
+      { id: 'ff-4', name: 'Dark Mode', description: 'Dark mode toggle for all users', enabled: true, updatedAt: new Date().toISOString() },
     ],
     lastUpdatedBy: 'system',
     lastUpdatedAt: new Date().toISOString()
@@ -464,15 +462,25 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const promoteToAdmin = (userId: string) => {
     const user = allUsers.find((u) => u.id === userId);
-    if (!user || user.role !== 'student') return;
-    // Trigger role change through the auth context's banUser-style direct state update isn't available,
-    // so we log the action. The actual role change will be handled via the users state in auth.
+    if (!user) return;
+    const usersInStorage = JSON.parse(window.localStorage.getItem('tradelink_users_v2') || '[]');
+    const updated = usersInStorage.map((u: any) =>
+      u.id === userId ? { ...u, role: 'admin' } : u
+    );
+    window.localStorage.setItem('tradelink_users_v2', JSON.stringify(updated));
+    window.dispatchEvent(new Event('local-storage-tradelink_users_v2'));
     logAction('Promoted to Admin', 'user', userId, `Promoted ${user.name} to Admin role`);
   };
 
   const demoteAdmin = (userId: string) => {
     const user = allUsers.find((u) => u.id === userId);
-    if (!user || user.role !== 'admin') return;
+    if (!user) return;
+    const usersInStorage = JSON.parse(window.localStorage.getItem('tradelink_users_v2') || '[]');
+    const updated = usersInStorage.map((u: any) =>
+      u.id === userId ? { ...u, role: 'student' } : u
+    );
+    window.localStorage.setItem('tradelink_users_v2', JSON.stringify(updated));
+    window.dispatchEvent(new Event('local-storage-tradelink_users_v2'));
     logAction('Demoted from Admin', 'user', userId, `Demoted ${user.name} to Student role`);
   };
 
@@ -537,4 +545,3 @@ export const useAdmin = () => {
   }
   return context;
 };
-

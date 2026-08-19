@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, MapPin, Sparkles, GraduationCap, ArrowRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MapPin, Building2, Plus, GraduationCap, ArrowRight } from 'lucide-react';
 import { Campus } from '../../types';
 
 export interface CampusSlide {
@@ -243,7 +243,7 @@ export const CampusCarouselBanner: React.FC<CampusCarouselBannerProps> = ({
               boxShadow: '0 2px 8px rgba(255, 199, 44, 0.4)'
             }}
           >
-            <Sparkles size={13} /> {slide.shortTag === 'All Campuses' ? 'UC Marketplace Network' : `Campus ${currentIdx + 1} of 8`}
+            <Building2 size={13} /> {slide.shortTag === 'All Campuses' ? 'TradeLink Campus Network' : `Campus ${currentIdx + 1} of 8`}
           </span>
 
           <span
@@ -376,7 +376,7 @@ export const CampusCarouselBanner: React.FC<CampusCarouselBannerProps> = ({
               e.currentTarget.style.transform = 'translateY(0)';
             }}
           >
-            <Sparkles size={14} color="#FFC72C" style={{ flexShrink: 0 }} />
+            <Plus size={15} style={{ flexShrink: 0 }} />
             <span>Post Listing</span>
           </button>
         </div>

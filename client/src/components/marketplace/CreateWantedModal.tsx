@@ -50,34 +50,16 @@ export const CreateWantedModal: React.FC<CreateWantedModalProps> = ({
   };
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: 'rgba(0, 29, 89, 0.65)',
-        backdropFilter: 'blur(6px)',
-        zIndex: 2200,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '1rem'
-      }}
-      onClick={onClose}
-    >
+    <div className="modal-backdrop-custom" onClick={onClose}>
       <div
+        className="modal-card-custom"
         style={{
-          backgroundColor: '#FFFFFF',
-          borderRadius: '16px',
-          border: '1.5px solid #BCD1F7',
-          width: '100%',
-          maxWidth: '480px',
-          maxHeight: '90vh',
-          overflowY: 'auto',
-          boxShadow: '0 20px 40px rgba(0, 43, 127, 0.25)',
-          padding: '1.75rem'
+          maxWidth: '480px'
         }}
         onClick={(e) => e.stopPropagation()}
       >
+        <div className="drawer-grabber-handle" />
+
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
           <div>

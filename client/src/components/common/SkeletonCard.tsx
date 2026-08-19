@@ -4,9 +4,9 @@ export const SkeletonCard: React.FC = () => {
   return (
     <div
       style={{
-        backgroundColor: '#FFFFFF',
+        backgroundColor: 'var(--bg-surface, #FFFFFF)',
         borderRadius: '12px',
-        border: '1px solid #E2E8F0',
+        border: '1px solid var(--border-subtle, #E2E8F0)',
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
@@ -36,7 +36,7 @@ export const SkeletonCard: React.FC = () => {
         </div>
 
         {/* Seller row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid #F1F5F9' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-subtle, #F1F5F9)' }}>
           <div className="skeleton" style={{ height: '22px', width: '22px', borderRadius: '50%' }} />
           <div className="skeleton" style={{ height: '12px', width: '100px' }} />
         </div>

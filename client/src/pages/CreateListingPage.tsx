@@ -12,7 +12,7 @@ import {
   ChevronLeft,
   X,
   MapPin,
-  Sparkles,
+  Tag,
   ShoppingBag,
   ArrowLeftRight,
   Gift
@@ -49,14 +49,14 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
   if (!isAuthenticated || !currentUser) {
     return (
       <div className="container" style={{ padding: '5rem 1.5rem', textAlign: 'center', maxWidth: '560px' }}>
-        <div style={{ backgroundColor: '#FFFFFF', border: '1.5px solid #BCD1F7', borderRadius: '16px', padding: '2.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', boxShadow: '0 10px 25px rgba(0, 43, 127, 0.1)' }}>
-          <div style={{ width: '60px', height: '60px', borderRadius: '50%', backgroundColor: '#EBF1FC', color: '#002B7F', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="clean-card" style={{ padding: '2.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ width: '60px', height: '60px', borderRadius: '50%', backgroundColor: 'var(--uc-blue-subtle)', color: 'var(--uc-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Plus size={30} />
           </div>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#002B7F' }}>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>
             Sign In Required to Post Items
           </h2>
-          <p style={{ fontSize: '0.85rem', color: '#64748B', lineHeight: 1.5 }}>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
             To keep our University of Cebu marketplace safe and verified, students must log in before listing items for sale or barter.
           </p>
           <button
@@ -160,38 +160,35 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
   };
 
   return (
-    <div className="container" style={{ maxWidth: '820px', padding: '2rem 1.5rem 5rem 1.5rem' }}>
+    <div className="container page-enter" style={{ maxWidth: '820px', padding: '2rem 1.5rem 5rem 1.5rem' }}>
       {/* Header */}
       <div style={{ marginBottom: '1.5rem' }}>
         <button
           onClick={() => onNavigate('marketplace')}
+          className="btn-ghost"
           style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.35rem',
-            color: '#64748B',
+            padding: '0.35rem 0.65rem',
             fontSize: '0.82rem',
-            fontWeight: 600,
             marginBottom: '0.5rem'
           }}
         >
           <ChevronLeft size={16} /> Back to Catalog
         </button>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#002B7F' }}>
+        <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--uc-blue, #002B7F)' }}>
           Sell or Swap Any Item
         </h1>
-        <p style={{ fontSize: '0.85rem', color: '#64748B', marginTop: '0.15rem' }}>
+        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted, #64748B)', marginTop: '0.15rem' }}>
           List anything with fellow University of Cebu students — gadgets, sneakers, instruments, reviewers, or appliances.
         </p>
       </div>
 
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
         {/* Card 1: Details */}
-        <div style={{ backgroundColor: '#FFFFFF', borderRadius: '14px', border: '1px solid #CBD5E1', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0F172A' }}>What are you listing?</h3>
+        <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>What are you listing?</h3>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
               Item Name *
             </label>
             <input
@@ -206,22 +203,13 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
                 Category
               </label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '0.6rem 0.85rem',
-                  borderRadius: '8px',
-                  border: '1px solid #CBD5E1',
-                  fontSize: '0.88rem',
-                  backgroundColor: '#FFFFFF',
-                  color: '#0F172A',
-                  outline: 'none'
-                }}
+                className="clean-input"
               >
                 {categorySuggestions.map((c) => (
                   <option key={c} value={c}>
@@ -333,8 +321,8 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
         </div>
 
         {/* Card 2: Price & Mode */}
-        <div style={{ backgroundColor: '#FFFFFF', borderRadius: '14px', border: '1px solid #CBD5E1', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0F172A' }}>Pricing & Mode</h3>
+        <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Pricing & Mode</h3>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.65rem' }}>
             {[
@@ -348,20 +336,16 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
                   key={mode.id}
                   type="button"
                   onClick={() => setTradeMode(mode.id as TradeMode)}
+                  className={`segmented-tab ${isSelected ? 'active' : ''}`}
                   style={{
                     padding: '0.65rem 0.75rem',
                     borderRadius: '10px',
                     fontSize: '0.84rem',
-                    fontWeight: isSelected ? 800 : 600,
-                    backgroundColor: isSelected ? '#002B7F' : '#F1F5F9',
-                    color: isSelected ? '#FFFFFF' : '#334155',
-                    border: isSelected ? '1.5px solid #002B7F' : '1px solid #CBD5E1',
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '0.45rem',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease'
+                    cursor: 'pointer'
                   }}
                 >
                   {mode.icon}
@@ -374,11 +358,11 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
           {tradeMode !== 'free_donation' && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.85rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
                   Selling Price (PHP) *
                 </label>
                 <div style={{ position: 'relative' }}>
-                  <span style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: '#64748B' }}>
+                  <span style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: 'var(--text-muted)' }}>
                     ₱
                   </span>
                   <input
@@ -386,18 +370,18 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
                     value={price}
                     onChange={(e) => setPrice(Number(e.target.value))}
                     className="clean-input"
-                    style={{ paddingLeft: '1.95rem', fontWeight: 800, fontSize: '1rem', color: '#002B7F' }}
+                    style={{ paddingLeft: '1.95rem', fontWeight: 800, fontSize: '1rem', color: 'var(--uc-blue)' }}
                     required
                   />
                 </div>
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
                   Original Retail (SRP)
                 </label>
                 <div style={{ position: 'relative' }}>
-                  <span style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: '#64748B' }}>
+                  <span style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: 'var(--text-muted)' }}>
                     ₱
                   </span>
                   <input
@@ -414,7 +398,7 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
 
           {tradeMode === 'swap' && (
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.3rem' }}>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
                 Preferred Swap Item *
               </label>
               <input
@@ -439,8 +423,8 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
         </div>
 
         {/* Card 3: Photos (Drag & Drop) */}
-        <div style={{ backgroundColor: '#FFFFFF', borderRadius: '14px', border: '1px solid #CBD5E1', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0F172A' }}>Photos</h3>
+        <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Photos</h3>
           <DragDropUpload
             images={images}
             onChange={setImages}
@@ -452,14 +436,14 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
         </div>
 
         {/* Card 4: Inside & Outside Campus Meetup Spot */}
-        <div style={{ backgroundColor: '#FFFFFF', borderRadius: '14px', border: '1px solid #CBD5E1', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-            <MapPin size={18} color="#002B7F" />
+            <MapPin size={18} color="var(--uc-blue)" />
             <div>
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0F172A' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                 Meetup Locations (Inside Campus & Nearby Outside Hubs)
               </h3>
-              <p style={{ fontSize: '0.78rem', color: '#64748B' }}>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                 Pick official campus checkpoints, nearby student hubs (E-Mall, Country Mall, IT Park, Parkmall), or enter your own custom location
               </p>
             </div>
@@ -534,8 +518,8 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
             className="btn-gold"
             style={{ padding: '0.65rem 1.6rem', fontSize: '0.88rem', display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
           >
-            <Sparkles size={16} style={{ flexShrink: 0 }} />
-            <span>Publish to UC TradeLink</span>
+            <Tag size={16} style={{ flexShrink: 0 }} />
+            <span>Publish Listing to TradeLink</span>
           </button>
         </div>
       </form>

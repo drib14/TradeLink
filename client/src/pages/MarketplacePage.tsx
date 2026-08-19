@@ -62,10 +62,8 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
       ) : (
         /* Empty State */
         <div
+          className="clean-card"
           style={{
-            backgroundColor: '#FFFFFF',
-            borderRadius: '14px',
-            border: '1px solid #CBD5E1',
             padding: '3.5rem 1.5rem',
             textAlign: 'center',
             display: 'flex',
@@ -79,8 +77,8 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
               width: '52px',
               height: '52px',
               borderRadius: '50%',
-              backgroundColor: '#EBF1FC',
-              color: '#002B7F',
+              backgroundColor: 'var(--uc-blue-subtle)',
+              color: 'var(--uc-blue)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
@@ -88,23 +86,13 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
           >
             <SearchX size={26} />
           </div>
-
-          <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0F172A' }}>
-            No listings found
+          <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+            No Listings Found
           </h3>
-          <p style={{ fontSize: '0.85rem', color: '#64748B', maxWidth: '420px', lineHeight: 1.5 }}>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', maxWidth: '400px' }}>
             No items matched your current filters. Try searching for a different keyword or post your item to the campus.
           </p>
-
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-            <button
-              onClick={clearFilters}
-              className="btn-secondary"
-              style={{ fontSize: '0.82rem', padding: '0.5rem 1rem' }}
-            >
-              <RotateCcw size={13} /> Reset Filters
-            </button>
-
             <button
               onClick={() => onNavigate('create-listing')}
               className="btn-primary"

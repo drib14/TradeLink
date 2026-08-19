@@ -2,7 +2,21 @@ import React, { useState } from 'react';
 import { MeetupTransaction, Campus } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../common/Toast';
-import { X, Star, Sparkles, CheckCircle2, ShieldCheck, ThumbsUp } from 'lucide-react';
+import {
+  X,
+  Star,
+  CheckCircle2,
+  ShieldCheck,
+  ThumbsUp,
+  Zap,
+  Gem,
+  Users,
+  MessageSquare,
+  Sparkles,
+  Award,
+  AlertTriangle,
+  Smile
+} from 'lucide-react';
 
 interface ReviewModalProps {
   isOpen: boolean;
@@ -22,19 +36,18 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
 
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
-  const [wasPunctual, setWasPunctual] = useState(true);
   const [selectedBadges, setSelectedBadges] = useState<string[]>(['Super Punctual', 'Mint Condition']);
 
   if (!isOpen) return null;
 
-  const targetUserName = currentUser.id === meetup.sellerId ? meetup.buyerName : meetup.sellerName;
+  const targetUserName = currentUser?.id === meetup.sellerId ? meetup.buyerName : meetup.sellerName;
 
   const availableBadges = [
-    { id: 'Super Punctual', label: '⚡ Super Punctual' },
-    { id: 'Mint Condition', label: '💎 Mint Condition' },
-    { id: 'Friendly UCian', label: '🤝 Friendly UCian' },
-    { id: 'Safety Conscious', label: '🛡️ Safety Conscious' },
-    { id: 'Fast Responder', label: '💬 Fast Responder' }
+    { id: 'Super Punctual', label: 'Super Punctual', icon: Zap },
+    { id: 'Mint Condition', label: 'Mint Condition', icon: Gem },
+    { id: 'Friendly UCian', label: 'Friendly UCian', icon: Users },
+    { id: 'Safety Conscious', label: 'Safety Conscious', icon: ShieldCheck },
+    { id: 'Fast Responder', label: 'Fast Responder', icon: MessageSquare }
   ];
 
   const toggleBadge = (badgeId: string) => {
@@ -56,47 +69,48 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
     onClose();
   };
 
+  const getRatingFeedback = () => {
+    switch (rating) {
+      case 5:
+        return { label: 'Excellent / Highly Recommended', icon: Award, color: '#002B7F' };
+      case 4:
+        return { label: 'Great Campus Trade', icon: ThumbsUp, color: '#059669' };
+      case 3:
+        return { label: 'Satisfactory Experience', icon: Smile, color: '#0284C7' };
+      case 2:
+        return { label: 'Needs Improvement', icon: AlertTriangle, color: '#D97706' };
+      case 1:
+      default:
+        return { label: 'Poor Experience', icon: AlertTriangle, color: '#DC2626' };
+    }
+  };
+
+  const feedback = getRatingFeedback();
+  const FeedbackIcon = feedback.icon;
+
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: 'rgba(0, 29, 89, 0.65)',
-        backdropFilter: 'blur(6px)',
-        zIndex: 2200,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '1rem'
-      }}
-      onClick={onClose}
-    >
+    <div className="modal-backdrop-custom" onClick={onClose}>
       <div
+        className="modal-card-custom"
         style={{
-          backgroundColor: '#FFFFFF',
-          borderRadius: '16px',
-          border: '1.5px solid #BCD1F7',
-          width: '100%',
-          maxWidth: '480px',
-          maxHeight: '90vh',
-          overflowY: 'auto',
-          boxShadow: '0 20px 40px rgba(0, 43, 127, 0.25)',
-          padding: '1.75rem'
+          maxWidth: '480px'
         }}
         onClick={(e) => e.stopPropagation()}
       >
+        <div className="drawer-grabber-handle" />
+
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
           <div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#002B7F' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
               Review Trade with {targetUserName}
             </h3>
-            <p style={{ fontSize: '0.78rem', color: '#64748B' }}>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
               Item: {meetup.listingTitle} ({meetup.campus})
             </p>
           </div>
 
-          <button onClick={onClose} style={{ color: '#64748B', padding: '0.25rem' }}>
+          <button onClick={onClose} style={{ color: 'var(--text-muted)', padding: '0.25rem', background: 'none', border: 'none', cursor: 'pointer' }}>
             <X size={18} />
           </button>
         </div>
@@ -104,7 +118,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
         <form onSubmit={handleSubmitReview} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {/* Star Rating */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#334155' }}>
+            <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
               Rate your overall campus trade experience:
             </span>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -117,7 +131,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
                     backgroundColor: 'transparent',
                     border: 'none',
                     cursor: 'pointer',
-                    color: star <= rating ? '#FFC72C' : '#CBD5E1',
+                    color: star <= rating ? '#FFC72C' : 'var(--border-strong, #CBD5E1)',
                     padding: '0.2rem',
                     transition: 'transform 0.15s ease'
                   }}
@@ -126,40 +140,43 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
                 </button>
               ))}
             </div>
-            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#002B7F' }}>
-              {rating === 5 && '🌟 Excellent / Highly Recommended'}
-              {rating === 4 && '👍 Great Trade'}
-              {rating === 3 && '👌 Satisfactory'}
-              {rating === 2 && '⚠️ Needs Improvement'}
-              {rating === 1 && '❌ Poor Experience'}
-            </span>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.82rem', fontWeight: 800, color: feedback.color }}>
+              <FeedbackIcon size={16} />
+              <span>{feedback.label}</span>
+            </div>
           </div>
 
-          {/* Trait Badges */}
+          {/* Trait Badges with SVG Icons */}
           <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.45rem' }}>
-              Award Reputation Badges:
+            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+              Award Peer Reputation Badges:
             </label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
               {availableBadges.map((badge) => {
                 const isSelected = selectedBadges.includes(badge.id);
+                const BadgeIcon = badge.icon;
                 return (
                   <button
                     key={badge.id}
                     type="button"
                     onClick={() => toggleBadge(badge.id)}
                     style={{
-                      padding: '0.4rem 0.75rem',
+                      padding: '0.45rem 0.85rem',
                       borderRadius: '8px',
                       fontSize: '0.78rem',
-                      fontWeight: isSelected ? 800 : 500,
-                      backgroundColor: isSelected ? '#EBF1FC' : '#FFFFFF',
-                      color: isSelected ? '#002B7F' : '#64748B',
-                      border: isSelected ? '1.5px solid #002B7F' : '1px solid #CBD5E1',
-                      cursor: 'pointer'
+                      fontWeight: isSelected ? 800 : 600,
+                      backgroundColor: isSelected ? 'var(--uc-blue-subtle)' : 'var(--bg-subtle)',
+                      color: isSelected ? 'var(--uc-blue)' : 'var(--text-muted)',
+                      border: isSelected ? '1.5px solid var(--uc-blue)' : '1px solid var(--border-subtle)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
                     }}
                   >
-                    {badge.label}
+                    <BadgeIcon size={14} color={isSelected ? 'var(--uc-blue)' : 'var(--text-muted)'} />
+                    <span>{badge.label}</span>
                   </button>
                 );
               })}
@@ -168,7 +185,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
 
           {/* Comment Text */}
           <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
               Feedback / Notes for Fellow UCians:
             </label>
             <textarea
@@ -182,7 +199,11 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
             />
           </div>
 
-          <button type="submit" className="btn-gold" style={{ padding: '0.75rem', width: '100%', fontSize: '0.9rem' }}>
+          <button
+            type="submit"
+            className="btn-gold"
+            style={{ padding: '0.75rem', width: '100%', fontSize: '0.9rem', fontWeight: 800 }}
+          >
             <CheckCircle2 size={16} /> Submit Verified Student Review
           </button>
         </form>

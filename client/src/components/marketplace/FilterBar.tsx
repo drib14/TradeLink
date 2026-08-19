@@ -66,10 +66,10 @@ export const FilterBar: React.FC = () => {
           style={{
             display: 'flex',
             alignItems: 'center',
-            backgroundColor: '#F1F5F9',
+            backgroundColor: 'var(--bg-subtle, #F1F5F9)',
             padding: '3px',
             borderRadius: '9999px',
-            border: '1px solid #CBD5E1',
+            border: '1px solid var(--border-subtle, #CBD5E1)',
             width: '100%',
             maxWidth: '100%',
             minWidth: 0
@@ -86,12 +86,13 @@ export const FilterBar: React.FC = () => {
                   borderRadius: '9999px',
                   fontSize: '0.78rem',
                   fontWeight: isSelected ? 800 : 600,
-                  backgroundColor: isSelected ? '#002B7F' : 'transparent',
-                  color: isSelected ? '#FFFFFF' : '#475569',
+                  backgroundColor: isSelected ? 'var(--uc-blue)' : 'transparent',
+                  color: isSelected ? '#FFFFFF' : 'var(--text-secondary)',
                   transition: 'all 0.15s ease',
                   whiteSpace: 'nowrap',
                   cursor: 'pointer',
-                  flexShrink: 0
+                  flexShrink: 0,
+                  border: 'none'
                 }}
               >
                 {campus === 'All' ? 'All Campuses' : campus}
@@ -106,15 +107,11 @@ export const FilterBar: React.FC = () => {
           <select
             value={selectedTradeMode}
             onChange={(e: any) => setSelectedTradeMode(e.target.value)}
+            className="clean-input"
             style={{
               padding: '0.4rem 0.75rem',
-              borderRadius: '8px',
-              border: '1px solid #CBD5E1',
               fontSize: '0.8rem',
               fontWeight: 600,
-              backgroundColor: '#FFFFFF',
-              color: '#334155',
-              cursor: 'pointer',
               flex: '1 1 auto',
               minWidth: '140px'
             }}
@@ -129,15 +126,11 @@ export const FilterBar: React.FC = () => {
           <select
             value={sortBy}
             onChange={(e: any) => setSortBy(e.target.value)}
+            className="clean-input"
             style={{
               padding: '0.4rem 0.75rem',
-              borderRadius: '8px',
-              border: '1px solid #CBD5E1',
               fontSize: '0.8rem',
               fontWeight: 600,
-              backgroundColor: '#FFFFFF',
-              color: '#334155',
-              cursor: 'pointer',
               flex: '1 1 auto',
               minWidth: '140px'
             }}
@@ -156,12 +149,12 @@ export const FilterBar: React.FC = () => {
                 alignItems: 'center',
                 gap: '0.35rem',
                 fontSize: '0.78rem',
-                color: '#DC2626',
+                color: 'var(--accent-red, #DC2626)',
                 fontWeight: 700,
                 padding: '0.4rem 0.75rem',
-                backgroundColor: '#FEF2F2',
+                backgroundColor: 'var(--accent-red-subtle, #FEF2F2)',
                 borderRadius: '8px',
-                border: '1px solid #FECACA',
+                border: '1px solid var(--border-subtle, #FECACA)',
                 whiteSpace: 'nowrap',
                 cursor: 'pointer'
               }}
@@ -193,9 +186,9 @@ export const FilterBar: React.FC = () => {
                 borderRadius: '8px',
                 fontSize: '0.78rem',
                 fontWeight: isSelected ? 800 : 500,
-                backgroundColor: isSelected ? '#EBF1FC' : '#FFFFFF',
-                color: isSelected ? '#002B7F' : '#475569',
-                border: isSelected ? '1.5px solid #002B7F' : '1px solid #CBD5E1',
+                backgroundColor: isSelected ? 'var(--uc-blue-subtle)' : 'var(--bg-surface)',
+                color: isSelected ? 'var(--uc-blue)' : 'var(--text-secondary)',
+                border: isSelected ? '1.5px solid var(--uc-blue)' : '1px solid var(--border-subtle)',
                 whiteSpace: 'nowrap',
                 transition: 'all 0.15s ease',
                 cursor: 'pointer',

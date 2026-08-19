@@ -28,9 +28,9 @@ export const ListingCardSkeleton: React.FC = () => {
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        border: '1px solid #E2E8F0',
+        border: '1px solid var(--border-subtle, #E2E8F0)',
         borderRadius: '14px',
-        backgroundColor: '#FFFFFF'
+        backgroundColor: 'var(--bg-surface, #FFFFFF)'
       }}
     >
       {/* Image Skeleton */}
@@ -55,7 +55,7 @@ export const ListingCardSkeleton: React.FC = () => {
         </div>
 
         {/* Seller Info */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', borderTop: '1px solid #F1F5F9', paddingTop: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', borderTop: '1px solid var(--border-subtle, #F1F5F9)', paddingTop: '0.5rem' }}>
           <SkeletonBox width="22px" height="22px" borderRadius="50%" />
           <SkeletonBox width="100px" height="12px" borderRadius="4px" />
         </div>
@@ -71,11 +71,11 @@ export const WantedCardSkeleton: React.FC = () => {
       style={{
         padding: '1.25rem',
         borderRadius: '14px',
-        border: '1px solid #E2E8F0',
+        border: '1px solid var(--border-subtle, #E2E8F0)',
         display: 'flex',
         flexDirection: 'column',
         gap: '0.85rem',
-        backgroundColor: '#FFFFFF'
+        backgroundColor: 'var(--bg-surface, #FFFFFF)'
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -86,7 +86,7 @@ export const WantedCardSkeleton: React.FC = () => {
       <SkeletonBox width="80%" height="20px" borderRadius="4px" />
       <SkeletonBox width="100%" height="36px" borderRadius="6px" />
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #F1F5F9', paddingTop: '0.75rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-subtle, #F1F5F9)', paddingTop: '0.75rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <SkeletonBox width="28px" height="28px" borderRadius="50%" />
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
