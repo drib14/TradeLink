@@ -110,7 +110,7 @@ export const MeetupSchedulerModal: React.FC<MeetupSchedulerModalProps> = ({
               onClick={() => setUseCustomSpot(!useCustomSpot)}
               style={{ fontSize: '0.75rem', color: 'var(--uc-blue)', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer' }}
             >
-              {useCustomSpot ? '← Pick Predefined Landmark' : '✏️ Enter Custom Spot'}
+              {useCustomSpot ? 'Pick Predefined Landmark' : 'Enter Custom Spot'}
             </button>
           </div>
 

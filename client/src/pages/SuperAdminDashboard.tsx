@@ -5,6 +5,7 @@ import { useMarket } from '../context/MarketContext';
 import { useChat } from '../context/ChatContext';
 import { useWanted } from '../context/WantedContext';
 import { useToast } from '../components/common/Toast';
+import { UserAvatar } from '../components/common/UserAvatar';
 import { User, SuperAdminConfig, FeatureFlag } from '../types';
 import {
   ShieldAlert,
@@ -359,10 +360,11 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onNavi
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <img
+                    <UserAvatar
                       src={admin.avatar}
-                      alt={admin.name}
-                      style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', border: admin.role === 'superadmin' ? '2px solid #DC2626' : '2px solid #002B7F' }}
+                      name={admin.name}
+                      size={40}
+                      style={{ border: admin.role === 'superadmin' ? '2px solid #DC2626' : '2px solid #002B7F' }}
                     />
                     <div>
                       <div style={{ fontSize: '0.9rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
@@ -418,7 +420,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onNavi
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                    <img src={student.avatar} alt={student.name} style={{ width: '34px', height: '34px', borderRadius: '50%', objectFit: 'cover' }} />
+                    <UserAvatar src={student.avatar} name={student.name} size={34} />
                     <div>
                       <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{student.name}</div>
                       <div style={{ fontSize: '0.72rem', color: '#64748B' }}>{student.campus} • {student.college} • Trust: {student.trustScore}</div>
@@ -700,11 +702,11 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onNavi
                   <h4 style={{ fontWeight: 800, fontSize: '1rem', color: '#DC2626' }}>Reset All Data</h4>
                 </div>
                 <p style={{ fontSize: '0.82rem', color: '#475569', lineHeight: 1.5 }}>
-                  Wipe all localStorage data and reload the app with fresh seed data. This action is irreversible.
+                  Sign out of all active administrative sessions and reset client state.
                 </p>
                 <button
                   onClick={() => {
-                    if (confirm('⚠️ This will DELETE all data and reset to defaults. Are you sure?')) {
+                    if (confirm('This will DELETE all data and reset to defaults. Are you sure?')) {
                       resetAllData();
                     }
                   }}

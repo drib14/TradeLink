@@ -8,6 +8,8 @@ import { useToast } from '../components/common/Toast';
 import { VerificationRequest, User, Listing, Campus, TradeDispute } from '../types';
 import { CAMPUS_MEETUP_SPOTS } from '../data/campusLocations';
 import { Modal } from '../components/common/Modal';
+import { VerifiedBadge } from '../components/common/VerifiedBadge';
+import { UserAvatar } from '../components/common/UserAvatar';
 import {
   ShieldAlert,
   ShieldCheck,
@@ -21,6 +23,7 @@ import {
   Megaphone,
   History,
   Eye,
+  EyeOff,
   Flame,
   Zap,
   MapPin,
@@ -39,7 +42,6 @@ import {
   Shield,
   Layers
 } from 'lucide-react';
-import { VerifiedBadge } from '../components/common/VerifiedBadge';
 import { CampusBadge } from '../components/common/CampusBadge';
 
 interface AdminDashboardProps {
@@ -98,6 +100,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   // Admin gate login input state
   const [adminEmailInput, setAdminEmailInput] = useState('');
   const [adminPasswordInput, setAdminPasswordInput] = useState('');
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
 
   // Search and filters
   const [userSearch, setUserSearch] = useState('');
@@ -145,13 +148,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   const pendingFlags = flaggedListings.filter((f) => f.status === 'pending');
   const bannedUsers = allUsers.filter((u) => u.isBanned);
 
-  const handleAdminGateSubmit = (e: React.FormEvent) => {
+  const handleAdminGateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!adminEmailInput.trim() || !adminPasswordInput.trim()) {
       showToast('Input Required', 'Please enter your administrator ID/email and password.', 'warning');
       return;
     }
-    const res = login(adminEmailInput, adminPasswordInput);
+    const res = await login(adminEmailInput, adminPasswordInput);
     if (res.success) {
       showToast('Admin Authorized', res.message, 'success');
     } else {
@@ -231,13 +234,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
               </label>
               <div style={{ position: 'relative' }}>
                 <input
-                  type="password"
+                  type={showAdminPassword ? 'text' : 'password'}
                   value={adminPasswordInput}
                   onChange={(e) => setAdminPasswordInput(e.target.value)}
                   placeholder="Enter administrator password"
                   className="clean-input"
+                  style={{ paddingRight: '2.5rem' }}
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowAdminPassword((prev) => !prev)}
+                  style={{
+                    position: 'absolute',
+                    right: '0.75rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    color: '#64748B',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '0.2rem'
+                  }}
+                  title={showAdminPassword ? 'Hide password' : 'Show password'}
+                  aria-label={showAdminPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showAdminPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
             </div>
 
@@ -808,40 +833,72 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     </span>
                   </div>
 
-                  {/* ID Photo Preview */}
-                  {req.idCardImageUrl && (
-                    <div
-                      onClick={() => setInspectedImage(req.idCardImageUrl)}
-                      style={{
-                        width: '100%',
-                        height: '140px',
-                        borderRadius: '8px',
-                        overflow: 'hidden',
-                        backgroundColor: '#0F172A',
-                        position: 'relative',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <img src={req.idCardImageUrl} alt="Student ID" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  {/* ID & Selfie Photo Preview */}
+                  <div style={{ display: 'grid', gridTemplateColumns: req.selfiePhotoUrl ? '1fr 1fr' : '1fr', gap: '0.4rem' }}>
+                    {req.idCardImageUrl && (
                       <div
+                        onClick={() => setInspectedImage(req.idCardImageUrl)}
                         style={{
-                          position: 'absolute',
-                          bottom: '6px',
-                          right: '6px',
-                          backgroundColor: 'rgba(0,0,0,0.7)',
-                          color: '#FFFFFF',
-                          padding: '0.2rem 0.5rem',
-                          borderRadius: '4px',
-                          fontSize: '0.68rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.25rem'
+                          width: '100%',
+                          height: '120px',
+                          borderRadius: '8px',
+                          overflow: 'hidden',
+                          backgroundColor: '#0F172A',
+                          position: 'relative',
+                          cursor: 'pointer'
                         }}
                       >
-                        <Eye size={12} /> Inspect Photo
+                        <img src={req.idCardImageUrl} alt="Student ID" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <div
+                          style={{
+                            position: 'absolute',
+                            bottom: '4px',
+                            left: '4px',
+                            backgroundColor: 'rgba(0,0,0,0.75)',
+                            color: '#FFFFFF',
+                            padding: '2px 5px',
+                            borderRadius: '4px',
+                            fontSize: '0.62rem',
+                            fontWeight: 700
+                          }}
+                        >
+                          ID Card
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+
+                    {req.selfiePhotoUrl && (
+                      <div
+                        onClick={() => setInspectedImage(req.selfiePhotoUrl || null)}
+                        style={{
+                          width: '100%',
+                          height: '120px',
+                          borderRadius: '8px',
+                          overflow: 'hidden',
+                          backgroundColor: '#0F172A',
+                          position: 'relative',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <img src={req.selfiePhotoUrl} alt="Live Selfie" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <div
+                          style={{
+                            position: 'absolute',
+                            bottom: '4px',
+                            left: '4px',
+                            backgroundColor: 'rgba(0,43,127,0.85)',
+                            color: '#FFC72C',
+                            padding: '2px 5px',
+                            borderRadius: '4px',
+                            fontSize: '0.62rem',
+                            fontWeight: 800
+                          }}
+                        >
+                          Live Selfie
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
                   {/* Actions */}
                   {req.status === 'pending' && (
@@ -945,7 +1002,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     <tr key={u.id} style={{ borderBottom: '1px solid #F1F5F9', backgroundColor: isUserBanned ? '#FEF2F2' : 'transparent' }}>
                       <td style={{ padding: '0.75rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                          <img src={u.avatar} alt={u.name} style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
+                          <UserAvatar
+                            src={u.avatar}
+                            name={u.name}
+                            size={36}
+                          />
                           <div>
                             <div style={{ fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                               <span>{u.name}</span>
@@ -1132,7 +1193,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                   .map((u) => (
                     <div key={u.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.4rem 0.6rem', borderRadius: '6px', backgroundColor: 'var(--accent-green-subtle)', fontSize: '0.78rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <img src={u.avatar} alt={u.name} style={{ width: '24px', height: '24px', borderRadius: '50%' }} />
+                        <UserAvatar src={u.avatar} name={u.name} size={24} />
                         <div>
                           <strong style={{ color: 'var(--accent-green)' }}>{u.name}</strong>
                           <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{u.campus}</div>
@@ -1419,7 +1480,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     </div>
                   ) : (
                     <div style={{ fontSize: '0.75rem', color: 'var(--accent-green)', fontWeight: 700 }}>
-                      ✓ Case Resolved ({disp.verdictAction?.toUpperCase()}): {disp.verdictNote}
+                      Case Resolved ({disp.verdictAction?.toUpperCase()}): {disp.verdictNote}
                     </div>
                   )}
                 </div>
@@ -1754,7 +1815,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 className="btn-success"
                 style={{ padding: '0.55rem', fontSize: '0.78rem' }}
               >
-                ✓ Remedy / Refund
+                Remedy / Refund
               </button>
               <button
                 type="button"
@@ -1762,7 +1823,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 className="btn-gold"
                 style={{ padding: '0.55rem', fontSize: '0.78rem' }}
               >
-                ⚠️ Issue Strike Warning
+                Issue Strike Warning
               </button>
               <button
                 type="button"

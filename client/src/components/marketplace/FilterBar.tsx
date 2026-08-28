@@ -1,12 +1,9 @@
 import React from 'react';
 import { useMarket } from '../../context/MarketContext';
-import { Campus } from '../../types';
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw, SlidersHorizontal, ArrowUpDown } from 'lucide-react';
 
 export const FilterBar: React.FC = () => {
   const {
-    selectedCampus,
-    setSelectedCampus,
     selectedCategory,
     setSelectedCategory,
     selectedTradeMode,
@@ -16,20 +13,8 @@ export const FilterBar: React.FC = () => {
     clearFilters
   } = useMarket();
 
-  const campuses: Array<'All' | Campus> = [
-    'All',
-    'UC Main',
-    'UC Banilad',
-    'UC LM',
-    'UC METC',
-    'UC PRI',
-    'UC Pardo-Talisay',
-    'UC South Campus',
-    'UC Medical Center'
-  ];
-
   const tagChips = [
-    { id: 'All', label: 'All Items' },
+    { id: 'All', label: 'All Categories' },
     { id: 'Junior High', label: 'Junior High (JHS)' },
     { id: 'Senior High', label: 'Senior High (SHS)' },
     { id: 'Electronics', label: 'Tech & Gadgets' },
@@ -41,138 +26,20 @@ export const FilterBar: React.FC = () => {
     { id: 'Dorm', label: 'Dorm & Living' }
   ];
 
-  const hasActiveFilters =
-    selectedCampus !== 'All' ||
-    selectedCategory !== 'All' ||
-    selectedTradeMode !== 'All';
+  const hasActiveFilters = selectedCategory !== 'All' || selectedTradeMode !== 'All';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', width: '100%', minWidth: 0 }}>
-      {/* Row 1: Campus Segmented Control + Trade Mode & Sort dropdowns */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '0.75rem',
-          width: '100%',
-          minWidth: 0
-        }}
-      >
-        {/* Campus Tabs */}
-        <div
-          className="touch-scroll-row"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            backgroundColor: 'var(--bg-subtle, #F1F5F9)',
-            padding: '3px',
-            borderRadius: '9999px',
-            border: '1px solid var(--border-subtle, #CBD5E1)',
-            width: '100%',
-            maxWidth: '100%',
-            minWidth: 0
-          }}
-        >
-          {campuses.map((campus) => {
-            const isSelected = selectedCampus === campus;
-            return (
-              <button
-                key={campus}
-                onClick={() => setSelectedCampus(campus)}
-                style={{
-                  padding: '0.35rem 0.85rem',
-                  borderRadius: '9999px',
-                  fontSize: '0.78rem',
-                  fontWeight: isSelected ? 800 : 600,
-                  backgroundColor: isSelected ? 'var(--uc-blue)' : 'transparent',
-                  color: isSelected ? '#FFFFFF' : 'var(--text-secondary)',
-                  transition: 'all 0.15s ease',
-                  whiteSpace: 'nowrap',
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                  border: 'none'
-                }}
-              >
-                {campus === 'All' ? 'All Campuses' : campus}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Trade Mode & Sort dropdowns */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', width: '100%', minWidth: 0 }}>
-          {/* Trade Mode Filter */}
-          <select
-            value={selectedTradeMode}
-            onChange={(e: any) => setSelectedTradeMode(e.target.value)}
-            className="clean-input"
-            style={{
-              padding: '0.4rem 0.75rem',
-              fontSize: '0.8rem',
-              fontWeight: 600,
-              flex: '1 1 auto',
-              minWidth: '140px'
-            }}
-          >
-            <option value="All">All Types (Buy / Swap / Free)</option>
-            <option value="buy_sell">Buy & Sell Only</option>
-            <option value="swap">Swap / Barter Only</option>
-            <option value="free_donation">Free Donations Only</option>
-          </select>
-
-          {/* Sort By Filter */}
-          <select
-            value={sortBy}
-            onChange={(e: any) => setSortBy(e.target.value)}
-            className="clean-input"
-            style={{
-              padding: '0.4rem 0.75rem',
-              fontSize: '0.8rem',
-              fontWeight: 600,
-              flex: '1 1 auto',
-              minWidth: '140px'
-            }}
-          >
-            <option value="newest">Recently Listed</option>
-            <option value="price_low">Price: Low to High</option>
-            <option value="price_high">Price: High to Low</option>
-            <option value="trust_score">Highest Seller Trust</option>
-          </select>
-
-          {hasActiveFilters && (
-            <button
-              onClick={clearFilters}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.35rem',
-                fontSize: '0.78rem',
-                color: 'var(--accent-red, #DC2626)',
-                fontWeight: 700,
-                padding: '0.4rem 0.75rem',
-                backgroundColor: 'var(--accent-red-subtle, #FEF2F2)',
-                borderRadius: '8px',
-                border: '1px solid var(--border-subtle, #FECACA)',
-                whiteSpace: 'nowrap',
-                cursor: 'pointer'
-              }}
-              title="Reset all filters"
-            >
-              <RotateCcw size={13} style={{ flexShrink: 0 }} /> <span>Reset</span>
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Row 2: Tag Chips */}
+      {/* Row 1: Quick Category Chips (Touch Scrollable) */}
       <div
         className="touch-scroll-row"
         style={{
           width: '100%',
           minWidth: 0,
-          paddingBottom: '2px'
+          paddingBottom: '2px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.4rem'
         }}
       >
         {tagChips.map((chip) => {
@@ -182,13 +49,14 @@ export const FilterBar: React.FC = () => {
               key={chip.id}
               onClick={() => setSelectedCategory(chip.id)}
               style={{
-                padding: '0.35rem 0.8rem',
-                borderRadius: '8px',
-                fontSize: '0.78rem',
-                fontWeight: isSelected ? 800 : 500,
-                backgroundColor: isSelected ? 'var(--uc-blue-subtle)' : 'var(--bg-surface)',
-                color: isSelected ? 'var(--uc-blue)' : 'var(--text-secondary)',
+                padding: '0.4rem 0.9rem',
+                borderRadius: '9999px',
+                fontSize: '0.8rem',
+                fontWeight: isSelected ? 800 : 600,
+                backgroundColor: isSelected ? 'var(--uc-blue)' : 'var(--bg-surface)',
+                color: isSelected ? '#FFFFFF' : 'var(--text-secondary)',
                 border: isSelected ? '1.5px solid var(--uc-blue)' : '1px solid var(--border-subtle)',
+                boxShadow: isSelected ? '0 2px 8px rgba(0, 43, 127, 0.2)' : 'none',
                 whiteSpace: 'nowrap',
                 transition: 'all 0.15s ease',
                 cursor: 'pointer',
@@ -199,6 +67,87 @@ export const FilterBar: React.FC = () => {
             </button>
           );
         })}
+      </div>
+
+      {/* Row 2: Secondary Controls (Trade Mode & Sort Dropdowns + Reset) */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '0.65rem',
+          width: '100%',
+          minWidth: 0
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
+          {/* Trade Mode Filter */}
+          <div style={{ position: 'relative', minWidth: '170px', flex: '1 1 auto', maxWidth: '240px' }}>
+            <select
+              value={selectedTradeMode}
+              onChange={(e: any) => setSelectedTradeMode(e.target.value)}
+              className="clean-input"
+              style={{
+                padding: '0.45rem 0.75rem',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                color: 'var(--text-primary)',
+                backgroundColor: 'var(--bg-surface)'
+              }}
+            >
+              <option value="All">All Types (Buy / Swap / Free)</option>
+              <option value="buy_sell">Buy & Sell Only</option>
+              <option value="swap">Swap / Barter Only</option>
+              <option value="free_donation">Free Donations Only</option>
+            </select>
+          </div>
+
+          {/* Sort By Filter */}
+          <div style={{ position: 'relative', minWidth: '170px', flex: '1 1 auto', maxWidth: '240px' }}>
+            <select
+              value={sortBy}
+              onChange={(e: any) => setSortBy(e.target.value)}
+              className="clean-input"
+              style={{
+                padding: '0.45rem 0.75rem',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                color: 'var(--text-primary)',
+                backgroundColor: 'var(--bg-surface)'
+              }}
+            >
+              <option value="recent">Recently Listed</option>
+              <option value="price_low">Price: Low to High</option>
+              <option value="price_high">Price: High to Low</option>
+              <option value="trust_high">Highest Seller Trust</option>
+              <option value="views_high">Most Popular</option>
+            </select>
+          </div>
+        </div>
+
+        {hasActiveFilters && (
+          <button
+            onClick={clearFilters}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              fontSize: '0.78rem',
+              color: 'var(--accent-red, #DC2626)',
+              fontWeight: 700,
+              padding: '0.45rem 0.85rem',
+              backgroundColor: 'var(--accent-red-subtle, #FEF2F2)',
+              borderRadius: '8px',
+              border: '1px solid var(--border-subtle, #FECACA)',
+              whiteSpace: 'nowrap',
+              cursor: 'pointer'
+            }}
+            title="Reset active category and trade filters"
+          >
+            <RotateCcw size={13} style={{ flexShrink: 0 }} /> <span>Reset Filters</span>
+          </button>
+        )}
       </div>
     </div>
   );

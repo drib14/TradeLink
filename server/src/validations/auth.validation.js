@@ -1,0 +1,85 @@
+const Joi = require('joi');
+
+const CAMPUSES = [
+  'UC Main',
+  'UC Banilad',
+  'UC LM',
+  'UC METC',
+  'UC Pardo-Talisay',
+  'UC South Campus',
+  'UC Medical Center',
+  'UC PRI'
+];
+
+const registerSchema = Joi.object({
+  name: Joi.string().trim().min(2).max(100).required().messages({
+    'string.empty': 'Full name is required.',
+    'string.min': 'Name must be at least 2 characters.'
+  }),
+  studentId: Joi.string().trim().pattern(/^\d{6,20}$/).required().messages({
+    'string.pattern.base': 'Student ID must contain between 6 and 20 digits with no hyphens or letters.',
+    'string.empty': 'Student ID is required.'
+  }),
+  email: Joi.string().trim().email().required().messages({
+    'string.email': 'Please provide a valid email address.',
+    'string.empty': 'Email is required.'
+  }),
+  password: Joi.string().min(6).max(100).required().messages({
+    'string.min': 'Password must be at least 6 characters long.',
+    'string.empty': 'Password is required.'
+  }),
+  campus: Joi.string().valid(...CAMPUSES).required().messages({
+    'any.only': 'Please select a valid University of Cebu campus.'
+  }),
+  college: Joi.string().trim().max(50).required().messages({
+    'string.empty': 'College / Department is required.'
+  }),
+  yearLevel: Joi.string().trim().max(50).required().messages({
+    'string.empty': 'Year level is required.'
+  }),
+  avatar: Joi.string().uri().allow('', null),
+  idPhotoUrl: Joi.string().uri().allow('', null)
+});
+
+const loginSchema = Joi.object({
+  emailOrStudentId: Joi.string().trim().required().messages({
+    'string.empty': 'Please enter your Student ID or Email.'
+  }),
+  password: Joi.string().required().messages({
+    'string.empty': 'Please enter your password.'
+  })
+});
+
+const forgotPasswordSchema = Joi.object({
+  email: Joi.string().trim().email().required().messages({
+    'string.email': 'Please enter a valid email address.',
+    'string.empty': 'Email address is required.'
+  })
+});
+
+const resetPasswordSchema = Joi.object({
+  email: Joi.string().trim().email().required(),
+  code: Joi.string().trim().length(4).required().messages({
+    'string.length': 'Verification code must be 4 digits.'
+  }),
+  newPassword: Joi.string().min(6).max(100).required().messages({
+    'string.min': 'New password must be at least 6 characters.'
+  })
+});
+
+const updateProfileSchema = Joi.object({
+  name: Joi.string().trim().min(2).max(100),
+  bio: Joi.string().trim().max(1000).allow(''),
+  avatar: Joi.string().uri().allow('', null),
+  campus: Joi.string().valid(...CAMPUSES),
+  college: Joi.string().trim().max(50),
+  yearLevel: Joi.string().trim().max(50)
+});
+
+module.exports = {
+  registerSchema,
+  loginSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+  updateProfileSchema
+};

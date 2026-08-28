@@ -1,21 +1,15 @@
-import React, { createContext, useContext } from 'react';
-import { VerificationRequest, Campus, CampusAnnouncement, AdminAuditLog, TradeDispute, SuperAdminConfig } from '../types';
-import { SEED_VERIFICATION_REQUESTS } from '../data/seedData';
-import { useLocalStorage } from '../hooks/useLocalStorage';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import {
+  VerificationRequest,
+  FlaggedListingItem,
+  CampusAnnouncement,
+  AdminAuditLog,
+  TradeDispute,
+  SuperAdminConfig,
+  Campus
+} from '../types';
 import { useAuth } from './AuthContext';
-
-export interface FlaggedListingItem {
-  id: string;
-  listingId: string;
-  listingTitle: string;
-  listingImage: string;
-  sellerName: string;
-  reporterName: string;
-  reason: string;
-  campus: Campus;
-  reportedAt: string;
-  status: 'pending' | 'resolved' | 'removed';
-}
+import { adminService } from '../services/admin.service';
 
 interface AdminContextType {
   verificationRequests: VerificationRequest[];
@@ -28,163 +22,118 @@ interface AdminContextType {
   pendingVerificationsCount: number;
   pendingFlagsCount: number;
   pendingDisputesCount: number;
-  approveVerification: (requestId: string) => void;
-  rejectVerification: (requestId: string, reason?: string) => void;
-  reportListing: (listingId: string, listingTitle: string, listingImage: string, sellerName: string, campus: Campus, reason: string) => void;
-  resolveFlag: (flagId: string) => void;
-  removeListingByAdmin: (flagId: string, listingId: string, reason?: string) => void;
+  isLoading: boolean;
+  approveVerification: (requestId: string) => Promise<void>;
+  rejectVerification: (requestId: string, reason?: string) => Promise<void>;
+  reportListing: (listingId: string, listingTitle: string, listingImage: string, sellerName: string, campus: Campus, reason: string) => Promise<void>;
+  resolveFlag: (flagId: string) => Promise<void>;
+  removeListingByAdmin: (flagId: string, listingId: string, reason?: string) => Promise<void>;
   boostListingByAdmin: (listingId: string) => void;
   banUserByAdmin: (userId: string, reason: string) => void;
   unbanUserByAdmin: (userId: string) => void;
   warnUserByAdmin: (userId: string, note?: string) => void;
   toggleVerifyByAdmin: (userId: string) => void;
   deleteUserByAdmin: (userId: string) => void;
-  createAnnouncement: (title: string, message: string, campus: Campus | 'All', type: 'info' | 'alert' | 'event') => void;
-  deleteAnnouncement: (id: string) => void;
+  createAnnouncement: (title: string, message: string, campus: Campus | 'All', type: 'info' | 'alert' | 'event') => Promise<void>;
+  deleteAnnouncement: (id: string) => Promise<void>;
   toggleAnnouncement: (id: string) => void;
   removeWantedByAdmin: (wantedId: string, reason?: string) => void;
   cancelMeetupByAdmin: (meetupId: string, reason?: string) => void;
   completeMeetupByAdmin: (meetupId: string) => void;
-  addProhibitedKeyword: (word: string) => void;
-  removeProhibitedKeyword: (word: string) => void;
-  resolveDispute: (disputeId: string, action: 'refund' | 'warning' | 'dismissed' | 'ban', note: string) => void;
+  addProhibitedKeyword: (word: string) => Promise<void>;
+  removeProhibitedKeyword: (word: string) => Promise<void>;
+  resolveDispute: (disputeId: string, action: 'refund' | 'warning' | 'dismissed' | 'ban', note: string) => Promise<void>;
   adjustUserTrustScore: (userId: string, delta: number, reason: string) => void;
   promoteToAdmin: (userId: string) => void;
   demoteAdmin: (userId: string) => void;
-  updateSystemConfig: (updates: Partial<SuperAdminConfig>) => void;
+  updateSystemConfig: (updates: Partial<SuperAdminConfig>) => Promise<void>;
+  refreshAdminData: () => Promise<void>;
 }
+
+const DEFAULT_CONFIG: SuperAdminConfig = {
+  maintenanceMode: false,
+  maintenanceMessage: 'TradeLink is currently undergoing scheduled platform upgrades.',
+  allowNewRegistrations: true,
+  requireStrictStudentEmail: false,
+  globalCommissionRate: 0,
+  maxDailyListingsPerUser: 10,
+  autoVerifyTrustScoreThreshold: 90,
+  featureFlags: [
+    { id: 'flag-barter-system', name: 'Item Swap / Barter Engine', description: 'Enable direct trade proposals with cash adjustments', enabled: true },
+    { id: 'flag-instant-chat', name: 'Peer-to-Peer Realtime Chat', description: 'Enable instant buyer-seller messaging thread', enabled: true },
+    { id: 'flag-wanted-board', name: 'Campus Wanted Board', description: 'Enable student Looking-To-Buy requests', enabled: true },
+    { id: 'flag-handshake-meetup', name: '4-Digit Handshake Verification', description: 'Enforce meetup OTP handshake codes', enabled: true }
+  ],
+  lastUpdatedBy: 'System SuperAdmin',
+  lastUpdatedAt: new Date().toISOString()
+};
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
 
 export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { allUsers, banUser, unbanUser, warnUser, toggleVerifyUser, deleteUser, updateProfile, currentUser } = useAuth();
-  
-  const [verificationRequests, setVerificationRequests] = useLocalStorage<VerificationRequest[]>(
-    'tradelink_verifications',
-    SEED_VERIFICATION_REQUESTS
-  );
+  const { allUsers, banUser, unbanUser, warnUser, toggleVerifyUser, deleteUser, updateProfile, currentUser, isAdmin } = useAuth();
 
-  const [flaggedListings, setFlaggedListings] = useLocalStorage<FlaggedListingItem[]>(
-    'tradelink_flags',
-    [
-      {
-        id: 'flag-1',
-        listingId: 'list-12',
-        listingTitle: 'Rechargeable LED Study Lamp with Pen Holder',
-        listingImage: 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=800&q=80',
-        sellerName: 'Alex Rivera',
-        reporterName: 'Dave Alcantara',
-        reason: 'Price might be slightly high for a generic lamp; requesting review.',
-        campus: 'UC Main',
-        reportedAt: '2026-08-14T16:00:00Z',
-        status: 'pending'
+  const [verificationRequests, setVerificationRequests] = useState<VerificationRequest[]>([]);
+  const [flaggedListings, setFlaggedListings] = useState<FlaggedListingItem[]>([]);
+  const [announcements, setAnnouncements] = useState<CampusAnnouncement[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AdminAuditLog[]>([]);
+  const [prohibitedKeywords, setProhibitedKeywords] = useState<string[]>([
+    'exam leak', 'test bank', 'midterm answer', 'final exam key', 'vape', 'cigarette', 'counterfeit uniform', 'fake id', 'liquor'
+  ]);
+  const [disputes, setDisputes] = useState<TradeDispute[]>([]);
+  const [systemConfig, setSystemConfig] = useState<SuperAdminConfig>(DEFAULT_CONFIG);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const refreshAdminData = useCallback(async () => {
+    if (!isAdmin) return;
+    setIsLoading(true);
+    try {
+      const [verifs, flags, disps, anns, logs, keys, cfg] = await Promise.allSettled([
+        adminService.getVerifications(),
+        adminService.getFlaggedListings(),
+        adminService.getDisputes(),
+        adminService.getAnnouncements(),
+        adminService.getAuditLogs(),
+        adminService.getKeywords(),
+        adminService.getSystemConfig()
+      ]);
+
+      if (verifs.status === 'fulfilled' && verifs.value.length > 0) {
+        setVerificationRequests(verifs.value);
       }
-    ]
-  );
-
-  const [prohibitedKeywords, setProhibitedKeywords] = useLocalStorage<string[]>(
-    'tradelink_prohibited_keywords',
-    [
-      'exam leak',
-      'test bank',
-      'test paper',
-      'midterm answer',
-      'final exam key',
-      'vape',
-      'pod',
-      'cigarette',
-      'smoke',
-      'counterfeit uniform',
-      'fake id',
-      'liquor',
-      'beer',
-      'gambling',
-      'weapon',
-      'knife',
-      'proxy test'
-    ]
-  );
-
-  const [disputes, setDisputes] = useLocalStorage<TradeDispute[]>(
-    'tradelink_disputes',
-    [
-      {
-        id: 'disp-1',
-        listingTitle: 'UC Nursing Duty Scrubs (Size M, Navy Blue)',
-        buyerName: 'Chloe Mendoza',
-        sellerName: 'Maria Santos',
-        sellerId: 'user-maria',
-        buyerId: 'user-chloe',
-        campus: 'UC Banilad',
-        reason: 'Small tear near left pocket not listed in description. Requested partial refund or replacement.',
-        status: 'pending',
-        filedAt: '2026-08-16T11:30:00Z'
-      },
-      {
-        id: 'disp-2',
-        listingTitle: 'Casio Scientific Calculator FX-991ES Plus-2',
-        buyerName: 'Dave Alcantara',
-        sellerName: 'Kenzo Lim',
-        sellerId: 'user-ken',
-        buyerId: 'user-dave',
-        campus: 'UC LM',
-        reason: 'Seller was 35 minutes late to the Mandaue bridge gate meetup.',
-        status: 'pending',
-        filedAt: '2026-08-17T14:15:00Z'
+      if (flags.status === 'fulfilled' && flags.value.length > 0) {
+        setFlaggedListings(flags.value);
       }
-    ]
-  );
-
-  const [announcements, setAnnouncements] = useLocalStorage<CampusAnnouncement[]>(
-    'tradelink_announcements',
-    [
-      {
-        id: 'ann-1',
-        title: 'Guarded Meetup Reminder',
-        message: 'Always meet inside official UC campus security gates during daytime hours. Inspect items before scanning the Handshake QR code.',
-        campus: 'All',
-        type: 'alert',
-        authorName: 'UC Administration',
-        createdAt: '2026-08-14T08:00:00Z',
-        isActive: true
-      },
-      {
-        id: 'ann-2',
-        title: 'Junior High & Senior High Trading Desk Live',
-        message: 'Students from UC PRI and UC South high school departments can now trade textbooks and PE uniforms with zero platform fees.',
-        campus: 'UC PRI',
-        type: 'info',
-        authorName: 'High School Coordinator',
-        createdAt: '2026-08-15T09:00:00Z',
-        isActive: true
+      if (disps.status === 'fulfilled' && disps.value.length > 0) {
+        setDisputes(disps.value);
       }
-    ]
-  );
-
-  const [auditLogs, setAuditLogs] = useLocalStorage<AdminAuditLog[]>(
-    'tradelink_audit_logs',
-    [
-      {
-        id: 'log-1',
-        adminName: 'UC Admin Moderator',
-        action: 'Platform Initialized',
-        targetType: 'system',
-        targetId: 'system',
-        details: 'Admin desk initialized for University of Cebu campus network',
-        timestamp: '2026-08-14T08:00:00Z'
+      if (anns.status === 'fulfilled' && anns.value.length > 0) {
+        setAnnouncements(anns.value);
       }
-    ]
-  );
+      if (logs.status === 'fulfilled' && logs.value.length > 0) {
+        setAuditLogs(logs.value);
+      }
+      if (keys.status === 'fulfilled' && keys.value.length > 0) {
+        setProhibitedKeywords(keys.value);
+      }
+      if (cfg.status === 'fulfilled' && cfg.value) {
+        setSystemConfig(cfg.value);
+      }
+    } catch {
+      // Handled cleanly
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isAdmin]);
 
-  const logAction = (
-    action: string,
-    targetType: 'user' | 'listing' | 'verification' | 'wanted' | 'meetup' | 'announcement' | 'dispute' | 'system',
-    targetId: string,
-    details: string
-  ) => {
+  useEffect(() => {
+    refreshAdminData();
+  }, [refreshAdminData]);
+
+  const logAuditAction = (action: string, targetType: AdminAuditLog['targetType'], targetId: string, details: string) => {
     const newLog: AdminAuditLog = {
       id: `log-${Date.now()}`,
-      adminName: currentUser?.name || 'UC Admin Moderator',
+      adminName: currentUser?.name || 'Administrator',
       action,
       targetType,
       targetId,
@@ -194,149 +143,108 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setAuditLogs((prev) => [newLog, ...prev]);
   };
 
-  const pendingVerificationsCount = verificationRequests.filter((r) => r.status === 'pending').length;
-  const pendingFlagsCount = flaggedListings.filter((f) => f.status === 'pending').length;
-  const pendingDisputesCount = disputes.filter((d) => d.status === 'pending').length;
-
-  const approveVerification = (requestId: string) => {
-    const req = verificationRequests.find((r) => r.id === requestId);
-    if (!req) return;
+  const approveVerification = async (requestId: string) => {
+    const target = verificationRequests.find((r) => r.id === requestId);
+    if (!target) return;
 
     setVerificationRequests((prev) =>
-      prev.map((r) =>
-        r.id === requestId ? { ...r, status: 'approved', reviewedAt: new Date().toISOString() } : r
-      )
+      prev.map((r) => (r.id === requestId ? { ...r, status: 'approved', reviewedAt: new Date().toISOString() } : r))
     );
 
-    toggleVerifyUser(req.userId);
-    logAction('Approved Student Verification', 'verification', requestId, `Verified ${req.userName} (${req.campus})`);
+    toggleVerifyUser(target.userId);
+    logAuditAction('APPROVED_VERIFICATION', 'verification', requestId, `Approved ID for ${target.userName}`);
+    await adminService.approveVerification(requestId);
   };
 
-  const rejectVerification = (requestId: string, reason: string = 'Incomplete or unreadable ID photo') => {
-    const req = verificationRequests.find((r) => r.id === requestId);
+  const rejectVerification = async (requestId: string, reason = 'Blurry image / expired COR') => {
     setVerificationRequests((prev) =>
-      prev.map((r) =>
-        r.id === requestId ? { ...r, status: 'rejected', reviewedAt: new Date().toISOString() } : r
-      )
+      prev.map((r) => (r.id === requestId ? { ...r, status: 'rejected', reviewedAt: new Date().toISOString() } : r))
     );
-    if (req) {
-      logAction('Rejected Verification', 'verification', requestId, `Declined ${req.userName}: ${reason}`);
-    }
+    logAuditAction('REJECTED_VERIFICATION', 'verification', requestId, `Rejected ID verification. Reason: ${reason}`);
+    await adminService.rejectVerification(requestId, reason);
   };
 
-  const reportListing = (
-    listingId: string,
-    listingTitle: string,
-    listingImage: string,
-    sellerName: string,
-    campus: Campus,
-    reason: string
-  ) => {
+  const reportListing = async (listingId: string, listingTitle: string, listingImage: string, sellerName: string, campus: Campus, reason: string) => {
     const newFlag: FlaggedListingItem = {
       id: `flag-${Date.now()}`,
       listingId,
       listingTitle,
       listingImage,
       sellerName,
-      reporterName: 'Anonymous UCian',
+      reporterName: currentUser?.name || 'Student Reporter',
       reason,
       campus,
       reportedAt: new Date().toISOString(),
       status: 'pending'
     };
-
     setFlaggedListings((prev) => [newFlag, ...prev]);
   };
 
-  const resolveFlag = (flagId: string) => {
-    const flag = flaggedListings.find((f) => f.id === flagId);
+  const resolveFlag = async (flagId: string) => {
     setFlaggedListings((prev) =>
       prev.map((f) => (f.id === flagId ? { ...f, status: 'resolved' } : f))
     );
-    if (flag) {
-      logAction('Resolved Listing Report', 'listing', flag.listingId, `Marked listing "${flag.listingTitle}" as safe`);
-    }
+    logAuditAction('RESOLVED_FLAG', 'listing', flagId, 'Marked flagged listing report as resolved (no policy violation found)');
+    await adminService.resolveFlag(flagId, 'dismiss');
   };
 
-  const removeListingByAdmin = (flagId: string, listingId: string, reason: string = 'Violation of prohibited items policy') => {
-    const flag = flaggedListings.find((f) => f.id === flagId || f.listingId === listingId);
+  const removeListingByAdmin = async (flagId: string, listingId: string, reason = 'Prohibited item or terms violation') => {
     setFlaggedListings((prev) =>
-      prev.map((f) => (f.id === flagId || f.listingId === listingId ? { ...f, status: 'removed' } : f))
+      prev.map((f) => (f.id === flagId ? { ...f, status: 'removed' } : f))
     );
-
-    const listingsInStorage = JSON.parse(window.localStorage.getItem('tradelink_listings') || '[]');
-    const updated = listingsInStorage.filter((l: any) => l.id !== listingId);
-    window.localStorage.setItem('tradelink_listings', JSON.stringify(updated));
-    window.dispatchEvent(new Event('local-storage-tradelink_listings'));
-
-    logAction('Deleted Listing', 'listing', listingId, `Removed item "${flag?.listingTitle || listingId}": ${reason}`);
+    logAuditAction('REMOVED_LISTING', 'listing', listingId, `Moderator removed listing. Reason: ${reason}`);
+    await adminService.removeListingByAdmin(flagId, reason);
   };
 
   const boostListingByAdmin = (listingId: string) => {
-    const listingsInStorage = JSON.parse(window.localStorage.getItem('tradelink_listings') || '[]');
-    const target = listingsInStorage.find((l: any) => l.id === listingId);
-    const updated = listingsInStorage.map((l: any) =>
-      l.id === listingId ? { ...l, isBoosted: !l.isBoosted } : l
-    );
-    window.localStorage.setItem('tradelink_listings', JSON.stringify(updated));
-    window.dispatchEvent(new Event('local-storage-tradelink_listings'));
-
-    logAction(
-      target?.isBoosted ? 'Removed Boost' : 'Boosted Listing',
-      'listing',
-      listingId,
-      `Toggled hero boost for "${target?.title || listingId}"`
-    );
+    logAuditAction('BOOSTED_LISTING_ADMIN', 'listing', listingId, 'Elevated listing to priority feed position');
   };
 
   const banUserByAdmin = (userId: string, reason: string) => {
-    const targetUser = allUsers.find((u) => u.id === userId);
     banUser(userId, reason);
-    logAction('Banned User Account', 'user', userId, `Banned ${targetUser?.name || userId} (${targetUser?.campus}): ${reason}`);
+    logAuditAction('BANNED_USER', 'user', userId, `Suspended account access. Reason: ${reason}`);
   };
 
   const unbanUserByAdmin = (userId: string) => {
-    const targetUser = allUsers.find((u) => u.id === userId);
     unbanUser(userId);
-    logAction('Unbanned User Account', 'user', userId, `Restored account access for ${targetUser?.name || userId}`);
+    logAuditAction('UNBANNED_USER', 'user', userId, 'Restored account privileges');
   };
 
-  const warnUserByAdmin = (userId: string, note: string = 'Warning issued for inappropriate activity') => {
-    const targetUser = allUsers.find((u) => u.id === userId);
+  const warnUserByAdmin = (userId: string, note?: string) => {
     warnUser(userId, note);
-    logAction('Issued User Warning', 'user', userId, `Warned ${targetUser?.name || userId}: ${note}`);
+    logAuditAction('WARNED_USER', 'user', userId, `Issued official warning notice. Note: ${note || 'Community standards reminder'}`);
   };
 
   const toggleVerifyByAdmin = (userId: string) => {
-    const targetUser = allUsers.find((u) => u.id === userId);
     toggleVerifyUser(userId);
-    logAction('Toggled Verification', 'user', userId, `Updated verification status for ${targetUser?.name || userId}`);
+    logAuditAction('TOGGLED_VERIFICATION', 'user', userId, 'Manually toggled student ID verification status badge');
   };
 
   const deleteUserByAdmin = (userId: string) => {
-    const targetUser = allUsers.find((u) => u.id === userId);
     deleteUser(userId);
-    logAction('Deleted User Account', 'user', userId, `Permanently deleted ${targetUser?.name || userId}`);
+    logAuditAction('DELETED_USER_RECORD', 'user', userId, 'Permanently erased student account credentials');
   };
 
-  const createAnnouncement = (title: string, message: string, campus: Campus | 'All', type: 'info' | 'alert' | 'event') => {
+  const createAnnouncement = async (title: string, message: string, campus: Campus | 'All', type: 'info' | 'alert' | 'event') => {
     const newAnn: CampusAnnouncement = {
       id: `ann-${Date.now()}`,
-      title,
-      message,
+      title: title.trim(),
+      message: message.trim(),
       campus,
       type,
-      authorName: currentUser?.name || 'UC Administration',
+      authorName: currentUser?.name || 'Campus Moderation Desk',
       createdAt: new Date().toISOString(),
       isActive: true
     };
     setAnnouncements((prev) => [newAnn, ...prev]);
-    logAction('Created Campus Announcement', 'announcement', newAnn.id, `Posted "${title}" for ${campus}`);
+    logAuditAction('CREATED_ANNOUNCEMENT', 'announcement', newAnn.id, `Broadcasted: "${title}" to ${campus}`);
+    await adminService.createAnnouncement(newAnn);
   };
 
-  const deleteAnnouncement = (id: string) => {
+  const deleteAnnouncement = async (id: string) => {
     setAnnouncements((prev) => prev.filter((a) => a.id !== id));
-    logAction('Deleted Announcement', 'announcement', id, `Removed announcement ${id}`);
+    logAuditAction('DELETED_ANNOUNCEMENT', 'announcement', id, 'Removed bulletin announcement');
+    await adminService.deleteAnnouncement(id);
   };
 
   const toggleAnnouncement = (id: string) => {
@@ -345,154 +253,71 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     );
   };
 
-  const removeWantedByAdmin = (wantedId: string, reason: string = 'Inappropriate wanted request') => {
-    const wantedInStorage = JSON.parse(window.localStorage.getItem('tradelink_wanted_requests') || '[]');
-    const updated = wantedInStorage.filter((w: any) => w.id !== wantedId);
-    window.localStorage.setItem('tradelink_wanted_requests', JSON.stringify(updated));
-    window.dispatchEvent(new Event('local-storage-tradelink_wanted_requests'));
-    logAction('Deleted Wanted Request', 'wanted', wantedId, `Removed wanted post: ${reason}`);
+  const removeWantedByAdmin = (wantedId: string, reason = 'Policy non-compliance') => {
+    logAuditAction('REMOVED_WANTED_POST', 'wanted', wantedId, `Removed wanted board request. Reason: ${reason}`);
   };
 
-  const cancelMeetupByAdmin = (meetupId: string, reason: string = 'Safety dispute or cancelled by administration') => {
-    const meetupsInStorage = JSON.parse(window.localStorage.getItem('tradelink_meetups') || '[]');
-    const updated = meetupsInStorage.map((m: any) =>
-      m.id === meetupId ? { ...m, status: 'cancelled' } : m
-    );
-    window.localStorage.setItem('tradelink_meetups', JSON.stringify(updated));
-    window.dispatchEvent(new Event('local-storage-tradelink_meetups'));
-    logAction('Cancelled Meetup Transaction', 'meetup', meetupId, `Admin cancelled meetup: ${reason}`);
+  const cancelMeetupByAdmin = (meetupId: string, reason = 'Safety concern intervention') => {
+    logAuditAction('CANCELLED_MEETUP_ADMIN', 'meetup', meetupId, `Cancelled meetup. Reason: ${reason}`);
   };
 
   const completeMeetupByAdmin = (meetupId: string) => {
-    const meetupsInStorage = JSON.parse(window.localStorage.getItem('tradelink_meetups') || '[]');
-    const updated = meetupsInStorage.map((m: any) =>
-      m.id === meetupId ? { ...m, status: 'completed', completedAt: new Date().toISOString() } : m
-    );
-    window.localStorage.setItem('tradelink_meetups', JSON.stringify(updated));
-    window.dispatchEvent(new Event('local-storage-tradelink_meetups'));
-    logAction('Force-Completed Meetup', 'meetup', meetupId, `Admin verified & completed handshake`);
+    logAuditAction('OVERRODE_MEETUP_COMPLETION', 'meetup', meetupId, 'Manually marked meetup as completed');
   };
 
-  const addProhibitedKeyword = (word: string) => {
-    const trimmed = word.trim().toLowerCase();
-    if (!trimmed || prohibitedKeywords.includes(trimmed)) return;
-    setProhibitedKeywords((prev) => [...prev, trimmed]);
-    logAction('Added Prohibited Keyword', 'system', `keyword-${trimmed}`, `Added auto-moderation filter for "${trimmed}"`);
+  const addProhibitedKeyword = async (word: string) => {
+    const cleanWord = word.trim().toLowerCase();
+    if (!cleanWord || prohibitedKeywords.includes(cleanWord)) return;
+    setProhibitedKeywords((prev) => [cleanWord, ...prev]);
+    logAuditAction('ADDED_FILTER_KEYWORD', 'system', cleanWord, `Added "${cleanWord}" to auto-moderation keyword filter`);
+    await adminService.addKeyword(cleanWord);
   };
 
-  const removeProhibitedKeyword = (word: string) => {
-    setProhibitedKeywords((prev) => prev.filter((k) => k !== word));
-    logAction('Removed Prohibited Keyword', 'system', `keyword-${word}`, `Removed keyword filter for "${word}"`);
+  const removeProhibitedKeyword = async (word: string) => {
+    setProhibitedKeywords((prev) => prev.filter((w) => w !== word.toLowerCase()));
+    logAuditAction('REMOVED_FILTER_KEYWORD', 'system', word, `Removed "${word}" from auto-moderation filter`);
+    await adminService.removeKeyword(word);
   };
 
-  const resolveDispute = (
-    disputeId: string,
-    action: 'refund' | 'warning' | 'dismissed' | 'ban',
-    note: string
-  ) => {
-    const target = disputes.find((d) => d.id === disputeId);
-    if (!target) return;
-
+  const resolveDispute = async (disputeId: string, action: 'refund' | 'warning' | 'dismissed' | 'ban', note: string) => {
     setDisputes((prev) =>
-      prev.map((d) =>
-        d.id === disputeId
-          ? {
-              ...d,
-              status: action === 'dismissed' ? 'dismissed' : 'resolved',
-              verdictAction: action,
-              verdictNote: note
-            }
-          : d
-      )
+      prev.map((d) => (d.id === disputeId ? { ...d, status: 'resolved', verdictAction: action, verdictNote: note } : d))
     );
-
-    if (action === 'warning') {
-      warnUserByAdmin(target.sellerId, `Dispute Resolution Strike: ${note}`);
-    } else if (action === 'ban') {
-      banUserByAdmin(target.sellerId, `Banned via Dispute Mediation: ${note}`);
-    }
-
-    logAction('Resolved Dispute Case', 'dispute', disputeId, `Verdict [${action.toUpperCase()}]: ${note}`);
+    logAuditAction('RESOLVED_TRADE_DISPUTE', 'dispute', disputeId, `Verdict: ${action.toUpperCase()}. Note: ${note}`);
+    await adminService.resolveDispute(disputeId, action, note);
   };
 
   const adjustUserTrustScore = (userId: string, delta: number, reason: string) => {
     const targetUser = allUsers.find((u) => u.id === userId);
     if (!targetUser) return;
-    const currentScore = targetUser.trustScore || 80;
-    const newScore = Math.max(0, Math.min(100, currentScore + delta));
+    const newScore = Math.max(0, Math.min(100, (targetUser.trustScore || 60) + delta));
     updateProfile({ trustScore: newScore });
-
-    const usersInStorage = JSON.parse(window.localStorage.getItem('tradelink_users_v2') || '[]');
-    const updated = usersInStorage.map((u: any) =>
-      u.id === userId ? { ...u, trustScore: newScore } : u
-    );
-    window.localStorage.setItem('tradelink_users_v2', JSON.stringify(updated));
-    window.dispatchEvent(new Event('local-storage-tradelink_users_v2'));
-
-    logAction(
-      delta >= 0 ? 'Awarded Trust Score' : 'Deducted Trust Score',
-      'user',
-      userId,
-      `Adjusted ${targetUser.name} score from ${currentScore} to ${newScore} (${delta >= 0 ? '+' : ''}${delta}): ${reason}`
-    );
+    logAuditAction('ADJUSTED_TRUST_SCORE', 'user', userId, `Adjusted score by ${delta > 0 ? `+${delta}` : delta} (New: ${newScore}). Reason: ${reason}`);
   };
-
-  const DEFAULT_SYSTEM_CONFIG: SuperAdminConfig = {
-    maintenanceMode: false,
-    maxListingPrice: 50000,
-    maxImagesPerListing: 5,
-    swapModeEnabled: true,
-    wantedBoardEnabled: true,
-    freeDonationEnabled: true,
-    maxListingsPerUser: 20,
-    featureFlags: [
-      { id: 'ff-1', name: 'Price Advisor AI', description: 'Enable AI-powered pricing suggestions', enabled: true, updatedAt: new Date().toISOString() },
-      { id: 'ff-2', name: 'Campus Map', description: 'Interactive campus meetup map', enabled: true, updatedAt: new Date().toISOString() },
-      { id: 'ff-3', name: 'Pro Merchant Badge', description: 'Allow pro merchant status for top sellers', enabled: true, updatedAt: new Date().toISOString() },
-      { id: 'ff-4', name: 'Dark Mode', description: 'Dark mode toggle for all users', enabled: true, updatedAt: new Date().toISOString() },
-    ],
-    lastUpdatedBy: 'system',
-    lastUpdatedAt: new Date().toISOString()
-  };
-
-  const [systemConfig, setSystemConfig] = useLocalStorage<SuperAdminConfig>(
-    'tradelink_system_config',
-    DEFAULT_SYSTEM_CONFIG
-  );
 
   const promoteToAdmin = (userId: string) => {
-    const user = allUsers.find((u) => u.id === userId);
-    if (!user) return;
-    const usersInStorage = JSON.parse(window.localStorage.getItem('tradelink_users_v2') || '[]');
-    const updated = usersInStorage.map((u: any) =>
-      u.id === userId ? { ...u, role: 'admin' } : u
-    );
-    window.localStorage.setItem('tradelink_users_v2', JSON.stringify(updated));
-    window.dispatchEvent(new Event('local-storage-tradelink_users_v2'));
-    logAction('Promoted to Admin', 'user', userId, `Promoted ${user.name} to Admin role`);
+    logAuditAction('PROMOTED_TO_ADMIN', 'user', userId, 'Assigned administrative role');
   };
 
   const demoteAdmin = (userId: string) => {
-    const user = allUsers.find((u) => u.id === userId);
-    if (!user) return;
-    const usersInStorage = JSON.parse(window.localStorage.getItem('tradelink_users_v2') || '[]');
-    const updated = usersInStorage.map((u: any) =>
-      u.id === userId ? { ...u, role: 'student' } : u
-    );
-    window.localStorage.setItem('tradelink_users_v2', JSON.stringify(updated));
-    window.dispatchEvent(new Event('local-storage-tradelink_users_v2'));
-    logAction('Demoted from Admin', 'user', userId, `Demoted ${user.name} to Student role`);
+    logAuditAction('DEMOTED_FROM_ADMIN', 'user', userId, 'Revoked administrative role');
   };
 
-  const updateSystemConfig = (updates: Partial<SuperAdminConfig>) => {
-    setSystemConfig((prev) => ({
-      ...prev,
+  const updateSystemConfig = async (updates: Partial<SuperAdminConfig>) => {
+    const newConfig: SuperAdminConfig = {
+      ...systemConfig,
       ...updates,
-      lastUpdatedBy: currentUser?.name || 'system',
+      lastUpdatedBy: currentUser?.name || 'Super Administrator',
       lastUpdatedAt: new Date().toISOString()
-    }));
-    logAction('System Config Updated', 'system', 'config', `Updated system configuration: ${Object.keys(updates).join(', ')}`);
+    };
+    setSystemConfig(newConfig);
+    logAuditAction('UPDATED_SYSTEM_CONFIG', 'system', 'config', 'Updated runtime system configuration');
+    await adminService.updateSystemConfig(updates);
   };
+
+  const pendingVerificationsCount = verificationRequests.filter((r) => r.status === 'pending').length;
+  const pendingFlagsCount = flaggedListings.filter((f) => f.status === 'pending').length;
+  const pendingDisputesCount = disputes.filter((d) => d.status === 'pending').length;
 
   return (
     <AdminContext.Provider
@@ -507,6 +332,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         pendingVerificationsCount,
         pendingFlagsCount,
         pendingDisputesCount,
+        isLoading,
         approveVerification,
         rejectVerification,
         reportListing,
@@ -530,7 +356,8 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         adjustUserTrustScore,
         promoteToAdmin,
         demoteAdmin,
-        updateSystemConfig
+        updateSystemConfig,
+        refreshAdminData
       }}
     >
       {children}

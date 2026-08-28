@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useMarket } from '../context/MarketContext';
 import { useToast } from '../components/common/Toast';
-import { SmartPriceWidget } from '../components/marketplace/SmartPriceWidget';
 import { DragDropUpload } from '../components/common/DragDropUpload';
+import { StudentVerificationModal } from '../components/verification/StudentVerificationModal';
 import { TradeMode, ConditionGrade } from '../types';
 import { CAMPUS_MEETUP_SPOTS } from '../data/campusLocations';
 import {
@@ -15,7 +15,10 @@ import {
   Tag,
   ShoppingBag,
   ArrowLeftRight,
-  Gift
+  Gift,
+  ShieldAlert,
+  ShieldCheck,
+  Clock
 } from 'lucide-react';
 
 interface CreateListingPageProps {
@@ -31,20 +34,18 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('Electronics & Gadgets');
   const [customTagInput, setCustomTagInput] = useState('');
-  const [tags, setTags] = useState<string[]>(['Campus Item']);
+  const [tags, setTags] = useState<string[]>([]);
   const [tradeMode, setTradeMode] = useState<TradeMode>('buy_sell');
-  const [price, setPrice] = useState<number>(500);
-  const [originalSrp, setOriginalSrp] = useState<number>(1200);
-  const [condition, setCondition] = useState<ConditionGrade>('Like New');
+  const [price, setPrice] = useState<number>(0);
+  const [originalSrp, setOriginalSrp] = useState<number>(0);
+  const [condition, setCondition] = useState<ConditionGrade>('Gently Used');
   const [swapPreference, setSwapPreference] = useState('');
   const [isBoosted] = useState(false);
-  const [images, setImages] = useState<string[]>([
-    'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80'
-  ]);
-  const [selectedSpots, setSelectedSpots] = useState<string[]>([
-    CAMPUS_MEETUP_SPOTS.find((s) => s.campus === (currentUser?.campus || 'UC Main'))?.id || 'spot-main-1'
-  ]);
-  const [customMeetupSpot, setCustomMeetupSpot] = useState('');
+  const [images, setImages] = useState<string[]>([]);
+  const [spotSelection, setSpotSelection] = useState<string>('');
+  const [customLocationText, setCustomLocationText] = useState('');
+
+  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
 
   if (!isAuthenticated || !currentUser) {
     return (
@@ -71,55 +72,104 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
     );
   }
 
+  const isPendingVerification = !currentUser.isVerified && (currentUser.verificationStatus === 'pending' || !!currentUser.idPhotoUrl);
+
+  if (currentUser && !currentUser.isVerified) {
+    if (isPendingVerification) {
+      return (
+        <div className="container page-enter" style={{ padding: '4rem 1.5rem', textAlign: 'center', maxWidth: '580px' }}>
+          <div className="clean-card" style={{ padding: '2.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'rgba(0, 43, 127, 0.08)', color: 'var(--uc-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Clock size={32} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--uc-blue)' }}>
+                Verification Request In Progress
+              </h2>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.45rem', lineHeight: 1.55 }}>
+                Your student ID and live selfie are currently under review by campus administrators. Once verified, you will be able to post listings immediately across all UC campuses.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
+              <button
+                onClick={() => onNavigate('profile')}
+                className="btn-primary"
+                style={{ padding: '0.75rem 1.5rem', fontSize: '0.88rem', fontWeight: 800 }}
+              >
+                View Profile Status
+              </button>
+              <button
+                onClick={() => onNavigate('marketplace')}
+                className="btn-secondary"
+                style={{ padding: '0.75rem 1.25rem', fontSize: '0.88rem', fontWeight: 700 }}
+              >
+                Browse Marketplace
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="container page-enter" style={{ padding: '4rem 1.5rem', textAlign: 'center', maxWidth: '580px' }}>
+        <div className="clean-card" style={{ padding: '2.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
+          <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'rgba(255, 199, 44, 0.2)', color: '#B45309', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <ShieldAlert size={32} />
+          </div>
+          <div>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--uc-blue)' }}>
+              Student ID Verification Required
+            </h2>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.45rem', lineHeight: 1.55 }}>
+              To maintain a safe, scam-free environment across all University of Cebu campuses, creating listings requires an official student verification (Student ID + live selfie).
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
+            <button
+              onClick={() => setIsVerificationModalOpen(true)}
+              className="btn-gold"
+              style={{ padding: '0.75rem 1.75rem', fontSize: '0.88rem', fontWeight: 800 }}
+            >
+              Verify Student ID Now
+            </button>
+            <button
+              onClick={() => onNavigate('marketplace')}
+              className="btn-secondary"
+              style={{ padding: '0.75rem 1.25rem', fontSize: '0.88rem', fontWeight: 700 }}
+            >
+              Browse Marketplace
+            </button>
+          </div>
+        </div>
+
+        <StudentVerificationModal
+          isOpen={isVerificationModalOpen}
+          onClose={() => setIsVerificationModalOpen(false)}
+        />
+      </div>
+    );
+  }
+
   const categorySuggestions = [
     'Electronics & Gadgets',
-    'Fashion & Sneakers',
-    'Junior High School Books & Reviewers',
-    'Senior High School Modules & Kits',
-    'College Textbooks & Notes',
+    'College Textbooks & Reviewers',
     'Uniforms, PE Attire & Scrubs',
-    'Drafting, Art & Lab Supplies',
     'Scientific Calculators & Tools',
+    'Drafting, Art & Lab Supplies',
+    'Fashion & Sneakers',
     'Music & Instruments',
     'Gaming & PC Gear',
     'Dorm & Appliances',
     'Hobbies & Collectibles',
-    'Other / General Item'
+    'General Campus Item'
   ];
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          setImages((prev) => [reader.result as string, ...prev]);
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+  const campusSpots = CAMPUS_MEETUP_SPOTS.filter(s => s.campus === currentUser.campus);
 
-  const handleAddTag = (e: React.KeyboardEvent | React.MouseEvent) => {
-    if ('key' in e && e.key !== 'Enter') return;
-    e.preventDefault();
-    if (customTagInput.trim() && !tags.includes(customTagInput.trim())) {
-      setTags((prev) => [...prev, customTagInput.trim()]);
-      setCustomTagInput('');
-    }
-  };
-
-  const handleRemoveTag = (tagToRemove: string) => {
-    setTags((prev) => prev.filter((t) => t !== tagToRemove));
-  };
-
-  const handleSpotToggle = (spotId: string) => {
-    setSelectedSpots((prev) =>
-      prev.includes(spotId) ? prev.filter((id) => id !== spotId) : [...prev, spotId]
-    );
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!title.trim()) {
@@ -127,75 +177,95 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
       return;
     }
 
-    if (tradeMode !== 'free_donation' && price <= 0) {
+    if (tradeMode === 'buy_sell' && price <= 0) {
       showToast('Price Required', 'Please set a valid price or choose Free Donation.', 'warning');
       return;
     }
 
-    const newListing = addListing({
-      title: title.trim(),
-      category: category.trim(),
-      description: description.trim() || `Clean and well-kept ${title} available for pickup at ${currentUser.campus}.`,
-      price: tradeMode === 'free_donation' ? 0 : price,
-      originalSrp,
-      condition,
-      tradeMode,
-      swapPreference: tradeMode === 'swap' ? swapPreference.trim() : undefined,
-      images,
-      tags: tags.length > 0 ? tags : ['Campus Item'],
-      sellerId: currentUser.id,
-      sellerName: currentUser.name,
-      sellerAvatar: currentUser.avatar,
-      sellerCampus: currentUser.campus,
-      sellerCollege: currentUser.college,
-      sellerIsVerified: currentUser.isVerified,
-      sellerTrustScore: currentUser.trustScore,
-      preferredMeetupSpots: selectedSpots,
-      customMeetupSpot: customMeetupSpot.trim() || undefined,
-      isBoosted
-    });
+    const finalMeetupSpot = (spotSelection === 'custom' && customLocationText.trim())
+      ? customLocationText.trim()
+      : (spotSelection || campusSpots[0]?.name || `${currentUser.campus} Main Guard Station`);
 
-    showToast('Item Posted', `"${newListing.title}" is now live for all UC students!`, 'success');
-    onNavigate('item-detail', { id: newListing.id });
+    try {
+      const newListing = await addListing({
+        title: title.trim(),
+        category: category.trim(),
+        description: description.trim() || `Clean and well-kept ${title} available for campus pickup at ${currentUser.campus}.`,
+        price: tradeMode === 'free_donation' ? 0 : price,
+        originalSrp: tradeMode === 'free_donation' ? 0 : price,
+        condition,
+        tradeMode,
+        swapPreference: tradeMode === 'swap' ? swapPreference.trim() : undefined,
+        images,
+        tags: [category.split(' ')[0] || 'Campus'],
+        sellerId: currentUser.id,
+        sellerName: currentUser.name,
+        sellerAvatar: currentUser.avatar,
+        sellerCampus: currentUser.campus,
+        sellerCollege: currentUser.college,
+        sellerIsVerified: currentUser.isVerified,
+        sellerTrustScore: currentUser.trustScore,
+        preferredMeetupSpots: [finalMeetupSpot],
+        customMeetupSpot: finalMeetupSpot,
+        isBoosted: false
+      });
+
+      showToast('Item Posted!', `"${newListing.title}" is now active in the campus marketplace!`, 'success');
+      onNavigate('item-detail', { id: newListing.id });
+    } catch (err: any) {
+      const msg = err?.message || 'Failed to post item listing.';
+      if (msg.toLowerCase().includes('verif')) {
+        showToast('Verification Required', 'Please complete your student ID verification before posting.', 'warning');
+        setIsVerificationModalOpen(true);
+      } else {
+        showToast('Posting Failed', msg, 'error');
+      }
+    }
   };
 
   return (
-    <div className="container page-enter" style={{ maxWidth: '820px', padding: '2rem 1.5rem 5rem 1.5rem' }}>
+    <div className="container page-enter" style={{ maxWidth: '720px', padding: '2rem 1.25rem 5rem 1.25rem' }}>
       {/* Header */}
-      <div style={{ marginBottom: '1.5rem' }}>
+      <div style={{ marginBottom: '1.25rem' }}>
         <button
           onClick={() => onNavigate('marketplace')}
           className="btn-ghost"
           style={{
-            padding: '0.35rem 0.65rem',
+            padding: '0.3rem 0.6rem',
             fontSize: '0.82rem',
-            marginBottom: '0.5rem'
+            marginBottom: '0.4rem',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.3rem'
           }}
         >
           <ChevronLeft size={16} /> Back to Catalog
         </button>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--uc-blue, #002B7F)' }}>
-          Sell or Swap Any Item
+        <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--uc-blue, #002B7F)' }}>
+          Create a Listing
         </h1>
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted, #64748B)', marginTop: '0.15rem' }}>
-          List anything with fellow University of Cebu students — gadgets, sneakers, instruments, reviewers, or appliances.
+        <p style={{ fontSize: '0.84rem', color: 'var(--text-muted, #64748B)', marginTop: '0.15rem' }}>
+          Post textbooks, gear, uniforms, or tech to your verified campus community in seconds.
         </p>
       </div>
 
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-        {/* Card 1: Details */}
-        <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>What are you listing?</h3>
+        {/* Section 1: Item Information */}
+        <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', borderBottom: '1px solid var(--border-subtle, #F1F5F9)', paddingBottom: '0.75rem' }}>
+            <ShoppingBag size={18} color="var(--uc-blue)" />
+            <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-primary)' }}>1. Item Details</h3>
+          </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
-              Item Name *
+            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+              Item Title *
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Item name"
+              placeholder="e.g. Casio FX-991EX Calculator, BSN Nursing Scrub (M), Accounting 101 Book"
               className="clean-input"
               required
             />
@@ -203,8 +273,8 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
-                Category
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+                Category *
               </label>
               <select
                 value={category}
@@ -220,149 +290,86 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
-                Tags
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+                Condition Grade *
               </label>
-              <div style={{ display: 'flex', gap: '0.4rem' }}>
-                <input
-                  type="text"
-                  value={customTagInput}
-                  onChange={(e) => setCustomTagInput(e.target.value)}
-                  onKeyDown={handleAddTag}
-                  placeholder="Add tag"
-                  className="clean-input"
-                />
-                <button
-                  type="button"
-                  onClick={handleAddTag}
-                  className="btn-secondary"
-                  style={{ padding: '0.5rem 0.85rem', fontSize: '0.78rem', whiteSpace: 'nowrap' }}
-                >
-                  Add Tag
-                </button>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.35rem' }}>
+                {(['Brand New', 'Like New', 'Gently Used', 'Fair / Academic Usable'] as ConditionGrade[]).map((cond) => {
+                  const isSelected = condition === cond;
+                  return (
+                    <button
+                      key={cond}
+                      type="button"
+                      onClick={() => setCondition(cond)}
+                      style={{
+                        padding: '0.45rem 0.5rem',
+                        borderRadius: '6px',
+                        fontSize: '0.74rem',
+                        fontWeight: isSelected ? 800 : 600,
+                        backgroundColor: isSelected ? 'var(--uc-blue, #002B7F)' : 'var(--bg-subtle, #F1F5F9)',
+                        color: isSelected ? '#FFFFFF' : 'var(--text-secondary, #334155)',
+                        border: isSelected ? '1px solid var(--uc-blue)' : '1px solid var(--border-subtle, #E2E8F0)',
+                        cursor: 'pointer',
+                        textAlign: 'center'
+                      }}
+                    >
+                      {cond.split('/')[0].trim()}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
 
-          {/* Rendered Tags */}
-          {tags.length > 0 && (
-            <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
-              {tags.map((tag) => (
-                <span
-                  key={tag}
-                  style={{
-                    backgroundColor: '#EBF1FC',
-                    color: '#002B7F',
-                    border: '1px solid #BCD1F7',
-                    padding: '0.2rem 0.6rem',
-                    borderRadius: '9999px',
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.3rem'
-                  }}
-                >
-                  <span>#{tag}</span>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveTag(tag)}
-                    style={{ color: '#002B7F', display: 'flex' }}
-                  >
-                    <X size={12} />
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
-
+          {/* Trade Mode Selector */}
           <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
-              Condition Grade *
+            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+              Listing Type *
             </label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.5rem' }}>
-              {(['Brand New', 'Like New', 'Gently Used', 'Fair / Academic Usable'] as ConditionGrade[]).map((cond) => {
-                const isSelected = condition === cond;
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
+              {[
+                { id: 'buy_sell', label: 'For Sale', icon: <ShoppingBag size={14} /> },
+                { id: 'swap', label: 'Swap Only', icon: <ArrowLeftRight size={14} /> },
+                { id: 'free_donation', label: 'Free Gift', icon: <Gift size={14} /> }
+              ].map((mode) => {
+                const isSelected = tradeMode === mode.id;
                 return (
                   <button
-                    key={cond}
+                    key={mode.id}
                     type="button"
-                    onClick={() => setCondition(cond)}
+                    onClick={() => setTradeMode(mode.id as TradeMode)}
                     style={{
                       padding: '0.55rem 0.65rem',
                       borderRadius: '8px',
                       fontSize: '0.8rem',
                       fontWeight: isSelected ? 800 : 600,
-                      backgroundColor: isSelected ? '#002B7F' : '#F1F5F9',
-                      color: isSelected ? '#FFFFFF' : '#334155',
-                      border: isSelected ? '1px solid #002B7F' : '1px solid #CBD5E1',
-                      textAlign: 'center'
+                      backgroundColor: isSelected ? 'var(--uc-blue-subtle, #EBF1FC)' : 'var(--bg-surface, #FFFFFF)',
+                      color: isSelected ? 'var(--uc-blue, #002B7F)' : 'var(--text-secondary, #475569)',
+                      border: isSelected ? '1.5px solid var(--uc-blue, #002B7F)' : '1px solid var(--border-subtle, #CBD5E1)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.35rem',
+                      cursor: 'pointer'
                     }}
                   >
-                    {cond}
+                    {mode.icon}
+                    <span>{mode.label}</span>
                   </button>
                 );
               })}
             </div>
           </div>
 
-          <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
-              Description & Details
-            </label>
-            <textarea
-              rows={3}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe condition, inclusions, and notes..."
-              className="clean-input"
-            />
-          </div>
-        </div>
-
-        {/* Card 2: Price & Mode */}
-        <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Pricing & Mode</h3>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.65rem' }}>
-            {[
-              { id: 'buy_sell', label: 'For Sale', icon: <ShoppingBag size={15} style={{ flexShrink: 0 }} /> },
-              { id: 'swap', label: 'Swap', icon: <ArrowLeftRight size={15} style={{ flexShrink: 0 }} /> },
-              { id: 'free_donation', label: 'Free Donation', icon: <Gift size={15} style={{ flexShrink: 0 }} /> }
-            ].map((mode) => {
-              const isSelected = tradeMode === mode.id;
-              return (
-                <button
-                  key={mode.id}
-                  type="button"
-                  onClick={() => setTradeMode(mode.id as TradeMode)}
-                  className={`segmented-tab ${isSelected ? 'active' : ''}`}
-                  style={{
-                    padding: '0.65rem 0.75rem',
-                    borderRadius: '10px',
-                    fontSize: '0.84rem',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.45rem',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {mode.icon}
-                  <span>{mode.label}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {tradeMode !== 'free_donation' && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.85rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
-                  Selling Price (PHP) *
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <span style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: 'var(--text-muted)' }}>
+          {/* Pricing or Swap Preferences */}
+          {tradeMode === 'buy_sell' && (
+            <div>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+                Price (PHP) *
+              </label>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <div style={{ position: 'relative', width: '160px' }}>
+                  <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, color: 'var(--text-muted)' }}>
                     ₱
                   </span>
                   <input
@@ -370,27 +377,24 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
                     value={price}
                     onChange={(e) => setPrice(Number(e.target.value))}
                     className="clean-input"
-                    style={{ paddingLeft: '1.95rem', fontWeight: 800, fontSize: '1rem', color: 'var(--uc-blue)' }}
+                    style={{ paddingLeft: '1.75rem', fontWeight: 800, fontSize: '0.95rem', color: 'var(--uc-blue)' }}
+                    placeholder="0"
+                    min="1"
                     required
                   />
                 </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
-                  Original Retail (SRP)
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <span style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: 'var(--text-muted)' }}>
-                    ₱
-                  </span>
-                  <input
-                    type="number"
-                    value={originalSrp}
-                    onChange={(e) => setOriginalSrp(Number(e.target.value))}
-                    className="clean-input"
-                    style={{ paddingLeft: '1.95rem' }}
-                  />
+                <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
+                  {[50, 100, 250, 500].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setPrice(preset)}
+                      className="btn-ghost"
+                      style={{ padding: '0.3rem 0.55rem', fontSize: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
+                    >
+                      ₱{preset}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
@@ -398,128 +402,119 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
 
           {tradeMode === 'swap' && (
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
-                Preferred Swap Item *
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+                What would you like in exchange? *
               </label>
               <input
                 type="text"
                 value={swapPreference}
                 onChange={(e) => setSwapPreference(e.target.value)}
-                placeholder="Preferred item to swap for"
+                placeholder="e.g. Scientific Calculator, Mechanical Keyboard, or Open to any offer"
                 className="clean-input"
                 required
               />
             </div>
           )}
 
-          <SmartPriceWidget
-            initialSrp={originalSrp}
-            initialCondition={condition}
-            initialCategory={category}
-            initialCurrentPrice={price}
-            isCompact={true}
-            onApplyPrice={(rec) => setPrice(rec)}
-          />
-        </div>
-
-        {/* Card 3: Photos (Drag & Drop) */}
-        <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Photos</h3>
-          <DragDropUpload
-            images={images}
-            onChange={setImages}
-            maxFiles={6}
-            label=""
-            helperText="Drag & drop item photos here, or click to browse"
-            isMultiple={true}
-          />
-        </div>
-
-        {/* Card 4: Inside & Outside Campus Meetup Spot */}
-        <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-            <MapPin size={18} color="var(--uc-blue)" />
-            <div>
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                Meetup Locations (Inside Campus & Nearby Outside Hubs)
-              </h3>
-              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                Pick official campus checkpoints, nearby student hubs (E-Mall, Country Mall, IT Park, Parkmall), or enter your own custom location
-              </p>
+          {tradeMode === 'free_donation' && (
+            <div style={{ backgroundColor: 'rgba(5, 150, 105, 0.08)', border: '1px solid rgba(5, 150, 105, 0.25)', borderRadius: '8px', padding: '0.65rem 0.85rem', fontSize: '0.8rem', color: '#065F46', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+              <Gift size={16} /> Giving this item away for free (₱0) to support a fellow UC student.
             </div>
-          </div>
+          )}
 
-          {/* Predefined spots */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.5rem' }}>
-            {CAMPUS_MEETUP_SPOTS.map((spot) => {
-              const isSelected = selectedSpots.includes(spot.id);
-              return (
-                <label
-                  key={spot.id}
-                  onClick={() => handleSpotToggle(spot.id)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '0.5rem',
-                    padding: '0.75rem',
-                    borderRadius: '8px',
-                    border: isSelected ? '1.5px solid #002B7F' : '1px solid #E2E8F0',
-                    backgroundColor: isSelected ? '#EBF1FC' : '#FFFFFF',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={isSelected}
-                    onChange={() => {}}
-                    style={{ marginTop: '2px' }}
-                  />
-                  <div style={{ fontSize: '0.78rem', flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontWeight: 700, color: '#002B7F' }}>[{spot.campus}]</span>
-                      <span style={{ fontSize: '0.68rem', fontWeight: 700, color: spot.locationType.includes('Inside') ? '#047857' : '#B45309' }}>
-                        {spot.locationType.includes('Inside') ? 'Campus Gate' : 'Outside Spot'}
-                      </span>
-                    </div>
-                    <div style={{ color: '#1E293B', marginTop: '1px' }}>{spot.name}</div>
-                  </div>
-                </label>
-              );
-            })}
-          </div>
-
-          {/* Custom Student Meetup Spot Input */}
-          <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '0.85rem' }}>
-            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
-              Custom Location (Optional)
+          <div>
+            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+              Description (Optional)
             </label>
-            <input
-              type="text"
-              value={customMeetupSpot}
-              onChange={(e) => setCustomMeetupSpot(e.target.value)}
-              placeholder="e.g. E-Mall, Banilad canteen, etc."
+            <textarea
+              rows={2}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Inclusions, edition, or notes about the item..."
               className="clean-input"
+              style={{ fontSize: '0.84rem' }}
             />
           </div>
         </div>
 
+        {/* Section 2: Photos & Meetup Hub */}
+        <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', borderBottom: '1px solid var(--border-subtle, #F1F5F9)', paddingBottom: '0.75rem' }}>
+            <MapPin size={18} color="var(--uc-blue)" />
+            <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-primary)' }}>2. Photos & Campus Meetup</h3>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+              Item Photos (Up to 4)
+            </label>
+            <DragDropUpload
+              images={images}
+              onChange={setImages}
+              maxFiles={4}
+              label=""
+              helperText="Click or drop photos here (PNG, JPG, WEBP)"
+              isMultiple={true}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+              Campus Meeting Place *
+            </label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <select
+                value={spotSelection || (campusSpots[0]?.name || '')}
+                onChange={(e) => setSpotSelection(e.target.value)}
+                className="clean-input"
+              >
+                <optgroup label={`Designated Meeting Spots (${currentUser.campus})`}>
+                  {campusSpots.map((spot) => (
+                    <option key={spot.id} value={spot.name}>
+                      {spot.name}
+                    </option>
+                  ))}
+                </optgroup>
+                <option value="custom">+ Enter My Own Custom Meeting Location</option>
+              </select>
+
+              {spotSelection === 'custom' && (
+                <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
+                  <input
+                    type="text"
+                    value={customLocationText}
+                    onChange={(e) => setCustomLocationText(e.target.value)}
+                    placeholder="e.g. 2nd Floor Canteen Table 4, Main Library Study Area, Engineering Hallway"
+                    className="clean-input"
+                    style={{ fontSize: '0.84rem' }}
+                    required
+                  />
+                  <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                    Specify any landmark or spot where you prefer to meet your buyer or barter partner.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* Action Buttons */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.85rem', marginTop: '0.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.25rem' }}>
           <button
             type="button"
             onClick={() => onNavigate('marketplace')}
             className="btn-secondary"
-            style={{ padding: '0.65rem 1.35rem' }}
+            style={{ padding: '0.65rem 1.25rem', fontSize: '0.84rem', fontWeight: 700 }}
           >
             Cancel
           </button>
           <button
             type="submit"
             className="btn-gold"
-            style={{ padding: '0.65rem 1.6rem', fontSize: '0.88rem', display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
+            style={{ padding: '0.65rem 1.75rem', fontSize: '0.88rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
           >
-            <Tag size={16} style={{ flexShrink: 0 }} />
-            <span>Publish Listing to TradeLink</span>
+            <Tag size={16} />
+            <span>Publish Listing Now</span>
           </button>
         </div>
       </form>

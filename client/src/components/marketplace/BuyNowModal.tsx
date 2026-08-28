@@ -59,13 +59,13 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
     setStep('meetup');
   };
 
-  const handleFinalizeOrder = (e: React.FormEvent) => {
+  const handleFinalizeOrder = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const finalSpot = isCustomSpot && customSpotInput.trim() ? customSpotInput.trim() : selectedSpot;
     const finalDateTime = `${meetupDate} at ${meetupTime}`;
 
-    const newTransaction = scheduleMeetup({
+    const newTransaction = await scheduleMeetup({
       listing,
       buyerId: currentUser.id,
       buyerName: currentUser.name,
@@ -143,11 +143,17 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
                 alignItems: 'center'
               }}
             >
-              <img
-                src={listing.images[0] || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80'}
-                alt={listing.title}
-                style={{ width: '68px', height: '68px', borderRadius: '8px', objectFit: 'cover' }}
-              />
+              {listing.images && listing.images[0] ? (
+                <img
+                  src={listing.images[0]}
+                  alt={listing.title}
+                  style={{ width: '68px', height: '68px', borderRadius: '8px', objectFit: 'cover' }}
+                />
+              ) : (
+                <div style={{ width: '68px', height: '68px', borderRadius: '8px', backgroundColor: 'var(--bg-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+                  <ShoppingBag size={24} />
+                </div>
+              )}
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.72rem', color: 'var(--uc-blue)', fontWeight: 700 }}>
                   <span>{listing.sellerCampus}</span>
@@ -296,14 +302,14 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
                 <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  Meetup Spot (Inside Gate or Outside Mall/Cafe) *
+                  Meetup Location *
                 </label>
                 <button
                   type="button"
                   onClick={() => setIsCustomSpot(!isCustomSpot)}
                   style={{ fontSize: '0.75rem', color: 'var(--uc-blue)', fontWeight: 800, background: 'none', border: 'none', cursor: 'pointer' }}
                 >
-                  {isCustomSpot ? 'Select from List' : '+ Custom Spot (Inside or Outside)'}
+                  {isCustomSpot ? 'Select from Suggested Spots' : '+ Enter Custom Location'}
                 </button>
               </div>
 
@@ -331,13 +337,8 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
                         style={{ marginTop: '3px' }}
                       />
                       <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>{spot.name}</span>
-                          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: spot.locationType.includes('Inside') ? 'var(--accent-green)' : '#B45309', backgroundColor: spot.locationType.includes('Inside') ? 'var(--accent-green-subtle)' : 'var(--uc-gold-light)', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
-                            {spot.locationType.includes('Inside') ? 'Campus Gate' : 'Outside Spot'}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>{spot.locationDetails}</div>
+                        <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>{spot.name}</span>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>{spot.locationDetails || spot.description}</div>
                       </div>
                     </label>
                   ))}

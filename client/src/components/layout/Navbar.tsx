@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Logo } from '../common/Logo';
 import { VerifiedBadge } from '../common/VerifiedBadge';
+import { UserAvatar } from '../common/UserAvatar';
 import { NotificationDropdown } from './NotificationDropdown';
 import { useAuth } from '../../context/AuthContext';
 import { useMarket } from '../../context/MarketContext';
@@ -34,13 +35,15 @@ interface NavbarProps {
   onNavigate: (view: string, param?: any) => void;
   onOpenChat: () => void;
   onOpenAuth: () => void;
+  onOpenVerification?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   currentView,
   onNavigate,
   onOpenChat,
-  onOpenAuth
+  onOpenAuth,
+  onOpenVerification
 }) => {
   const { currentUser, isAuthenticated, isAdmin, isSuperAdmin, logout } = useAuth();
   const { selectedCampus, setSelectedCampus, searchQuery, setSearchQuery, favorites } = useMarket();
@@ -531,10 +534,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }}
                 title={`Logged in as ${currentUser.name}`}
               >
-                <img
+                <UserAvatar
                   src={currentUser.avatar}
-                  alt={currentUser.name}
-                  style={{ width: '34px', height: '34px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--uc-blue, #002B7F)', flexShrink: 0 }}
+                  name={currentUser.name}
+                  size="sm"
+                  style={{ border: '2px solid var(--uc-blue, #002B7F)' }}
                 />
                 {currentUser.isVerified && (
                   <VerifiedBadge size="xs" variant="green" showTooltip={false} />
@@ -574,6 +578,60 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <div style={{ fontSize: '0.72rem', color: 'var(--text-muted, #64748B)', marginTop: '2px' }}>
                       {currentUser.campus} • ID: {currentUser.studentId}
                     </div>
+
+                    {!currentUser.isVerified && (
+                      (!currentUser.isVerified && (currentUser.verificationStatus === 'pending' || !!currentUser.idPhotoUrl)) ? (
+                        <div style={{ backgroundColor: 'rgba(0, 43, 127, 0.06)', border: '1px solid rgba(0, 43, 127, 0.15)', borderRadius: '8px', padding: '0.45rem 0.6rem', marginTop: '0.4rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--uc-blue)' }}>
+                            ⏳ Verification Pending
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsUserMenuOpen(false);
+                              onNavigate('profile');
+                            }}
+                            style={{
+                              fontSize: '0.68rem',
+                              fontWeight: 800,
+                              color: 'var(--uc-blue)',
+                              backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)',
+                              border: '1px solid var(--uc-blue-border, #BCD1F7)',
+                              borderRadius: '4px',
+                              padding: '2px 8px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Status
+                          </button>
+                        </div>
+                      ) : (
+                        <div style={{ backgroundColor: 'rgba(255, 199, 44, 0.15)', border: '1px solid rgba(229, 168, 0, 0.3)', borderRadius: '8px', padding: '0.45rem 0.6rem', marginTop: '0.4rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#B45309' }}>
+                            Unverified Account
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsUserMenuOpen(false);
+                              if (onOpenVerification) onOpenVerification();
+                            }}
+                            style={{
+                              fontSize: '0.68rem',
+                              fontWeight: 800,
+                              color: '#002B7F',
+                              backgroundColor: '#FFC72C',
+                              border: 'none',
+                              borderRadius: '4px',
+                              padding: '2px 8px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Verify Now
+                          </button>
+                        </div>
+                      )
+                    )}
                   </div>
 
                   {/* 1. Profile */}
@@ -588,13 +646,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <span>My Profile & Listings</span>
                   </button>
 
-                  {/* 2. Saved Items */}
+                  {/* 2. Saved Items (Hidden on large screens since desktop navbar has quick bookmark action, visible on mobile) */}
                   <button
                     onClick={() => {
                       setIsUserMenuOpen(false);
                       onNavigate('favorites');
                     }}
-                    className="dropdown-item"
+                    className="dropdown-item mobile-only"
                   >
                     <Bookmark size={15} color="#F59E0B" style={{ flexShrink: 0 }} />
                     <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>

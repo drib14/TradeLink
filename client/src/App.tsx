@@ -10,6 +10,8 @@ import { Footer } from './components/layout/Footer';
 import { MobileBottomNav } from './components/layout/MobileBottomNav';
 import { ChatDrawer } from './components/chat/ChatDrawer';
 import { AuthModal } from './components/auth/AuthModal';
+import { UnverifiedAccountModal } from './components/auth/UnverifiedAccountModal';
+import { StudentVerificationModal } from './components/verification/StudentVerificationModal';
 
 // Pages
 import { HomePage } from './pages/HomePage';
@@ -19,7 +21,6 @@ import { CreateListingPage } from './pages/CreateListingPage';
 import { SwapsPage } from './pages/SwapsPage';
 import { MeetupsPage } from './pages/MeetupsPage';
 import { ProfilePage } from './pages/ProfilePage';
-import { PricingAdvisorPage } from './pages/PricingAdvisorPage';
 import { WantedBoardPage } from './pages/WantedBoardPage';
 import { CampusMapPage } from './pages/CampusMapPage';
 import { HelpSafetyPage } from './pages/HelpSafetyPage';
@@ -33,32 +34,41 @@ import { TransactionHistoryPage } from './pages/TransactionHistoryPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { SuperAdminDashboard } from './pages/SuperAdminDashboard';
+import { encodeHashedId, decodeHashedId } from './utils/security';
 
-const pathToView = (path: string): { view: string; params: any } => {
-  const cleanPath = path.toLowerCase().replace(/^\/+|\/+$/g, '');
-  if (!cleanPath || cleanPath === 'home') return { view: 'home', params: {} };
-  if (cleanPath === 'marketplace' || cleanPath === 'market' || cleanPath === 'catalog') return { view: 'marketplace', params: {} };
-  if (cleanPath === 'create-listing' || cleanPath === 'post' || cleanPath === 'sell') return { view: 'create-listing', params: {} };
-  if (cleanPath === 'wanted' || cleanPath === 'requests' || cleanPath === 'pasabuy') return { view: 'wanted', params: {} };
-  if (cleanPath === 'swaps' || cleanPath === 'barter') return { view: 'swaps', params: {} };
-  if (cleanPath === 'meetups' || cleanPath === 'handshake') return { view: 'meetups', params: {} };
-  if (cleanPath === 'campus-map' || cleanPath === 'landmarks' || cleanPath === 'map') return { view: 'campus-map', params: {} };
-  if (cleanPath === 'profile') return { view: 'profile', params: {} };
-  if (cleanPath === 'price-advisor' || cleanPath === 'advisor') return { view: 'price-advisor', params: {} };
-  if (cleanPath === 'about') return { view: 'about', params: {} };
-  if (cleanPath === 'faq') return { view: 'faq', params: {} };
-  if (cleanPath === 'help-safety' || cleanPath === 'safety' || cleanPath === 'help') return { view: 'help-safety', params: {} };
-  if (cleanPath === 'terms' || cleanPath === 'guidelines' || cleanPath === 'privacy') return { view: 'terms', params: {} };
-  if (cleanPath === 'maintenance') return { view: 'maintenance', params: {} };
-  if (cleanPath === 'favorites' || cleanPath === 'saved') return { view: 'favorites', params: {} };
-  if (cleanPath === 'transactions' || cleanPath === 'history') return { view: 'transactions', params: {} };
-  if (cleanPath === 'settings' || cleanPath === 'preferences') return { view: 'settings', params: {} };
-  if (cleanPath === 'admin' || cleanPath === 'moderation') return { view: 'admin', params: {} };
-  if (cleanPath === 'superadmin' || cleanPath === 'super-admin') return { view: 'superadmin', params: {} };
+const pathToView = (path: string, search: string = window.location.search): { view: string; params: any } => {
+  const cleanPath = path.replace(/^\/+|\/+$/g, '');
+  const searchParams = new URLSearchParams(search);
+
+  if (cleanPath.startsWith('profile/') || cleanPath === 'profile') {
+    const parts = cleanPath.split('/');
+    const rawUserId = parts[1] || searchParams.get('userId') || searchParams.get('id') || undefined;
+    const userId = rawUserId ? decodeHashedId(rawUserId) : undefined;
+    return { view: 'profile', params: { userId } };
+  }
   if (cleanPath.startsWith('item/')) {
-    const id = cleanPath.split('/')[1];
+    const id = cleanPath.split('/')[1] || searchParams.get('id') || undefined;
     return { view: 'item-detail', params: { id } };
   }
+
+  const cleanLower = cleanPath.toLowerCase();
+  if (!cleanLower || cleanLower === 'home') return { view: 'home', params: {} };
+  if (cleanLower === 'marketplace' || cleanLower === 'market' || cleanLower === 'catalog') return { view: 'marketplace', params: {} };
+  if (cleanLower === 'create-listing' || cleanLower === 'post' || cleanLower === 'sell') return { view: 'create-listing', params: {} };
+  if (cleanLower === 'wanted' || cleanLower === 'requests' || cleanLower === 'pasabuy') return { view: 'wanted', params: {} };
+  if (cleanLower === 'swaps' || cleanLower === 'barter') return { view: 'swaps', params: {} };
+  if (cleanLower === 'meetups' || cleanLower === 'handshake') return { view: 'meetups', params: {} };
+  if (cleanLower === 'campus-map' || cleanLower === 'landmarks' || cleanLower === 'map') return { view: 'campus-map', params: {} };
+  if (cleanLower === 'about') return { view: 'about', params: {} };
+  if (cleanLower === 'faq') return { view: 'faq', params: {} };
+  if (cleanLower === 'help-safety' || cleanLower === 'safety' || cleanLower === 'help') return { view: 'help-safety', params: {} };
+  if (cleanLower === 'terms' || cleanLower === 'guidelines' || cleanLower === 'privacy') return { view: 'terms', params: {} };
+  if (cleanLower === 'maintenance') return { view: 'maintenance', params: {} };
+  if (cleanLower === 'favorites' || cleanLower === 'saved') return { view: 'favorites', params: {} };
+  if (cleanLower === 'transactions' || cleanLower === 'history') return { view: 'transactions', params: {} };
+  if (cleanLower === 'settings' || cleanLower === 'preferences') return { view: 'settings', params: {} };
+  if (cleanLower === 'admin' || cleanLower === 'moderation') return { view: 'admin', params: {} };
+  if (cleanLower === 'superadmin' || cleanLower === 'super-admin') return { view: 'superadmin', params: {} };
   return { view: 'not-found', params: {} };
 };
 
@@ -67,10 +77,12 @@ export const MainApp: React.FC = () => {
   const [viewParams, setViewParams] = useState<any>({});
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isUnverifiedModalOpen, setIsUnverifiedModalOpen] = useState(false);
+  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
 
   useEffect(() => {
     const handlePopState = () => {
-      const { view, params } = pathToView(window.location.pathname);
+      const { view, params } = pathToView(window.location.pathname, window.location.search);
       setCurrentView(view);
       setViewParams(params);
     };
@@ -87,6 +99,7 @@ export const MainApp: React.FC = () => {
     let path = `/${view}`;
     if (view === 'home') path = '/';
     if (view === 'item-detail' && params.id) path = `/item/${params.id}`;
+    if (view === 'profile' && params.userId) path = `/profile/${encodeHashedId(params.userId)}`;
 
     window.history.pushState({}, '', path);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -117,9 +130,12 @@ export const MainApp: React.FC = () => {
       case 'campus-map':
         return <CampusMapPage onNavigate={handleNavigate} />;
       case 'profile':
-        return <ProfilePage userId={viewParams.userId} onNavigate={handleNavigate} />;
-      case 'price-advisor':
-        return <PricingAdvisorPage onNavigate={handleNavigate} />;
+        return (
+          <ProfilePage
+            userId={viewParams.userId}
+            onNavigate={handleNavigate}
+          />
+        );
       case 'about':
         return <AboutPage onNavigate={handleNavigate} />;
       case 'faq':
@@ -154,6 +170,7 @@ export const MainApp: React.FC = () => {
         onNavigate={handleNavigate}
         onOpenChat={() => setIsChatOpen(true)}
         onOpenAuth={() => setIsAuthModalOpen(true)}
+        onOpenVerification={() => setIsVerificationModalOpen(true)}
       />
 
       {/* 2. Main Page Content View */}
@@ -173,9 +190,29 @@ export const MainApp: React.FC = () => {
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
+        onRegisterSuccess={() => {
+          setIsAuthModalOpen(false);
+          setIsUnverifiedModalOpen(true);
+        }}
       />
 
-      {/* 6. Mobile Bottom Navigation Bar */}
+      {/* 6. Unverified Student Account Explanation Modal */}
+      <UnverifiedAccountModal
+        isOpen={isUnverifiedModalOpen}
+        onClose={() => setIsUnverifiedModalOpen(false)}
+        onStartVerification={() => {
+          setIsUnverifiedModalOpen(false);
+          setIsVerificationModalOpen(true);
+        }}
+      />
+
+      {/* 7. Two-Step Student Verification Modal (ID + Live Selfie) */}
+      <StudentVerificationModal
+        isOpen={isVerificationModalOpen}
+        onClose={() => setIsVerificationModalOpen(false)}
+      />
+
+      {/* 8. Mobile Bottom Navigation Bar */}
       <MobileBottomNav
         currentView={currentView}
         onNavigate={handleNavigate}

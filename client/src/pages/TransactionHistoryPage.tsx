@@ -136,9 +136,9 @@ export const TransactionHistoryPage: React.FC<TransactionHistoryPageProps> = ({ 
               className={`segmented-tab ${filter === f ? 'active' : ''}`}
             >
               {f === 'all' && 'All'}
-              {f === 'bought' && '🛒 Bought'}
-              {f === 'sold' && '💰 Sold'}
-              {f === 'swapped' && '🔄 Swapped'}
+              {f === 'bought' && 'Bought'}
+              {f === 'sold' && 'Sold'}
+              {f === 'swapped' && 'Swapped'}
             </button>
           ))}
         </div>

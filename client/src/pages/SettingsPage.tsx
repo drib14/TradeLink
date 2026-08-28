@@ -1,23 +1,23 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/common/Toast';
+import { UserAvatar } from '../components/common/UserAvatar';
+import { College } from '../types';
 import {
   Settings as SettingsIcon,
   User,
   Bell,
   Shield,
-  Eye,
-  EyeOff,
-  Lock,
-  Mail,
   Trash2,
   AlertTriangle,
-  ChevronRight,
   Save,
   ToggleLeft,
   ToggleRight,
-  MapPin,
-  LogOut
+  LogOut,
+  Sparkles,
+  School,
+  IdCard,
+  Camera
 } from 'lucide-react';
 
 interface SettingsPageProps {
@@ -29,11 +29,14 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
   const { showToast } = useToast();
 
   const [activeSection, setActiveSection] = useState<'account' | 'notifications' | 'privacy' | 'data'>('account');
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   // Account settings
   const [nameInput, setNameInput] = useState(currentUser?.name || '');
-  const [emailInput, setEmailInput] = useState(currentUser?.email || '');
+  const [bioInput, setBioInput] = useState(currentUser?.bio || '');
+  const [avatarInput, setAvatarInput] = useState(currentUser?.avatar || '');
+  const [collegeInput, setCollegeInput] = useState<College>(currentUser?.college || 'CCS');
+  const [yearLevelInput, setYearLevelInput] = useState(currentUser?.yearLevel || '2nd Year College');
 
   // Notification prefs
   const [notifSwaps, setNotifSwaps] = useState(true);
@@ -50,61 +53,102 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
     if (currentUser) {
-      updateProfile({ name: nameInput.trim(), email: emailInput.trim() });
-      showToast('Settings Saved', 'Your account details have been updated.', 'success');
+      updateProfile({
+        name: nameInput.trim(),
+        bio: bioInput.trim(),
+        avatar: avatarInput.trim(),
+        college: collegeInput,
+        yearLevel: yearLevelInput
+      });
+      showToast('Settings Saved', 'Your student account details have been updated.', 'success');
     }
   };
 
   const handleLogout = () => {
     logout();
-    showToast('Logged Out', 'You have been logged out.', 'info');
+    showToast('Logged Out', 'You have been logged out of your session.', 'info');
     onNavigate('home');
   };
 
   const sections = [
-    { id: 'account' as const, label: 'Account', icon: User },
+    { id: 'account' as const, label: 'Account Profile', icon: User },
     { id: 'notifications' as const, label: 'Notifications', icon: Bell },
     { id: 'privacy' as const, label: 'Privacy', icon: Shield },
-    { id: 'data' as const, label: 'Data & Storage', icon: Trash2 }
+    { id: 'data' as const, label: 'Session & Data', icon: Trash2 }
   ];
 
-  const ToggleSwitch = ({ on, onToggle, label }: { on: boolean; onToggle: () => void; label: string }) => (
+  const ToggleSwitch = ({ on, onToggle, label, description }: { on: boolean; onToggle: () => void; label: string; description?: string }) => (
     <div
-      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.85rem 0', borderBottom: '1px solid var(--border-subtle)' }}
+      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.85rem 0', borderBottom: '1px solid var(--border-subtle, #E2E8F0)' }}
     >
-      <span style={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--text-primary)' }}>{label}</span>
+      <div>
+        <div style={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--text-primary, #0F172A)' }}>{label}</div>
+        {description && <div style={{ fontSize: '0.74rem', color: 'var(--text-muted, #64748B)', marginTop: '2px' }}>{description}</div>}
+      </div>
       <button
+        type="button"
         onClick={onToggle}
-        style={{ display: 'flex', alignItems: 'center', color: on ? 'var(--accent-green)' : 'var(--text-subtle)', cursor: 'pointer', background: 'none', border: 'none' }}
+        style={{ display: 'flex', alignItems: 'center', color: on ? 'var(--accent-green, #10B981)' : 'var(--text-muted, #94A3B8)', cursor: 'pointer', background: 'none', border: 'none', padding: '4px' }}
+        aria-label={`Toggle ${label}`}
       >
-        {on ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
+        {on ? <ToggleRight size={30} /> : <ToggleLeft size={30} />}
       </button>
     </div>
   );
 
   return (
-    <div className="container page-enter" style={{ padding: '2rem 1.5rem 5rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div className="container page-enter" style={{ padding: '2rem 1.5rem 5rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '1000px' }}>
       {/* Header */}
       <div className="page-header">
         <div>
           <div className="page-header-eyebrow">
-            <SettingsIcon size={14} style={{ flexShrink: 0 }} /> Preferences
+            <SettingsIcon size={14} style={{ flexShrink: 0 }} /> Student Preferences
           </div>
           <h1 className="page-header-title" style={{ marginTop: '0.2rem' }}>
-            Settings
+            Account Settings
           </h1>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: '1.5rem' }}>
-        {/* Sidebar */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.5rem', alignItems: 'start' }}>
+        {/* Sidebar Nav */}
         <div className="clean-card" style={{ padding: '0.75rem', height: 'fit-content' }}>
-          <nav className="sidebar-nav">
+          {/* User Mini Summary */}
+          {currentUser && (
+            <div style={{ padding: '0.75rem', borderBottom: '1px solid var(--border-subtle, #E2E8F0)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <UserAvatar src={currentUser.avatar} name={currentUser.name} size="md" />
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-primary, #0F172A)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {currentUser.name}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted, #64748B)' }}>
+                  {currentUser.campus} • ID: {currentUser.studentId}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <nav className="sidebar-nav" style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
             {sections.map((s) => (
               <button
                 key={s.id}
                 onClick={() => setActiveSection(s.id)}
                 className={`sidebar-nav-item ${activeSection === s.id ? 'active' : ''}`}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.6rem',
+                  padding: '0.65rem 0.85rem',
+                  borderRadius: '8px',
+                  fontSize: '0.84rem',
+                  fontWeight: activeSection === s.id ? 800 : 600,
+                  backgroundColor: activeSection === s.id ? 'var(--uc-blue-subtle, #EBF1FC)' : 'transparent',
+                  color: activeSection === s.id ? 'var(--uc-blue, #002B7F)' : 'var(--text-secondary, #475569)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  width: '100%'
+                }}
               >
                 <s.icon size={16} />
                 <span>{s.label}</span>
@@ -112,24 +156,80 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
             ))}
           </nav>
 
-          <hr className="divider" />
+          <hr className="divider" style={{ margin: '0.75rem 0', border: 'none', borderTop: '1px solid var(--border-subtle, #E2E8F0)' }} />
 
-          <button onClick={handleLogout} className="sidebar-nav-item" style={{ color: 'var(--accent-red)' }}>
+          <button
+            onClick={handleLogout}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.6rem',
+              padding: '0.65rem 0.85rem',
+              borderRadius: '8px',
+              fontSize: '0.84rem',
+              fontWeight: 700,
+              color: 'var(--accent-red, #DC2626)',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              width: '100%',
+              textAlign: 'left'
+            }}
+          >
             <LogOut size={16} />
             <span>Sign Out</span>
           </button>
         </div>
 
         {/* Content Area */}
-        <div className="clean-card" style={{ padding: '1.75rem' }}>
-          {/* ACCOUNT SETTINGS */}
+        <div className="clean-card" style={{ padding: '1.75rem', minWidth: 0 }}>
+          {/* 1. ACCOUNT PROFILE */}
           {activeSection === 'account' && (
             <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Account Profile</h3>
-              <p className="form-helper" style={{ marginTop: '-0.75rem' }}>Manage your public display name and campus verification email.</p>
+              <div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary, #0F172A)' }}>Student Account Profile</h3>
+                <p className="form-helper" style={{ marginTop: '0.2rem', fontSize: '0.8rem', color: 'var(--text-muted, #64748B)' }}>
+                  Manage your public display name, biography, and academic department.
+                </p>
+              </div>
+
+              {/* Profile Avatar Card */}
+              <div style={{ padding: '1rem', backgroundColor: 'var(--bg-subtle, #F8FAFC)', borderRadius: '12px', border: '1px solid var(--border-subtle, #E2E8F0)', display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
+                <UserAvatar src={avatarInput} name={nameInput || currentUser?.name || 'Student'} size="lg" />
+                <div style={{ flex: 1, minWidth: '200px' }}>
+                  <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)' }}>Profile Photo & Initials</div>
+                  <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    {avatarInput ? 'Custom image provided' : 'Defaulting to your name initials on UC Blue/Gold branding'}
+                  </div>
+                  {avatarInput ? (
+                    <button
+                      type="button"
+                      onClick={() => setAvatarInput('')}
+                      style={{
+                        marginTop: '0.4rem',
+                        fontSize: '0.74rem',
+                        color: 'var(--accent-red, #DC2626)',
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        cursor: 'pointer',
+                        fontWeight: 700
+                      }}
+                    >
+                      Clear Photo & Use Name Initials
+                    </button>
+                  ) : (
+                    <div style={{ marginTop: '0.35rem', fontSize: '0.72rem', color: 'var(--accent-green, #059669)', fontWeight: 700 }}>
+                      ✓ Dynamic Name Initials Active
+                    </div>
+                  )}
+                </div>
+              </div>
 
               <div>
-                <label className="form-label">Full Name</label>
+                <label className="form-label" style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.3rem' }}>
+                  Full Name
+                </label>
                 <input
                   type="text"
                   value={nameInput}
@@ -140,88 +240,163 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
               </div>
 
               <div>
-                <label className="form-label">Email Address</label>
-                <input
-                  type="email"
-                  value={emailInput}
-                  onChange={(e) => setEmailInput(e.target.value)}
+                <label className="form-label" style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.3rem' }}>
+                  Student Bio
+                </label>
+                <textarea
+                  value={bioInput}
+                  onChange={(e) => setBioInput(e.target.value)}
+                  rows={3}
+                  placeholder="Tell campus peers what books, gear, or supplies you trade..."
                   className="clean-input"
-                  required
                 />
               </div>
 
               <div>
-                <label className="form-label">Campus</label>
+                <label className="form-label" style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.3rem' }}>
+                  Profile Photo URL (Optional)
+                </label>
+                <input
+                  type="url"
+                  value={avatarInput}
+                  onChange={(e) => setAvatarInput(e.target.value)}
+                  placeholder="https://... (Leave blank to use your name initials)"
+                  className="clean-input"
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.85rem' }}>
+                <div>
+                  <label className="form-label" style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.3rem' }}>
+                    Department / College
+                  </label>
+                  <select
+                    value={collegeInput}
+                    onChange={(e: any) => setCollegeInput(e.target.value)}
+                    className="clean-input"
+                  >
+                    <option value="CCS">CCS (Computer Studies)</option>
+                    <option value="CBA">CBA (Business & Accountancy)</option>
+                    <option value="Engineering">Engineering</option>
+                    <option value="Nursing">Nursing</option>
+                    <option value="Maritime">Maritime</option>
+                    <option value="Criminology">Criminology</option>
+                    <option value="Arts & Sciences">Arts & Sciences</option>
+                    <option value="Education">Education</option>
+                    <option value="Hospitality & Tourism">Hospitality & Tourism</option>
+                    <option value="Medicine">Medicine</option>
+                    <option value="Law">Law</option>
+                    <option value="Senior High (STEM)">Senior High (STEM)</option>
+                    <option value="Senior High (ABM)">Senior High (ABM)</option>
+                    <option value="Senior High (HUMSS)">Senior High (HUMSS)</option>
+                    <option value="Senior High (TVL/GAS)">Senior High (TVL/GAS)</option>
+                    <option value="Junior High School">Junior High School</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="form-label" style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.3rem' }}>
+                    Year Level
+                  </label>
+                  <select
+                    value={yearLevelInput}
+                    onChange={(e) => setYearLevelInput(e.target.value)}
+                    className="clean-input"
+                  >
+                    <option value="1st Year College">1st Year College</option>
+                    <option value="2nd Year College">2nd Year College</option>
+                    <option value="3rd Year College">3rd Year College</option>
+                    <option value="4th Year College">4th Year College</option>
+                    <option value="5th Year College">5th Year College</option>
+                    <option value="Grade 11 (Senior High)">Grade 11 (Senior High)</option>
+                    <option value="Grade 12 (Senior High)">Grade 12 (Senior High)</option>
+                    <option value="Junior High">Junior High</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="form-label" style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.3rem' }}>
+                  Enrolled UC Campus
+                </label>
                 <input
                   type="text"
                   value={currentUser?.campus || 'UC Main'}
                   disabled
                   className="clean-input disabled"
+                  style={{ opacity: 0.8, backgroundColor: 'var(--bg-subtle, #F1F5F9)' }}
                 />
-                <span className="form-helper">Campus affiliation is tied to your verified student record.</span>
+                <span style={{ fontSize: '0.73rem', color: 'var(--text-muted)', marginTop: '3px', display: 'block' }}>
+                  Campus affiliation is verified with your official University of Cebu student ID number.
+                </span>
               </div>
 
-              <button type="submit" className="btn-primary" style={{ width: 'fit-content', marginTop: '0.5rem' }}>
-                <Save size={14} /> Save Changes
+              <button type="submit" className="btn-primary" style={{ width: 'fit-content', marginTop: '0.5rem', padding: '0.6rem 1.35rem' }}>
+                <Save size={15} /> Save Changes
               </button>
             </form>
           )}
 
-          {/* NOTIFICATIONS */}
+          {/* 2. NOTIFICATIONS */}
           {activeSection === 'notifications' && (
             <div>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Notification Preferences</h3>
-              <p className="form-helper" style={{ marginBottom: '1rem' }}>Choose what alerts you receive via in-app notifications.</p>
-              <ToggleSwitch on={notifSwaps} onToggle={() => setNotifSwaps(!notifSwaps)} label="Swap Proposals & Offers" />
-              <ToggleSwitch on={notifMeetups} onToggle={() => setNotifMeetups(!notifMeetups)} label="Meetup Schedule Reminders" />
-              <ToggleSwitch on={notifPriceDrops} onToggle={() => setNotifPriceDrops(!notifPriceDrops)} label="Saved Item Price Drops" />
-              <ToggleSwitch on={notifWanted} onToggle={() => setNotifWanted(!notifWanted)} label="Wanted Board Item Matches" />
-              <ToggleSwitch on={notifSystem} onToggle={() => setNotifSystem(!notifSystem)} label="Campus Safety & System Alerts" />
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Notification Preferences</h3>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Choose what alerts you receive via in-app notifications.</p>
+              <ToggleSwitch on={notifSwaps} onToggle={() => setNotifSwaps(!notifSwaps)} label="Swap Proposals & Offers" description="Instant notifications when peers offer barter trades for your items" />
+              <ToggleSwitch on={notifMeetups} onToggle={() => setNotifMeetups(!notifMeetups)} label="Meetup Schedule Reminders" description="Alerts for scheduled campus handshakes and 4-digit verification codes" />
+              <ToggleSwitch on={notifPriceDrops} onToggle={() => setNotifPriceDrops(!notifPriceDrops)} label="Saved Item Price Drops" description="Get notified when bookmarked items have their price reduced" />
+              <ToggleSwitch on={notifWanted} onToggle={() => setNotifWanted(!notifWanted)} label="Wanted Board Item Matches" description="Alerts when items matching your requested wanted items are posted" />
+              <ToggleSwitch on={notifSystem} onToggle={() => setNotifSystem(!notifSystem)} label="Campus Safety & System Alerts" description="Official University of Cebu safety and platform announcements" />
             </div>
           )}
 
-          {/* PRIVACY */}
+          {/* 3. PRIVACY */}
           {activeSection === 'privacy' && (
             <div>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Privacy Settings</h3>
-              <p className="form-helper" style={{ marginBottom: '1rem' }}>Control what other students can see about you.</p>
-              <ToggleSwitch on={profilePublic} onToggle={() => setProfilePublic(!profilePublic)} label="Public Profile" />
-              <ToggleSwitch on={showCampus} onToggle={() => setShowCampus(!showCampus)} label="Show Campus on Listings" />
-              <ToggleSwitch on={showOnline} onToggle={() => setShowOnline(!showOnline)} label="Show Online Status" />
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Privacy Settings</h3>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Control what other UC students can see on your profile and listings.</p>
+              <ToggleSwitch on={profilePublic} onToggle={() => setProfilePublic(!profilePublic)} label="Public Student Profile" description="Allow classmates to view your active items and campus trade reviews" />
+              <ToggleSwitch on={showCampus} onToggle={() => setShowCampus(!showCampus)} label="Show Campus Badge on Listings" description="Display your UC campus location badge on item cards" />
+              <ToggleSwitch on={showOnline} onToggle={() => setShowOnline(!showOnline)} label="Show Active Indicator" description="Display online green dot when you are active on TradeLink" />
             </div>
           )}
 
-          {/* DATA & STORAGE */}
+          {/* 4. SESSION & DATA */}
           {activeSection === 'data' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>Data & Storage</h3>
-              <p className="form-helper">Manage your local data and cache.</p>
-
-              <div className="card-highlight" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <AlertTriangle size={18} color="var(--uc-blue)" />
-                <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                  TradeLink stores all data locally in your browser. Clearing data will reset the entire app to its default state.
+              <div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>Session & Cloud Data</h3>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                  Manage your active login session and platform preferences.
                 </p>
               </div>
 
-              {!showDeleteConfirm ? (
+              <div style={{ padding: '1rem', backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', borderRadius: '10px', border: '1px solid var(--uc-blue-border, #BCD1F7)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <AlertTriangle size={20} color="var(--uc-blue, #002B7F)" style={{ flexShrink: 0 }} />
+                <p style={{ fontSize: '0.82rem', color: 'var(--uc-blue, #002B7F)', lineHeight: 1.5, margin: 0 }}>
+                  All your listings, chats, and trade histories are securely saved in the cloud database. Signing out clears your active browser session token safely.
+                </p>
+              </div>
+
+              {!showLogoutConfirm ? (
                 <button
-                  onClick={() => setShowDeleteConfirm(true)}
+                  type="button"
+                  onClick={() => setShowLogoutConfirm(true)}
                   className="btn-danger"
-                  style={{ width: 'fit-content' }}
+                  style={{ width: 'fit-content', padding: '0.6rem 1.25rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
                 >
-                  <Trash2 size={14} /> Reset All Data
+                  <LogOut size={15} /> Sign Out of All Sessions
                 </button>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1rem', border: '2px solid var(--accent-red)', borderRadius: 'var(--radius-lg)', backgroundColor: 'var(--accent-red-subtle)' }}>
-                  <p style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--accent-red)' }}>
-                    ⚠️ Are you sure? This will delete all listings, conversations, and user data.
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1rem', border: '1.5px solid var(--accent-red, #DC2626)', borderRadius: '12px', backgroundColor: 'var(--accent-red-subtle, #FEF2F2)' }}>
+                  <p style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--accent-red, #DC2626)', margin: 0 }}>
+                    Are you sure you want to sign out? You will need your UC credentials to log back in.
                   </p>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button onClick={resetAllData} className="btn-danger">
-                      Yes, Reset Everything
+                    <button type="button" onClick={handleLogout} className="btn-danger" style={{ padding: '0.5rem 1rem' }}>
+                      Yes, Sign Out
                     </button>
-                    <button onClick={() => setShowDeleteConfirm(false)} className="btn-secondary">
+                    <button type="button" onClick={() => setShowLogoutConfirm(false)} className="btn-secondary" style={{ padding: '0.5rem 1rem' }}>
                       Cancel
                     </button>
                   </div>

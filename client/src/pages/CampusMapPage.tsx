@@ -1,18 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { CAMPUS_DETAILS, CAMPUS_MEETUP_SPOTS } from '../data/campusLocations';
 import { CAMPUS_SLIDES } from '../components/home/CampusCarouselBanner';
+import { useMarket } from '../context/MarketContext';
+import { useAuth } from '../context/AuthContext';
 import { Campus } from '../types';
 import {
   MapPin,
-  ShieldCheck,
   Clock,
   Navigation,
   Phone,
   Building2,
-  CheckCircle2,
   ChevronLeft,
   Store,
-  Mail
+  Mail,
+  Flame,
+  Sparkles,
+  TrendingUp,
+  ShieldCheck
 } from 'lucide-react';
 
 interface CampusMapPageProps {
@@ -20,7 +24,11 @@ interface CampusMapPageProps {
 }
 
 export const CampusMapPage: React.FC<CampusMapPageProps> = ({ onNavigate }) => {
-  const [selectedCampus, setSelectedCampus] = useState<Campus>('UC Main');
+  const { currentUser } = useAuth();
+  const { listings } = useMarket();
+
+  const userCampus: Campus = currentUser?.campus || 'UC Main';
+  const [selectedCampus, setSelectedCampus] = useState<Campus>(userCampus);
 
   const campusKeys: Campus[] = [
     'UC Main',
@@ -33,11 +41,50 @@ export const CampusMapPage: React.FC<CampusMapPageProps> = ({ onNavigate }) => {
     'UC Medical Center'
   ];
 
+  // Meeting spots dynamically gathered for the currently selected campus
+  const campusSpots = useMemo(() => {
+    const spotMap: Record<string, { name: string; campus: Campus; count: number; description?: string; bestHours?: string; isUserDefined?: boolean }> = {};
+
+    // 1. Designated campus spots
+    CAMPUS_MEETUP_SPOTS.filter((s) => s.campus === selectedCampus).forEach((spot) => {
+      spotMap[spot.name] = {
+        name: spot.name,
+        campus: selectedCampus,
+        count: 0,
+        description: spot.description,
+        bestHours: spot.bestHours,
+        isUserDefined: false
+      };
+    });
+
+    // 2. User-defined meeting places and actual student listings in selected campus
+    listings
+      .filter((item) => item.sellerCampus === selectedCampus)
+      .forEach((item) => {
+        const spotName = item.customMeetupSpot || (item.preferredMeetupSpots && item.preferredMeetupSpots[0]);
+        if (spotName) {
+          if (spotMap[spotName]) {
+            spotMap[spotName].count += 1;
+          } else {
+            spotMap[spotName] = {
+              name: spotName,
+              campus: selectedCampus,
+              count: 1,
+              description: `Student-defined meeting place in ${selectedCampus}. Created by student seller.`,
+              bestHours: '8:00 AM - 5:30 PM',
+              isUserDefined: true
+            };
+          }
+        }
+      });
+
+    return Object.values(spotMap).sort((a, b) => b.count - a.count);
+  }, [listings, selectedCampus]);
+
   const currentDetails = CAMPUS_DETAILS[selectedCampus];
-  const spots = CAMPUS_MEETUP_SPOTS.filter((s) => s.campus === selectedCampus);
 
   return (
-    <div className="container page-enter" style={{ padding: '2rem 1.5rem 5rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+    <div className="container page-enter" style={{ padding: '2rem 1.25rem 5rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
       {/* Header */}
       <div>
         <button
@@ -47,19 +94,22 @@ export const CampusMapPage: React.FC<CampusMapPageProps> = ({ onNavigate }) => {
             padding: '0.35rem 0.65rem',
             fontSize: '0.82rem',
             marginBottom: '0.5rem',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.3rem'
           }}
         >
           <ChevronLeft size={16} /> Back to Home
         </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--uc-blue, #002B7F)', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-          <Navigation size={15} /> Campus & Outside Meetup Directory
+          <Navigation size={15} /> Campus Meeting Directory
         </div>
         <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--text-primary, #002B7F)', marginTop: '0.25rem', fontFamily: 'var(--font-display)' }}>
-          Meetup Spots & Security Directory
+          Campus Meetup Landmarks
         </h1>
-        <p style={{ fontSize: '0.88rem', color: 'var(--text-muted, #64748B)' }}>
-          Explore guarded security booths inside campus or high-traffic public spots outside campus (malls, fastfood, cafes) across all 8 University of Cebu hubs.
+        <p style={{ fontSize: '0.88rem', color: 'var(--text-muted, #64748B)', maxWidth: '750px' }}>
+          Explore designated and student-defined meeting spots for safe item exchanges, plus guard desk hotlines across all 8 University of Cebu campuses.
         </p>
       </div>
 
@@ -104,7 +154,7 @@ export const CampusMapPage: React.FC<CampusMapPageProps> = ({ onNavigate }) => {
           padding: '1.75rem'
         }}
       >
-        {/* Left: Campus Info, Contacts & Outside Hubs */}
+        {/* Left: Campus Info, Contacts & Hubs */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {/* Campus Photo Header */}
           {(() => {
@@ -188,17 +238,17 @@ export const CampusMapPage: React.FC<CampusMapPageProps> = ({ onNavigate }) => {
               <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                 <Mail size={12} /> Email: {currentDetails.email}
               </div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--accent-green)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+              <div style={{ fontSize: '0.72rem', color: 'var(--accent-green, #059669)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                 <Clock size={11} /> Operating Hours: {currentDetails.operatingHours}
               </div>
             </div>
           )}
 
-          {/* Popular Outside Spots */}
+          {/* Popular Student Hubs */}
           {currentDetails?.outsideHubs && (
             <div style={{ backgroundColor: 'var(--uc-gold-light, #FFFBEB)', padding: '0.85rem', borderRadius: '10px', border: '1px solid var(--uc-gold-border, #FDE68A)' }}>
               <div style={{ fontWeight: 800, color: '#B45309', fontSize: '0.82rem', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                <Store size={14} /> Popular Outside Campus Spots:
+                <Store size={14} /> Popular Nearby Meeting Hubs:
               </div>
               <ul style={{ paddingLeft: '1.1rem', margin: 0, fontSize: '0.78rem', color: '#78350F', lineHeight: 1.5 }}>
                 {currentDetails.outsideHubs.map((hub, i) => (
@@ -231,16 +281,18 @@ export const CampusMapPage: React.FC<CampusMapPageProps> = ({ onNavigate }) => {
           </div>
         </div>
 
-        {/* Right: Designated Meetup Landmarks (Inside & Outside) */}
+        {/* Right: Meeting Places in [selectedCampus] */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-          <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <ShieldCheck size={18} color="var(--accent-green)" /> Inside & Outside Meetup Options ({spots.length})
-          </h3>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <MapPin size={18} color="var(--uc-blue)" /> Meeting Places in {selectedCampus} ({campusSpots.length})
+            </h3>
+          </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {spots.map((spot) => (
+            {campusSpots.map((spot, index) => (
               <div
-                key={spot.id}
+                key={spot.name}
                 style={{
                   backgroundColor: 'var(--bg-subtle)',
                   borderRadius: '10px',
@@ -251,27 +303,67 @@ export const CampusMapPage: React.FC<CampusMapPageProps> = ({ onNavigate }) => {
                   gap: '0.35rem'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--uc-blue)' }}>{spot.name}</span>
-                  <span
-                    style={{
-                      backgroundColor: spot.locationType.includes('Inside') ? 'var(--accent-green-subtle)' : 'var(--uc-gold-light)',
-                      color: spot.locationType.includes('Inside') ? 'var(--accent-green)' : '#B45309',
-                      fontSize: '0.68rem',
-                      fontWeight: 700,
-                      padding: '0.15rem 0.45rem',
-                      borderRadius: '4px',
-                      border: spot.locationType.includes('Inside') ? '1px solid var(--accent-green)' : '1px solid var(--uc-gold-border)'
-                    }}
-                  >
-                    {spot.locationType.includes('Inside') ? 'Campus Gate' : 'Outside Spot'}
-                  </span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.4rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                    {spot.count >= 1 && index < 5 && (
+                      <span
+                        style={{
+                          backgroundColor: index === 0 ? 'var(--uc-gold, #FFC72C)' : '#E2E8F0',
+                          color: index === 0 ? '#002B7F' : '#334155',
+                          fontSize: '0.68rem',
+                          fontWeight: 900,
+                          padding: '0.1rem 0.4rem',
+                          borderRadius: '4px'
+                        }}
+                      >
+                        #{index + 1} Top Spot
+                      </span>
+                    )}
+                    <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--uc-blue)' }}>{spot.name}</span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    {spot.isUserDefined && (
+                      <span
+                        style={{
+                          backgroundColor: 'var(--uc-blue-subtle)',
+                          color: 'var(--uc-blue)',
+                          fontSize: '0.68rem',
+                          fontWeight: 700,
+                          padding: '0.15rem 0.45rem',
+                          borderRadius: '4px',
+                          border: '1px solid var(--uc-blue-border)'
+                        }}
+                      >
+                        Student Defined
+                      </span>
+                    )}
+
+                    {/* Only show the number of meetups if it is >= 1, otherwise hide completely */}
+                    {spot.count >= 1 && (
+                      <span
+                        style={{
+                          backgroundColor: 'rgba(5, 150, 105, 0.1)',
+                          color: 'var(--accent-green, #059669)',
+                          fontSize: '0.68rem',
+                          fontWeight: 800,
+                          padding: '0.15rem 0.5rem',
+                          borderRadius: '4px',
+                          border: '1px solid rgba(5, 150, 105, 0.25)'
+                        }}
+                      >
+                        {spot.count} {spot.count === 1 ? 'meetup' : 'meetups'}
+                      </span>
+                    )}
+                  </div>
                 </div>
+
                 <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.45 }}>
                   {spot.description}
                 </p>
+
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                  <Clock size={12} color="var(--uc-blue)" /> Best Hours: {spot.bestHours}
+                  <Clock size={12} color="var(--uc-blue)" /> Recommended Hours: {spot.bestHours}
                 </div>
               </div>
             ))}

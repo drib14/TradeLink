@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useChat } from '../../context/ChatContext';
 import { useMarket } from '../../context/MarketContext';
 import { VerifiedBadge } from '../common/VerifiedBadge';
+import { UserAvatar } from '../common/UserAvatar';
 import { MeetupSchedulerModal } from '../marketplace/MeetupSchedulerModal';
 import {
   X,
@@ -130,10 +131,10 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose, onNavig
                       transition: 'all 0.15s ease'
                     }}
                   >
-                    <img
+                    <UserAvatar
                       src={conv.otherParticipant.avatar}
-                      alt={conv.otherParticipant.name}
-                      style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }}
+                      name={conv.otherParticipant.name}
+                      size="sm"
                     />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -174,10 +175,10 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose, onNavig
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <img
+                  <UserAvatar
                     src={activeConversation.otherParticipant.avatar}
-                    alt={activeConversation.otherParticipant.name}
-                    style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }}
+                    name={activeConversation.otherParticipant.name}
+                    size="sm"
                   />
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>

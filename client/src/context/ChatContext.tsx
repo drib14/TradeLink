@@ -1,8 +1,7 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { Conversation, Message, SwapOffer, MeetupTransaction, Listing, Campus, TradeMode } from '../types';
-import { SEED_CONVERSATIONS, SEED_SWAPS, SEED_MEETUPS } from '../data/seedData';
-import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useAuth } from './AuthContext';
+import { chatService } from '../services/chat.service';
 
 interface ChatContextType {
   conversations: Conversation[];
@@ -11,9 +10,10 @@ interface ChatContextType {
   swaps: SwapOffer[];
   meetups: MeetupTransaction[];
   unreadTotal: number;
+  isLoading: boolean;
   setActiveConversationId: (id: string | null) => void;
   openChatWithSeller: (listing: Listing) => void;
-  sendMessage: (text: string, isSystem?: boolean, swapOfferId?: string) => void;
+  sendMessage: (text: string, isSystem?: boolean, swapOfferId?: string) => Promise<void>;
   proposeSwap: (params: {
     targetListing: Listing;
     offeredListingId?: string;
@@ -23,8 +23,8 @@ interface ChatContextType {
     cashTopUp: number;
     proposedMeetupSpot: string;
     proposedDateTime: string;
-  }) => SwapOffer;
-  respondToSwap: (swapId: string, status: 'accepted' | 'declined') => void;
+  }) => Promise<SwapOffer>;
+  respondToSwap: (swapId: string, status: 'accepted' | 'declined') => Promise<void>;
   scheduleMeetup: (params: {
     listing: Listing;
     buyerId: string;
@@ -37,47 +37,78 @@ interface ChatContextType {
     landmarkSpot: string;
     scheduledDateTime: string;
     notes?: string;
-  }) => MeetupTransaction;
-  completeMeetupWithCode: (meetupId: string, code: string) => { success: boolean; message: string };
-  updateMeetupStatus: (meetupId: string, status: MeetupTransaction['status']) => void;
+  }) => Promise<MeetupTransaction>;
+  completeMeetupWithCode: (meetupId: string, code: string) => Promise<{ success: boolean; message: string }>;
+  updateMeetupStatus: (meetupId: string, status: MeetupTransaction['status']) => Promise<void>;
+  refreshAll: () => Promise<void>;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser } = useAuth();
-  const [conversations, setConversations] = useLocalStorage<Conversation[]>('tradelink_conversations_v3', SEED_CONVERSATIONS);
-  const [messages, setMessages] = useLocalStorage<Message[]>('tradelink_messages_v3', [
-    {
-      id: 'msg-1',
-      conversationId: 'conv-1',
-      senderId: 'user-alex',
-      receiverId: 'user-ken',
-      content: 'Hi Kenzo! Is the Casio 991ES Plus still available for meetup at UC LM?',
-      timestamp: 'Today at 10:15 AM'
-    },
-    {
-      id: 'msg-2',
-      conversationId: 'conv-1',
-      senderId: 'user-ken',
-      receiverId: 'user-alex',
-      content: 'Yes Alex, still available! Crisp condition with sliding cover.',
-      timestamp: 'Today at 10:20 AM'
-    }
-  ]);
-  const [swaps, setSwaps] = useLocalStorage<SwapOffer[]>('tradelink_swaps_v3', SEED_SWAPS);
-  const [meetups, setMeetups] = useLocalStorage<MeetupTransaction[]>('tradelink_meetups_v3', SEED_MEETUPS);
-  const [activeConvId, setActiveConvId] = useState<string | null>(null);
+  const { currentUser, isAuthenticated } = useAuth();
 
-  // Active Conversation
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [swaps, setSwaps] = useState<SwapOffer[]>([]);
+  const [meetups, setMeetups] = useState<MeetupTransaction[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [activeConvId, setActiveConvId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Sync with API when authenticated
+  const refreshAll = useCallback(async () => {
+    if (!isAuthenticated) return;
+    setIsLoading(true);
+    try {
+      const [serverConvs, serverSwaps, serverMeetups] = await Promise.allSettled([
+        chatService.getConversations(),
+        chatService.getSwaps(),
+        chatService.getMeetups()
+      ]);
+
+      if (serverConvs.status === 'fulfilled') {
+        setConversations(serverConvs.value);
+      }
+      if (serverSwaps.status === 'fulfilled') {
+        setSwaps(serverSwaps.value);
+      }
+      if (serverMeetups.status === 'fulfilled') {
+        setMeetups(serverMeetups.value);
+      }
+    } catch {
+      // Backend error
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    refreshAll();
+  }, [refreshAll]);
+
+  // Fetch messages when active conversation changes
+  useEffect(() => {
+    if (!activeConvId) return;
+    chatService.getMessages(activeConvId).then((serverMsgs) => {
+      if (serverMsgs && serverMsgs.length > 0) {
+        setMessages((prev) => {
+          const otherMsgs = prev.filter((m) => m.conversationId !== activeConvId);
+          return [...otherMsgs, ...serverMsgs];
+        });
+      }
+    }).catch(() => {});
+  }, [activeConvId]);
+
   const activeConversation = conversations.find((c) => c.id === activeConvId) || null;
 
-  // Active Messages for currently selected conversation
-  const activeMessages = activeConvId
-    ? messages.filter((m) => m.conversationId === activeConvId)
-    : [];
+  const activeMessages = useMemo(() => {
+    if (!activeConvId) return [];
+    return messages.filter((m) => m.conversationId === activeConvId);
+  }, [messages, activeConvId]);
 
-  const unreadTotal = conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
+  const unreadTotal = useMemo(() => {
+    return conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
+  }, [conversations]);
 
   const setActiveConversationId = (id: string | null) => {
     setActiveConvId(id);
@@ -88,15 +119,13 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const openChatWithSeller = (listing: Listing) => {
-    if (listing.sellerId === currentUser.id) return;
-
-    // Check if conversation already exists
+  const openChatWithSeller = async (listing: Listing) => {
+    if (!currentUser) return;
     const existing = conversations.find(
       (c) =>
+        c.listingId === listing.id &&
         c.participantIds.includes(currentUser.id) &&
-        c.participantIds.includes(listing.sellerId) &&
-        c.listingId === listing.id
+        c.participantIds.includes(listing.sellerId)
     );
 
     if (existing) {
@@ -105,50 +134,49 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     const newConvId = `conv-${Date.now()}`;
+    const initialMsg: Message = {
+      id: `msg-${Date.now()}`,
+      conversationId: newConvId,
+      senderId: currentUser.id,
+      receiverId: listing.sellerId,
+      content: `Hi ${listing.sellerName}! I am interested in your item: "${listing.title}". Is it still available for meetup?`,
+      timestamp: 'Just now',
+      isSystemMessage: false
+    };
+
     const newConv: Conversation = {
       id: newConvId,
+      listingId: listing.id,
+      listingTitle: listing.title,
+      listingImage: listing.images[0] || '',
       participantIds: [currentUser.id, listing.sellerId],
       otherParticipant: {
         id: listing.sellerId,
         name: listing.sellerName,
         avatar: listing.sellerAvatar,
         campus: listing.sellerCampus,
+        college: listing.sellerCollege,
         isVerified: listing.sellerIsVerified
       },
-      listingId: listing.id,
-      listingTitle: listing.title,
-      listingImage: listing.images[0] || '',
-      lastMessage: `Hi ${listing.sellerName}, I am interested in your ${listing.title}!`,
+      lastMessage: initialMsg.content,
       lastMessageTimestamp: 'Just now',
       unreadCount: 0
     };
 
-    setConversations((prev) => {
-      if (prev.some((c) => c.id === newConv.id || (c.listingId === listing.id && c.participantIds.includes(currentUser.id)))) {
-        return prev;
-      }
-      return [newConv, ...prev];
-    });
-
-    const initialMsg: Message = {
-      id: `msg-${Date.now()}`,
-      conversationId: newConvId,
-      senderId: currentUser.id,
-      receiverId: listing.sellerId,
-      content: `Hi ${listing.sellerName}! I am interested in your "${listing.title}". Is this still available for meetup in ${listing.sellerCampus}?`,
-      timestamp: 'Just now'
-    };
-
-    setMessages((prev) => {
-      if (prev.some((m) => m.id === initialMsg.id)) return prev;
-      return [...prev, initialMsg];
-    });
-
+    setConversations((prev) => [newConv, ...prev]);
+    setMessages((prev) => [...prev, initialMsg]);
     setActiveConvId(newConvId);
+
+    chatService.sendMessage({
+      conversationId: newConvId,
+      receiverId: listing.sellerId,
+      listingId: listing.id,
+      content: initialMsg.content
+    }).catch(() => {});
   };
 
-  const sendMessage = (text: string, isSystem = false, swapOfferId?: string) => {
-    if (!activeConversation || !text.trim()) return;
+  const sendMessage = async (text: string, isSystem = false, swapOfferId?: string) => {
+    if (!activeConversation || !text.trim() || !currentUser) return;
 
     const receiverId =
       activeConversation.participantIds.find((id) => id !== currentUser.id) ||
@@ -165,25 +193,25 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       swapOfferId
     };
 
-    setMessages((prev) => {
-      if (prev.some((m) => m.id === newMsg.id)) return prev;
-      return [...prev, newMsg];
-    });
-
+    setMessages((prev) => [...prev, newMsg]);
     setConversations((prev) =>
       prev.map((c) =>
         c.id === activeConversation.id
-          ? {
-              ...c,
-              lastMessage: text.trim(),
-              lastMessageTimestamp: 'Just now'
-            }
+          ? { ...c, lastMessage: text.trim(), lastMessageTimestamp: 'Just now' }
           : c
       )
     );
+
+    await chatService.sendMessage({
+      conversationId: activeConversation.id,
+      receiverId,
+      content: text.trim(),
+      isSystemMessage: isSystem,
+      swapOfferId
+    });
   };
 
-  const proposeSwap = (params: {
+  const proposeSwap = async (params: {
     targetListing: Listing;
     offeredListingId?: string;
     offeredListingTitle?: string;
@@ -192,70 +220,32 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     cashTopUp: number;
     proposedMeetupSpot: string;
     proposedDateTime: string;
-  }): SwapOffer => {
-    const newSwap: SwapOffer = {
-      id: `swap-${Date.now()}`,
+  }): Promise<SwapOffer> => {
+    if (!currentUser) {
+      throw new Error('Authentication required to propose a swap offer.');
+    }
+
+    const payload = {
       targetListingId: params.targetListing.id,
-      targetListingTitle: params.targetListing.title,
-      targetListingImage: params.targetListing.images[0] || '',
-      targetSellerId: params.targetListing.sellerId,
-      targetSellerName: params.targetListing.sellerName,
-      offererId: currentUser.id,
-      offererName: currentUser.name,
-      offererAvatar: currentUser.avatar,
-      offererCampus: currentUser.campus,
       offeredListingId: params.offeredListingId,
-      offeredListingTitle: params.offeredListingTitle,
-      offeredListingImage: params.offeredListingImage,
       offeredDescription: params.offeredDescription,
       cashTopUp: params.cashTopUp,
-      status: 'pending',
       proposedMeetupSpot: params.proposedMeetupSpot,
-      proposedDateTime: params.proposedDateTime,
-      createdAt: new Date().toISOString()
+      proposedDateTime: params.proposedDateTime
     };
 
-    setSwaps((prev) => {
-      if (prev.some((s) => s.id === newSwap.id)) return prev;
-      return [newSwap, ...prev];
-    });
-
+    const created = await chatService.proposeSwap(payload);
+    setSwaps((prev) => [created, ...prev]);
     openChatWithSeller(params.targetListing);
-    setTimeout(() => {
-      const topUpText =
-        params.cashTopUp > 0
-          ? ` (with +₱${params.cashTopUp} cash)`
-          : params.cashTopUp < 0
-          ? ` (requesting ₱${Math.abs(params.cashTopUp)} cash)`
-          : '';
-      sendMessage(
-        `Sent a Swap Proposal: Offering "${params.offeredListingTitle || params.offeredDescription}"${topUpText} for "${params.targetListing.title}". Meetup: ${params.proposedMeetupSpot} on ${params.proposedDateTime}.`,
-        true,
-        newSwap.id
-      );
-    }, 100);
-
-    return newSwap;
+    return created;
   };
 
-  const respondToSwap = (swapId: string, status: 'accepted' | 'declined') => {
-    setSwaps((prev) =>
-      prev.map((s) => (s.id === swapId ? { ...s, status } : s))
-    );
-
-    const swap = swaps.find((s) => s.id === swapId);
-    if (swap) {
-      sendMessage(
-        status === 'accepted'
-          ? `🎉 Swap Offer ACCEPTED! Let's proceed to coordinate our campus meetup.`
-          : `Swap offer declined. Thank you for your interest!`,
-        true,
-        swapId
-      );
-    }
+  const respondToSwap = async (swapId: string, status: 'accepted' | 'declined') => {
+    setSwaps((prev) => prev.map((s) => (s.id === swapId ? { ...s, status } : s)));
+    await chatService.respondToSwap(swapId, status === 'accepted' ? 'accept' : 'decline');
   };
 
-  const scheduleMeetup = (params: {
+  const scheduleMeetup = async (params: {
     listing: Listing;
     buyerId: string;
     buyerName: string;
@@ -267,69 +257,35 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     landmarkSpot: string;
     scheduledDateTime: string;
     notes?: string;
-  }): MeetupTransaction => {
-    const code = Math.floor(1000 + Math.random() * 9000).toString();
-
-    const newMeetup: MeetupTransaction = {
-      id: `meet-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
+  }): Promise<MeetupTransaction> => {
+    const payload = {
       listingId: params.listing.id,
-      listingTitle: params.listing.title,
-      listingImage: params.listing.images[0] || '',
-      sellerId: params.sellerId,
-      sellerName: params.sellerName,
       buyerId: params.buyerId,
-      buyerName: params.buyerName,
       tradeMode: params.tradeMode,
       finalPrice: params.finalPrice,
       campus: params.campus,
       landmarkSpot: params.landmarkSpot,
       scheduledDateTime: params.scheduledDateTime,
-      verificationCode: code,
-      status: 'scheduled',
-      notes: params.notes,
-      createdAt: new Date().toISOString()
+      notes: params.notes
     };
 
-    setMeetups((prev) => {
-      // Prevent duplicate insertion
-      if (prev.some((m) => m.id === newMeetup.id || (m.listingId === params.listing.id && m.buyerId === params.buyerId && m.status === 'scheduled'))) {
-        return prev;
-      }
-      return [newMeetup, ...prev];
-    });
-
+    const created = await chatService.scheduleMeetup(payload);
+    setMeetups((prev) => [created, ...prev]);
     openChatWithSeller(params.listing);
-    setTimeout(() => {
-      sendMessage(
-        `📍 Campus Meetup Scheduled!\nItem: ${params.listing.title}\nLocation: ${params.landmarkSpot} (${params.campus})\nTime: ${params.scheduledDateTime}\nSecurity Code: Check your Meetups tab for the 4-digit code.`,
-        true
-      );
-    }, 100);
-
-    return newMeetup;
+    return created;
   };
 
-  const completeMeetupWithCode = (meetupId: string, enteredCode: string): { success: boolean; message: string } => {
-    const meetup = meetups.find((m) => m.id === meetupId);
-    if (!meetup) {
-      return { success: false, message: 'Meetup transaction not found.' };
-    }
-
-    if (meetup.verificationCode.trim() !== enteredCode.trim()) {
-      return { success: false, message: 'Invalid 4-digit Handshake Code. Please double-check with the other student.' };
-    }
-
-    setMeetups((prev) =>
-      prev.map((m) => (m.id === meetupId ? { ...m, status: 'completed' } : m))
-    );
-
-    return { success: true, message: 'Transaction verified and completed! +10 Campus Trust Score points awarded.' };
+  const completeMeetupWithCode = async (meetupId: string, enteredCode: string): Promise<{ success: boolean; message: string }> => {
+    const res = await chatService.verifyMeetupCode(meetupId, enteredCode);
+    setMeetups((prev) => prev.map((m) => (m.id === meetupId ? { ...m, status: 'completed' } : m)));
+    return { success: true, message: res.message || 'Transaction verified and completed!' };
   };
 
-  const updateMeetupStatus = (meetupId: string, status: MeetupTransaction['status']) => {
-    setMeetups((prev) =>
-      prev.map((m) => (m.id === meetupId ? { ...m, status } : m))
-    );
+  const updateMeetupStatus = async (meetupId: string, status: MeetupTransaction['status']) => {
+    setMeetups((prev) => prev.map((m) => (m.id === meetupId ? { ...m, status } : m)));
+    if (status !== 'scheduled') {
+      await chatService.updateMeetupStatus(meetupId, status as any);
+    }
   };
 
   return (
@@ -341,6 +297,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         swaps,
         meetups,
         unreadTotal,
+        isLoading,
         setActiveConversationId,
         openChatWithSeller,
         sendMessage,
@@ -348,7 +305,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         respondToSwap,
         scheduleMeetup,
         completeMeetupWithCode,
-        updateMeetupStatus
+        updateMeetupStatus,
+        refreshAll
       }}
     >
       {children}

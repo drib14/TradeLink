@@ -117,18 +117,34 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
             borderTopRightRadius: '13px'
           }}
         >
-          <img
-            src={listing.images[0] || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80'}
-            alt={listing.title}
-            loading="lazy"
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              transform: isHovered ? 'scale(1.06)' : 'scale(1)',
-              transition: 'transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)'
-            }}
-          />
+          {listing.images && listing.images[0] ? (
+            <img
+              src={listing.images[0]}
+              alt={listing.title}
+              loading="lazy"
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                transform: isHovered ? 'scale(1.06)' : 'scale(1)',
+                transition: 'transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)'
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                width: '100%',
+                height: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: 'var(--bg-subtle)',
+                color: 'var(--text-muted)'
+              }}
+            >
+              <ShoppingBag size={32} />
+            </div>
+          )}
 
           {/* Trade Mode Pill Badge */}
           {listing.tradeMode === 'swap' ? (

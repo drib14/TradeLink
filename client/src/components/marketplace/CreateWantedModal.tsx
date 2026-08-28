@@ -27,14 +27,14 @@ export const CreateWantedModal: React.FC<CreateWantedModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!itemTitle.trim()) {
       showToast('Title Required', 'Please enter the item name.', 'warning');
       return;
     }
 
-    addRequest({
+    await addRequest({
       itemTitle: itemTitle.trim(),
       category,
       targetBudget,

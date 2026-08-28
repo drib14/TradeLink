@@ -3,12 +3,13 @@ import { useMarket } from '../context/MarketContext';
 import { useAuth } from '../context/AuthContext';
 import { useChat } from '../context/ChatContext';
 import { VerifiedBadge } from '../components/common/VerifiedBadge';
+import { UserAvatar } from '../components/common/UserAvatar';
 import { SwapProposalModal } from '../components/marketplace/SwapProposalModal';
 import { BuyNowModal } from '../components/marketplace/BuyNowModal';
-import { SmartPriceWidget } from '../components/marketplace/SmartPriceWidget';
 import { ListingCard } from '../components/marketplace/ListingCard';
 import { Modal } from '../components/common/Modal';
 import { useToast } from '../components/common/Toast';
+import { listingsService } from '../services/listings.service';
 import { Listing } from '../types';
 import {
   ArrowLeftRight,
@@ -108,30 +109,17 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
     onOpenChat();
   };
 
-  const handleReport = (e: React.FormEvent) => {
+  const handleReport = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reportReason.trim()) return;
 
     try {
-      const existingFlags = JSON.parse(window.localStorage.getItem('tradelink_flags') || '[]');
-      const newFlag = {
-        id: `flag-${Date.now()}`,
-        listingId: listing.id,
-        listingTitle: listing.title,
-        listingImage: listing.images[0] || '',
-        sellerName: listing.sellerName,
-        reporterName: currentUser?.name || 'Anonymous UCian',
-        reason: reportReason.trim(),
-        campus: listing.sellerCampus,
-        reportedAt: new Date().toISOString(),
-        status: 'pending'
-      };
-      window.localStorage.setItem('tradelink_flags', JSON.stringify([newFlag, ...existingFlags]));
-    } catch (err) {
-      // Ignore
+      await listingsService.flagListing(listing.id, reportReason.trim());
+      showToast('Report Submitted', 'Our campus moderation desk will review this listing shortly.', 'info');
+    } catch (err: any) {
+      showToast('Report Failed', err?.message || 'Unable to submit report. Please try again.', 'error');
     }
 
-    showToast('Report Submitted', 'Our campus moderation desk will review this listing shortly.', 'info');
     setIsReportModalOpen(false);
     setReportReason('');
   };
@@ -139,7 +127,7 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
   const handleShare = () => {
     if (navigator.clipboard) {
       navigator.clipboard.writeText(window.location.href);
-      showToast('Link Copied! 📋', 'Listing link copied to clipboard.', 'success');
+      showToast('Link Copied', 'Listing link copied to clipboard.', 'success');
     }
   };
 
@@ -277,15 +265,6 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
               ))}
             </div>
           )}
-
-          {/* Smart Price Advisor Widget */}
-          <SmartPriceWidget
-            initialSrp={listing.originalSrp}
-            initialCondition={listing.condition}
-            initialCategory={listing.category}
-            initialCurrentPrice={listing.price}
-            isCompact={true}
-          />
         </div>
 
         {/* Right Column: Listing Details & Seller Card */}
@@ -512,10 +491,11 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
                 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}
                 onClick={() => onNavigate('profile', { userId: listing.sellerId })}
               >
-                <img
+                <UserAvatar
                   src={listing.sellerAvatar}
-                  alt={listing.sellerName}
-                  style={{ width: '44px', height: '44px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '1.5px solid var(--border-subtle)' }}
+                  name={listing.sellerName}
+                  size="md"
+                  style={{ border: '1.5px solid var(--border-subtle)' }}
                 />
                 <div>
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', lineHeight: 1.2 }}>

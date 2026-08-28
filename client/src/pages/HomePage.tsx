@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useMarket } from '../context/MarketContext';
 import { ListingCard } from '../components/marketplace/ListingCard';
 import { CampusCarouselBanner } from '../components/home/CampusCarouselBanner';
@@ -6,16 +6,12 @@ import { ListingCardSkeleton } from '../components/common/SkeletonLoader';
 import { Campus, Listing } from '../types';
 import {
   ArrowRight,
-  ShieldCheck,
-  Plus,
-  Zap,
-  MapPin,
   Bookmark,
   Flame,
-  Scale,
-  Sparkles,
   ArrowLeftRight,
-  Gift
+  MapPin,
+  Sparkles,
+  ShoppingBag
 } from 'lucide-react';
 
 interface HomePageProps {
@@ -24,16 +20,8 @@ interface HomePageProps {
 }
 
 export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
-  const { listings, selectedCampus, setSelectedCampus, favorites } = useMarket();
-  const [isSimulatingLoading, setIsSimulatingLoading] = useState(true);
+  const { listings, isLoading, setSelectedCampus, favorites } = useMarket();
   const [activeFeedTab, setActiveFeedTab] = useState<'all' | 'featured' | 'swaps' | 'free'>('all');
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsSimulatingLoading(false);
-    }, 150);
-    return () => clearTimeout(timer);
-  }, []);
 
   const handleCampusSelect = (campus: Campus | 'ALL') => {
     setSelectedCampus(campus === 'ALL' ? 'All' : campus);
@@ -66,7 +54,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
           <div
             className="clean-card card-interactive"
             onClick={() => onNavigate('favorites')}
-            style={{ padding: '1rem 1.15rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}
+            style={{ padding: '1rem 1.15rem', display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}
           >
             <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--uc-gold-light, #FEF3C7)', color: '#B45309', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Bookmark size={18} />
@@ -80,7 +68,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
           <div
             className="clean-card card-interactive"
             onClick={() => onNavigate('wanted')}
-            style={{ padding: '1rem 1.15rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}
+            style={{ padding: '1rem 1.15rem', display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}
           >
             <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--accent-red-subtle, #FEF2F2)', color: 'var(--accent-red)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Flame size={18} />
@@ -93,22 +81,22 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
 
           <div
             className="clean-card card-interactive"
-            onClick={() => onNavigate('price-advisor')}
-            style={{ padding: '1rem 1.15rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}
+            onClick={() => onNavigate('swaps')}
+            style={{ padding: '1rem 1.15rem', display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}
           >
             <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', color: 'var(--uc-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Scale size={18} />
+              <ArrowLeftRight size={18} />
             </div>
             <div>
-              <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)' }}>Price Advisor</div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Fair campus valuations</div>
+              <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)' }}>Direct Swaps</div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Barter gear & textbooks</div>
             </div>
           </div>
 
           <div
             className="clean-card card-interactive"
             onClick={() => onNavigate('campus-map')}
-            style={{ padding: '1rem 1.15rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}
+            style={{ padding: '1rem 1.15rem', display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}
           >
             <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--accent-green-subtle, #ECFDF5)', color: 'var(--accent-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <MapPin size={18} />
@@ -125,8 +113,9 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
       <section className="container">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.85rem', marginBottom: '1.25rem' }}>
           <div>
-            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
-              Campus Marketplace Feed
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-display)', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+              <ShoppingBag size={20} color="var(--uc-blue)" />
+              <span>Campus Marketplace Feed</span>
             </h2>
             <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
               Verified items from UC students across all colleges & campuses
@@ -148,9 +137,9 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
           >
             {[
               { id: 'all', label: 'All Items' },
-              { id: 'featured', label: '⭐ Featured Deals' },
-              { id: 'swaps', label: '🔄 Swaps' },
-              { id: 'free', label: '🎁 Free' }
+              { id: 'featured', label: 'Featured Deals' },
+              { id: 'swaps', label: 'Swaps' },
+              { id: 'free', label: 'Free Items' }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -177,7 +166,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
 
         {/* Product Grid */}
         <div className="grid-responsive-listings">
-          {isSimulatingLoading
+          {isLoading
             ? Array.from({ length: 8 }).map((_, i) => <ListingCardSkeleton key={i} />)
             : displayedListings.slice(0, 12).map((item: Listing) => (
                 <ListingCard
@@ -188,19 +177,36 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
               ))}
         </div>
 
+        {/* Empty state if no items */}
+        {!isLoading && displayedListings.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
+            <ShoppingBag size={40} style={{ margin: '0 auto 0.75rem', opacity: 0.4 }} />
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>No Listings Found</h3>
+            <p style={{ fontSize: '0.85rem', marginTop: '0.25rem' }}>Be the first student to post an item in this category!</p>
+            <button
+              onClick={() => onNavigate('create-listing')}
+              className="btn-primary"
+              style={{ marginTop: '1rem', padding: '0.55rem 1.25rem', fontSize: '0.85rem' }}
+            >
+              Post an Item
+            </button>
+          </div>
+        )}
+
         {/* View Full Catalog Link */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '2rem' }}>
-          <button
-            onClick={() => onNavigate('marketplace')}
-            className="btn-primary"
-            style={{ padding: '0.65rem 1.5rem', fontSize: '0.86rem', display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
-          >
-            <span>Browse Full Catalog with Filters</span>
-            <ArrowRight size={15} />
-          </button>
-        </div>
+        {displayedListings.length > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '2rem' }}>
+            <button
+              onClick={() => onNavigate('marketplace')}
+              className="btn-primary"
+              style={{ padding: '0.65rem 1.5rem', fontSize: '0.86rem', display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
+            >
+              <span>Browse Full Catalog with Filters</span>
+              <ArrowRight size={15} />
+            </button>
+          </div>
+        )}
       </section>
     </div>
   );
 };
-

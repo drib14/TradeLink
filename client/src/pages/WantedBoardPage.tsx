@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/common/Toast';
 import { CreateWantedModal } from '../components/marketplace/CreateWantedModal';
 import { VerifiedBadge } from '../components/common/VerifiedBadge';
+import { UserAvatar } from '../components/common/UserAvatar';
 import { WantedCardSkeleton } from '../components/common/SkeletonLoader';
 import { Campus, WantedRequest } from '../types';
 import {
@@ -128,42 +129,43 @@ export const WantedBoardPage: React.FC<WantedBoardPageProps> = ({ onNavigate, on
       </div>
 
       {/* Search & Campus Filter Controls */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-          {/* Search Box */}
-          <div style={{ flex: 1, minWidth: '260px', position: 'relative' }}>
-            <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search requested books, calculators, scrubs, tracks..."
-              className="clean-input"
-              style={{ paddingLeft: '2.25rem' }}
-            />
-          </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+        {/* Search Box */}
+        <div style={{ flex: 1, minWidth: '260px', position: 'relative' }}>
+          <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search requested books, calculators, scrubs, tracks..."
+            className="clean-input"
+            style={{ paddingLeft: '2.25rem' }}
+          />
         </div>
 
-        {/* Campus Filter Pills */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', overflowX: 'auto', paddingBottom: '3px' }}>
-          {campuses.map((c) => {
-            const isSelected = selectedCampus === c;
-            return (
-              <button
-                key={c}
-                onClick={() => setSelectedCampus(c)}
-                className={`segmented-tab ${isSelected ? 'active' : ''}`}
-                style={{
-                  borderRadius: 'var(--radius-full)',
-                  padding: '0.35rem 0.85rem',
-                  fontSize: '0.78rem',
-                  whiteSpace: 'nowrap'
-                }}
-              >
+        {/* Campus Dropdown Filter */}
+        <div style={{ position: 'relative', minWidth: '220px' }}>
+          <Building2 size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+          <select
+            value={selectedCampus}
+            onChange={(e) => setSelectedCampus(e.target.value as any)}
+            className="clean-input"
+            style={{
+              paddingLeft: '2.35rem',
+              paddingRight: '2rem',
+              cursor: 'pointer',
+              fontWeight: 700,
+              color: 'var(--text-primary)',
+              appearance: 'auto'
+            }}
+            aria-label="Filter by UC Campus"
+          >
+            {campuses.map((c) => (
+              <option key={c} value={c}>
                 {c === 'All' ? 'All UC Campuses' : c}
-              </button>
-            );
-          })}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -236,10 +238,10 @@ export const WantedBoardPage: React.FC<WantedBoardPageProps> = ({ onNavigate, on
               {/* Requester Profile & Action */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: '1px solid var(--border-subtle)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                  <img
+                  <UserAvatar
                     src={req.requesterAvatar}
-                    alt={req.requesterName}
-                    style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }}
+                    name={req.requesterName}
+                    size={28}
                   />
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)' }}>

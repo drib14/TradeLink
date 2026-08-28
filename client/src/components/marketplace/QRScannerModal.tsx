@@ -44,13 +44,13 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
   }, []);
 
   // Process verification
-  const handleVerifyCode = useCallback((codeToVerify: string) => {
+  const handleVerifyCode = useCallback(async (codeToVerify: string) => {
     if (!meetup) return;
-    const res = completeMeetupWithCode(meetup.id, codeToVerify.trim());
+    const res = await completeMeetupWithCode(meetup.id, codeToVerify.trim());
     if (res.success) {
       setIsVerified(true);
       stopCamera();
-      showToast('Handshake Verified! 🎉', res.message, 'success');
+      showToast('Handshake Verified', res.message, 'success');
       if (onSuccess) onSuccess();
     } else {
       showToast('Verification Failed', res.message, 'error');

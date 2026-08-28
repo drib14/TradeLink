@@ -1,61 +1,74 @@
-import React, { useState } from 'react';
-import { Bell, ArrowLeftRight, Calendar, CheckCircle2, ShieldCheck, X } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Bell } from 'lucide-react';
 import { AppNotification } from '../../types';
 import { useClickOutside } from '../../hooks/useClickOutside';
+import { useAuth } from '../../context/AuthContext';
+import { chatService } from '../../services/chat.service';
 
 interface NotificationDropdownProps {
   onNavigate: (view: string, param?: any) => void;
 }
 
 export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ onNavigate }) => {
+  const { isAuthenticated, currentUser } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
-  const [notifications, setNotifications] = useState<AppNotification[]>([
-    {
-      id: 'notif-1',
-      userId: 'user-maria',
-      title: 'Swap Proposal Received',
-      message: 'Beatrice Tan offered Keychron K2 + ₱800 for your Squier Guitar.',
-      type: 'swap',
-      isRead: false,
-      linkView: 'swaps',
-      createdAt: '10m ago'
-    },
-    {
-      id: 'notif-2',
-      userId: 'user-maria',
-      title: 'Meetup Reminder',
-      message: 'Meetup tomorrow at 1:30 PM with Alex Rivera at Banilad lobby.',
-      type: 'meetup',
-      isRead: false,
-      linkView: 'meetups',
-      createdAt: '1h ago'
-    },
-    {
-      id: 'notif-3',
-      userId: 'user-maria',
-      title: 'Wanted Item Response',
-      message: 'A student has the Casio fx-991ES Plus you were looking for!',
-      type: 'wanted_response',
-      isRead: true,
-      linkView: 'wanted',
-      createdAt: '3h ago'
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const fetchNotifications = useCallback(async () => {
+    if (!isAuthenticated || !currentUser) {
+      setNotifications([]);
+      return;
     }
-  ]);
+    setIsLoading(true);
+    try {
+      const liveNotifs = await chatService.getNotifications();
+      if (Array.isArray(liveNotifs)) {
+        setNotifications(liveNotifs);
+      }
+    } catch {
+      // Handled gracefully
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isAuthenticated, currentUser]);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
-  const handleNotificationClick = (notif: AppNotification) => {
+  const handleNotificationClick = async (notif: AppNotification) => {
     setNotifications((prev) =>
       prev.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n))
     );
     setIsOpen(false);
+    try {
+      await chatService.markNotificationAsRead(notif.id);
+    } catch {
+      // Handled
+    }
     if (notif.linkView) {
       onNavigate(notif.linkView, notif.linkParams);
     }
   };
 
-  const markAllRead = () => {
+  const markAllRead = async () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    try {
+      await chatService.markAllNotificationsAsRead();
+    } catch {
+      // Handled
+    }
+  };
+
+  const toggleDropdown = () => {
+    const nextState = !isOpen;
+    setIsOpen(nextState);
+    if (nextState && isAuthenticated) {
+      fetchNotifications();
+    }
   };
 
   const dropdownRef = useClickOutside<HTMLDivElement>(() => setIsOpen(false), isOpen);
@@ -63,7 +76,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ onNa
   return (
     <div style={{ position: 'relative' }} ref={dropdownRef}>
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={toggleDropdown}
         style={{
           position: 'relative',
           padding: '0.45rem',
@@ -108,7 +121,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ onNa
             position: 'absolute',
             top: 'calc(100% + 8px)',
             right: 0,
-            width: 'min(320px, 90vw)',
+            width: 'min(340px, 90vw)',
             backgroundColor: 'var(--bg-surface, #FFFFFF)',
             border: '1.5px solid var(--border-subtle, #CBD5E1)',
             borderRadius: '12px',
@@ -142,7 +155,11 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ onNa
 
           {/* List */}
           <div style={{ maxHeight: '320px', overflowY: 'auto' }}>
-            {notifications.length > 0 ? (
+            {isLoading && notifications.length === 0 ? (
+              <div style={{ padding: '1.5rem', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                Loading alerts...
+              </div>
+            ) : notifications.length > 0 ? (
               notifications.map((notif) => (
                 <div
                   key={notif.id}
@@ -164,7 +181,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ onNa
                     </span>
                     <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{notif.createdAt}</span>
                   </div>
-                  <p style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                  <p style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: 1.4, margin: 0 }}>
                     {notif.message}
                   </p>
                 </div>

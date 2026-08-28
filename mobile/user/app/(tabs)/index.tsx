@@ -87,15 +87,15 @@ export default function HomeScreen() {
 
           <TouchableOpacity
             style={styles.utilityCard}
-            onPress={() => router.push('/price-advisor')}
+            onPress={() => router.push('/wanted')}
             activeOpacity={0.8}
           >
-            <View style={[styles.utilityIconBadge, { backgroundColor: '#FEF3C7' }]}>
-              <Ionicons name="calculator" size={16} color="#D97706" />
+            <View style={[styles.utilityIconBadge, { backgroundColor: '#FEF2F2' }]}>
+              <Ionicons name="flame" size={16} color="#DC2626" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.utilityTitle}>Campus Price Advisor</Text>
-              <Text style={styles.utilitySub}>Check fair student resale value</Text>
+              <Text style={styles.utilityTitle}>Wanted Board</Text>
+              <Text style={styles.utilitySub}>Student Looking-To-Buy requests</Text>
             </View>
             <Ionicons name="chevron-forward" size={14} color="#94A3B8" />
           </TouchableOpacity>

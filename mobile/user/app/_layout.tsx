@@ -52,13 +52,6 @@ export default function RootLayout() {
               }}
             />
             <Stack.Screen
-              name="price-advisor"
-              options={{
-                title: 'Campus Price Advisor',
-                headerBackTitle: 'Back',
-              }}
-            />
-            <Stack.Screen
               name="campus-map"
               options={{
                 title: 'Guarded Meetup Hubs',

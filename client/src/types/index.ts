@@ -50,6 +50,7 @@ export interface User {
   yearLevel: string;
   avatar: string;
   isVerified: boolean;
+  verificationStatus?: 'unverified' | 'pending' | 'verified' | 'rejected';
   idPhotoUrl?: string;
   trustScore: number; // 0 - 100
   rating: number; // 1.0 - 5.0
@@ -93,6 +94,33 @@ export interface TradeDispute {
   verdictAction?: 'refund' | 'warning' | 'dismissed' | 'ban';
 }
 
+export interface FlaggedListingItem {
+  id: string;
+  listingId: string;
+  listingTitle: string;
+  listingImage: string;
+  sellerName: string;
+  reporterName?: string;
+  campus?: Campus;
+  reason: string;
+  flaggedBy?: string;
+  reportedAt?: string;
+  flaggedAt?: string;
+  status: 'pending' | 'resolved' | 'dismissed' | 'removed';
+}
+
+export interface RegisterData {
+  name: string;
+  studentId: string;
+  email: string;
+  password?: string;
+  campus: Campus;
+  college: College;
+  yearLevel: string;
+  avatar?: string;
+  idPhotoUrl?: string;
+}
+
 export interface AdminAuditLog {
   id: string;
   adminName: string;
@@ -108,7 +136,7 @@ export interface Listing {
   title: string;
   description: string;
   price: number;
-  originalSrp: number;
+  originalSrp?: number;
   tradeMode: TradeMode;
   swapPreference?: string;
   category: string; // User-defined or selected category
@@ -194,6 +222,7 @@ export interface Conversation {
     name: string;
     avatar: string;
     campus: Campus;
+    college?: College;
     isVerified: boolean;
   };
   listingId: string;
@@ -213,6 +242,7 @@ export interface VerificationRequest {
   campus: Campus;
   college: College;
   idCardImageUrl: string;
+  selfiePhotoUrl?: string;
   status: 'pending' | 'approved' | 'rejected';
   submittedAt: string;
   reviewedAt?: string;
@@ -286,18 +316,24 @@ export interface FeatureFlag {
   name: string;
   description: string;
   enabled: boolean;
-  updatedAt: string;
+  updatedAt?: string;
 }
 
 export interface SuperAdminConfig {
-  maintenanceMode: boolean;
-  maxListingPrice: number;
-  maxImagesPerListing: number;
-  swapModeEnabled: boolean;
-  wantedBoardEnabled: boolean;
-  freeDonationEnabled: boolean;
-  maxListingsPerUser: number;
-  featureFlags: FeatureFlag[];
-  lastUpdatedBy: string;
-  lastUpdatedAt: string;
+  maintenanceMode?: boolean;
+  maintenanceMessage?: string;
+  allowNewRegistrations?: boolean;
+  requireStrictStudentEmail?: boolean;
+  globalCommissionRate?: number;
+  maxListingPrice?: number;
+  maxImagesPerListing?: number;
+  swapModeEnabled?: boolean;
+  wantedBoardEnabled?: boolean;
+  freeDonationEnabled?: boolean;
+  maxListingsPerUser?: number;
+  maxDailyListingsPerUser?: number;
+  autoVerifyTrustScoreThreshold?: number;
+  featureFlags?: FeatureFlag[];
+  lastUpdatedBy?: string;
+  lastUpdatedAt?: string;
 }

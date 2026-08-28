@@ -73,18 +73,18 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Propose Item-for-Item Swap"
+      title="Propose Item Swap"
       subtitle={`Offering a trade for "${targetListing.title}"`}
-      maxWidth="600px"
+      maxWidth="540px"
     >
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
         {/* Target Item Summary Banner */}
         <div
           style={{
             backgroundColor: 'var(--uc-blue-subtle, #EFF6FF)',
             border: '1px solid var(--border-subtle, #BFDBFE)',
             borderRadius: '10px',
-            padding: '0.85rem',
+            padding: '0.75rem',
             display: 'flex',
             alignItems: 'center',
             gap: '0.75rem'
@@ -93,123 +93,143 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
           <img
             src={targetListing.images[0]}
             alt={targetListing.title}
-            style={{ width: '48px', height: '48px', borderRadius: '8px', objectFit: 'cover' }}
+            style={{ width: '46px', height: '46px', borderRadius: '8px', objectFit: 'cover' }}
           />
           <div style={{ flex: 1 }}>
             <h5 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>{targetListing.title}</h5>
-            <p style={{ fontSize: '0.75rem', color: 'var(--uc-blue)' }}>
-              Seller: {targetListing.sellerName} ({targetListing.sellerCampus}) • Est. Value: ₱{targetListing.price.toLocaleString()}
+            <p style={{ fontSize: '0.74rem', color: 'var(--uc-blue)', marginTop: '2px' }}>
+              Seller: {targetListing.sellerName} ({targetListing.sellerCampus}) • Value: ₱{targetListing.price.toLocaleString()}
             </p>
           </div>
         </div>
 
         {/* Section 1: Choose Item to Offer */}
         <div>
-          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-            1. Select What You Are Offering in Return
+          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+            What are you offering? *
           </label>
 
           {myListings.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <select
-                value={selectedMyListingId}
-                onChange={(e) => setSelectedMyListingId(e.target.value)}
-                className="clean-input"
-              >
-                {myListings.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.title} (Valued at ₱{item.price})
-                  </option>
-                ))}
-                <option value="">+ Offer custom / unlisted item</option>
-              </select>
-            </div>
+            <select
+              value={selectedMyListingId}
+              onChange={(e) => setSelectedMyListingId(e.target.value)}
+              className="clean-input"
+            >
+              {myListings.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.title} (₱{item.price})
+                </option>
+              ))}
+              <option value="">+ Offer custom item</option>
+            </select>
           ) : (
-            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>
-              You have no active listings posted yet. You can describe your item below:
-            </p>
+            <input
+              type="text"
+              value={customDescription}
+              onChange={(e) => setCustomDescription(e.target.value)}
+              placeholder="e.g. Casio FX-570ES Calculator + 2 notebooks"
+              className="clean-input"
+              required
+            />
           )}
 
-          {(!selectedMyListingId || myListings.length === 0) && (
-            <div style={{ marginTop: '0.5rem' }}>
+          {selectedMyListingId === '' && myListings.length > 0 && (
+            <div style={{ marginTop: '0.4rem' }}>
               <input
                 type="text"
                 value={customDescription}
                 onChange={(e) => setCustomDescription(e.target.value)}
-                placeholder="Describe offered item and condition"
+                placeholder="Describe your custom item offer..."
                 className="clean-input"
+                required
               />
             </div>
           )}
         </div>
 
-        {/* Section 2: Cash Adjustment (Top-up) */}
-        <div>
-          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-            2. Cash Top-Up Adjustment (Optional)
-          </label>
-          <div style={{ position: 'relative' }}>
-            <span style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: 'var(--text-muted)' }}>
-              ₱
-            </span>
-            <input
-              type="number"
-              value={cashTopUp || ''}
-              onChange={(e) => setCashTopUp(Number(e.target.value))}
-              placeholder="0"
+        {/* Section 2: Cash Top-up & Meetup Spot (2 Column) */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: '0.75rem' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+              Cash Top-Up (Optional)
+            </label>
+            <div style={{ position: 'relative' }}>
+              <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, color: 'var(--text-muted)' }}>
+                ₱
+              </span>
+              <input
+                type="number"
+                value={cashTopUp || ''}
+                onChange={(e) => setCashTopUp(Number(e.target.value))}
+                placeholder="0"
+                className="clean-input"
+                style={{ paddingLeft: '1.75rem', fontWeight: 700 }}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+              Campus Meetup Zone
+            </label>
+            <select
+              value={selectedSpot}
+              onChange={(e) => setSelectedSpot(e.target.value)}
               className="clean-input"
-              style={{ paddingLeft: '2.2rem', fontWeight: 700 }}
-            />
+            >
+              {CAMPUS_MEETUP_SPOTS.filter(s => s.campus === targetListing.sellerCampus || s.campus === currentUser.campus).map((spot) => (
+                <option key={spot.id} value={spot.name}>
+                  [{spot.campus}] {spot.name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
-        {/* Section 3: Campus Meetup Spot */}
+        {/* Section 3: Meetup Time with Quick Presets */}
         <div>
-          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-            3. Proposed Campus Meetup Landmark
+          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+            Preferred Meetup Time
           </label>
-          <select
-            value={selectedSpot}
-            onChange={(e) => setSelectedSpot(e.target.value)}
-            className="clean-input"
-          >
-            {CAMPUS_MEETUP_SPOTS.map((spot) => (
-              <option key={spot.id} value={spot.name}>
-                [{spot.campus}] {spot.name}
-              </option>
+          <div style={{ display: 'flex', gap: '0.35rem', marginBottom: '0.4rem', flexWrap: 'wrap' }}>
+            {['Tomorrow at Lunch', 'Tomorrow 4:30 PM (After Class)', 'This Friday 2:00 PM'].map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => setScheduledDate(preset)}
+                className="btn-ghost"
+                style={{ padding: '0.25rem 0.55rem', fontSize: '0.74rem', borderRadius: '6px', border: scheduledDate === preset ? '1.5px solid var(--uc-blue)' : '1px solid var(--border-subtle)', backgroundColor: scheduledDate === preset ? 'var(--uc-blue-subtle)' : 'transparent', color: scheduledDate === preset ? 'var(--uc-blue)' : 'var(--text-secondary)' }}
+              >
+                {preset}
+              </button>
             ))}
-          </select>
-        </div>
-
-        {/* Section 4: Preferred Date & Time */}
-        <div>
-          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-            4. Preferred Meetup Date & Time
-          </label>
+          </div>
           <input
             type="text"
             value={scheduledDate}
             onChange={(e) => setScheduledDate(e.target.value)}
-            placeholder="e.g. Tomorrow at 3:00 PM during break"
+            placeholder="e.g. Tomorrow at 2:00 PM"
             className="clean-input"
+            style={{ fontSize: '0.82rem' }}
           />
         </div>
 
         {/* Submit Actions */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', marginTop: '0.25rem' }}>
           <button
             type="button"
             onClick={onClose}
             className="btn-secondary"
+            style={{ padding: '0.55rem 1.15rem', fontSize: '0.82rem' }}
           >
             Cancel
           </button>
           <button
             type="submit"
             className="btn-primary"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+            style={{ padding: '0.55rem 1.35rem', fontSize: '0.84rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
           >
-            <ArrowLeftRight size={16} /> Send Swap Proposal
+            <ArrowLeftRight size={15} /> Send Swap Proposal
           </button>
         </div>
       </form>

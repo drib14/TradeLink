@@ -46,14 +46,14 @@ export const MeetupsPage: React.FC<MeetupsPageProps> = ({ onNavigate }) => {
     setInputCodes((prev) => ({ ...prev, [meetupId]: val }));
   };
 
-  const handleVerifyCode = (meetupId: string) => {
+  const handleVerifySubmit = async (meetupId: string) => {
     const code = inputCodes[meetupId] || '';
     if (!code.trim()) {
       showToast('Code Missing', 'Please enter the 4-digit code provided by the other student.', 'warning');
       return;
     }
 
-    const res = completeMeetupWithCode(meetupId, code);
+    const res = await completeMeetupWithCode(meetupId, code);
     if (res.success) {
       confetti({
         particleCount: 100,
@@ -61,7 +61,7 @@ export const MeetupsPage: React.FC<MeetupsPageProps> = ({ onNavigate }) => {
         origin: { y: 0.6 }
       });
 
-      showToast('Trade Verified & Completed! 🎉', res.message, 'success');
+      showToast('Trade Verified & Completed', res.message, 'success');
       setInputCodes((prev) => ({ ...prev, [meetupId]: '' }));
     } else {
       showToast('Verification Failed', res.message, 'error');

@@ -64,7 +64,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                 { label: 'Browse Catalog', view: 'marketplace' },
                 { label: 'Wanted Board (LTB)', view: 'wanted' },
                 { label: 'Direct Item Swaps', view: 'swaps' },
-                { label: 'Fair Price Estimator', view: 'price-advisor' }
+                { label: 'Guarded Meetup Zones', view: 'campus-map' }
               ].map((link) => (
                 <li key={link.label}>
                   <button

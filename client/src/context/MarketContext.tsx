@@ -1,12 +1,12 @@
-import React, { createContext, useContext, useState, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { Listing, Campus, TradeMode, ConditionGrade } from '../types';
-import { SEED_LISTINGS } from '../data/seedData';
-import { useLocalStorage } from '../hooks/useLocalStorage';
+import { listingsService } from '../services/listings.service';
 
 interface MarketContextType {
   listings: Listing[];
   favorites: string[];
   isLoading: boolean;
+  isOffline: boolean;
   selectedCampus: 'All' | Campus;
   selectedCategory: string;
   selectedTradeMode: 'All' | TradeMode;
@@ -22,22 +22,25 @@ interface MarketContextType {
   setSortBy: (sort: 'recent' | 'price_low' | 'price_high' | 'trust_high' | 'views_high') => void;
   setPriceRange: (range: [number, number]) => void;
   filteredListings: Listing[];
-  addListing: (listingData: Omit<Listing, 'id' | 'createdAt' | 'views' | 'favoritesCount' | 'isSold'>) => Listing;
-  updateListing: (id: string, updates: Partial<Listing>) => void;
-  deleteListing: (id: string) => void;
+  addListing: (listingData: Omit<Listing, 'id' | 'createdAt' | 'views' | 'favoritesCount' | 'isSold'>) => Promise<Listing>;
+  updateListing: (id: string, updates: Partial<Listing>) => Promise<void>;
+  deleteListing: (id: string) => Promise<void>;
   toggleFavorite: (id: string) => void;
-  boostListing: (id: string) => void;
-  markAsSold: (id: string, isSold: boolean) => void;
+  boostListing: (id: string) => Promise<void>;
+  markAsSold: (id: string, isSold: boolean) => Promise<void>;
   incrementViews: (id: string) => void;
   clearFilters: () => void;
+  refreshListings: () => Promise<void>;
 }
 
 const MarketContext = createContext<MarketContextType | undefined>(undefined);
 
 export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [listings, setListings] = useLocalStorage<Listing[]>('tradelink_listings_v2', SEED_LISTINGS);
-  const [favorites, setFavorites] = useLocalStorage<string[]>('tradelink_favorites', ['list-1', 'list-2']);
-  
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isOffline, setIsOffline] = useState(false);
+
   // Filter States
   const [selectedCampus, setSelectedCampus] = useState<'All' | Campus>('All');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
@@ -46,7 +49,26 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'recent' | 'price_low' | 'price_high' | 'trust_high' | 'views_high'>('recent');
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 50000]);
-  const [isLoading] = useState(false);
+
+  // Fetch listings from backend on mount
+  const refreshListings = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const serverListings = await listingsService.getListings();
+      if (Array.isArray(serverListings)) {
+        setListings(serverListings);
+        setIsOffline(false);
+      }
+    } catch {
+      setIsOffline(true);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshListings();
+  }, [refreshListings]);
 
   const clearFilters = () => {
     setSelectedCampus('All');
@@ -68,10 +90,10 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         // Category filter
         if (selectedCategory !== 'All') {
           const matchCat = item.category.toLowerCase().includes(selectedCategory.toLowerCase());
-          const matchTag = item.tags?.some(t => t.toLowerCase().includes(selectedCategory.toLowerCase()));
+          const matchTag = item.tags?.some((t) => t.toLowerCase().includes(selectedCategory.toLowerCase()));
           if (!matchCat && !matchTag) return false;
         }
-        // Trade mode filter
+        // Trade Mode filter
         if (selectedTradeMode !== 'All' && item.tradeMode !== selectedTradeMode) {
           return false;
         }
@@ -79,21 +101,19 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (selectedCondition !== 'All' && item.condition !== selectedCondition) {
           return false;
         }
-        // Price range
+        // Price Range filter
         if (item.price < priceRange[0] || item.price > priceRange[1]) {
           return false;
         }
-        // Search Query
+        // Search Query filter
         if (searchQuery.trim()) {
-          const q = searchQuery.toLowerCase();
+          const q = searchQuery.toLowerCase().trim();
           const matchTitle = item.title.toLowerCase().includes(q);
           const matchDesc = item.description.toLowerCase().includes(q);
-          const matchCourse = item.courseCode?.toLowerCase().includes(q) || false;
           const matchSeller = item.sellerName.toLowerCase().includes(q);
-          const matchCategory = item.category.toLowerCase().includes(q);
-          const matchTags = item.tags?.some(t => t.toLowerCase().includes(q)) || false;
-          const matchCampus = item.sellerCampus.toLowerCase().includes(q);
-          if (!matchTitle && !matchDesc && !matchCourse && !matchSeller && !matchCategory && !matchTags && !matchCampus) {
+          const matchCourse = item.courseCode?.toLowerCase().includes(q);
+          const matchTag = item.tags?.some((t) => t.toLowerCase().includes(q));
+          if (!matchTitle && !matchDesc && !matchSeller && !matchCourse && !matchTag) {
             return false;
           }
         }
@@ -121,40 +141,29 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       });
   }, [listings, selectedCampus, selectedCategory, selectedTradeMode, selectedCondition, searchQuery, sortBy, priceRange]);
 
-  const addListing = (
+  const addListing = async (
     listingData: Omit<Listing, 'id' | 'createdAt' | 'views' | 'favoritesCount' | 'isSold'>
-  ): Listing => {
-    const newListing: Listing = {
-      ...listingData,
-      id: `list-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      views: 1,
-      favoritesCount: 0,
-      isSold: false
-    };
-
-    setListings((prev) => {
-      if (prev.some((l) => l.id === newListing.id)) return prev;
-      return [newListing, ...prev];
-    });
-    return newListing;
+  ): Promise<Listing> => {
+    const created = await listingsService.createListing(listingData);
+    setListings((prev) => [created, ...prev]);
+    return created;
   };
 
-  const updateListing = (id: string, updates: Partial<Listing>) => {
-    setListings((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, ...updates } : item))
-    );
+  const updateListing = async (id: string, updates: Partial<Listing>) => {
+    setListings((prev) => prev.map((item) => (item.id === id ? { ...item, ...updates } : item)));
+    await listingsService.updateListing(id, updates);
   };
 
-  const deleteListing = (id: string) => {
+  const deleteListing = async (id: string) => {
     setListings((prev) => prev.filter((item) => item.id !== id));
+    await listingsService.deleteListing(id);
   };
 
   const toggleFavorite = (id: string) => {
     setFavorites((prev) => {
       const exists = prev.includes(id);
       const updated = exists ? prev.filter((favId) => favId !== id) : [...prev, id];
-      
+
       setListings((prevListings) =>
         prevListings.map((l) =>
           l.id === id
@@ -162,27 +171,24 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             : l
         )
       );
-      
+
       return updated;
     });
   };
 
-  const boostListing = (id: string) => {
-    setListings((prev) =>
-      prev.map((l) => (l.id === id ? { ...l, isBoosted: true } : l))
-    );
+  const boostListing = async (id: string) => {
+    setListings((prev) => prev.map((l) => (l.id === id ? { ...l, isBoosted: true } : l)));
+    await listingsService.boostListing(id);
   };
 
-  const markAsSold = (id: string, isSold: boolean) => {
-    setListings((prev) =>
-      prev.map((l) => (l.id === id ? { ...l, isSold } : l))
-    );
+  const markAsSold = async (id: string, isSold: boolean) => {
+    setListings((prev) => prev.map((l) => (l.id === id ? { ...l, isSold } : l)));
+    await listingsService.markAsSold(id, isSold);
   };
 
   const incrementViews = (id: string) => {
-    setListings((prev) =>
-      prev.map((l) => (l.id === id ? { ...l, views: l.views + 1 } : l))
-    );
+    setListings((prev) => prev.map((l) => (l.id === id ? { ...l, views: l.views + 1 } : l)));
+    listingsService.incrementViews(id);
   };
 
   return (
@@ -191,6 +197,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         listings,
         favorites,
         isLoading,
+        isOffline,
         selectedCampus,
         selectedCategory,
         selectedTradeMode,
@@ -213,7 +220,8 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         boostListing,
         markAsSold,
         incrementViews,
-        clearFilters
+        clearFilters,
+        refreshListings
       }}
     >
       {children}

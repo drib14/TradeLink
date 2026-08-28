@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useMarket } from '../context/MarketContext';
 import { useWanted } from '../context/WantedContext';
 import { useChat } from '../context/ChatContext';
+import { useToast } from '../components/common/Toast';
 import { VerifiedBadge } from '../components/common/VerifiedBadge';
+import { UserAvatar } from '../components/common/UserAvatar';
 import { CampusBadge } from '../components/common/CampusBadge';
 import { ListingCard } from '../components/marketplace/ListingCard';
 import { Modal } from '../components/common/Modal';
-import { useToast } from '../components/common/Toast';
-import { SEED_REVIEWS } from '../data/seedData';
+import { reviewsService } from '../services/reviews.service';
+import { usersService } from '../services/users.service';
 import { DragDropUpload } from '../components/common/DragDropUpload';
 import { User, Listing, Review, WantedRequest, TradeMode, College } from '../types';
 import {
@@ -37,8 +39,14 @@ import {
   Settings,
   UserCheck,
   Save,
-  MapPin
+  MapPin,
+  ShieldAlert,
+  Link2,
+  Copy,
+  Camera
 } from 'lucide-react';
+import { StudentVerificationModal } from '../components/verification/StudentVerificationModal';
+import { encodeHashedId, maskStudentId } from '../utils/security';
 
 interface ProfilePageProps {
   userId?: string;
@@ -52,10 +60,21 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate }) 
   const { openChatWithSeller, meetups } = useChat();
   const { showToast } = useToast();
 
-  const targetUser = (userId ? allUsers.find((u: User) => u.id === userId) : null) || currentUser || allUsers[0];
-  const isSelf = !!currentUser && currentUser.id === targetUser.id;
+  const [fetchedUser, setFetchedUser] = useState<User | null>(null);
+  const [isCopiedLink, setIsCopiedLink] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<'listings' | 'sold' | 'saved' | 'transactions' | 'reviews' | 'wanted' | 'verify'>('listings');
+  useEffect(() => {
+    if (userId && (!currentUser || currentUser.id !== userId)) {
+      usersService.getProfile(userId).then((res) => {
+        if (res) setFetchedUser(res);
+      }).catch(() => {});
+    }
+  }, [userId, currentUser]);
+
+  const targetUser: User | null = (userId && currentUser?.id === userId ? currentUser : (fetchedUser || (userId ? allUsers.find((u: User) => u.id === userId) : null) || currentUser || allUsers[0] || null));
+  const isSelf = !!currentUser && !!targetUser && currentUser.id === targetUser.id;
+
+  const [activeTab, setActiveTab] = useState<'listings' | 'sold' | 'saved' | 'transactions' | 'reviews' | 'wanted'>('listings');
   const [listingFilter, setListingFilter] = useState<'all' | 'buy_sell' | 'swap' | 'free_donation'>('all');
   const [bioInput, setBioInput] = useState(targetUser?.bio || '');
   const [isEditingBio, setIsEditingBio] = useState(false);
@@ -69,16 +88,25 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate }) 
   const [editCollege, setEditCollege] = useState<College>(targetUser?.college || 'CCS');
   const [editYearLevel, setEditYearLevel] = useState(targetUser?.yearLevel || '2nd Year');
 
-  // Unverified verification form
-  const [studentIdInput, setStudentIdInput] = useState(targetUser?.studentId || '');
-  const [idPhotoPreview, setIdPhotoPreview] = useState<string>(
-    targetUser?.idPhotoUrl || 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80'
-  );
+  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
+  const [isPendingInfoModalOpen, setIsPendingInfoModalOpen] = useState(false);
+  const [userReviews, setUserReviews] = useState<Review[]>([]);
+
+  const isPendingVerification = !targetUser?.isVerified && (targetUser?.verificationStatus === 'pending' || !!targetUser?.idPhotoUrl);
+
+  React.useEffect(() => {
+    if (targetUser?.id) {
+      reviewsService.getReviewsForUser(targetUser.id).then((revs) => {
+        if (revs && revs.length > 0) {
+          setUserReviews(revs);
+        }
+      }).catch(() => {});
+    }
+  }, [targetUser?.id]);
 
   const userActiveListings = listings.filter((l: Listing) => l.sellerId === targetUser?.id && !l.isSold);
   const userSoldListings = listings.filter((l: Listing) => l.sellerId === targetUser?.id && l.isSold);
   const userSavedListings = listings.filter((l: Listing) => favorites.includes(l.id));
-  const userReviews = SEED_REVIEWS.filter((r: Review) => r.targetUserId === targetUser?.id);
   const userWanted = wantedRequests.filter((w: WantedRequest) => w.requesterId === targetUser?.id);
   const userMeetups = meetups.filter((m) => m.sellerId === targetUser?.id || m.buyerId === targetUser?.id);
 
@@ -103,7 +131,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate }) 
       yearLevel: editYearLevel
     });
     setIsEditProfileModalOpen(false);
-    showToast('Profile Updated! 🎉', 'Your profile details have been saved.', 'success');
+    showToast('Profile Updated', 'Your profile details have been saved.', 'success');
   };
 
   const handleStartChatWithUser = () => {
@@ -119,17 +147,24 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate }) 
     }
   };
 
-  const handleSubmitVerification = (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleanDigits = studentIdInput.replace(/\D/g, '');
-    if (cleanDigits.length < 6) {
-      showToast('Invalid ID', 'Student ID must be at least 6 digits without hyphens or letters.', 'warning');
-      return;
-    }
-    submitIdVerification(studentIdInput, idPhotoPreview);
-    showToast('ID Verification Submitted', 'Your student credentials have been sent to campus moderation for review.', 'success');
-    setActiveTab('listings');
-  };
+  if (!targetUser) {
+    return (
+      <div className="container page-enter" style={{ padding: '5rem 1.5rem', textAlign: 'center', maxWidth: '500px' }}>
+        <div className="clean-card" style={{ padding: '3rem 2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', color: 'var(--uc-blue, #002B7F)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Search size={24} />
+          </div>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary, #0F172A)' }}>Student Profile Not Found</h2>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted, #64748B)' }}>
+            The requested student account could not be found or has not registered yet.
+          </p>
+          <button onClick={() => onNavigate('marketplace')} className="btn-primary" style={{ marginTop: '0.5rem', padding: '0.55rem 1.25rem' }}>
+            Explore Marketplace
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container page-enter" style={{ maxWidth: '1080px', padding: '2rem 1.5rem 6rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
@@ -167,17 +202,13 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate }) 
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: '1.25rem' }}>
               <div style={{ position: 'relative' }}>
-                <img
+                <UserAvatar
                   src={targetUser.avatar}
-                  alt={targetUser.name}
+                  name={targetUser.name}
+                  size={90}
                   style={{
-                    width: '90px',
-                    height: '90px',
-                    borderRadius: '50%',
-                    objectFit: 'cover',
                     border: '4px solid var(--bg-surface, #FFFFFF)',
-                    boxShadow: '0 8px 20px rgba(0, 43, 127, 0.18)',
-                    backgroundColor: 'var(--bg-surface, #FFFFFF)'
+                    boxShadow: '0 8px 20px rgba(0, 43, 127, 0.18)'
                   }}
                 />
                 {targetUser.isVerified && (
@@ -200,7 +231,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate }) 
                 </div>
 
                 <div style={{ fontSize: '0.82rem', color: 'var(--text-muted, #64748B)', marginTop: '0.2rem', display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-                  <span style={{ color: 'var(--uc-blue, #002B7F)', fontWeight: 800 }}>ID: {targetUser.studentId}</span>
+                  <span style={{ color: 'var(--uc-blue, #002B7F)', fontWeight: 800 }}>ID: {maskStudentId(targetUser.studentId, isSelf)}</span>
                   <span>•</span>
                   <span>{targetUser.campus}</span>
                   <span>•</span>
@@ -252,13 +283,34 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate }) 
               )}
 
               {isSelf && !targetUser.isVerified && (
-                <button
-                  onClick={() => setActiveTab('verify')}
-                  className="btn-gold"
-                  style={{ padding: '0.6rem 1.2rem', fontSize: '0.82rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-                >
-                  <AlertCircle size={15} /> Verify Student ID
-                </button>
+                isPendingVerification ? (
+                  <button
+                    onClick={() => setIsPendingInfoModalOpen(true)}
+                    className="btn-secondary"
+                    style={{
+                      padding: '0.6rem 1.15rem',
+                      fontSize: '0.82rem',
+                      fontWeight: 800,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.45rem',
+                      backgroundColor: 'rgba(255, 199, 44, 0.15)',
+                      borderColor: 'rgba(229, 168, 0, 0.4)',
+                      color: '#B45309'
+                    }}
+                    title="Click to view submission status"
+                  >
+                    <Clock size={15} /> Verification Pending Review
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setIsVerificationModalOpen(true)}
+                    className="btn-gold"
+                    style={{ padding: '0.6rem 1.2rem', fontSize: '0.82rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                  >
+                    <AlertCircle size={15} /> Verify Student ID
+                  </button>
+                )
               )}
             </div>
           </div>
@@ -287,7 +339,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate }) 
             ) : (
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary, #334155)', lineHeight: 1.5 }}>
-                  {targetUser.bio || 'UC student active in campus textbook, uniform, and gear exchanges.'}
+                  {targetUser.bio || 'UC student active in campus marketplace exchanges.'}
                 </p>
                 {isSelf && (
                   <button
@@ -306,34 +358,34 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate }) 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem' }}>
             <div className="stat-card">
               <span className="stat-card-label">Campus Trust Score</span>
-              <div className="stat-card-value" style={{ color: (targetUser.trustScore || 80) >= 85 ? 'var(--accent-green)' : 'var(--uc-gold)' }}>
-                {targetUser.trustScore || 85}%
+              <div className="stat-card-value" style={{ color: Number(targetUser.trustScore ?? (targetUser.isVerified ? 90 : 60)) >= 85 ? 'var(--accent-green)' : 'var(--uc-gold)' }}>
+                {Number(targetUser.trustScore ?? (targetUser.isVerified ? 90 : 60))}%
               </div>
               <div className="progress-bar" style={{ marginTop: '0.25rem' }}>
-                <div className={`progress-bar-fill ${(targetUser.trustScore || 80) >= 85 ? 'green' : 'gold'}`} style={{ width: `${targetUser.trustScore || 85}%` }} />
+                <div className={`progress-bar-fill ${Number(targetUser.trustScore ?? (targetUser.isVerified ? 90 : 60)) >= 85 ? 'green' : 'gold'}`} style={{ width: `${Number(targetUser.trustScore ?? (targetUser.isVerified ? 90 : 60))}%` }} />
               </div>
             </div>
 
             <div className="stat-card">
               <span className="stat-card-label">Peer Rating</span>
-              <div className="stat-card-value">
-                {(targetUser.rating || 5.0).toFixed(1)} ★
+              <div className="stat-card-value" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                {(Number(targetUser.rating) || 5.0).toFixed(1)} <Star size={16} fill="var(--uc-gold, #FFC72C)" color="var(--uc-gold, #FFC72C)" />
               </div>
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{targetUser.totalReviews || userReviews.length} Student Reviews</span>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{Number(targetUser.totalReviews ?? userReviews.length)} Student Reviews</span>
             </div>
 
             <div className="stat-card">
               <span className="stat-card-label">Punctuality Rate</span>
               <div className="stat-card-value" style={{ color: 'var(--uc-blue)' }}>
-                {targetUser.punctualityRate || 98}%
+                {Number(targetUser.completedTrades || 0) > 0 ? `${Number(targetUser.punctualityRate || 100)}%` : '100%'}
               </div>
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>On-Time Meetups</span>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{Number(targetUser.completedTrades || 0) > 0 ? 'On-Time Meetups' : 'Standard Baseline'}</span>
             </div>
 
             <div className="stat-card">
               <span className="stat-card-label">Completed Trades</span>
               <div className="stat-card-value">
-                {targetUser.completedTrades || 15}
+                {Number(targetUser.completedTrades || 0)}
               </div>
               <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Verified Handshakes</span>
             </div>
@@ -406,7 +458,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate }) 
                 ID Number: <strong>{targetUser.studentId}</strong> • Enrolled at <strong>{targetUser.campus}</strong> ({targetUser.college})
               </p>
               <div style={{ fontSize: '0.72rem', color: 'var(--accent-green, #059669)', fontWeight: 700, marginTop: '0.15rem' }}>
-                ✓ Authenticated by Campus Safety Moderation Desk
+                Authenticated by Campus Safety Moderation Desk
               </div>
             </div>
           </div>
@@ -421,6 +473,77 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate }) 
             </button>
           )}
         </div>
+      )}
+
+      {/* Dynamic Verification Banner */}
+      {isSelf && !targetUser.isVerified && (
+        isPendingVerification ? (
+          <div
+            style={{
+              backgroundColor: 'rgba(0, 43, 127, 0.06)',
+              border: '1.5px solid rgba(0, 43, 127, 0.18)',
+              borderRadius: 'var(--radius-lg)',
+              padding: '1.25rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '1rem'
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <Clock size={18} color="var(--uc-blue)" />
+                <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--uc-blue)' }}>
+                  Verification Request In Progress
+                </h3>
+              </div>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem', margin: 0 }}>
+                Your student credentials and biometric live selfie have been submitted to campus administrators. Review is underway.
+              </p>
+            </div>
+            <button
+              onClick={() => setIsPendingInfoModalOpen(true)}
+              className="btn-secondary"
+              style={{ padding: '0.55rem 1.15rem', fontSize: '0.82rem', fontWeight: 800 }}
+            >
+              View Submission Status
+            </button>
+          </div>
+        ) : (
+          <div
+            style={{
+              backgroundColor: 'rgba(255, 199, 44, 0.12)',
+              border: '1.5px solid rgba(229, 168, 0, 0.35)',
+              borderRadius: 'var(--radius-lg)',
+              padding: '1.25rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '1rem'
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <ShieldAlert size={18} color="#B45309" />
+                <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--uc-blue)' }}>
+                  Account Status: Unverified Student
+                </h3>
+              </div>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem', margin: 0 }}>
+                Complete the 2-step verification (Student ID + Live Selfie) to unlock marketplace listing and barter privileges.
+              </p>
+            </div>
+            <button
+              onClick={() => setIsVerificationModalOpen(true)}
+              className="btn-gold"
+              style={{ padding: '0.55rem 1.15rem', fontSize: '0.82rem', fontWeight: 800 }}
+            >
+              Start Verification
+            </button>
+          </div>
+        )
       )}
 
       {/* 3. Navigation Tabs */}
@@ -481,16 +604,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate }) 
         >
           <Flame size={14} style={{ flexShrink: 0 }} /> <span>Wanted ({userWanted.length})</span>
         </button>
-
-        {isSelf && !targetUser.isVerified && (
-          <button
-            onClick={() => setActiveTab('verify')}
-            className={`segmented-tab ${activeTab === 'verify' ? 'active' : ''}`}
-            style={{ color: activeTab === 'verify' ? '#FFFFFF' : 'var(--accent-red)' }}
-          >
-            <AlertCircle size={14} style={{ flexShrink: 0 }} /> <span>Get ID Verified</span>
-          </button>
-        )}
       </div>
 
       {/* 4. TAB CONTENT */}
@@ -658,10 +771,10 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate }) 
               <div key={rev.id} className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                    <img
+                    <UserAvatar
                       src={rev.reviewerAvatar}
-                      alt={rev.reviewerName}
-                      style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }}
+                      name={rev.reviewerName}
+                      size="sm"
                     />
                     <div>
                       <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-primary)' }}>{rev.reviewerName}</div>
@@ -686,7 +799,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate }) 
                   <span>Item: <strong>{rev.itemTitle}</strong></span>
                   <span>•</span>
                   <span>Trade Type: <strong>{rev.tradeType}</strong></span>
-                  {rev.wasPunctual && <span style={{ color: 'var(--accent-green)', fontWeight: 700 }}>✓ Punctual Meetup</span>}
+                  {rev.wasPunctual && <span style={{ color: 'var(--accent-green)', fontWeight: 700 }}>• Punctual Meetup</span>}
                 </div>
               </div>
             ))
@@ -738,42 +851,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate }) 
         </div>
       )}
 
-      {/* TAB 7: GET ID VERIFIED */}
-      {activeTab === 'verify' && isSelf && !targetUser.isVerified && (
-        <div className="clean-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', maxWidth: '640px', margin: '0 auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'var(--accent-green-subtle)', color: 'var(--accent-green)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <ShieldCheck size={22} />
-            </div>
-            <div>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>Submit Student ID for Verification</h3>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Get the official green badge, increase trust score to 100%, and unlock priority listings.</p>
-            </div>
-          </div>
 
-          <form onSubmit={handleSubmitVerification} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div className="form-group">
-              <label className="form-label">Official UC Student ID Number</label>
-              <input
-                type="text"
-                value={studentIdInput}
-                onChange={(e) => setStudentIdInput(e.target.value.replace(/\D/g, ''))}
-                placeholder="e.g. 2023048912"
-                className="clean-input"
-                required
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="btn-primary"
-              style={{ padding: '0.65rem 1.25rem', fontSize: '0.84rem', fontWeight: 800, marginTop: '0.5rem', alignSelf: 'flex-start' }}
-            >
-              Submit for Verification
-            </button>
-          </form>
-        </div>
-      )}
 
       {/* FULL-SCREEN VERIFIED ID PHOTO VIEWER MODAL */}
       {inspectedIdImage && (
@@ -839,6 +917,261 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate }) 
           </div>
         </div>
       )}
+      {/* Student Verification 2-Step Modal */}
+      <StudentVerificationModal
+        isOpen={isVerificationModalOpen}
+        onClose={() => setIsVerificationModalOpen(false)}
+      />
+
+      {/* Verification In Progress Info Modal */}
+      <Modal
+        isOpen={isPendingInfoModalOpen}
+        onClose={() => setIsPendingInfoModalOpen(false)}
+        title="Verification Request In Progress"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem', alignItems: 'center', textAlign: 'center', padding: '0.5rem 0' }}>
+          <div style={{ width: '60px', height: '60px', borderRadius: '50%', backgroundColor: 'rgba(255, 199, 44, 0.2)', color: '#B45309', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Clock size={30} />
+          </div>
+
+          <div>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--uc-blue)' }}>
+              Under Moderator Review
+            </h3>
+            <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', marginTop: '0.35rem', lineHeight: 1.55 }}>
+              Your student credentials and live biometric selfie have been securely received. Our campus administration team is currently reviewing your submission for official University of Cebu validation.
+            </p>
+          </div>
+
+          <div style={{ width: '100%', backgroundColor: 'var(--bg-subtle, #F8FAFC)', borderRadius: '10px', padding: '0.9rem', border: '1px solid var(--border-subtle, #E2E8F0)', textAlign: 'left', fontSize: '0.82rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+            <div>Student Name: <strong>{targetUser?.name}</strong></div>
+            <div>Student ID: <strong>{maskStudentId(targetUser?.studentId, true)}</strong></div>
+            <div>Campus & College: <strong>{targetUser?.campus} • {targetUser?.college}</strong></div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#B45309', fontWeight: 700, marginTop: '0.2rem' }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#F59E0B' }} />
+              Status: Awaiting Administrator Approval
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.65rem', width: '100%' }}>
+            <button
+              type="button"
+              onClick={() => {
+                setIsPendingInfoModalOpen(false);
+                setIsVerificationModalOpen(true);
+              }}
+              className="btn-secondary"
+              style={{ flex: 1, padding: '0.65rem', fontSize: '0.82rem', fontWeight: 700 }}
+            >
+              Re-submit Documents
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsPendingInfoModalOpen(false)}
+              className="btn-primary"
+              style={{ flex: 1, padding: '0.65rem', fontSize: '0.82rem', fontWeight: 800 }}
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Edit Profile Modal */}
+      <Modal
+        isOpen={isEditProfileModalOpen}
+        onClose={() => setIsEditProfileModalOpen(false)}
+        title="Edit Student Profile"
+      >
+        <form onSubmit={handleSaveFullProfile} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {/* Avatar Preview */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem', backgroundColor: 'var(--bg-subtle, #F8FAFC)', borderRadius: '10px', border: '1px solid var(--border-subtle, #E2E8F0)' }}>
+            <UserAvatar src={editAvatar} name={editName || targetUser.name} size="lg" />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)' }}>Profile Photo Preview</div>
+              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                {editAvatar ? 'Custom photo provided' : 'Defaulting to your name initials on UC theme'}
+              </div>
+              {editAvatar && (
+                <button
+                  type="button"
+                  onClick={() => setEditAvatar('')}
+                  style={{
+                    marginTop: '0.35rem',
+                    fontSize: '0.72rem',
+                    color: 'var(--accent-red, #DC2626)',
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    cursor: 'pointer',
+                    fontWeight: 700
+                  }}
+                >
+                  Clear Photo & Use Name Initials
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
+              Full Name *
+            </label>
+            <input
+              type="text"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              className="clean-input"
+              required
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
+              Student Bio
+            </label>
+            <textarea
+              value={editBio}
+              onChange={(e) => setEditBio(e.target.value)}
+              rows={3}
+              placeholder="Tell fellow students what courses, books, or gear you trade..."
+              className="clean-input"
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.4rem' }}>
+              Profile Photo (Media Upload)
+            </label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+              <label
+                className="btn-secondary"
+                style={{
+                  padding: '0.55rem 1rem',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  borderRadius: '10px'
+                }}
+              >
+                <Camera size={15} />
+                <span>{editAvatar ? 'Change Photo' : 'Upload Image File'}</span>
+                <input
+                  type="file"
+                  accept="image/png, image/jpeg, image/webp"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      if (file.size > 8 * 1024 * 1024) {
+                        showToast('File Too Large', 'Please select an image smaller than 8MB.', 'warning');
+                        return;
+                      }
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        if (typeof reader.result === 'string') {
+                          setEditAvatar(reader.result);
+                        }
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                />
+              </label>
+
+              {editAvatar && (
+                <button
+                  type="button"
+                  onClick={() => setEditAvatar('')}
+                  className="btn-ghost"
+                  style={{
+                    padding: '0.55rem 0.85rem',
+                    fontSize: '0.8rem',
+                    color: 'var(--accent-red, #DC2626)',
+                    fontWeight: 700
+                  }}
+                >
+                  Clear Photo & Use Name Initials
+                </button>
+              )}
+            </div>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
+              Supports PNG, JPG, or WEBP. If no photo is selected, your UC student initials will be displayed dynamically.
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
+                Department / College
+              </label>
+              <select
+                value={editCollege}
+                onChange={(e: any) => setEditCollege(e.target.value)}
+                className="clean-input"
+              >
+                <option value="CCS">CCS (Computer Studies)</option>
+                <option value="CBA">CBA (Business & Accountancy)</option>
+                <option value="Engineering">Engineering</option>
+                <option value="Nursing">Nursing</option>
+                <option value="Maritime">Maritime</option>
+                <option value="Criminology">Criminology</option>
+                <option value="Arts & Sciences">Arts & Sciences</option>
+                <option value="Education">Education</option>
+                <option value="Hospitality & Tourism">Hospitality & Tourism</option>
+                <option value="Medicine">Medicine</option>
+                <option value="Law">Law</option>
+                <option value="Senior High (STEM)">Senior High (STEM)</option>
+                <option value="Senior High (ABM)">Senior High (ABM)</option>
+                <option value="Senior High (HUMSS)">Senior High (HUMSS)</option>
+                <option value="Senior High (TVL/GAS)">Senior High (TVL/GAS)</option>
+                <option value="Junior High School">Junior High School</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
+                Year Level
+              </label>
+              <select
+                value={editYearLevel}
+                onChange={(e) => setEditYearLevel(e.target.value)}
+                className="clean-input"
+              >
+                <option value="1st Year College">1st Year College</option>
+                <option value="2nd Year College">2nd Year College</option>
+                <option value="3rd Year College">3rd Year College</option>
+                <option value="4th Year College">4th Year College</option>
+                <option value="5th Year College">5th Year College</option>
+                <option value="Grade 11 (Senior High)">Grade 11 (Senior High)</option>
+                <option value="Grade 12 (Senior High)">Grade 12 (Senior High)</option>
+                <option value="Junior High">Junior High</option>
+              </select>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+            <button
+              type="button"
+              onClick={() => setIsEditProfileModalOpen(false)}
+              className="btn-secondary"
+              style={{ padding: '0.55rem 1.15rem' }}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="btn-primary"
+              style={{ padding: '0.55rem 1.35rem' }}
+            >
+              <Save size={15} /> Save Changes
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };
