@@ -55,6 +55,7 @@ exports.up = async function(knex) {
     table.enu('condition', [
       'Brand New', 'Like New', 'Gently Used', 'Fair / Academic Usable'
     ]).notNullable().defaultTo('Gently Used');
+    table.integer('quantity').unsigned().notNullable().defaultTo(1);
     table.string('seller_id', 36).notNullable().references('id').inTable('users').onDelete('CASCADE');
     table.json('preferred_meetup_spots').nullable();
     table.string('custom_meetup_spot', 200).nullable();

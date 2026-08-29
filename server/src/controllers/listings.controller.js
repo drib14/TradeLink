@@ -181,6 +181,7 @@ const createListing = asyncHandler(async (req, res, next) => {
     swapPreference,
     category,
     condition,
+    quantity = 1,
     tags = [],
     images = [],
     preferredMeetupSpots = [],
@@ -202,6 +203,7 @@ const createListing = asyncHandler(async (req, res, next) => {
     }
   }
 
+  const parsedQty = Math.max(1, parseInt(quantity, 10) || 1);
   const listingId = `list_${uuidv4()}`;
   const newListing = {
     id: listingId,
@@ -213,6 +215,7 @@ const createListing = asyncHandler(async (req, res, next) => {
     swap_preference: swapPreference ? swapPreference.trim() : null,
     category,
     condition,
+    quantity: parsedQty,
     seller_id: req.user.id,
     preferred_meetup_spots: JSON.stringify(preferredMeetupSpots),
     custom_meetup_spot: customMeetupSpot ? customMeetupSpot.trim() : null,
@@ -246,7 +249,7 @@ const createListing = asyncHandler(async (req, res, next) => {
     }
   });
 
-  const created = await db('listings')
+  const createdListing = await db('listings')
     .where('listings.id', listingId)
     .join('users as seller', 'listings.seller_id', 'seller.id')
     .select(
@@ -262,9 +265,9 @@ const createListing = asyncHandler(async (req, res, next) => {
 
   res.status(201).json({
     status: 'success',
-    message: 'Listing published to UC marketplace successfully.',
+    message: 'Listing created successfully.',
     data: {
-      listing: serializeListing(created, images, tags)
+      listing: serializeListing(createdListing, images, tags)
     }
   });
 });
@@ -294,6 +297,11 @@ const updateListing = asyncHandler(async (req, res, next) => {
   if (req.body.swapPreference !== undefined) updates.swap_preference = req.body.swapPreference;
   if (req.body.category) updates.category = req.body.category;
   if (req.body.condition) updates.condition = req.body.condition;
+  if (req.body.quantity !== undefined) {
+    const qty = Math.max(0, parseInt(req.body.quantity, 10) || 0);
+    updates.quantity = qty;
+    if (qty === 0) updates.is_sold = true;
+  }
   if (req.body.isSold !== undefined) updates.is_sold = req.body.isSold;
   if (req.body.isBoosted !== undefined) updates.is_boosted = req.body.isBoosted;
   if (req.body.customMeetupSpot !== undefined) updates.custom_meetup_spot = req.body.customMeetupSpot;
@@ -350,31 +358,30 @@ const boostListing = asyncHandler(async (req, res, next) => {
 
   res.status(200).json({
     status: 'success',
-    message: 'Listing boosted to the top of the campus feed!'
+    message: 'Listing boosted successfully.'
   });
 });
 
 /**
- * Mark a listing as sold or active
+ * Mark a listing as sold / out of stock
  */
 const markAsSold = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
-  const { isSold = true } = req.body;
-
   const listing = await db('listings').where({ id }).first();
+
   if (!listing) {
     return next(new AppError('Listing not found.', 404));
   }
 
   if (listing.seller_id !== req.user.id && req.user.role !== 'admin') {
-    return next(new AppError('Unauthorized.', 403));
+    return next(new AppError('You are not authorized to modify this listing.', 403));
   }
 
-  await db('listings').where({ id }).update({ is_sold: isSold });
+  await db('listings').where({ id }).update({ is_sold: true, quantity: 0 });
 
   res.status(200).json({
     status: 'success',
-    message: isSold ? 'Listing marked as sold.' : 'Listing restored to active.'
+    message: 'Listing marked as sold.'
   });
 });
 

@@ -82,6 +82,7 @@ CREATE TABLE `listings` (
     'Gently Used',
     'Fair / Academic Usable'
   ) NOT NULL DEFAULT 'Gently Used',
+  `quantity` INT UNSIGNED NOT NULL DEFAULT 1,
   `seller_id` VARCHAR(36) NOT NULL,
   `preferred_meetup_spots` JSON DEFAULT NULL,
   `custom_meetup_spot` VARCHAR(200) DEFAULT NULL,

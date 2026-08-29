@@ -67,6 +67,7 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
   }
 
   const isOwner = !!currentUser && currentUser.id === listing.sellerId;
+  const isSoldOut = Boolean(listing.isSold || (listing.quantity !== undefined && listing.quantity <= 0));
   const similarItems = listings
     .filter((l: Listing) => l.id !== listing.id && (l.category === listing.category || l.sellerCampus === listing.sellerCampus))
     .slice(0, 4);
@@ -180,6 +181,39 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
               alt={listing.title}
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
+
+            {/* Sold Out Dark Overlay */}
+            {isSoldOut && (
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  backgroundColor: 'rgba(15, 23, 42, 0.6)',
+                  backdropFilter: 'blur(2px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 4
+                }}
+              >
+                <span
+                  style={{
+                    backgroundColor: '#DC2626',
+                    color: '#FFFFFF',
+                    padding: '0.45rem 1.25rem',
+                    borderRadius: '24px',
+                    fontWeight: 900,
+                    fontSize: '0.9rem',
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                    boxShadow: '0 4px 14px rgba(0, 0, 0, 0.35)',
+                    border: '2px solid rgba(255, 255, 255, 0.5)'
+                  }}
+                >
+                  Sold Out
+                </span>
+              </div>
+            )}
 
             {/* Mode Tag */}
             {listing.tradeMode === 'swap' ? (
@@ -341,7 +375,7 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
             style={{
               padding: '1.15rem',
               display: 'flex',
-              alignItems: 'baseline',
+              alignItems: 'center',
               justifyContent: 'space-between',
               backgroundColor: 'var(--bg-subtle, #F8FAFC)'
             }}
@@ -362,11 +396,23 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
               </div>
             </div>
 
-            {listing.originalSrp > listing.price && (
-              <span className="badge-pill badge-green" style={{ fontSize: '0.82rem', padding: '0.3rem 0.75rem' }}>
-                Save {Math.round(((listing.originalSrp - listing.price) / listing.originalSrp) * 100)}%
-              </span>
-            )}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.35rem' }}>
+              {isSoldOut ? (
+                <span className="badge-pill" style={{ backgroundColor: '#FEE2E2', color: '#991B1B', border: '1px solid #FCA5A5', fontWeight: 800, fontSize: '0.8rem', padding: '0.3rem 0.75rem' }}>
+                  Out of Stock / Sold Out
+                </span>
+              ) : listing.quantity !== undefined ? (
+                <span className="badge-pill badge-blue" style={{ fontSize: '0.8rem', padding: '0.25rem 0.65rem' }}>
+                  Stock: {listing.quantity} {listing.quantity === 1 ? 'unit' : 'units'} available
+                </span>
+              ) : null}
+
+              {listing.originalSrp > listing.price && !isSoldOut && (
+                <span className="badge-pill badge-green" style={{ fontSize: '0.82rem', padding: '0.3rem 0.75rem' }}>
+                  Save {Math.round(((listing.originalSrp - listing.price) / listing.originalSrp) * 100)}%
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Custom Meetup Spot Callout */}
@@ -414,59 +460,86 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
           <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', paddingTop: '0.5rem' }}>
             {!isOwner ? (
               <>
-                {/* 1. Primary Action: Buy Now */}
-                <button
-                  onClick={handleBuyClick}
-                  className="btn-gold"
-                  style={{
-                    flex: 1,
-                    minWidth: '160px',
-                    padding: '0.75rem 1.25rem',
-                    fontSize: '0.92rem',
-                    fontWeight: 800,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.45rem'
-                  }}
-                >
-                  <Zap size={17} style={{ flexShrink: 0 }} />
-                  <span>{listing.tradeMode === 'free_donation' ? 'Claim for Free' : 'Buy Now'}</span>
-                </button>
+                {isSoldOut ? (
+                  <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                    <div style={{ padding: '0.75rem', borderRadius: '8px', backgroundColor: '#FEE2E2', border: '1px solid #FCA5A5', color: '#991B1B', textAlign: 'center', fontSize: '0.86rem', fontWeight: 700 }}>
+                      This item is currently out of stock or marked as sold.
+                    </div>
+                    <button
+                      onClick={handleContactSeller}
+                      className="btn-primary"
+                      style={{
+                        padding: '0.75rem 1.25rem',
+                        fontSize: '0.88rem',
+                        fontWeight: 700,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.45rem',
+                        width: '100%'
+                      }}
+                    >
+                      <MessageSquare size={16} style={{ flexShrink: 0 }} />
+                      <span>Chat with Seller for Restock Inquiries</span>
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    {/* 1. Primary Action: Buy Now */}
+                    <button
+                      onClick={handleBuyClick}
+                      className="btn-gold"
+                      style={{
+                        flex: 1,
+                        minWidth: '160px',
+                        padding: '0.75rem 1.25rem',
+                        fontSize: '0.92rem',
+                        fontWeight: 800,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.45rem'
+                      }}
+                    >
+                      <Zap size={17} style={{ flexShrink: 0 }} />
+                      <span>{listing.tradeMode === 'free_donation' ? 'Claim for Free' : 'Buy Now'}</span>
+                    </button>
 
-                {/* 2. Swap Button */}
-                <button
-                  onClick={handleSwapClick}
-                  className="btn-secondary"
-                  style={{
-                    padding: '0.75rem 1.25rem',
-                    fontSize: '0.88rem',
-                    fontWeight: 700,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.45rem'
-                  }}
-                >
-                  <ArrowLeftRight size={15} style={{ flexShrink: 0 }} />
-                  <span>Propose Swap</span>
-                </button>
+                    {/* 2. Swap Button */}
+                    <button
+                      onClick={handleSwapClick}
+                      className="btn-secondary"
+                      style={{
+                        padding: '0.75rem 1.25rem',
+                        fontSize: '0.88rem',
+                        fontWeight: 700,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.45rem'
+                      }}
+                    >
+                      <ArrowLeftRight size={15} style={{ flexShrink: 0 }} />
+                      <span>Propose Swap</span>
+                    </button>
 
-                {/* 3. Contact Seller Chat */}
-                <button
-                  onClick={handleContactSeller}
-                  className="btn-primary"
-                  style={{
-                    padding: '0.75rem 1.25rem',
-                    fontSize: '0.88rem',
-                    fontWeight: 700,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.45rem'
-                  }}
-                >
-                  <MessageSquare size={16} style={{ flexShrink: 0 }} />
-                  <span>Chat</span>
-                </button>
+                    {/* 3. Contact Seller Chat */}
+                    <button
+                      onClick={handleContactSeller}
+                      className="btn-primary"
+                      style={{
+                        padding: '0.75rem 1.25rem',
+                        fontSize: '0.88rem',
+                        fontWeight: 700,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.45rem'
+                      }}
+                    >
+                      <MessageSquare size={16} style={{ flexShrink: 0 }} />
+                      <span>Chat</span>
+                    </button>
+                  </>
+                )}
               </>
             ) : (
               <div style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', backgroundColor: 'var(--bg-subtle)', textAlign: 'center', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-muted)' }}>

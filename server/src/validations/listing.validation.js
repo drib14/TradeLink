@@ -16,6 +16,7 @@ const createListingSchema = Joi.object({
   swapPreference: Joi.string().trim().max(300).allow('', null),
   category: Joi.string().trim().min(2).max(100).required(),
   condition: Joi.string().valid(...CONDITIONS).required(),
+  quantity: Joi.number().integer().min(1).max(9999).default(1),
   tags: Joi.array().items(Joi.string().trim().max(50)).default([]),
   images: Joi.array().items(Joi.string().uri()).min(1).required().messages({
     'array.min': 'At least one listing photo is required.'
@@ -34,6 +35,7 @@ const updateListingSchema = Joi.object({
   swapPreference: Joi.string().trim().max(300).allow('', null),
   category: Joi.string().trim().min(2).max(100),
   condition: Joi.string().valid(...CONDITIONS),
+  quantity: Joi.number().integer().min(0).max(9999),
   tags: Joi.array().items(Joi.string().trim().max(50)),
   images: Joi.array().items(Joi.string().uri()).min(1),
   preferredMeetupSpots: Joi.array().items(Joi.string().trim().max(200)),

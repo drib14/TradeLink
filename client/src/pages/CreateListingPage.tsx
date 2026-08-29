@@ -39,6 +39,7 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
   const [price, setPrice] = useState<number>(0);
   const [originalSrp, setOriginalSrp] = useState<number>(0);
   const [condition, setCondition] = useState<ConditionGrade>('Gently Used');
+  const [quantity, setQuantity] = useState<number>(1);
   const [swapPreference, setSwapPreference] = useState('');
   const [isBoosted] = useState(false);
   const [images, setImages] = useState<string[]>([]);
@@ -194,6 +195,7 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
         price: tradeMode === 'free_donation' ? 0 : price,
         originalSrp: tradeMode === 'free_donation' ? 0 : price,
         condition,
+        quantity: Math.max(1, quantity),
         tradeMode,
         swapPreference: tradeMode === 'swap' ? swapPreference.trim() : undefined,
         images,
@@ -318,6 +320,79 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
                   );
                 })}
               </div>
+            </div>
+          </div>
+
+          {/* Quantity / Units Available */}
+          <div>
+            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+              Quantity Available *
+            </label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', border: '1px solid var(--border-subtle, #CBD5E1)', borderRadius: '8px', overflow: 'hidden', backgroundColor: 'var(--bg-surface, #FFFFFF)' }}>
+                <button
+                  type="button"
+                  onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
+                  style={{
+                    width: '36px',
+                    height: '38px',
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    color: 'var(--text-primary, #0F172A)',
+                    fontSize: '1.1rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                  aria-label="Decrease quantity"
+                >
+                  −
+                </button>
+                <input
+                  type="number"
+                  min="1"
+                  max="999"
+                  value={quantity}
+                  onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                  style={{
+                    width: '54px',
+                    height: '38px',
+                    border: 'none',
+                    borderLeft: '1px solid var(--border-subtle, #E2E8F0)',
+                    borderRight: '1px solid var(--border-subtle, #E2E8F0)',
+                    textAlign: 'center',
+                    fontWeight: 800,
+                    fontSize: '0.92rem',
+                    color: 'var(--uc-blue, #002B7F)',
+                    backgroundColor: 'transparent'
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setQuantity((prev) => prev + 1)}
+                  style={{
+                    width: '36px',
+                    height: '38px',
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    color: 'var(--text-primary, #0F172A)',
+                    fontSize: '1.1rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                  aria-label="Increase quantity"
+                >
+                  +
+                </button>
+              </div>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted, #64748B)' }}>
+                {quantity === 1 ? '1 unit listed (will mark Sold Out when traded)' : `${quantity} units available`}
+              </span>
             </div>
           </div>
 

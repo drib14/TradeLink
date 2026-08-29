@@ -25,6 +25,9 @@ function serializeListing(row, images = [], tags = []) {
     preferredSpots = row.preferredMeetupSpots;
   }
 
+  const isSoldExplicit = row.is_sold !== undefined ? Boolean(row.is_sold) : (row.isSold !== undefined ? Boolean(row.isSold) : false);
+  const isOutOfStock = row.quantity !== undefined && row.quantity !== null && Number(row.quantity) <= 0;
+
   return {
     id: row.id,
     title: row.title,
@@ -35,6 +38,7 @@ function serializeListing(row, images = [], tags = []) {
     swapPreference: row.swap_preference || row.swapPreference || null,
     category: row.category,
     condition: row.condition,
+    quantity: Number(row.quantity !== undefined && row.quantity !== null ? row.quantity : 1),
     tags: resolvedTags,
     images: resolvedImages,
     sellerId: row.seller_id || row.sellerId,
@@ -47,7 +51,7 @@ function serializeListing(row, images = [], tags = []) {
     preferredMeetupSpots: preferredSpots,
     customMeetupSpot: row.custom_meetup_spot || row.customMeetupSpot || null,
     isBoosted: Boolean(row.is_boosted ?? row.isBoosted),
-    isSold: Boolean(row.is_sold ?? row.isSold),
+    isSold: isSoldExplicit || isOutOfStock,
     courseCode: row.course_code || row.courseCode || null,
     views: Number(row.views || 0),
     favoritesCount: Number(row.favorites_count ?? row.favoritesCount ?? 0),

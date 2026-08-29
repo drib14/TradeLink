@@ -128,6 +128,7 @@ export interface Listing {
   customMeetupSpot?: string;
   isBoosted?: boolean;
   isSold?: boolean;
+  quantity?: number;
   courseCode?: string;
   createdAt: string;
   views: number;

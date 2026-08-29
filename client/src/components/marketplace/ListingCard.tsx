@@ -52,6 +52,8 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
     }
   };
 
+  const isSoldOut = Boolean(listing.isSold || (listing.quantity !== undefined && listing.quantity <= 0));
+
   const savingsPct =
     listing.originalSrp && listing.price < listing.originalSrp
       ? Math.round(((listing.originalSrp - listing.price) / listing.originalSrp) * 100)
@@ -76,7 +78,8 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
           boxShadow: isHovered
             ? '0 16px 32px -4px rgba(0, 43, 127, 0.12), 0 4px 12px rgba(0, 0, 0, 0.04)'
             : '0 2px 8px -2px rgba(0, 43, 127, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03)',
-          transition: 'all 0.22s cubic-bezier(0.16, 1, 0.3, 1)'
+          transition: 'all 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+          opacity: isSoldOut ? 0.85 : 1
         }}
       >
         {/* Bookmark Favorite Button */}
@@ -109,31 +112,71 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
         {/* Image Container with Zoom Effect */}
         <div
           style={{
-            width: '100%',
-            height: 'clamp(145px, 16vw, 205px)',
             position: 'relative',
+            width: '100%',
+            paddingTop: '68%',
             overflow: 'hidden',
-            backgroundColor: 'var(--bg-subtle, #F1F5F9)',
+            backgroundColor: 'var(--bg-subtle, #F8FAFC)',
             borderTopLeftRadius: '13px',
             borderTopRightRadius: '13px'
           }}
         >
-          {listing.images && listing.images.length > 0 && listing.images[0] && listing.images[0].trim() !== '' ? (
+          {/* Sold Out Dark Overlay Badge */}
+          {isSoldOut && (
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                backgroundColor: 'rgba(15, 23, 42, 0.55)',
+                backdropFilter: 'blur(1.5px)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 5
+              }}
+            >
+              <span
+                style={{
+                  backgroundColor: '#DC2626',
+                  color: '#FFFFFF',
+                  padding: '0.3rem 0.8rem',
+                  borderRadius: '20px',
+                  fontWeight: 900,
+                  fontSize: '0.74rem',
+                  letterSpacing: '0.06em',
+                  textTransform: 'uppercase',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                  border: '1.5px solid rgba(255, 255, 255, 0.4)'
+                }}
+              >
+                Sold Out
+              </span>
+            </div>
+          )}
+
+          {listing.images && listing.images.length > 0 && listing.images[0] ? (
             <img
               src={listing.images[0]}
               alt={listing.title}
               loading="lazy"
               style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
                 width: '100%',
                 height: '100%',
                 objectFit: 'cover',
                 transform: isHovered ? 'scale(1.06)' : 'scale(1)',
-                transition: 'transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)'
+                transition: 'transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
+                filter: isSoldOut ? 'grayscale(0.65)' : 'none'
               }}
             />
           ) : (
             <div
               style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
                 width: '100%',
                 height: '100%',
                 display: 'flex',
@@ -194,7 +237,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
           ) : null}
 
           {/* Boosted Indicator */}
-          {listing.isBoosted && (
+          {listing.isBoosted && !isSoldOut && (
             <div
               style={{
                 position: 'absolute',
@@ -282,40 +325,70 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
             )}
           </div>
 
+          {/* Low Stock Indicator */}
+          {listing.quantity !== undefined && !isSoldOut && listing.quantity <= 3 && (
+            <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#EA580C', marginTop: '0.1rem' }}>
+              Only {listing.quantity} {listing.quantity === 1 ? 'item' : 'items'} left!
+            </div>
+          )}
+
           {/* Direct Action Button */}
           <div style={{ paddingTop: '0.45rem', marginTop: '0.25rem' }}>
-            <button
-              onClick={handleActionClick}
-              className={listing.tradeMode === 'swap' ? 'btn-secondary' : 'btn-primary'}
-              style={{
-                width: '100%',
-                padding: '0.5rem 0.75rem',
-                fontSize: '0.82rem',
-                fontWeight: 800,
-                borderRadius: '8px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.4rem'
-              }}
-            >
-              {listing.tradeMode === 'swap' ? (
-                <>
-                  <ArrowLeftRight size={13} style={{ flexShrink: 0 }} />
-                  <span>Propose Swap</span>
-                </>
-              ) : listing.tradeMode === 'free_donation' ? (
-                <>
-                  <Gift size={13} style={{ flexShrink: 0 }} />
-                  <span>Claim Free</span>
-                </>
-              ) : (
-                <>
-                  <ShoppingBag size={13} style={{ flexShrink: 0 }} />
-                  <span>Buy Now</span>
-                </>
-              )}
-            </button>
+            {isSoldOut ? (
+              <button
+                disabled
+                style={{
+                  width: '100%',
+                  padding: '0.5rem 0.75rem',
+                  fontSize: '0.82rem',
+                  fontWeight: 800,
+                  borderRadius: '8px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.4rem',
+                  backgroundColor: 'var(--bg-subtle, #F1F5F9)',
+                  color: 'var(--text-muted, #94A3B8)',
+                  border: '1px solid var(--border-subtle, #E2E8F0)',
+                  cursor: 'not-allowed'
+                }}
+              >
+                <span>Sold Out</span>
+              </button>
+            ) : (
+              <button
+                onClick={handleActionClick}
+                className={listing.tradeMode === 'swap' ? 'btn-secondary' : 'btn-primary'}
+                style={{
+                  width: '100%',
+                  padding: '0.5rem 0.75rem',
+                  fontSize: '0.82rem',
+                  fontWeight: 800,
+                  borderRadius: '8px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.4rem'
+                }}
+              >
+                {listing.tradeMode === 'swap' ? (
+                  <>
+                    <ArrowLeftRight size={13} style={{ flexShrink: 0 }} />
+                    <span>Propose Swap</span>
+                  </>
+                ) : listing.tradeMode === 'free_donation' ? (
+                  <>
+                    <Gift size={13} style={{ flexShrink: 0 }} />
+                    <span>Claim Free</span>
+                  </>
+                ) : (
+                  <>
+                    <ShoppingBag size={13} style={{ flexShrink: 0 }} />
+                    <span>Buy Now</span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
 
           {/* Seller Footer Info */}
