@@ -45,7 +45,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenAuth,
   onOpenVerification
 }) => {
-  const { currentUser, isAuthenticated, isAdmin, isSuperAdmin, logout } = useAuth();
+  const { currentUser, isAuthenticated, isAdmin, logout } = useAuth();
   const { selectedCampus, setSelectedCampus, searchQuery, setSearchQuery, favorites } = useMarket();
   const { unreadTotal, swaps, meetups } = useChat();
   const { showToast } = useToast();
@@ -689,8 +689,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <span>Settings & Privacy</span>
                   </button>
 
-                  {/* 5. Admin / SuperAdmin Link */}
-                  {(isAdmin || isSuperAdmin) && (
+                  {/* 5. Admin Link */}
+                  {isAdmin && (
                     <button
                       onClick={() => {
                         setIsUserMenuOpen(false);
@@ -700,7 +700,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       style={{ backgroundColor: 'var(--uc-blue-subtle)', color: 'var(--uc-blue)', fontWeight: 700 }}
                     >
                       <Shield size={15} style={{ flexShrink: 0 }} />
-                      <span>{isSuperAdmin ? 'SuperAdmin Center' : 'Campus Admin Portal'}</span>
+                      <span>Campus Admin Portal</span>
                     </button>
                   )}
 

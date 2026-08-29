@@ -1,6 +1,6 @@
 import React from 'react';
 import { useMarket } from '../../context/MarketContext';
-import { RotateCcw, SlidersHorizontal, ArrowUpDown } from 'lucide-react';
+import { RotateCcw } from 'lucide-react';
 
 export const FilterBar: React.FC = () => {
   const {

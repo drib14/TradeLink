@@ -90,11 +90,17 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
             gap: '0.75rem'
           }}
         >
-          <img
-            src={targetListing.images[0]}
-            alt={targetListing.title}
-            style={{ width: '46px', height: '46px', borderRadius: '8px', objectFit: 'cover' }}
-          />
+          {targetListing.images && targetListing.images.length > 0 && targetListing.images[0] && targetListing.images[0].trim() !== '' ? (
+            <img
+              src={targetListing.images[0]}
+              alt={targetListing.title}
+              style={{ width: '46px', height: '46px', borderRadius: '8px', objectFit: 'cover' }}
+            />
+          ) : (
+            <div style={{ width: '46px', height: '46px', borderRadius: '8px', backgroundColor: 'var(--bg-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+              <ArrowLeftRight size={20} />
+            </div>
+          )}
           <div style={{ flex: 1 }}>
             <h5 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>{targetListing.title}</h5>
             <p style={{ fontSize: '0.74rem', color: 'var(--uc-blue)', marginTop: '2px' }}>

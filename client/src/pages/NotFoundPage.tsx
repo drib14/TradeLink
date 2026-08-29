@@ -1,5 +1,5 @@
 import React from 'react';
-import { Compass, Search, Home, ArrowLeft } from 'lucide-react';
+import { Compass, Search, Home } from 'lucide-react';
 import { useMarket } from '../context/MarketContext';
 import { Campus } from '../types';
 

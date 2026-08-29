@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useMarket } from '../context/MarketContext';
 import { ListingCard } from '../components/marketplace/ListingCard';
 import { Listing } from '../types';
-import { Bookmark, SearchX, RotateCcw, ArrowRight, Trash2 } from 'lucide-react';
+import { Bookmark, ArrowRight, Trash2 } from 'lucide-react';
 
 interface FavoritesPageProps {
   onNavigate: (view: string, param?: any) => void;

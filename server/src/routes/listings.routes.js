@@ -3,6 +3,7 @@ const router = express.Router();
 const listingsController = require('../controllers/listings.controller');
 const { authenticate } = require('../middleware/auth');
 const { requireVerified } = require('../middleware/rbac');
+const decodeParams = require('../middleware/decodeParams');
 const validate = require('../middleware/validate');
 const {
   createListingSchema,
@@ -11,6 +12,8 @@ const {
   reportListingSchema
 } = require('../validations/listing.validation');
 const { createListingLimiter } = require('../middleware/rateLimiter');
+
+decodeParams.bindRouter(router);
 
 router.get('/', validate(queryListingsSchema, 'query'), listingsController.getListings);
 router.get('/:id', listingsController.getListingById);

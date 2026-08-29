@@ -57,7 +57,7 @@ export const adminService = {
     await api.patch(`/admin/flags/${id}/resolve`, { action });
   },
 
-  async removeListingByAdmin(id: string, reason: string): Promise<void> {
+  async removeListingByAdmin(id: string, _reason?: string): Promise<void> {
     await api.delete(`/admin/flags/${id}/remove`);
   },
 

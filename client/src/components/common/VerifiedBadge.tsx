@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShieldCheck, Check } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 
 interface VerifiedBadgeProps {
   size?: 'xs' | 'sm' | 'md' | 'lg';

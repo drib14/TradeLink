@@ -1,14 +1,20 @@
 const db = require('../config/db');
 const logger = require('../utils/logger');
+const { createMessage } = require('../services/message.service');
 
 module.exports = (io, socket) => {
   const userId = socket.user.id;
+
+  // Socket rate limiting state (30 messages per minute)
+  const messageTimestamps = [];
+  const MAX_MESSAGES_PER_MINUTE = 30;
 
   /**
    * Join a private conversation room
    */
   socket.on('chat:join', async ({ conversationId }) => {
     try {
+      if (!conversationId) return;
       const conv = await db('conversations').where({ id: conversationId }).first();
       if (!conv) return;
 
@@ -26,7 +32,9 @@ module.exports = (io, socket) => {
    * Leave a conversation room
    */
   socket.on('chat:leave', ({ conversationId }) => {
-    socket.leave(`conv:${conversationId}`);
+    if (conversationId) {
+      socket.leave(`conv:${conversationId}`);
+    }
   });
 
   /**
@@ -34,56 +42,40 @@ module.exports = (io, socket) => {
    */
   socket.on('chat:message', async (data) => {
     try {
-      const { conversationId, receiverId, content, isSystemMessage = false, swapOfferId } = data;
-      if (!conversationId || !content || !content.trim()) return;
+      const now = Date.now();
+      // Remove timestamps older than 60 seconds
+      while (messageTimestamps.length > 0 && messageTimestamps[0] < now - 60000) {
+        messageTimestamps.shift();
+      }
 
-      const conv = await db('conversations').where({ id: conversationId }).first();
-      if (!conv) return;
-
-      if (conv.participant_a !== userId && conv.participant_b !== userId) {
+      if (messageTimestamps.length >= MAX_MESSAGES_PER_MINUTE) {
+        socket.emit('chat:error', { message: 'Rate limit exceeded. Please slow down.' });
         return;
       }
 
-      const msgId = `msg-${Date.now()}`;
-      const newMsg = {
-        id: msgId,
-        conversation_id: conversationId,
-        sender_id: userId,
-        receiver_id: receiverId,
-        content: content.trim(),
-        is_system_message: isSystemMessage,
-        swap_offer_id: swapOfferId || null
-      };
+      const { conversationId, receiverId, content, isSystemMessage = false, swapOfferId } = data;
+      if (!conversationId || !content || !content.trim()) return;
 
-      await db.transaction(async (trx) => {
-        await trx('messages').insert(newMsg);
-        await trx('conversations').where({ id: conversationId }).update({
-          last_message: content.trim(),
-          last_message_at: new Date()
-        });
-        await trx.raw(
-          `INSERT INTO conversation_read_status (conversation_id, user_id, unread_count)
-           VALUES (?, ?, 1)
-           ON DUPLICATE KEY UPDATE unread_count = unread_count + 1`,
-          [conversationId, receiverId]
-        );
-      });
+      if (content.length > 2000) {
+        socket.emit('chat:error', { message: 'Message exceeds maximum length of 2000 characters.' });
+        return;
+      }
 
-      const messagePayload = {
-        id: msgId,
+      messageTimestamps.push(now);
+
+      const messagePayload = await createMessage({
         conversationId,
         senderId: userId,
         receiverId,
-        content: content.trim(),
-        timestamp: new Date().toISOString(),
+        content,
         isSystemMessage,
         swapOfferId
-      };
+      });
 
       // Emit to everyone in the conversation room
       io.to(`conv:${conversationId}`).emit('chat:message', messagePayload);
 
-      // Emit notification to receiver's personal user room if not currently inside chat room
+      // Emit notification to receiver's personal user room
       io.to(`user:${receiverId}`).emit('notification:new', {
         title: `Message from ${socket.user.name}`,
         message: content.trim(),
@@ -92,6 +84,7 @@ module.exports = (io, socket) => {
       });
     } catch (err) {
       logger.error('Error in chat:message handler:', err);
+      socket.emit('chat:error', { message: err.message || 'Failed to send message.' });
     }
   });
 
@@ -99,12 +92,14 @@ module.exports = (io, socket) => {
    * Typing indicator
    */
   socket.on('chat:typing', ({ conversationId, isTyping }) => {
-    socket.to(`conv:${conversationId}`).emit('chat:typing', {
-      conversationId,
-      userId,
-      userName: socket.user.name,
-      isTyping
-    });
+    if (conversationId) {
+      socket.to(`conv:${conversationId}`).emit('chat:typing', {
+        conversationId,
+        userId,
+        userName: socket.user.name,
+        isTyping: Boolean(isTyping)
+      });
+    }
   });
 
   /**
@@ -112,6 +107,8 @@ module.exports = (io, socket) => {
    */
   socket.on('chat:read', async ({ conversationId }) => {
     try {
+      if (!conversationId) return;
+
       await db('conversation_read_status')
         .insert({
           conversation_id: conversationId,

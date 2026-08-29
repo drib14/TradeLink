@@ -16,6 +16,9 @@ import { useMarket } from '../../context/MarketContext';
 import { useAuth } from '../../context/AuthContext';
 import { VerifiedBadge } from '../../components/VerifiedBadge';
 
+import { mobileListingsService } from '../../services/listings.service';
+import { Listing } from '../../types';
+
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function ItemDetailScreen() {
@@ -25,10 +28,23 @@ export default function ItemDetailScreen() {
   const { currentUser } = useAuth();
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [asyncListing, setAsyncListing] = useState<Listing | null>(null);
+  const [loadingItem, setLoadingItem] = useState(false);
 
-  const listing = listings.find((l) => l.id === id);
+  const listing = listings.find((l) => l.id === id) || asyncListing;
 
-  if (!listing) {
+  useEffect(() => {
+    if (!listings.find((l) => l.id === id) && id) {
+      setLoadingItem(true);
+      mobileListingsService
+        .getListingById(id)
+        .then((data) => setAsyncListing(data))
+        .catch(() => setAsyncListing(null))
+        .finally(() => setLoadingItem(false));
+    }
+  }, [id, listings]);
+
+  if (!listing && !loadingItem) {
     return (
       <SafeAreaView style={styles.notFoundContainer}>
         <Ionicons name="alert-circle-outline" size={56} color="#DC2626" />
@@ -37,6 +53,14 @@ export default function ItemDetailScreen() {
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Text style={styles.backBtnText}>Return to Catalog</Text>
         </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
+  if (!listing && loadingItem) {
+    return (
+      <SafeAreaView style={styles.notFoundContainer}>
+        <Text style={styles.notFoundSub}>Loading listing details...</Text>
       </SafeAreaView>
     );
   }

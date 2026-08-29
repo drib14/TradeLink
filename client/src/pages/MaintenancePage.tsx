@@ -1,6 +1,5 @@
 import React from 'react';
-import { Wrench, Clock, ShieldCheck, Home, ArrowLeft } from 'lucide-react';
-import { Logo } from '../components/common/Logo';
+import { Wrench, Clock, ShieldCheck, Home } from 'lucide-react';
 
 interface MaintenancePageProps {
   onNavigate: (view: string, param?: any) => void;

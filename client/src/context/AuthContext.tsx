@@ -9,7 +9,6 @@ interface AuthContextType {
   allUsers: User[];
   isAuthenticated: boolean;
   isAdmin: boolean;
-  isSuperAdmin: boolean;
   isOffline: boolean;
   isLoading: boolean;
   login: (emailOrStudentId: string, password?: string) => Promise<{ success: boolean; message: string }>;
@@ -36,8 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   const isAuthenticated = !!currentUser;
-  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'superadmin';
-  const isSuperAdmin = currentUser?.role === 'superadmin';
+  const isAdmin = currentUser?.role === 'admin';
 
   // Restore session on mount
   useEffect(() => {
@@ -252,7 +250,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         allUsers: users,
         isAuthenticated,
         isAdmin,
-        isSuperAdmin,
         isOffline,
         isLoading,
         login,

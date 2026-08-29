@@ -1,37 +1,14 @@
+const { v4: uuidv4 } = require('uuid');
 const db = require('../config/db');
 const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
+const { serializeListing } = require('../serializers/listingSerializer');
 
-// Helper to format listing with images and tags
-function formatListing(row, images = [], tags = []) {
-  return {
-    id: row.id,
-    title: row.title,
-    description: row.description,
-    price: parseFloat(row.price),
-    originalSrp: parseFloat(row.original_srp),
-    tradeMode: row.trade_mode,
-    swapPreference: row.swap_preference,
-    category: row.category,
-    tags: tags.length > 0 ? tags : (row.tags ? (typeof row.tags === 'string' ? row.tags.split(',') : row.tags) : []),
-    condition: row.condition,
-    images: images.length > 0 ? images : (row.images ? (typeof row.images === 'string' ? row.images.split(',') : row.images) : []),
-    sellerId: row.seller_id,
-    sellerName: row.seller_name,
-    sellerAvatar: row.seller_avatar,
-    sellerCampus: row.seller_campus,
-    sellerCollege: row.seller_college,
-    sellerIsVerified: Boolean(row.seller_is_verified),
-    sellerTrustScore: row.seller_trust_score,
-    preferredMeetupSpots: row.preferred_meetup_spots ? (typeof row.preferred_meetup_spots === 'string' ? JSON.parse(row.preferred_meetup_spots) : row.preferred_meetup_spots) : [],
-    customMeetupSpot: row.custom_meetup_spot,
-    isBoosted: Boolean(row.is_boosted),
-    isSold: Boolean(row.is_sold),
-    courseCode: row.course_code,
-    createdAt: row.created_at,
-    views: row.views,
-    favoritesCount: row.favorites_count
-  };
+/**
+ * Escapes special wildcard characters for SQL LIKE statements
+ */
+function escapeLike(str) {
+  return str.replace(/[%_]/g, '\\$&');
 }
 
 /**
@@ -51,6 +28,11 @@ const getListings = asyncHandler(async (req, res) => {
     limit = 24
   } = req.query;
 
+  const parsedPage = Math.max(1, parseInt(page, 10) || 1);
+  const parsedLimit = Math.min(50, Math.max(1, parseInt(limit, 10) || 24));
+  const parsedMin = Math.max(0, parseFloat(priceMin) || 0);
+  const parsedMax = Math.min(1000000, parseFloat(priceMax) || 100000);
+
   let query = db('listings')
     .join('users as seller', 'listings.seller_id', 'seller.id')
     .select(
@@ -69,9 +51,10 @@ const getListings = asyncHandler(async (req, res) => {
     query = query.where('seller.campus', campus);
   }
 
-  // Filter: Category
+  // Filter: Category (safe like)
   if (category && category !== 'All') {
-    query = query.where('listings.category', 'like', `%${category}%`);
+    const escapedCat = escapeLike(category.trim());
+    query = query.where('listings.category', 'like', `%${escapedCat}%`);
   }
 
   // Filter: Trade Mode
@@ -85,11 +68,12 @@ const getListings = asyncHandler(async (req, res) => {
   }
 
   // Filter: Price range
-  query = query.whereBetween('listings.price', [priceMin, priceMax]);
+  query = query.whereBetween('listings.price', [parsedMin, parsedMax]);
 
-  // Search keyword across title, description, category, course_code, seller name
+  // Search keyword across title, description, category, course_code, seller name with escaped wildcards
   if (search && search.trim()) {
-    const q = `%${search.trim().toLowerCase()}%`;
+    const cleanSearch = escapeLike(search.trim());
+    const q = `%${cleanSearch}%`;
     query = query.where((builder) => {
       builder
         .whereILike('listings.title', q)
@@ -114,26 +98,30 @@ const getListings = asyncHandler(async (req, res) => {
   }
 
   // Pagination
-  const offset = (page - 1) * limit;
-  const listings = await query.limit(limit).offset(offset);
+  const offset = (parsedPage - 1) * parsedLimit;
+  const listings = await query.limit(parsedLimit).offset(offset);
 
-  // Fetch images and tags for these listings
+  // Fetch images and tags for returned listings with single bulk queries
   const listingIds = listings.map((l) => l.id);
-  const images = listingIds.length > 0 ? await db('listing_images').whereIn('listing_id', listingIds).orderBy('sort_order', 'asc') : [];
-  const tags = listingIds.length > 0 ? await db('listing_tags').whereIn('listing_id', listingIds) : [];
+  const images = listingIds.length > 0
+    ? await db('listing_images').whereIn('listing_id', listingIds).orderBy('sort_order', 'asc')
+    : [];
+  const tags = listingIds.length > 0
+    ? await db('listing_tags').whereIn('listing_id', listingIds)
+    : [];
 
   const formatted = listings.map((l) => {
     const lImages = images.filter((img) => img.listing_id === l.id).map((img) => img.image_url);
     const lTags = tags.filter((t) => t.listing_id === l.id).map((t) => t.tag);
-    return formatListing(l, lImages, lTags);
+    return serializeListing(l, lImages, lTags);
   });
 
   res.status(200).json({
     status: 'success',
     data: {
       listings: formatted,
-      page: Number(page),
-      limit: Number(limit)
+      page: parsedPage,
+      limit: parsedLimit
     }
   });
 });
@@ -162,7 +150,7 @@ const getListingById = asyncHandler(async (req, res, next) => {
     return next(new AppError('Listing not found.', 404));
   }
 
-  // Increment view counter
+  // Increment view counter safely
   await db('listings').where({ id }).increment('views', 1);
 
   const images = await db('listing_images').where({ listing_id: id }).orderBy('sort_order', 'asc');
@@ -171,7 +159,7 @@ const getListingById = asyncHandler(async (req, res, next) => {
   res.status(200).json({
     status: 'success',
     data: {
-      listing: formatListing(
+      listing: serializeListing(
         listing,
         images.map((i) => i.image_url),
         tags.map((t) => t.tag)
@@ -207,14 +195,14 @@ const createListing = asyncHandler(async (req, res, next) => {
     if (lowerText.includes(item.keyword.toLowerCase())) {
       return next(
         new AppError(
-          `Listing contains prohibited word: "${item.keyword}". Trading of restricted items or academic dishonesty material is not allowed.`,
+          `Listing contains prohibited keyword: "${item.keyword}". Restricted items or academic dishonesty materials are not permitted.`,
           400
         )
       );
     }
   }
 
-  const listingId = `list-${Date.now()}`;
+  const listingId = `list_${uuidv4()}`;
   const newListing = {
     id: listingId,
     title: title.trim(),
@@ -240,7 +228,7 @@ const createListing = asyncHandler(async (req, res, next) => {
 
     if (images.length > 0) {
       const imgRows = images.map((url, index) => ({
-        id: `img-${Date.now()}-${index}`,
+        id: `img_${uuidv4()}`,
         listing_id: listingId,
         image_url: url,
         sort_order: index
@@ -249,8 +237,8 @@ const createListing = asyncHandler(async (req, res, next) => {
     }
 
     if (tags.length > 0) {
-      const tagRows = tags.map((t, index) => ({
-        id: `tag-${Date.now()}-${index}`,
+      const tagRows = tags.map((t) => ({
+        id: `tag_${uuidv4()}`,
         listing_id: listingId,
         tag: t.trim()
       }));
@@ -276,7 +264,7 @@ const createListing = asyncHandler(async (req, res, next) => {
     status: 'success',
     message: 'Listing published to UC marketplace successfully.',
     data: {
-      listing: formatListing(created, images, tags)
+      listing: serializeListing(created, images, tags)
     }
   });
 });
@@ -292,8 +280,8 @@ const updateListing = asyncHandler(async (req, res, next) => {
     return next(new AppError('Listing not found.', 404));
   }
 
-  // Ensure owner or admin
-  if (listing.seller_id !== req.user.id && !['admin', 'superadmin'].includes(req.user.role)) {
+  // Ensure owner or admin (superadmin removed)
+  if (listing.seller_id !== req.user.id && req.user.role !== 'admin') {
     return next(new AppError('You are not authorized to edit this listing.', 403));
   }
 
@@ -331,7 +319,7 @@ const deleteListing = asyncHandler(async (req, res, next) => {
     return next(new AppError('Listing not found.', 404));
   }
 
-  if (listing.seller_id !== req.user.id && !['admin', 'superadmin'].includes(req.user.role)) {
+  if (listing.seller_id !== req.user.id && req.user.role !== 'admin') {
     return next(new AppError('You are not authorized to delete this listing.', 403));
   }
 
@@ -354,7 +342,7 @@ const boostListing = asyncHandler(async (req, res, next) => {
     return next(new AppError('Listing not found.', 404));
   }
 
-  if (listing.seller_id !== req.user.id && !['admin', 'superadmin'].includes(req.user.role)) {
+  if (listing.seller_id !== req.user.id && req.user.role !== 'admin') {
     return next(new AppError('You are not authorized to boost this listing.', 403));
   }
 
@@ -378,7 +366,7 @@ const markAsSold = asyncHandler(async (req, res, next) => {
     return next(new AppError('Listing not found.', 404));
   }
 
-  if (listing.seller_id !== req.user.id && !['admin', 'superadmin'].includes(req.user.role)) {
+  if (listing.seller_id !== req.user.id && req.user.role !== 'admin') {
     return next(new AppError('Unauthorized.', 403));
   }
 
@@ -403,7 +391,7 @@ const reportListing = asyncHandler(async (req, res, next) => {
   }
 
   await db('flagged_listings').insert({
-    id: `flag-${Date.now()}`,
+    id: `flag_${uuidv4()}`,
     listing_id: id,
     reporter_id: req.user.id,
     reason: reason.trim(),

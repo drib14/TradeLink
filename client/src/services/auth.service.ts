@@ -1,5 +1,5 @@
 // Auth service — all authentication API calls
-import { api, setAccessToken, type ApiResponse } from './api';
+import { api, setAccessToken } from './api';
 import type { User, Campus, College } from '../types';
 
 export interface LoginResponse {

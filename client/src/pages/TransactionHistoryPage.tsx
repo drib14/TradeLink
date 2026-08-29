@@ -1,20 +1,16 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useChat } from '../context/ChatContext';
-import { MeetupTransaction, SwapOffer } from '../types';
+import { MeetupTransaction } from '../types';
 import {
   Receipt,
   ShoppingBag,
   ArrowLeftRight,
   Gift,
-  Clock,
   CheckCircle2,
-  XCircle,
   MapPin,
   Calendar,
-  Search,
-  Filter,
-  Download
+  Search
 } from 'lucide-react';
 
 interface TransactionHistoryPageProps {
@@ -25,21 +21,13 @@ type TxnFilter = 'all' | 'bought' | 'sold' | 'swapped';
 
 export const TransactionHistoryPage: React.FC<TransactionHistoryPageProps> = ({ onNavigate }) => {
   const { currentUser } = useAuth();
-  const { meetups, swaps } = useChat();
+  const { meetups } = useChat();
   const [filter, setFilter] = useState<TxnFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   const myMeetups = currentUser
     ? meetups.filter(
         (m: MeetupTransaction) => m.sellerId === currentUser.id || m.buyerId === currentUser.id
-      )
-    : [];
-
-  const mySwaps = currentUser
-    ? swaps.filter(
-        (s: SwapOffer) =>
-          (s.targetSellerId === currentUser.id || s.offererId === currentUser.id) &&
-          s.status === 'completed'
       )
     : [];
 
@@ -170,7 +158,13 @@ export const TransactionHistoryPage: React.FC<TransactionHistoryPageProps> = ({ 
               >
                 {/* Item Image */}
                 <div style={{ width: '64px', height: '64px', borderRadius: 'var(--radius-md)', overflow: 'hidden', flexShrink: 0, backgroundColor: 'var(--bg-subtle)' }}>
-                  <img src={meetup.listingImage} alt={meetup.listingTitle} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  {meetup.listingImage && meetup.listingImage.trim() !== '' ? (
+                    <img src={meetup.listingImage} alt={meetup.listingTitle} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+                      <ShoppingBag size={24} />
+                    </div>
+                  )}
                 </div>
 
                 {/* Details */}

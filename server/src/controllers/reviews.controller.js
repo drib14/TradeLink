@@ -1,3 +1,4 @@
+const { v4: uuidv4 } = require('uuid');
 const db = require('../config/db');
 const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
@@ -43,7 +44,7 @@ const createReview = asyncHandler(async (req, res, next) => {
     return next(new AppError('You have already submitted a review for this trade.', 409));
   }
 
-  const reviewId = `rev-${Date.now()}`;
+  const reviewId = `rev_${uuidv4()}`;
 
   await db.transaction(async (trx) => {
     await trx('reviews').insert({
@@ -59,8 +60,8 @@ const createReview = asyncHandler(async (req, res, next) => {
     });
 
     if (traitBadges.length > 0) {
-      const badgeRows = traitBadges.map((badge, idx) => ({
-        id: `rb-${Date.now()}-${idx}`,
+      const badgeRows = traitBadges.map((badge) => ({
+        id: `rb_${uuidv4()}`,
         review_id: reviewId,
         badge: badge.trim()
       }));

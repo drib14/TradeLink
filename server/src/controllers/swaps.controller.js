@@ -1,6 +1,8 @@
+const { v4: uuidv4 } = require('uuid');
 const db = require('../config/db');
 const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
+const { serializeSwap } = require('../serializers');
 
 /**
  * Get all swap offers involving current user (as offerer or target seller)
@@ -24,7 +26,7 @@ const getSwaps = asyncHandler(async (req, res) => {
     )
     .orderBy('swap_offers.created_at', 'desc');
 
-  // Fetch target listing image
+  // Fetch listing images in a single batch query
   const targetIds = swaps.map((s) => s.target_listing_id);
   const offeredIds = swaps.map((s) => s.offered_listing_id).filter(Boolean);
   const allIds = [...new Set([...targetIds, ...offeredIds])];
@@ -33,27 +35,11 @@ const getSwaps = asyncHandler(async (req, res) => {
     ? await db('listing_images').whereIn('listing_id', allIds).where('sort_order', 0)
     : [];
 
-  const formatted = swaps.map((s) => ({
-    id: s.id,
-    targetListingId: s.target_listing_id,
-    targetListingTitle: s.target_listing_title,
-    targetListingImage: images.find((i) => i.listing_id === s.target_listing_id)?.image_url || '',
-    targetSellerId: s.target_seller_id,
-    targetSellerName: s.target_seller_name,
-    offererId: s.offerer_id,
-    offererName: s.offerer_name,
-    offererAvatar: s.offerer_avatar,
-    offererCampus: s.offerer_campus,
-    offeredListingId: s.offered_listing_id,
-    offeredListingTitle: s.offered_listing_title,
-    offeredListingImage: images.find((i) => i.listing_id === s.offered_listing_id)?.image_url || '',
-    offeredDescription: s.offered_description,
-    cashTopUp: parseFloat(s.cash_top_up),
-    status: s.status,
-    proposedMeetupSpot: s.proposed_meetup_spot,
-    proposedDateTime: s.proposed_datetime,
-    createdAt: s.created_at
-  }));
+  const formatted = swaps.map((s) => {
+    const targetImg = images.find((i) => i.listing_id === s.target_listing_id)?.image_url || '';
+    const offeredImg = images.find((i) => i.listing_id === s.offered_listing_id)?.image_url || '';
+    return serializeSwap(s, targetImg, offeredImg);
+  });
 
   res.status(200).json({
     status: 'success',
@@ -85,7 +71,7 @@ const proposeSwap = asyncHandler(async (req, res, next) => {
     return next(new AppError('You cannot propose a swap on your own listing.', 400));
   }
 
-  const swapId = `swap-${Date.now()}`;
+  const swapId = `swap_${uuidv4()}`;
   const newSwap = {
     id: swapId,
     target_listing_id: targetListingId,
@@ -103,7 +89,7 @@ const proposeSwap = asyncHandler(async (req, res, next) => {
 
   // Send system notification to seller
   await db('notifications').insert({
-    id: `notif-${Date.now()}`,
+    id: `notif_${uuidv4()}`,
     user_id: targetListing.seller_id,
     title: 'New Swap Proposal',
     message: `${req.user.name} sent a swap proposal for your "${targetListing.title}".`,
@@ -116,7 +102,7 @@ const proposeSwap = asyncHandler(async (req, res, next) => {
     status: 'success',
     message: 'Swap proposal sent to seller!',
     data: {
-      swap: newSwap
+      swap: serializeSwap(newSwap)
     }
   });
 });
@@ -133,7 +119,7 @@ const respondToSwap = asyncHandler(async (req, res, next) => {
     return next(new AppError('Swap offer not found.', 404));
   }
 
-  if (swap.target_seller_id !== req.user.id) {
+  if (swap.target_seller_id !== req.user.id && req.user.role !== 'admin') {
     return next(new AppError('You are not authorized to respond to this swap proposal.', 403));
   }
 
@@ -141,7 +127,7 @@ const respondToSwap = asyncHandler(async (req, res, next) => {
 
   // Send notification to offerer
   await db('notifications').insert({
-    id: `notif-${Date.now()}`,
+    id: `notif_${uuidv4()}`,
     user_id: swap.offerer_id,
     title: status === 'accepted' ? 'Swap Proposal Accepted!' : 'Swap Offer Declined',
     message: status === 'accepted'

@@ -9,7 +9,6 @@ import {
   MapPin,
   Clock,
   Mail,
-  Building2,
   ExternalLink
 } from 'lucide-react';
 import { CAMPUS_DETAILS, SAFE_MEETUP_CHECKLIST } from '../data/campusLocations';

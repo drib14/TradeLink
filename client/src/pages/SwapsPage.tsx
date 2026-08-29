@@ -13,7 +13,8 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  MessageSquare
+  MessageSquare,
+  ShoppingBag
 } from 'lucide-react';
 
 interface SwapsPageProps {
@@ -203,11 +204,17 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({ onNavigate, onOpenChat }) 
                   >
                     {/* Target Item */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <img
-                        src={swap.targetListingImage}
-                        alt=""
-                        style={{ width: '52px', height: '52px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0, border: '1px solid var(--border-subtle)' }}
-                      />
+                      {swap.targetListingImage && swap.targetListingImage.trim() !== '' ? (
+                        <img
+                          src={swap.targetListingImage}
+                          alt=""
+                          style={{ width: '52px', height: '52px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0, border: '1px solid var(--border-subtle)' }}
+                        />
+                      ) : (
+                        <div style={{ width: '52px', height: '52px', borderRadius: '8px', backgroundColor: 'var(--bg-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', flexShrink: 0 }}>
+                          <ShoppingBag size={20} />
+                        </div>
+                      )}
                       <div>
                         <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                           {swap.targetListingTitle}
@@ -225,12 +232,16 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({ onNavigate, onOpenChat }) 
 
                     {/* Offered Item */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      {swap.offeredListingImage && (
+                      {swap.offeredListingImage && swap.offeredListingImage.trim() !== '' ? (
                         <img
                           src={swap.offeredListingImage}
                           alt=""
                           style={{ width: '52px', height: '52px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0, border: '1px solid var(--border-subtle)' }}
                         />
+                      ) : (
+                        <div style={{ width: '52px', height: '52px', borderRadius: '8px', backgroundColor: 'var(--bg-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', flexShrink: 0 }}>
+                          <ArrowLeftRight size={20} />
+                        </div>
                       )}
                       <div>
                         <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)' }}>

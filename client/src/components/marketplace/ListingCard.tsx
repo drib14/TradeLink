@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Listing } from '../../types';
 import { VerifiedBadge } from '../common/VerifiedBadge';
+import { UserAvatar } from '../common/UserAvatar';
 import { useMarket } from '../../context/MarketContext';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../common/Toast';
@@ -117,7 +118,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
             borderTopRightRadius: '13px'
           }}
         >
-          {listing.images && listing.images[0] ? (
+          {listing.images && listing.images.length > 0 && listing.images[0] && listing.images[0].trim() !== '' ? (
             <img
               src={listing.images[0]}
               alt={listing.title}
@@ -329,10 +330,10 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
             }}
           >
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
-              <img
+              <UserAvatar
                 src={listing.sellerAvatar}
-                alt={listing.sellerName}
-                style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border-subtle, #E2E8F0)', flexShrink: 0 }}
+                name={listing.sellerName}
+                size={20}
               />
               <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary, #475569)', fontWeight: 600 }}>
                 {listing.sellerName.split(' ')[0]}

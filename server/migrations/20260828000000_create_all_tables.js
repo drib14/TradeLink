@@ -10,7 +10,7 @@ exports.up = async function(knex) {
     table.string('email', 150).notNullable().unique();
     table.string('student_id', 20).notNullable().unique();
     table.string('password_hash', 255).notNullable();
-    table.enu('role', ['student', 'admin', 'superadmin']).notNullable().defaultTo('student');
+    table.enu('role', ['student', 'admin']).notNullable().defaultTo('student');
     table.enu('campus', [
       'UC Main', 'UC Banilad', 'UC LM', 'UC METC',
       'UC Pardo-Talisay', 'UC South Campus', 'UC Medical Center', 'UC PRI'
@@ -166,7 +166,6 @@ exports.up = async function(knex) {
     table.string('landmark_spot', 200).notNullable();
     table.string('scheduled_datetime', 100).notNullable();
     table.string('verification_code_hash', 255).notNullable();
-    table.string('plain_verification_code', 10).notNullable();
     table.enu('status', ['scheduled', 'on_the_way', 'completed', 'cancelled']).notNullable().defaultTo('scheduled');
     table.text('notes').nullable();
     table.dateTime('completed_at').nullable();

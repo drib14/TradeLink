@@ -17,25 +17,7 @@ import { useRouter } from 'expo-router';
 import { useMarket } from '../../context/MarketContext';
 import { useAuth } from '../../context/AuthContext';
 import { Campus, College, ConditionGrade, TradeMode } from '../../types';
-import { CATEGORIES } from '../../data/seedData';
-
-const CONDITIONS: ConditionGrade[] = [
-  'Brand New',
-  'Like New',
-  'Gently Used',
-  'Fair / Academic Usable',
-];
-
-const CAMPUSES: Campus[] = [
-  'UC Main',
-  'UC Banilad',
-  'UC LM',
-  'UC METC',
-  'UC PRI',
-  'UC South Campus',
-  'UC Pardo-Talisay',
-  'UC Medical Center',
-];
+import { CATEGORIES, CONDITIONS, CAMPUSES } from '../../constants';
 
 export default function CreateListingScreen() {
   const router = useRouter();

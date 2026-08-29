@@ -1,15 +1,5 @@
 const Joi = require('joi');
-
-const CAMPUSES = [
-  'UC Main',
-  'UC Banilad',
-  'UC LM',
-  'UC METC',
-  'UC Pardo-Talisay',
-  'UC South Campus',
-  'UC Medical Center',
-  'UC PRI'
-];
+const { CAMPUSES } = require('../config/constants');
 
 const registerSchema = Joi.object({
   name: Joi.string().trim().min(2).max(100).required().messages({
@@ -20,7 +10,8 @@ const registerSchema = Joi.object({
     'string.pattern.base': 'Student ID must contain between 6 and 20 digits with no hyphens or letters.',
     'string.empty': 'Student ID is required.'
   }),
-  email: Joi.string().trim().email().required().messages({
+  email: Joi.string().trim().email().pattern(/^.+@(uc\.edu\.ph|alumni\.uc\.edu\.ph)$/i).required().messages({
+    'string.pattern.base': 'Must use official University of Cebu email (@uc.edu.ph).',
     'string.email': 'Please provide a valid email address.',
     'string.empty': 'Email is required.'
   }),

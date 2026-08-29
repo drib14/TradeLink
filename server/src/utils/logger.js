@@ -58,8 +58,17 @@ const sanitizeData = (data) => {
 
 // Winston custom format to redact sensitive fields & strip emojis
 const redactSensitiveFormat = winston.format((info) => {
-  const sanitized = sanitizeData(info);
-  return sanitized;
+  for (const key of Object.keys(info)) {
+    const lowerKey = key.toLowerCase();
+    if (SENSITIVE_KEYS.has(lowerKey)) {
+      info[key] = '[REDACTED]';
+    } else if (typeof info[key] === 'string') {
+      info[key] = stripEmojis(info[key]);
+    } else if (typeof info[key] === 'object' && info[key] !== null) {
+      info[key] = sanitizeData(info[key]);
+    }
+  }
+  return info;
 });
 
 const logger = winston.createLogger({
@@ -68,8 +77,7 @@ const logger = winston.createLogger({
     redactSensitiveFormat(),
     winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
     winston.format.errors({ stack: true }),
-    winston.format.splat(),
-    winston.format.json()
+    winston.format.splat()
   ),
   defaultMeta: { service: 'tradelink-backend' },
   transports: [

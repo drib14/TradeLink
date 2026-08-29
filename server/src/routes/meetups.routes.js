@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const meetupsController = require('../controllers/meetups.controller');
 const { authenticate } = require('../middleware/auth');
+const decodeParams = require('../middleware/decodeParams');
 const validate = require('../middleware/validate');
 const {
   scheduleMeetupSchema,
@@ -9,6 +10,7 @@ const {
   updateMeetupStatusSchema
 } = require('../validations/meetup.validation');
 
+decodeParams.bindRouter(router);
 router.use(authenticate);
 
 router.get('/', meetupsController.getMeetups);

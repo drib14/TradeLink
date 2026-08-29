@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useChat } from '../../context/ChatContext';
 import { useToast } from '../common/Toast';
 import { VerifiedBadge } from '../common/VerifiedBadge';
+import { UserAvatar } from '../common/UserAvatar';
 import { CAMPUS_MEETUP_SPOTS, CAMPUS_DETAILS } from '../../data/campusLocations';
 import {
   X,
@@ -143,7 +144,7 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
                 alignItems: 'center'
               }}
             >
-              {listing.images && listing.images[0] ? (
+              {listing.images && listing.images.length > 0 && listing.images[0] && listing.images[0].trim() !== '' ? (
                 <img
                   src={listing.images[0]}
                   alt={listing.title}
@@ -189,10 +190,10 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                <img
+                <UserAvatar
                   src={listing.sellerAvatar}
-                  alt={listing.sellerName}
-                  style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }}
+                  name={listing.sellerName}
+                  size={36}
                 />
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>

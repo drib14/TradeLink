@@ -19,7 +19,8 @@ import {
   QrCode,
   Camera,
   Star,
-  ArrowRight
+  ArrowRight,
+  ShoppingBag
 } from 'lucide-react';
 
 interface MeetupsPageProps {
@@ -143,11 +144,17 @@ export const MeetupsPage: React.FC<MeetupsPageProps> = ({ onNavigate }) => {
                   >
                     {/* Item snapshot */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-                      <img
-                        src={meetup.listingImage}
-                        alt=""
-                        style={{ width: '64px', height: '64px', borderRadius: '10px', objectFit: 'cover', border: '1px solid var(--border-subtle)' }}
-                      />
+                      {meetup.listingImage && meetup.listingImage.trim() !== '' ? (
+                        <img
+                          src={meetup.listingImage}
+                          alt=""
+                          style={{ width: '64px', height: '64px', borderRadius: '10px', objectFit: 'cover', border: '1px solid var(--border-subtle)' }}
+                        />
+                      ) : (
+                        <div style={{ width: '64px', height: '64px', borderRadius: '10px', backgroundColor: 'var(--bg-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+                          <ShoppingBag size={24} />
+                        </div>
+                      )}
                       <div>
                         <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                           {meetup.listingTitle}

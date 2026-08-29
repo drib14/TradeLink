@@ -22,7 +22,7 @@ CREATE TABLE `users` (
   `email` VARCHAR(150) NOT NULL UNIQUE,
   `student_id` VARCHAR(20) NOT NULL UNIQUE,
   `password_hash` VARCHAR(255) NOT NULL,
-  `role` ENUM('student', 'admin', 'superadmin') NOT NULL DEFAULT 'student',
+  `role` ENUM('student', 'admin') NOT NULL DEFAULT 'student',
   `campus` ENUM(
     'UC Main',
     'UC Banilad',
@@ -243,7 +243,6 @@ CREATE TABLE `meetup_transactions` (
   `landmark_spot` VARCHAR(200) NOT NULL,
   `scheduled_datetime` VARCHAR(100) NOT NULL,
   `verification_code_hash` VARCHAR(255) NOT NULL,
-  `plain_verification_code` VARCHAR(10) NOT NULL, -- Stored for party viewing while pending
   `status` ENUM('scheduled', 'on_the_way', 'completed', 'cancelled') NOT NULL DEFAULT 'scheduled',
   `notes` TEXT DEFAULT NULL,
   `completed_at` DATETIME DEFAULT NULL,

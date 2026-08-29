@@ -1,15 +1,5 @@
 const Joi = require('joi');
-
-const CAMPUSES = [
-  'UC Main',
-  'UC Banilad',
-  'UC LM',
-  'UC METC',
-  'UC Pardo-Talisay',
-  'UC South Campus',
-  'UC Medical Center',
-  'UC PRI'
-];
+const { CAMPUSES, TRADE_MODES } = require('../config/constants');
 
 const scheduleMeetupSchema = Joi.object({
   listingId: Joi.string().required(),

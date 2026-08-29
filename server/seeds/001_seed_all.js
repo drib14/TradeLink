@@ -34,7 +34,7 @@ exports.seed = async function(knex) {
       email: 'superadmin@uc.edu.ph',
       student_id: 'UC-SA-2024',
       password_hash: superadminHash,
-      role: 'superadmin',
+      role: 'admin',
       campus: 'UC Main',
       college: 'CCS',
       year_level: 'System Administrator',

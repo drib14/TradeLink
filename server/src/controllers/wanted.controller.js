@@ -1,6 +1,11 @@
+const { v4: uuidv4 } = require('uuid');
 const db = require('../config/db');
 const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
+
+function escapeLike(str) {
+  return str.replace(/[%_]/g, '\\$&');
+}
 
 /**
  * Get wanted requests with filters
@@ -25,7 +30,8 @@ const getWantedRequests = asyncHandler(async (req, res) => {
   }
 
   if (category && category !== 'All') {
-    query = query.where('wanted_requests.category', 'like', `%${category}%`);
+    const escapedCat = escapeLike(category.trim());
+    query = query.where('wanted_requests.category', 'like', `%${escapedCat}%`);
   }
 
   const requests = await query;
@@ -39,12 +45,12 @@ const getWantedRequests = asyncHandler(async (req, res) => {
     requesterCollege: r.requester_college,
     itemTitle: r.item_title,
     category: r.category,
-    targetBudget: parseFloat(r.target_budget),
+    targetBudget: parseFloat(r.target_budget || 0),
     urgency: r.urgency,
     description: r.description,
     preferredCampus: r.preferred_campus,
     status: r.status,
-    offersCount: r.offers_count,
+    offersCount: Number(r.offers_count || 0),
     createdAt: r.created_at
   }));
 
@@ -69,7 +75,7 @@ const createWantedRequest = asyncHandler(async (req, res) => {
     preferredCampus
   } = req.body;
 
-  const reqId = `req-${Date.now()}`;
+  const reqId = `req_${uuidv4()}`;
   const newReq = {
     id: reqId,
     requester_id: req.user.id,
@@ -115,7 +121,7 @@ const respondToWanted = asyncHandler(async (req, res, next) => {
 
   // Notify requester
   await db('notifications').insert({
-    id: `notif-${Date.now()}`,
+    id: `notif_${uuidv4()}`,
     user_id: target.requester_id,
     title: 'New Response on Wanted Board',
     message: `${req.user.name} offered an item for your request "${target.item_title}".`,
@@ -141,7 +147,7 @@ const fulfillWanted = asyncHandler(async (req, res, next) => {
     return next(new AppError('Wanted request not found.', 404));
   }
 
-  if (target.requester_id !== req.user.id && !['admin', 'superadmin'].includes(req.user.role)) {
+  if (target.requester_id !== req.user.id && req.user.role !== 'admin') {
     return next(new AppError('Unauthorized.', 403));
   }
 
@@ -164,7 +170,7 @@ const deleteWanted = asyncHandler(async (req, res, next) => {
     return next(new AppError('Wanted request not found.', 404));
   }
 
-  if (target.requester_id !== req.user.id && !['admin', 'superadmin'].includes(req.user.role)) {
+  if (target.requester_id !== req.user.id && req.user.role !== 'admin') {
     return next(new AppError('Unauthorized.', 403));
   }
 

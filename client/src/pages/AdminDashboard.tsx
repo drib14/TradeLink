@@ -40,7 +40,8 @@ import {
   DollarSign,
   AlertCircle,
   Shield,
-  Layers
+  Layers,
+  ShoppingBag
 } from 'lucide-react';
 import { CampusBadge } from '../components/common/CampusBadge';
 
@@ -1229,7 +1230,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 {pendingFlags.map((flag) => (
                   <div key={flag.id} style={{ border: '1.5px solid var(--border-subtle)', borderRadius: '10px', padding: '1rem', backgroundColor: 'var(--accent-red-subtle)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     <div style={{ display: 'flex', gap: '0.75rem' }}>
-                      <img src={flag.listingImage} alt={flag.listingTitle} style={{ width: '60px', height: '60px', borderRadius: '8px', objectFit: 'cover' }} />
+                      {flag.listingImage && flag.listingImage.trim() !== '' ? (
+                        <img src={flag.listingImage} alt={flag.listingTitle} style={{ width: '60px', height: '60px', borderRadius: '8px', objectFit: 'cover' }} />
+                      ) : (
+                        <div style={{ width: '60px', height: '60px', borderRadius: '8px', backgroundColor: 'var(--bg-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+                          <ShoppingBag size={24} />
+                        </div>
+                      )}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <h4 style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {flag.listingTitle}
@@ -1355,7 +1362,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     <tr key={l.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                       <td style={{ padding: '0.75rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <img src={l.images[0]} alt={l.title} style={{ width: '38px', height: '38px', borderRadius: '6px', objectFit: 'cover' }} />
+                          {l.images && l.images.length > 0 && l.images[0] && l.images[0].trim() !== '' ? (
+                            <img src={l.images[0]} alt={l.title} style={{ width: '38px', height: '38px', borderRadius: '6px', objectFit: 'cover' }} />
+                          ) : (
+                            <div style={{ width: '38px', height: '38px', borderRadius: '6px', backgroundColor: 'var(--bg-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+                              <ShoppingBag size={18} />
+                            </div>
+                          )}
                           <div>
                             <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{l.title}</div>
                             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{l.condition}</div>

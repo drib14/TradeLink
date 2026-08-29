@@ -1,8 +1,10 @@
+const { v4: uuidv4 } = require('uuid');
 const db = require('../config/db');
 const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
-const { sanitizeUser } = require('../utils/sanitize');
-const { recalculateUserStats } = require('../services/trustScore.service');
+const { serializeUser } = require('../serializers/userSerializer');
+const { serializeListing } = require('../serializers/listingSerializer');
+const { serializeReview } = require('../serializers');
 
 /**
  * Get public profile of a student
@@ -20,17 +22,44 @@ const getUserProfile = asyncHandler(async (req, res, next) => {
     .where({ seller_id: id, is_sold: false })
     .orderBy('created_at', 'desc');
 
+  const listingIds = listings.map((l) => l.id);
+  const images = listingIds.length > 0
+    ? await db('listing_images').whereIn('listing_id', listingIds).orderBy('sort_order', 'asc')
+    : [];
+
+  const formattedListings = listings.map((l) => {
+    const lImages = images.filter((img) => img.listing_id === l.id).map((img) => img.image_url);
+    return serializeListing(l, lImages);
+  });
+
   // Fetch reviews received
   const reviews = await db('reviews')
     .where({ target_user_id: id })
-    .orderBy('created_at', 'desc');
+    .join('users as reviewer', 'reviews.reviewer_id', 'reviewer.id')
+    .select(
+      'reviews.*',
+      'reviewer.name as reviewer_name',
+      'reviewer.avatar_url as reviewer_avatar',
+      'reviewer.campus as reviewer_campus'
+    )
+    .orderBy('reviews.created_at', 'desc');
+
+  const reviewIds = reviews.map((r) => r.id);
+  const badges = reviewIds.length > 0
+    ? await db('review_badges').whereIn('review_id', reviewIds)
+    : [];
+
+  const formattedReviews = reviews.map((r) => {
+    const rBadges = badges.filter((b) => b.review_id === r.id).map((b) => b.badge);
+    return serializeReview(r, rBadges);
+  });
 
   res.status(200).json({
     status: 'success',
     data: {
-      user: sanitizeUser(user),
-      listings,
-      reviews
+      user: serializeUser(user),
+      listings: formattedListings,
+      reviews: formattedReviews
     }
   });
 });
@@ -40,7 +69,6 @@ const getUserProfile = asyncHandler(async (req, res, next) => {
  */
 const updateProfile = asyncHandler(async (req, res, next) => {
   const updates = {};
-  const allowed = ['name', 'bio', 'avatar', 'campus', 'college', 'yearLevel'];
 
   if (req.body.name) updates.name = req.body.name.trim();
   if (req.body.bio !== undefined) updates.bio = req.body.bio ? req.body.bio.trim() : null;
@@ -56,7 +84,7 @@ const updateProfile = asyncHandler(async (req, res, next) => {
     status: 'success',
     message: 'Profile updated successfully.',
     data: {
-      user: sanitizeUser(updatedUser)
+      user: serializeUser(updatedUser)
     }
   });
 });
@@ -73,7 +101,7 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
   }
 
   const cleanId = studentIdNumber.replace(/\D/g, '');
-  const verifId = `verif-${Date.now()}`;
+  const verifId = `verif_${uuidv4()}`;
 
   const insertData = {
     id: verifId,
@@ -99,7 +127,7 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
 
   res.status(200).json({
     status: 'success',
-    message: 'ID verification and live selfie submitted for administrator review.'
+    message: 'ID verification submitted for administrator review.'
   });
 });
 
@@ -120,33 +148,20 @@ const getUserReviews = asyncHandler(async (req, res, next) => {
     )
     .orderBy('reviews.created_at', 'desc');
 
-  // Fetch badges for each review
   const reviewIds = reviews.map((r) => r.id);
   const badges = reviewIds.length > 0
     ? await db('review_badges').whereIn('review_id', reviewIds)
     : [];
 
-  const reviewsWithBadges = reviews.map((r) => ({
-    id: r.id,
-    transactionId: r.transaction_id,
-    reviewerId: r.reviewer_id,
-    reviewerName: r.reviewer_name,
-    reviewerAvatar: r.reviewer_avatar,
-    reviewerCampus: r.reviewer_campus,
-    targetUserId: r.target_user_id,
-    rating: r.rating,
-    comment: r.comment,
-    itemTitle: r.item_title,
-    tradeType: r.trade_type,
-    wasPunctual: Boolean(r.was_punctual),
-    traitBadges: badges.filter((b) => b.review_id === r.id).map((b) => b.badge),
-    createdAt: r.created_at
-  }));
+  const formatted = reviews.map((r) => {
+    const rBadges = badges.filter((b) => b.review_id === r.id).map((b) => b.badge);
+    return serializeReview(r, rBadges);
+  });
 
   res.status(200).json({
     status: 'success',
     data: {
-      reviews: reviewsWithBadges
+      reviews: formatted
     }
   });
 });

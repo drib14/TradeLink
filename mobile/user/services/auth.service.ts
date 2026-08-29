@@ -1,0 +1,88 @@
+import { mobileApi, setMobileAccessToken } from './api';
+import { User, Campus, College } from '../types';
+
+export interface MobileRegisterPayload {
+  name: string;
+  email: string;
+  studentId: string;
+  password?: string;
+  campus: Campus;
+  college: College;
+  yearLevel?: string;
+  avatar?: string;
+  idPhotoUrl?: string;
+}
+
+export const mobileAuthService = {
+  async login(emailOrStudentId: string, password?: string): Promise<{ user: User; accessToken: string }> {
+    const res = await mobileApi.post('/auth/login', {
+      emailOrStudentId,
+      password: password || 'default123',
+    });
+
+    const user = res.data?.user;
+    const accessToken = res.data?.accessToken;
+
+    if (accessToken) {
+      await setMobileAccessToken(accessToken);
+    }
+
+    return { user, accessToken };
+  },
+
+  async register(payload: MobileRegisterPayload): Promise<{ user: User; accessToken: string }> {
+    const res = await mobileApi.post('/auth/register', {
+      name: payload.name,
+      studentId: payload.studentId,
+      email: payload.email,
+      password: payload.password || 'Student@123',
+      campus: payload.campus,
+      college: payload.college,
+      yearLevel: payload.yearLevel || '1st Year',
+      avatar: payload.avatar,
+      idPhotoUrl: payload.idPhotoUrl,
+    });
+
+    const user = res.data?.user;
+    const accessToken = res.data?.accessToken;
+
+    if (accessToken) {
+      await setMobileAccessToken(accessToken);
+    }
+
+    return { user, accessToken };
+  },
+
+  async getMe(): Promise<User | null> {
+    try {
+      const res = await mobileApi.get('/auth/me');
+      return res.data?.user || null;
+    } catch {
+      return null;
+    }
+  },
+
+  async logout(): Promise<void> {
+    try {
+      await mobileApi.post('/auth/logout');
+    } catch {
+      // Ignore network errors on logout
+    } finally {
+      await setMobileAccessToken(null);
+    }
+  },
+
+  async updateProfile(updates: Partial<User>): Promise<User> {
+    const res = await mobileApi.patch('/users/profile', updates);
+    return res.data?.user;
+  },
+
+  async submitVerification(studentIdNumber: string, idPhotoUrl: string, selfiePhotoUrl?: string) {
+    const res = await mobileApi.post('/users/verify-id', {
+      studentIdNumber,
+      idPhotoUrl,
+      selfiePhotoUrl,
+    });
+    return res;
+  },
+};

@@ -1,13 +1,5 @@
 const Joi = require('joi');
-
-const CONDITIONS = [
-  'Brand New',
-  'Like New',
-  'Gently Used',
-  'Fair / Academic Usable'
-];
-
-const TRADE_MODES = ['buy_sell', 'swap', 'free_donation'];
+const { CONDITIONS, TRADE_MODES } = require('../config/constants');
 
 const createListingSchema = Joi.object({
   title: Joi.string().trim().min(5).max(200).required().messages({

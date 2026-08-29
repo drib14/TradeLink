@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MeetupTransaction, Campus } from '../../types';
+import { MeetupTransaction } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../common/Toast';
 import {
@@ -12,7 +12,6 @@ import {
   Gem,
   Users,
   MessageSquare,
-  Sparkles,
   Award,
   AlertTriangle,
   Smile

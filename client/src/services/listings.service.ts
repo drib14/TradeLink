@@ -1,6 +1,6 @@
 // Listings service — marketplace API calls
-import { api, type ApiResponse } from './api';
-import type { Listing, Campus, TradeMode, ConditionGrade } from '../types';
+import { api } from './api';
+import type { Listing } from '../types';
 
 export interface ListingsFilters {
   campus?: string;
@@ -17,33 +17,53 @@ export interface ListingsFilters {
 
 // Map snake_case API response to camelCase Listing type
 function mapListingFromApi(raw: any): Listing {
+  let resolvedImages: string[] = [];
+  if (Array.isArray(raw.images)) {
+    resolvedImages = raw.images.filter((img: any) => typeof img === 'string' && img.trim() !== '');
+  } else if (typeof raw.images === 'string' && raw.images.trim()) {
+    try {
+      const parsed = JSON.parse(raw.images);
+      resolvedImages = Array.isArray(parsed) ? parsed.filter((img: any) => typeof img === 'string' && img.trim() !== '') : [raw.images.trim()];
+    } catch {
+      resolvedImages = raw.images.split(',').map((s: string) => s.trim()).filter(Boolean);
+    }
+  } else if (raw.image_url || raw.imageUrl) {
+    const single = (raw.image_url || raw.imageUrl).trim();
+    if (single) resolvedImages = [single];
+  }
+
+  const rawAvatar = raw.sellerAvatar ?? raw.seller_avatar ?? null;
+  const sellerAvatar = typeof rawAvatar === 'string' && rawAvatar.trim() !== '' ? rawAvatar.trim() : null;
+
   return {
     id: raw.id,
-    title: raw.title,
-    description: raw.description,
+    title: raw.title || '',
+    description: raw.description || '',
     price: parseFloat(raw.price) || 0,
     originalSrp: parseFloat(raw.originalSrp ?? raw.original_srp) || 0,
     tradeMode: raw.tradeMode || raw.trade_mode || 'buy_sell',
-    swapPreference: raw.swapPreference || raw.swap_preference,
+    swapPreference: raw.swapPreference || raw.swap_preference || null,
     category: raw.category || '',
-    tags: raw.tags || [],
+    tags: Array.isArray(raw.tags) ? raw.tags : [],
     condition: raw.condition || 'Gently Used',
-    images: raw.images || [],
+    images: resolvedImages,
     sellerId: raw.sellerId || raw.seller_id || '',
-    sellerName: raw.sellerName || raw.seller_name || '',
-    sellerAvatar: raw.sellerAvatar || raw.seller_avatar || '',
+    sellerName: raw.sellerName || raw.seller_name || 'Student',
+    sellerAvatar,
     sellerCampus: raw.sellerCampus || raw.seller_campus || 'UC Main',
     sellerCollege: raw.sellerCollege || raw.seller_college || 'General Student',
     sellerIsVerified: Boolean(raw.sellerIsVerified ?? raw.seller_is_verified),
     sellerTrustScore: raw.sellerTrustScore ?? raw.seller_trust_score ?? 60,
-    preferredMeetupSpots: raw.preferredMeetupSpots || raw.preferred_meetup_spots || [],
-    customMeetupSpot: raw.customMeetupSpot || raw.custom_meetup_spot,
+    preferredMeetupSpots: Array.isArray(raw.preferredMeetupSpots || raw.preferred_meetup_spots)
+      ? (raw.preferredMeetupSpots || raw.preferred_meetup_spots)
+      : [],
+    customMeetupSpot: raw.customMeetupSpot || raw.custom_meetup_spot || null,
     isBoosted: Boolean(raw.isBoosted ?? raw.is_boosted),
     isSold: Boolean(raw.isSold ?? raw.is_sold),
-    courseCode: raw.courseCode || raw.course_code,
+    courseCode: raw.courseCode || raw.course_code || null,
     createdAt: raw.createdAt || raw.created_at || new Date().toISOString(),
-    views: raw.views ?? 0,
-    favoritesCount: raw.favoritesCount ?? raw.favorites_count ?? 0,
+    views: Number(raw.views ?? 0),
+    favoritesCount: Number(raw.favoritesCount ?? raw.favorites_count ?? 0),
   };
 }
 

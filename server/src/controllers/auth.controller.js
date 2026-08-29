@@ -5,7 +5,7 @@ const db = require('../config/db');
 const env = require('../config/env');
 const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
-const { sanitizeUser } = require('../utils/sanitize');
+const { serializeUser } = require('../serializers/userSerializer');
 const { generate4DigitCode, hashCode, verifyCode } = require('../utils/generateCode');
 const { sendPasswordResetEmail } = require('../services/email.service');
 
@@ -55,19 +55,19 @@ const register = asyncHandler(async (req, res, next) => {
   } = req.body;
 
   // Check duplicate email
-  const existingEmail = await db('users').whereRaw('LOWER(email) = ?', [email.toLowerCase()]).first();
+  const existingEmail = await db('users').whereRaw('LOWER(email) = ?', [email.toLowerCase().trim()]).first();
   if (existingEmail) {
     return next(new AppError('A student account with this email is already registered.', 409));
   }
 
   // Check duplicate student ID
-  const existingStudentId = await db('users').where({ student_id: studentId }).first();
+  const existingStudentId = await db('users').where({ student_id: studentId.trim() }).first();
   if (existingStudentId) {
     return next(new AppError('A student account with this Student ID is already registered.', 409));
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
-  const userId = `user-${Date.now()}`;
+  const userId = `usr_${uuidv4()}`;
   const isVerified = false;
   const trustScore = 60;
 
@@ -82,14 +82,14 @@ const register = asyncHandler(async (req, res, next) => {
     college: college.trim(),
     year_level: yearLevel.trim(),
     avatar_url: avatar || null,
-    is_verified: false,
+    is_verified: isVerified,
     id_photo_url: idPhotoUrl || null,
     trust_score: trustScore,
     rating: 5.0,
     total_reviews: 0,
     completed_trades: 0,
     punctuality_rate: 100,
-    bio: `Student at ${campus} - ${college}.`,
+    bio: `Student at ${campus} - ${college.trim()}.`,
     is_pro_merchant: false,
     is_banned: false
   };
@@ -99,14 +99,13 @@ const register = asyncHandler(async (req, res, next) => {
   // If ID was uploaded, create pending verification request
   if (idPhotoUrl) {
     await db('verification_requests').insert({
-      id: `verif-${Date.now()}`,
+      id: `verif_${uuidv4()}`,
       user_id: userId,
-      student_id_number: studentId,
+      student_id_number: studentId.trim(),
       campus,
-      college,
+      college: college.trim(),
       id_card_image_url: idPhotoUrl,
-      status: 'approved', // Auto-approved in mock initial register
-      reviewed_at: new Date()
+      status: 'pending'
     });
   }
 
@@ -122,7 +121,7 @@ const register = asyncHandler(async (req, res, next) => {
     status: 'success',
     message: `Account created for ${newUser.name}! Welcome to TradeLink.`,
     data: {
-      user: sanitizeUser(newUser),
+      user: serializeUser(newUser),
       accessToken
     }
   });
@@ -167,7 +166,7 @@ const login = asyncHandler(async (req, res, next) => {
     status: 'success',
     message: `Welcome back, ${user.name}!`,
     data: {
-      user: sanitizeUser(user),
+      user: serializeUser(user),
       accessToken
     }
   });
@@ -212,7 +211,7 @@ const refreshToken = asyncHandler(async (req, res, next) => {
     status: 'success',
     data: {
       accessToken: newTokens.accessToken,
-      user: sanitizeUser(user)
+      user: serializeUser(user)
     }
   });
 });
@@ -256,8 +255,7 @@ const forgotPassword = asyncHandler(async (req, res, next) => {
 
   res.status(200).json({
     status: 'success',
-    message: `Verification code sent to ${user.email}. (Dev Code: ${code})`,
-    resetCode: env.env === 'development' ? code : undefined
+    message: `Verification code sent to ${user.email}.`
   });
 });
 
@@ -301,7 +299,7 @@ const getMe = asyncHandler(async (req, res) => {
   res.status(200).json({
     status: 'success',
     data: {
-      user: sanitizeUser(req.user)
+      user: serializeUser(req.user)
     }
   });
 });

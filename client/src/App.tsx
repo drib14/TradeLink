@@ -33,7 +33,6 @@ import { FavoritesPage } from './pages/FavoritesPage';
 import { TransactionHistoryPage } from './pages/TransactionHistoryPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { AdminDashboard } from './pages/AdminDashboard';
-import { SuperAdminDashboard } from './pages/SuperAdminDashboard';
 import { encodeHashedId, decodeHashedId } from './utils/security';
 
 const pathToView = (path: string, search: string = window.location.search): { view: string; params: any } => {
@@ -47,7 +46,8 @@ const pathToView = (path: string, search: string = window.location.search): { vi
     return { view: 'profile', params: { userId } };
   }
   if (cleanPath.startsWith('item/')) {
-    const id = cleanPath.split('/')[1] || searchParams.get('id') || undefined;
+    const rawId = cleanPath.split('/')[1] || searchParams.get('id') || undefined;
+    const id = rawId ? decodeHashedId(rawId) : undefined;
     return { view: 'item-detail', params: { id } };
   }
 
@@ -98,8 +98,8 @@ export const MainApp: React.FC = () => {
 
     let path = `/${view}`;
     if (view === 'home') path = '/';
-    if (view === 'item-detail' && params.id) path = `/item/${params.id}`;
-    if (view === 'profile' && params.userId) path = `/profile/${encodeHashedId(params.userId)}`;
+    if (view === 'item-detail' && params.id) path = `/item/${encodeHashedId(params.id, 'listing')}`;
+    if (view === 'profile' && params.userId) path = `/profile/${encodeHashedId(params.userId, 'user')}`;
 
     window.history.pushState({}, '', path);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -152,8 +152,6 @@ export const MainApp: React.FC = () => {
         return <SettingsPage onNavigate={handleNavigate} />;
       case 'admin':
         return <AdminDashboard onNavigate={handleNavigate} />;
-      case 'superadmin':
-        return <SuperAdminDashboard onNavigate={handleNavigate} />;
       case 'maintenance':
         return <MaintenancePage onNavigate={handleNavigate} />;
       case 'not-found':

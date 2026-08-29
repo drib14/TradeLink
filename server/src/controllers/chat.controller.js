@@ -1,6 +1,7 @@
 const db = require('../config/db');
 const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
+const { createMessage } = require('../services/message.service');
 
 /**
  * Get all conversations for current user
@@ -35,8 +36,8 @@ const getConversations = asyncHandler(async (req, res) => {
     )
     .orderBy('conversations.last_message_at', 'desc');
 
-  // Fetch listing images
-  const listingIds = convs.map((c) => c.listing_id);
+  // Fetch listing images with a single query
+  const listingIds = [...new Set(convs.map((c) => c.listing_id))];
   const images = listingIds.length > 0
     ? await db('listing_images').whereIn('listing_id', listingIds).where('sort_order', 0)
     : [];
@@ -134,55 +135,23 @@ const getMessages = asyncHandler(async (req, res, next) => {
 });
 
 /**
- * Send a message via REST (fallback if WebSocket is not active)
+ * Send a message via REST
  */
 const sendMessage = asyncHandler(async (req, res, next) => {
   const { conversationId, receiverId, content, isSystemMessage = false, swapOfferId } = req.body;
 
-  if (!content || !content.trim()) {
-    return next(new AppError('Message content cannot be empty.', 400));
-  }
-
-  const msgId = `msg-${Date.now()}`;
-  const newMsg = {
-    id: msgId,
-    conversation_id: conversationId,
-    sender_id: req.user.id,
-    receiver_id: receiverId,
-    content: content.trim(),
-    is_system_message: isSystemMessage,
-    swap_offer_id: swapOfferId || null
-  };
-
-  await db.transaction(async (trx) => {
-    await trx('messages').insert(newMsg);
-    await trx('conversations').where({ id: conversationId }).update({
-      last_message: content.trim(),
-      last_message_at: new Date()
-    });
-    // Increment recipient unread count
-    await trx.raw(
-      `INSERT INTO conversation_read_status (conversation_id, user_id, unread_count)
-       VALUES (?, ?, 1)
-       ON DUPLICATE KEY UPDATE unread_count = unread_count + 1`,
-      [conversationId, receiverId]
-    );
+  const message = await createMessage({
+    conversationId,
+    senderId: req.user.id,
+    receiverId,
+    content,
+    isSystemMessage,
+    swapOfferId
   });
 
   res.status(201).json({
     status: 'success',
-    data: {
-      message: {
-        id: msgId,
-        conversationId,
-        senderId: req.user.id,
-        receiverId,
-        content: content.trim(),
-        timestamp: new Date(),
-        isSystemMessage,
-        swapOfferId
-      }
-    }
+    data: { message }
   });
 });
 

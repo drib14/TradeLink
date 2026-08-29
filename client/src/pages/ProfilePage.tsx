@@ -736,7 +736,13 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate }) 
                   style={{ display: 'flex', gap: '1rem', alignItems: 'center', padding: '1rem' }}
                   onClick={() => onNavigate('item-detail', { id: m.listingId })}
                 >
-                  <img src={m.listingImage} alt={m.listingTitle} style={{ width: '56px', height: '56px', borderRadius: '8px', objectFit: 'cover' }} />
+                  {m.listingImage && m.listingImage.trim() !== '' ? (
+                    <img src={m.listingImage} alt={m.listingTitle} style={{ width: '56px', height: '56px', borderRadius: '8px', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ width: '56px', height: '56px', borderRadius: '8px', backgroundColor: 'var(--bg-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+                      <ShoppingBag size={22} />
+                    </div>
+                  )}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)' }}>{m.listingTitle}</div>
                     <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: '2px' }}>

@@ -5,7 +5,6 @@ const helmet = require('helmet');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const hpp = require('hpp');
-const xss = require('xss-clean');
 
 const env = require('./config/env');
 const corsOptions = require('./config/cors');
@@ -13,6 +12,7 @@ const db = require('./config/db');
 const logger = require('./utils/logger');
 const AppError = require('./utils/AppError');
 const requestLogger = require('./middleware/requestLogger');
+const sanitizeInput = require('./middleware/sanitizeInput');
 const { apiLimiter } = require('./middleware/rateLimiter');
 const errorHandler = require('./middleware/errorHandler');
 const apiRoutes = require('./routes');
@@ -25,7 +25,8 @@ const server = http.createServer(app);
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
-    contentSecurityPolicy: false // Disable CSP for API backend or customize as needed
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    contentSecurityPolicy: false
   })
 );
 
@@ -41,7 +42,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
 // 5. Data Sanitization & HTTP Parameter Pollution Protection
-app.use(xss());
+app.use(sanitizeInput);
 app.use(hpp());
 
 // 6. General API Rate Limiting
@@ -80,37 +81,40 @@ app.use(errorHandler);
 const io = initializeSocket(server);
 app.set('io', io);
 
-// 13. Start HTTP + Socket Server
+// 13. Start HTTP + Socket Server (Only when run directly, not when required by tests)
 const PORT = env.port;
-server.listen(PORT, async () => {
-  logger.info('=======================================================');
-  logger.info(`TradeLink Server listening on port ${PORT} [${env.env}]`);
-  logger.info(`Base API URL: http://localhost:${PORT}/api`);
-  logger.info(`CORS Allowed: ${env.clientUrl}`);
-  logger.info('=======================================================');
+if (require.main === module) {
+  server.listen(PORT, async () => {
+    logger.info('=======================================================');
+    logger.info(`TradeLink Server listening on port ${PORT} [${env.env}]`);
+    logger.info(`Base API URL: http://localhost:${PORT}/api`);
+    logger.info(`CORS Allowed: ${env.clientUrl}`);
+    logger.info('=======================================================');
 
-  // Test database connection at startup
-  const dbHealth = await db.testConnection();
-  if (dbHealth.ok) {
-    logger.info(`MySQL Database connected successfully [${env.db.database}]`);
-  } else {
-    logger.warn(`MySQL Database connection warning: ${dbHealth.error}`);
-    logger.warn(`Make sure MySQL server is running on ${env.db.host}:${env.db.port}`);
-  }
-});
-
-// Graceful Shutdown
-const shutdown = () => {
-  logger.info('Shutting down TradeLink server gracefully...');
-  server.close(async () => {
-    logger.info('HTTP server closed.');
-    await db.destroy();
-    logger.info('Database connections closed.');
-    process.exit(0);
+    // Test database connection at startup
+    const dbHealth = await db.testConnection();
+    if (dbHealth.ok) {
+      logger.info(`MySQL Database connected successfully [${env.db.database}]`);
+    } else {
+      logger.warn(`MySQL Database connection warning: ${dbHealth.error}`);
+      logger.warn(`Make sure MySQL server is running on ${env.db.host}:${env.db.port}`);
+    }
   });
-};
 
-process.on('SIGTERM', shutdown);
-process.on('SIGINT', shutdown);
+  // Graceful Shutdown
+  const shutdown = () => {
+    logger.info('Shutting down TradeLink server gracefully...');
+    server.close(async () => {
+      logger.info('HTTP server closed.');
+      await db.destroy();
+      logger.info('Database connections closed.');
+      process.exit(0);
+    });
+  };
 
-module.exports = { app, server };
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
+}
+
+module.exports = { app, server, io };
+
