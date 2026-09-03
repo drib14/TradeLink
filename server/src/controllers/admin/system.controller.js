@@ -193,18 +193,29 @@ const updateSystemConfig = asyncHandler(async (req, res) => {
  */
 const toggleFeatureFlag = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
-  const flag = await db('feature_flags').where({ id }).first();
+  let flag = await db('feature_flags').where({ id }).first();
+
+  if (!flag) {
+    flag = await db('feature_flags')
+      .whereILike('name', `%${id.replace(/_/g, ' ')}%`)
+      .first();
+  }
 
   if (!flag) {
     return next(new AppError('Feature flag not found.', 404));
   }
 
-  await db('feature_flags').where({ id }).update({ enabled: !flag.enabled });
-  await logAdminAction(req.user, 'Toggled Feature Flag', 'system', id, `Toggled ${flag.name} to ${!flag.enabled}`, req);
+  const newEnabled = !flag.enabled;
+  await db('feature_flags').where({ id: flag.id }).update({ enabled: newEnabled });
+  await logAdminAction(req.user, 'Toggled Feature Flag', 'system', flag.id, `Toggled ${flag.name} to ${newEnabled}`, req);
 
   res.status(200).json({
     status: 'success',
-    message: `Feature flag "${flag.name}" updated.`
+    message: `Feature flag "${flag.name}" updated.`,
+    data: {
+      id: flag.id,
+      enabled: Boolean(newEnabled)
+    }
   });
 });
 

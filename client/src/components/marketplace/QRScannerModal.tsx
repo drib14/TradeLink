@@ -3,7 +3,7 @@ import jsQR from 'jsqr';
 import { MeetupTransaction } from '../../types';
 import { useChat } from '../../context/ChatContext';
 import { useToast } from '../common/Toast';
-import { X, QrCode, CheckCircle2, ShieldCheck, Camera, RefreshCw, AlertCircle, Sparkles, Zap } from 'lucide-react';
+import { X, QrCode, CheckCircle2, ShieldCheck, Camera, RefreshCw, AlertCircle, Zap } from 'lucide-react';
 
 interface QRScannerModalProps {
   isOpen: boolean;

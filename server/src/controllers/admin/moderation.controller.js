@@ -16,7 +16,7 @@ const getFlaggedListings = asyncHandler(async (req, res) => {
   const flags = await db('flagged_listings')
     .join('listings', 'flagged_listings.listing_id', 'listings.id')
     .join('users as seller', 'listings.seller_id', 'seller.id')
-    .join('users as reporter', 'flagged_listings.reporter_id', 'reporter.id')
+    .leftJoin('users as reporter', 'flagged_listings.reporter_id', 'reporter.id')
     .select(
       'flagged_listings.*',
       'listings.title as listing_title',
@@ -24,13 +24,13 @@ const getFlaggedListings = asyncHandler(async (req, res) => {
       'seller.campus as campus',
       'reporter.name as reporter_name'
     )
-    .orderBy('flagged_listings.reported_at', 'desc')
+    .orderBy('flagged_listings.created_at', 'desc')
     .limit(parsedLimit)
     .offset(offset);
 
   const listingIds = flags.map((f) => f.listing_id);
   const images = listingIds.length > 0
-    ? await db('listing_images').whereIn('listing_id', listingIds).where('sort_order', 0)
+    ? await db('listing_images').whereIn('listing_id', listingIds).orderBy('display_order', 'asc')
     : [];
 
   const formatted = flags.map((f) => ({
@@ -39,10 +39,10 @@ const getFlaggedListings = asyncHandler(async (req, res) => {
     listingTitle: f.listing_title,
     listingImage: images.find((i) => i.listing_id === f.listing_id)?.image_url || '',
     sellerName: f.seller_name,
-    reporterName: f.reporter_name,
+    reporterName: f.reporter_name || 'Anonymous Student',
     reason: f.reason,
     campus: f.campus,
-    reportedAt: f.reported_at,
+    reportedAt: f.created_at || f.reported_at,
     status: f.status
   }));
 
@@ -68,8 +68,10 @@ const resolveFlag = asyncHandler(async (req, res, next) => {
   }
 
   await db('flagged_listings').where({ id }).update({
-    status: 'resolved',
-    resolved_by: req.user.id
+    status: 'dismissed',
+    action_taken: 'Marked as compliant by moderator',
+    reviewed_by: req.user.id,
+    reviewed_at: new Date()
   });
 
   await logAdminAction(req.user, 'Resolved Listing Report', 'listing', flag.listing_id, 'Marked listing as compliant', req);
@@ -98,8 +100,9 @@ const removeListingByAdmin = asyncHandler(async (req, res, next) => {
   if (flag) {
     await db('flagged_listings').where({ id }).update({
       status: 'removed',
-      resolved_by: req.user.id,
-      resolution_note: reason
+      action_taken: reason,
+      reviewed_by: req.user.id,
+      reviewed_at: new Date()
     });
   }
 
@@ -122,24 +125,35 @@ const getDisputes = asyncHandler(async (req, res) => {
   const offset = (parsedPage - 1) * parsedLimit;
 
   const disputes = await db('trade_disputes')
-    .orderBy('filed_at', 'desc')
+    .leftJoin('users as complainant', 'trade_disputes.complainant_id', 'complainant.id')
+    .leftJoin('users as respondent', 'trade_disputes.respondent_id', 'respondent.id')
+    .leftJoin('meetup_transactions', 'trade_disputes.transaction_id', 'meetup_transactions.id')
+    .leftJoin('listings', 'meetup_transactions.listing_id', 'listings.id')
+    .select(
+      'trade_disputes.*',
+      'complainant.name as complainant_name',
+      'complainant.campus as complainant_campus',
+      'respondent.name as respondent_name',
+      'listings.title as listing_title'
+    )
+    .orderBy('trade_disputes.created_at', 'desc')
     .limit(parsedLimit)
     .offset(offset);
 
   const formatted = disputes.map((d) => ({
     id: d.id,
     transactionId: d.transaction_id,
-    listingTitle: d.listing_title,
-    buyerName: d.buyer_name,
-    sellerName: d.seller_name,
-    sellerId: d.seller_id,
-    buyerId: d.buyer_id,
-    campus: d.campus,
+    listingTitle: d.listing_title || 'Campus Meetup Trade',
+    buyerName: d.complainant_name || 'Complainant Student',
+    sellerName: d.respondent_name || 'Respondent Student',
+    sellerId: d.respondent_id,
+    buyerId: d.complainant_id,
+    campus: d.complainant_campus || 'UC Main',
     reason: d.reason,
     status: d.status,
-    filedAt: d.filed_at,
-    verdictNote: d.verdict_note,
-    verdictAction: d.verdict_action
+    filedAt: d.created_at,
+    verdictNote: d.notes,
+    verdictAction: d.verdict
   }));
 
   res.status(200).json({
@@ -164,25 +178,30 @@ const resolveDispute = asyncHandler(async (req, res, next) => {
     return next(new AppError('Dispute case not found.', 404));
   }
 
+  const mappedVerdict = action === 'warning' ? 'warning_issued' : (action === 'ban' ? 'account_suspended' : (action === 'dismissed' ? 'dismissed' : 'amicable_settlement'));
+
   await db('trade_disputes').where({ id }).update({
     status: action === 'dismissed' ? 'dismissed' : 'resolved',
-    verdict_action: action,
-    verdict_note: note,
+    verdict: mappedVerdict,
+    notes: note,
     resolved_by: req.user.id,
     resolved_at: new Date()
   });
 
-  if (action === 'warning') {
-    await db('users').where({ id: dispute.seller_id }).update({
-      warnings_count: db.raw('warnings_count + 1'),
-      trust_score: db.raw('GREATEST(10, trust_score - 15)')
-    });
-  } else if (action === 'ban') {
-    await db('users').where({ id: dispute.seller_id }).update({
-      is_banned: true,
-      ban_reason: `Dispute Verdict: ${note}`,
-      banned_at: new Date()
-    });
+  const targetRespondentId = dispute.respondent_id || dispute.seller_id;
+  if (targetRespondentId) {
+    if (action === 'warning') {
+      await db('users').where({ id: targetRespondentId }).update({
+        warnings_count: db.raw('warnings_count + 1'),
+        trust_score: db.raw('GREATEST(10, trust_score - 15)')
+      });
+    } else if (action === 'ban') {
+      await db('users').where({ id: targetRespondentId }).update({
+        is_banned: true,
+        ban_reason: `Dispute Verdict: ${note}`,
+        banned_at: new Date()
+      });
+    }
   }
 
   await logAdminAction(req.user, 'Resolved Dispute Case', 'dispute', id, `Verdict [${action.toUpperCase()}]: ${note}`, req);
@@ -400,7 +419,7 @@ const demoteAdmin = asyncHandler(async (req, res, next) => {
  */
 const adjustUserTrustScore = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
-  const { delta, reason } = req.body;
+  const { delta, adjustment, amount, newScore: explicitScore, reason = 'Administrator adjustment' } = req.body;
 
   const target = await db('users').where({ id }).first();
   if (!target) {
@@ -408,15 +427,22 @@ const adjustUserTrustScore = asyncHandler(async (req, res, next) => {
   }
 
   const currentScore = target.trust_score || 60;
-  const newScore = Math.max(10, Math.min(100, currentScore + Number(delta)));
+  let finalScore = currentScore;
 
-  await db('users').where({ id }).update({ trust_score: newScore });
-  await logAdminAction(req.user, 'Adjusted Trust Score', 'user', id, `Score changed from ${currentScore} to ${newScore}: ${reason}`, req);
+  if (explicitScore !== undefined) {
+    finalScore = Math.max(10, Math.min(100, parseInt(explicitScore, 10)));
+  } else {
+    const diff = Number(delta ?? adjustment ?? amount ?? 0);
+    finalScore = Math.max(10, Math.min(100, currentScore + diff));
+  }
+
+  await db('users').where({ id }).update({ trust_score: finalScore });
+  await logAdminAction(req.user, 'Adjusted Trust Score', 'user', id, `Score changed from ${currentScore} to ${finalScore}: ${reason}`, req);
 
   res.status(200).json({
     status: 'success',
-    message: `Trust score for ${target.name} adjusted to ${newScore}.`,
-    data: { trustScore: newScore }
+    message: `Trust score for ${target.name} adjusted to ${finalScore}.`,
+    data: { trustScore: finalScore }
   });
 });
 

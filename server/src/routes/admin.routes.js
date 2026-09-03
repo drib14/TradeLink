@@ -17,7 +17,11 @@ const {
 
 decodeParams.bindRouter(router);
 
-// All admin routes require admin role
+// Publicly readable bulletin announcements & public system config
+router.get('/announcements', adminController.getAnnouncements);
+router.get('/config', adminController.getSystemConfig);
+
+// All protected admin routes require authentication and admin role
 router.use(authenticate, requireRole('admin'));
 
 // Stats & Overview
@@ -37,8 +41,7 @@ router.delete('/flags/:id/remove', adminController.removeListingByAdmin);
 router.get('/disputes', adminController.getDisputes);
 router.patch('/disputes/:id/resolve', validate(resolveDisputeSchema), adminController.resolveDispute);
 
-// Campus Announcements
-router.get('/announcements', adminController.getAnnouncements);
+// Campus Announcements Management
 router.post('/announcements', validate(createAnnouncementSchema), adminController.createAnnouncement);
 router.delete('/announcements/:id', adminController.deleteAnnouncement);
 router.patch('/announcements/:id/toggle', adminController.toggleAnnouncement);
@@ -63,7 +66,6 @@ router.post('/keywords', validate(addKeywordSchema), adminController.addKeyword)
 router.delete('/keywords/:keyword', adminController.removeKeyword);
 
 // System Configuration & Feature Flags
-router.get('/config', adminController.getSystemConfig);
 router.patch('/config', validate(updateSystemConfigSchema), adminController.updateSystemConfig);
 router.patch('/feature-flags/:id/toggle', adminController.toggleFeatureFlag);
 

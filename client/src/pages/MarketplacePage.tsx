@@ -92,11 +92,18 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', maxWidth: '400px' }}>
             No items matched your current filters. Try searching for a different keyword or post your item to the campus.
           </p>
-          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <button
+              onClick={clearFilters}
+              className="btn-secondary"
+              style={{ fontSize: '0.82rem', padding: '0.5rem 1.1rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+            >
+              <RotateCcw size={14} /> Reset Filters
+            </button>
             <button
               onClick={() => onNavigate('create-listing')}
               className="btn-primary"
-              style={{ fontSize: '0.82rem', padding: '0.5rem 1.1rem' }}
+              style={{ fontSize: '0.82rem', padding: '0.5rem 1.1rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
             >
               <Plus size={14} /> Post an Item
             </button>

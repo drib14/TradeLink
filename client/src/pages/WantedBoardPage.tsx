@@ -10,27 +10,28 @@ import { Campus, WantedRequest } from '../types';
 import {
   Search,
   Plus,
-  Clock,
   MapPin,
   MessageSquare,
-  CheckCircle2,
-  Filter,
   Flame,
   Building2,
   Megaphone
 } from 'lucide-react';
 
+import { StudentVerificationModal } from '../components/verification/StudentVerificationModal';
+
 interface WantedBoardPageProps {
   onNavigate: (view: string, param?: any) => void;
   onOpenChat: () => void;
+  onOpenAuth?: () => void;
 }
 
-export const WantedBoardPage: React.FC<WantedBoardPageProps> = ({ onNavigate, onOpenChat }) => {
+export const WantedBoardPage: React.FC<WantedBoardPageProps> = ({ onNavigate, onOpenChat, onOpenAuth }) => {
   const { requests, respondToRequest } = useWanted();
   const { currentUser, isAuthenticated } = useAuth();
   const { showToast } = useToast();
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
   const [selectedCampus, setSelectedCampus] = useState<'All' | Campus>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSimulatingLoading, setIsSimulatingLoading] = useState(true);
@@ -69,16 +70,28 @@ export const WantedBoardPage: React.FC<WantedBoardPageProps> = ({ onNavigate, on
   });
 
   const handleOpenCreateModal = () => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !currentUser) {
       showToast('Log In Required', 'Please log in with your UC account to broadcast a looking-for item.', 'warning');
+      if (onOpenAuth) onOpenAuth();
+      return;
+    }
+    if (!currentUser.isVerified) {
+      showToast('Verification Required', 'Student ID verification is required before posting wanted requests.', 'warning');
+      setIsVerificationModalOpen(true);
       return;
     }
     setIsCreateModalOpen(true);
   };
 
   const handleRespond = (req: WantedRequest) => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !currentUser) {
       showToast('Log In Required', 'Please log in to respond with an item offer.', 'warning');
+      if (onOpenAuth) onOpenAuth();
+      return;
+    }
+    if (!currentUser.isVerified) {
+      showToast('Verification Required', 'Student ID verification is required before submitting trade offers.', 'warning');
+      setIsVerificationModalOpen(true);
       return;
     }
     respondToRequest(req.id);
@@ -251,13 +264,23 @@ export const WantedBoardPage: React.FC<WantedBoardPageProps> = ({ onNavigate, on
                   </div>
                 </div>
 
-                <button
-                  onClick={() => handleRespond(req)}
-                  className="btn-gold"
-                  style={{ padding: '0.45rem 0.85rem', fontSize: '0.78rem', fontWeight: 800 }}
-                >
-                  <MessageSquare size={13} /> I Have This!
-                </button>
+                {currentUser && req.requesterId === currentUser.id ? (
+                  <button
+                    onClick={() => onNavigate('profile')}
+                    className="btn-secondary"
+                    style={{ padding: '0.45rem 0.85rem', fontSize: '0.78rem', fontWeight: 700 }}
+                  >
+                    Your Request
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleRespond(req)}
+                    className="btn-gold"
+                    style={{ padding: '0.45rem 0.85rem', fontSize: '0.78rem', fontWeight: 800 }}
+                  >
+                    <MessageSquare size={13} /> I Have This!
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -267,9 +290,14 @@ export const WantedBoardPage: React.FC<WantedBoardPageProps> = ({ onNavigate, on
           <Search size={32} color="var(--uc-blue)" />
           <h3 className="empty-state-title">No Wanted Requests Found</h3>
           <p className="empty-state-desc">No student has posted a request matching your criteria. Be the first to broadcast what you need!</p>
-          <button onClick={() => setIsCreateModalOpen(true)} className="btn-primary" style={{ marginTop: '0.75rem' }}>
-            <Plus size={15} /> Post Item Request
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <button onClick={() => setIsCreateModalOpen(true)} className="btn-primary">
+              <Plus size={15} /> Post Item Request
+            </button>
+            <button onClick={() => onNavigate('marketplace')} className="btn-secondary">
+              Browse Marketplace
+            </button>
+          </div>
         </div>
       )}
 
@@ -280,6 +308,12 @@ export const WantedBoardPage: React.FC<WantedBoardPageProps> = ({ onNavigate, on
           onClose={() => setIsCreateModalOpen(false)}
         />
       )}
+
+      {/* Student Verification Modal */}
+      <StudentVerificationModal
+        isOpen={isVerificationModalOpen}
+        onClose={() => setIsVerificationModalOpen(false)}
+      />
     </div>
   );
 };

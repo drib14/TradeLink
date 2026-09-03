@@ -1,31 +1,78 @@
 import React, { useState } from 'react';
-import { Listing, Campus } from '../../types';
+import { Listing } from '../../types';
 import { Modal } from '../common/Modal';
 import { useAuth } from '../../context/AuthContext';
 import { useMarket } from '../../context/MarketContext';
 import { useChat } from '../../context/ChatContext';
 import { useToast } from '../common/Toast';
-import { ArrowLeftRight, Plus, MapPin, Calendar, CheckCircle2, Coins } from 'lucide-react';
+import { ArrowLeftRight } from 'lucide-react';
 import { CAMPUS_MEETUP_SPOTS } from '../../data/campusLocations';
 
 interface SwapProposalModalProps {
   isOpen: boolean;
   onClose: () => void;
   targetListing: Listing;
+  onOpenVerification?: () => void;
 }
 
 export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
   isOpen,
   onClose,
-  targetListing
+  targetListing,
+  onOpenVerification
 }) => {
-  const { currentUser } = useAuth();
+  const { currentUser, isAuthenticated } = useAuth();
   const { listings } = useMarket();
   const { proposeSwap } = useChat();
   const { showToast } = useToast();
 
+  if (!isOpen) return null;
+
+  if (!isAuthenticated || !currentUser) {
+    return (
+      <div className="modal-backdrop-custom" onClick={onClose}>
+        <div className="modal-card-custom" style={{ maxWidth: '440px', textAlign: 'center', padding: '2rem' }} onClick={(e) => e.stopPropagation()}>
+          <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--uc-blue)' }}>Sign In Required</h3>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0.75rem 0 1.25rem 0' }}>
+            Please log in with your University of Cebu student account to propose a swap.
+          </p>
+          <button onClick={onClose} className="btn-gold" style={{ width: '100%' }}>Close</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentUser.isVerified) {
+    return (
+      <div className="modal-backdrop-custom" onClick={onClose}>
+        <div className="modal-card-custom" style={{ maxWidth: '460px', textAlign: 'center', padding: '2rem' }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ width: '54px', height: '54px', borderRadius: '50%', backgroundColor: 'rgba(255, 199, 44, 0.2)', color: '#B45309', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem auto' }}>
+            <ArrowLeftRight size={28} />
+          </div>
+          <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--uc-blue)' }}>Student ID Verification Required</h3>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0.75rem 0 1.25rem 0', lineHeight: 1.5 }}>
+            To ensure trust and physical security across campus barter transactions, proposing item swaps requires student verification.
+          </p>
+          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+            <button onClick={onClose} className="btn-secondary" style={{ flex: 1 }}>Cancel</button>
+            <button
+              onClick={() => {
+                onClose();
+                if (onOpenVerification) onOpenVerification();
+              }}
+              className="btn-gold"
+              style={{ flex: 1.3 }}
+            >
+              Verify Student ID
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // User's own active listings
-  const myListings = listings.filter((l) => l.sellerId === currentUser.id && !l.isSold);
+  const myListings = currentUser ? listings.filter((l) => l.sellerId === currentUser.id && !l.isSold) : [];
 
   const [selectedMyListingId, setSelectedMyListingId] = useState<string>(myListings[0]?.id || '');
   const [customDescription, setCustomDescription] = useState('');

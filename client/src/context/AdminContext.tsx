@@ -5,7 +5,7 @@ import {
   CampusAnnouncement,
   AdminAuditLog,
   TradeDispute,
-  SuperAdminConfig,
+  SystemConfig,
   Campus
 } from '../types';
 import { useAuth } from './AuthContext';
@@ -18,7 +18,7 @@ interface AdminContextType {
   auditLogs: AdminAuditLog[];
   prohibitedKeywords: string[];
   disputes: TradeDispute[];
-  systemConfig: SuperAdminConfig;
+  systemConfig: SystemConfig;
   pendingVerificationsCount: number;
   pendingFlagsCount: number;
   pendingDisputesCount: number;
@@ -46,11 +46,11 @@ interface AdminContextType {
   adjustUserTrustScore: (userId: string, delta: number, reason: string) => void;
   promoteToAdmin: (userId: string) => void;
   demoteAdmin: (userId: string) => void;
-  updateSystemConfig: (updates: Partial<SuperAdminConfig>) => Promise<void>;
+  updateSystemConfig: (updates: Partial<SystemConfig>) => Promise<void>;
   refreshAdminData: () => Promise<void>;
 }
 
-const DEFAULT_CONFIG: SuperAdminConfig = {
+const DEFAULT_CONFIG: SystemConfig = {
   maintenanceMode: false,
   maintenanceMessage: 'TradeLink is currently undergoing scheduled platform upgrades.',
   allowNewRegistrations: true,
@@ -64,7 +64,7 @@ const DEFAULT_CONFIG: SuperAdminConfig = {
     { id: 'flag-wanted-board', name: 'Campus Wanted Board', description: 'Enable student Looking-To-Buy requests', enabled: true },
     { id: 'flag-handshake-meetup', name: '4-Digit Handshake Verification', description: 'Enforce meetup OTP handshake codes', enabled: true }
   ],
-  lastUpdatedBy: 'System SuperAdmin',
+  lastUpdatedBy: 'UC Administrator',
   lastUpdatedAt: new Date().toISOString()
 };
 
@@ -81,7 +81,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     'exam leak', 'test bank', 'midterm answer', 'final exam key', 'vape', 'cigarette', 'counterfeit uniform', 'fake id', 'liquor'
   ]);
   const [disputes, setDisputes] = useState<TradeDispute[]>([]);
-  const [systemConfig, setSystemConfig] = useState<SuperAdminConfig>(DEFAULT_CONFIG);
+  const [systemConfig, setSystemConfig] = useState<SystemConfig>(DEFAULT_CONFIG);
   const [isLoading, setIsLoading] = useState(false);
 
   const refreshAdminData = useCallback(async () => {
@@ -303,11 +303,11 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     logAuditAction('DEMOTED_FROM_ADMIN', 'user', userId, 'Revoked administrative role');
   };
 
-  const updateSystemConfig = async (updates: Partial<SuperAdminConfig>) => {
-    const newConfig: SuperAdminConfig = {
+  const updateSystemConfig = async (updates: Partial<SystemConfig>) => {
+    const newConfig: SystemConfig = {
       ...systemConfig,
       ...updates,
-      lastUpdatedBy: currentUser?.name || 'Super Administrator',
+      lastUpdatedBy: currentUser?.name || 'UC Administrator',
       lastUpdatedAt: new Date().toISOString()
     };
     setSystemConfig(newConfig);

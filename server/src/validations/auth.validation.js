@@ -10,8 +10,7 @@ const registerSchema = Joi.object({
     'string.pattern.base': 'Student ID must contain between 6 and 20 digits with no hyphens or letters.',
     'string.empty': 'Student ID is required.'
   }),
-  email: Joi.string().trim().email().pattern(/^.+@(uc\.edu\.ph|alumni\.uc\.edu\.ph)$/i).required().messages({
-    'string.pattern.base': 'Must use official University of Cebu email (@uc.edu.ph).',
+  email: Joi.string().trim().email().required().messages({
     'string.email': 'Please provide a valid email address.',
     'string.empty': 'Email is required.'
   }),
@@ -33,12 +32,16 @@ const registerSchema = Joi.object({
 });
 
 const loginSchema = Joi.object({
-  emailOrStudentId: Joi.string().trim().required().messages({
-    'string.empty': 'Please enter your Student ID or Email.'
-  }),
+  studentId: Joi.string().trim(),
+  idNumber: Joi.string().trim(),
+  emailOrStudentId: Joi.string().trim(),
+  identifier: Joi.string().trim(),
+  email: Joi.string().trim(),
   password: Joi.string().required().messages({
     'string.empty': 'Please enter your password.'
   })
+}).or('studentId', 'idNumber', 'emailOrStudentId', 'identifier', 'email').messages({
+  'object.missing': 'Please enter your Student ID or Email.'
 });
 
 const forgotPasswordSchema = Joi.object({

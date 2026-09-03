@@ -62,6 +62,11 @@ function encodeId(rawId, type = 'generic') {
 function decodeId(slug) {
   if (!slug || typeof slug !== 'string') return slug;
 
+  // If it is a standard UUID or contains hyphens (e.g. usr_uuid, ann_uuid, user-1), return as is
+  if (slug.includes('-')) {
+    return slug;
+  }
+
   const matchedPrefix = ALL_PREFIXES.find((p) => slug.startsWith(p));
   if (!matchedPrefix) {
     return slug; // Unhashed raw ID (backward compatibility)

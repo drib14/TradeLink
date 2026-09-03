@@ -7,7 +7,7 @@ This folder contains the complete SQL scripts and database documentation for the
 ## 📁 Files
 
 - `schema.sql` — Complete Data Definition Language (DDL) creating all 22 relational tables, strict foreign key constraints, composite unique indexes, check constraints, and fulltext search indexes.
-- `seed.sql` — Initial University of Cebu seed data including SuperAdmin, Admin, verified student accounts across UC Main, UC Banilad, UC LM, UC METC, sample listings, meetup transactions with 4-digit handshake codes, swap proposals, reviews with badges, and system configs.
+- `seed.sql` — Initial University of Cebu seed data configuring the official Admin account, announcements, prohibited keywords, and system configuration.
 
 ---
 
@@ -25,7 +25,7 @@ source c:/Users/jhond/Documents/TradeLink/DB/seed.sql;
 
 ### Option 2: Using XAMPP / phpMyAdmin / MySQL Workbench
 1. Open MySQL Workbench or phpMyAdmin (`http://localhost/phpmyadmin`).
-2. Create a new database named `tradelink_db` with collation `utf8mb4_unicode_ci`.
+2. Create a new database named `tradelink_db_test` with collation `utf8mb4_unicode_ci` (or execute `schema.sql` which creates it automatically).
 3. Open `schema.sql` and execute the script.
 4. Open `seed.sql` and execute the script.
 
@@ -40,15 +40,10 @@ npx knex seed:run
 
 ---
 
-## 👥 Default Test Accounts
+## 👥 Default Seeded Account
 
-| Role | Email | Password | Campus | Notes |
-|---|---|---|---|---|
-| **SuperAdmin** | `superadmin@uc.edu.ph` | `superadmin123` | UC Main | Full administrative privileges & platform config |
-| **Admin** | `admin@uc.edu.ph` | `admin123` | UC Main | Moderation desk, dispute verdicts, verification reviews |
-| **Student** | `maria.nursing@uc.edu.ph` | `password123` | UC Banilad | Verified student, Pro Merchant badge |
-| **Student** | `ken.engg@uc.edu.ph` | `password123` | UC LM | Verified student (Engineering) |
-| **Student** | `alex.stem@uc.edu.ph` | `password123` | UC Main | Verified student (Senior High STEM) |
-| **Student** | `beatrice.maritime@uc.edu.ph`| `password123` | UC METC | Verified student (Maritime) |
-| **Student** | `dave.ccs@uc.edu.ph` | `password123` | UC Main | Verified student (CCS) |
-| **Student** | `chloe.cba@uc.edu.ph` | `password123` | UC South Campus | Unverified student (Pending ID review) |
+| Role | ID Number | Email | Password | Campus | Notes |
+|---|---|---|---|---|---|
+| **Admin** | `000001` | `admin@uc.edu.ph` | `AdminUC` | UC Main | Full campus moderation & administration desk |
+
+*Note: Students register their own personal emails and log in with their Student ID.*

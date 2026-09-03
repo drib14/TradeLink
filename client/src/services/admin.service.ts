@@ -1,6 +1,6 @@
-// Admin and SuperAdmin service
+// Admin moderation service
 import { api } from './api';
-import type { VerificationRequest, TradeDispute, CampusAnnouncement, AdminAuditLog, SuperAdminConfig, Campus, User } from '../types';
+import type { VerificationRequest, TradeDispute, CampusAnnouncement, AdminAuditLog, SystemConfig, Campus, User } from '../types';
 
 export interface FlaggedListingItem {
   id: string;
@@ -111,12 +111,12 @@ export const adminService = {
   },
 
   // System Config & Feature Flags
-  async getSystemConfig(): Promise<SuperAdminConfig> {
+  async getSystemConfig(): Promise<SystemConfig> {
     const res = await api.get<{ config: any }>('/admin/config');
     return res.data?.config || res.data;
   },
 
-  async updateSystemConfig(updates: Partial<SuperAdminConfig>): Promise<void> {
+  async updateSystemConfig(updates: Partial<SystemConfig>): Promise<void> {
     await api.patch('/admin/config', updates);
   },
 

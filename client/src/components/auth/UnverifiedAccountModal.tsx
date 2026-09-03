@@ -149,10 +149,10 @@ export const UnverifiedAccountModal: React.FC<UnverifiedAccountModalProps> = ({
               </div>
               <div>
                 <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                  1. Official Student ID / Study Load
+                  1. Official Student ID Card
                 </div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-                  Upload a photo of your physical UC Student ID or current semester Certificate of Registration (COR).
+                  Upload a clear photo of your physical UC Student ID card.
                 </div>
               </div>
             </div>

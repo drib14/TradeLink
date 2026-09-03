@@ -8,7 +8,6 @@ import { TradeMode, ConditionGrade } from '../types';
 import { CAMPUS_MEETUP_SPOTS } from '../data/campusLocations';
 import {
   Plus,
-  Upload,
   ChevronLeft,
   X,
   MapPin,
@@ -17,15 +16,15 @@ import {
   ArrowLeftRight,
   Gift,
   ShieldAlert,
-  ShieldCheck,
   Clock
 } from 'lucide-react';
 
 interface CreateListingPageProps {
   onNavigate: (view: string, param?: any) => void;
+  onOpenAuth?: () => void;
 }
 
-export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate }) => {
+export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate, onOpenAuth }) => {
   const { currentUser, isAuthenticated } = useAuth();
   const { addListing } = useMarket();
   const { showToast } = useToast();
@@ -50,24 +49,38 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
 
   if (!isAuthenticated || !currentUser) {
     return (
-      <div className="container" style={{ padding: '5rem 1.5rem', textAlign: 'center', maxWidth: '560px' }}>
-        <div className="clean-card" style={{ padding: '2.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ width: '60px', height: '60px', borderRadius: '50%', backgroundColor: 'var(--uc-blue-subtle)', color: 'var(--uc-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Plus size={30} />
+      <div className="container page-enter" style={{ padding: '5rem 1.5rem', textAlign: 'center', maxWidth: '560px' }}>
+        <div className="clean-card" style={{ padding: '2.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
+          <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'var(--uc-blue-subtle)', color: 'var(--uc-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Plus size={32} />
           </div>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-            Sign In Required to Post Items
-          </h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-            To keep our University of Cebu marketplace safe and verified, students must log in before listing items for sale or barter.
-          </p>
-          <button
-            onClick={() => onNavigate('home')}
-            className="btn-gold"
-            style={{ padding: '0.65rem 1.5rem', fontSize: '0.88rem', fontWeight: 800, marginTop: '0.5rem' }}
-          >
-            Explore Catalog or Log In
-          </button>
+          <div>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+              Sign In Required to Post Items
+            </h2>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.55, marginTop: '0.45rem' }}>
+              To keep our University of Cebu marketplace safe and verified, students must log in before listing items for sale or barter.
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center', width: '100%', marginTop: '0.5rem' }}>
+            <button
+              onClick={() => {
+                if (onOpenAuth) onOpenAuth();
+                else onNavigate('home');
+              }}
+              className="btn-gold"
+              style={{ padding: '0.75rem 1.75rem', fontSize: '0.88rem', fontWeight: 800 }}
+            >
+              Log In to TradeLink
+            </button>
+            <button
+              onClick={() => onNavigate('marketplace')}
+              className="btn-secondary"
+              style={{ padding: '0.75rem 1.25rem', fontSize: '0.88rem', fontWeight: 700 }}
+            >
+              Browse Marketplace
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -193,13 +206,13 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
         category: category.trim(),
         description: description.trim() || `Clean and well-kept ${title} available for campus pickup at ${currentUser.campus}.`,
         price: tradeMode === 'free_donation' ? 0 : price,
-        originalSrp: tradeMode === 'free_donation' ? 0 : price,
+        originalSrp: originalSrp > 0 ? originalSrp : (tradeMode === 'free_donation' ? 0 : price),
         condition,
         quantity: Math.max(1, quantity),
         tradeMode,
         swapPreference: tradeMode === 'swap' ? swapPreference.trim() : undefined,
         images,
-        tags: [category.split(' ')[0] || 'Campus'],
+        tags: tags.length > 0 ? tags : [category.split(' ')[0] || 'Campus'],
         sellerId: currentUser.id,
         sellerName: currentUser.name,
         sellerAvatar: currentUser.avatar,
@@ -209,7 +222,7 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
         sellerTrustScore: currentUser.trustScore,
         preferredMeetupSpots: [finalMeetupSpot],
         customMeetupSpot: finalMeetupSpot,
-        isBoosted: false
+        isBoosted
       });
 
       showToast('Item Posted!', `"${newListing.title}" is now active in the campus marketplace!`, 'success');
@@ -438,38 +451,47 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
 
           {/* Pricing or Swap Preferences */}
           {tradeMode === 'buy_sell' && (
-            <div>
-              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-                Price (PHP) *
-              </label>
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                <div style={{ position: 'relative', width: '160px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+                  Selling Price (PHP) *
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <div style={{ position: 'relative', width: '100%' }}>
+                    <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, color: 'var(--text-muted)' }}>
+                      ₱
+                    </span>
+                    <input
+                      type="number"
+                      value={price}
+                      onChange={(e) => setPrice(Number(e.target.value))}
+                      className="clean-input"
+                      style={{ paddingLeft: '1.75rem', fontWeight: 800, fontSize: '0.95rem', color: 'var(--uc-blue)' }}
+                      placeholder="0"
+                      min="1"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+                  Original SRP / Store Price (Optional)
+                </label>
+                <div style={{ position: 'relative' }}>
                   <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, color: 'var(--text-muted)' }}>
                     ₱
                   </span>
                   <input
                     type="number"
-                    value={price}
-                    onChange={(e) => setPrice(Number(e.target.value))}
+                    value={originalSrp || ''}
+                    onChange={(e) => setOriginalSrp(Number(e.target.value))}
                     className="clean-input"
-                    style={{ paddingLeft: '1.75rem', fontWeight: 800, fontSize: '0.95rem', color: 'var(--uc-blue)' }}
-                    placeholder="0"
-                    min="1"
-                    required
+                    style={{ paddingLeft: '1.75rem', fontSize: '0.95rem' }}
+                    placeholder="e.g. 1200"
+                    min="0"
                   />
-                </div>
-                <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
-                  {[50, 100, 250, 500].map((preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      onClick={() => setPrice(preset)}
-                      className="btn-ghost"
-                      style={{ padding: '0.3rem 0.55rem', fontSize: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
-                    >
-                      ₱{preset}
-                    </button>
-                  ))}
                 </div>
               </div>
             </div>
@@ -496,6 +518,74 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
               <Gift size={16} /> Giving this item away for free (₱0) to support a fellow UC student.
             </div>
           )}
+
+          {/* Tags */}
+          <div>
+            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+              Item Tags (Optional)
+            </label>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: tags.length > 0 ? '0.45rem' : '0' }}>
+              <input
+                type="text"
+                value={customTagInput}
+                onChange={(e) => setCustomTagInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (customTagInput.trim() && !tags.includes(customTagInput.trim())) {
+                      setTags([...tags, customTagInput.trim()]);
+                      setCustomTagInput('');
+                    }
+                  }
+                }}
+                placeholder="Type tag (e.g. 2nd-year, nursing, calc) and press Enter"
+                className="clean-input"
+                style={{ fontSize: '0.84rem' }}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (customTagInput.trim() && !tags.includes(customTagInput.trim())) {
+                    setTags([...tags, customTagInput.trim()]);
+                    setCustomTagInput('');
+                  }
+                }}
+                className="btn-secondary"
+                style={{ padding: '0.45rem 0.85rem', fontSize: '0.8rem', fontWeight: 700, flexShrink: 0 }}
+              >
+                Add Tag
+              </button>
+            </div>
+            {tags.length > 0 && (
+              <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                {tags.map((t) => (
+                  <span
+                    key={t}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.3rem',
+                      padding: '0.2rem 0.6rem',
+                      borderRadius: '9999px',
+                      backgroundColor: 'var(--uc-blue-subtle)',
+                      color: 'var(--uc-blue)',
+                      fontSize: '0.74rem',
+                      fontWeight: 700
+                    }}
+                  >
+                    #{t}
+                    <button
+                      type="button"
+                      onClick={() => setTags(tags.filter((tag) => tag !== t))}
+                      style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
 
           <div>
             <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>

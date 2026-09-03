@@ -68,11 +68,11 @@ const pathToView = (path: string, search: string = window.location.search): { vi
   if (cleanLower === 'transactions' || cleanLower === 'history') return { view: 'transactions', params: {} };
   if (cleanLower === 'settings' || cleanLower === 'preferences') return { view: 'settings', params: {} };
   if (cleanLower === 'admin' || cleanLower === 'moderation') return { view: 'admin', params: {} };
-  if (cleanLower === 'superadmin' || cleanLower === 'super-admin') return { view: 'superadmin', params: {} };
   return { view: 'not-found', params: {} };
 };
 
 export const MainApp: React.FC = () => {
+  const { currentUser, isAdmin } = useAuth();
   const [currentView, setCurrentView] = useState<string>('home');
   const [viewParams, setViewParams] = useState<any>({});
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -92,7 +92,35 @@ export const MainApp: React.FC = () => {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
+  const PUBLIC_VIEWS = [
+    'home',
+    'marketplace',
+    'item-detail',
+    'campus-map',
+    'wanted',
+    'profile',
+    'create-listing',
+    'about',
+    'faq',
+    'help-safety',
+    'terms',
+    'maintenance',
+    'not-found'
+  ];
+
+  const AUTH_REQUIRED_VIEWS = ['admin'];
+
+  const [adminPreviewMarketplace, setAdminPreviewMarketplace] = useState(false);
+
   const handleNavigate = (view: string, params: any = {}) => {
+    if (view === 'admin') {
+      setAdminPreviewMarketplace(false);
+      if (!currentUser || (!isAdmin && currentUser.role !== 'admin')) {
+        setIsAuthModalOpen(true);
+        return;
+      }
+    }
+
     setCurrentView(view);
     setViewParams(params);
 
@@ -106,6 +134,18 @@ export const MainApp: React.FC = () => {
   };
 
   const renderCurrentPage = () => {
+    // Route guard: Only Admin dashboard is strictly gated to authenticated administrators
+    if (currentView === 'admin' && (!currentUser || (!isAdmin && currentUser.role !== 'admin'))) {
+      return (
+        <HomePage
+          onNavigate={handleNavigate}
+          onOpenChat={() => {
+            setIsAuthModalOpen(true);
+          }}
+        />
+      );
+    }
+
     switch (currentView) {
       case 'home':
         return <HomePage onNavigate={handleNavigate} onOpenChat={() => setIsChatOpen(true)} />;
@@ -117,16 +157,41 @@ export const MainApp: React.FC = () => {
             listingId={viewParams.id}
             onNavigate={handleNavigate}
             onOpenChat={() => setIsChatOpen(true)}
+            onOpenAuth={() => setIsAuthModalOpen(true)}
+            onOpenVerification={() => setIsVerificationModalOpen(true)}
           />
         );
       case 'create-listing':
-        return <CreateListingPage onNavigate={handleNavigate} />;
+        return (
+          <CreateListingPage
+            onNavigate={handleNavigate}
+            onOpenAuth={() => setIsAuthModalOpen(true)}
+          />
+        );
       case 'wanted':
-        return <WantedBoardPage onNavigate={handleNavigate} onOpenChat={() => setIsChatOpen(true)} />;
+        return (
+          <WantedBoardPage
+            onNavigate={handleNavigate}
+            onOpenChat={() => setIsChatOpen(true)}
+            onOpenAuth={() => setIsAuthModalOpen(true)}
+          />
+        );
       case 'swaps':
-        return <SwapsPage onNavigate={handleNavigate} onOpenChat={() => setIsChatOpen(true)} />;
+        return (
+          <SwapsPage
+            onNavigate={handleNavigate}
+            onOpenChat={() => setIsChatOpen(true)}
+            onOpenAuth={() => setIsAuthModalOpen(true)}
+            onOpenVerification={() => setIsVerificationModalOpen(true)}
+          />
+        );
       case 'meetups':
-        return <MeetupsPage onNavigate={handleNavigate} />;
+        return (
+          <MeetupsPage
+            onNavigate={handleNavigate}
+            onOpenAuth={() => setIsAuthModalOpen(true)}
+          />
+        );
       case 'campus-map':
         return <CampusMapPage onNavigate={handleNavigate} />;
       case 'profile':
@@ -134,6 +199,8 @@ export const MainApp: React.FC = () => {
           <ProfilePage
             userId={viewParams.userId}
             onNavigate={handleNavigate}
+            onOpenAuth={() => setIsAuthModalOpen(true)}
+            onOpenVerification={() => setIsVerificationModalOpen(true)}
           />
         );
       case 'about':
@@ -145,13 +212,26 @@ export const MainApp: React.FC = () => {
       case 'terms':
         return <TermsPrivacyPage onNavigate={handleNavigate} />;
       case 'favorites':
-        return <FavoritesPage onNavigate={handleNavigate} />;
+        return (
+          <FavoritesPage
+            onNavigate={handleNavigate}
+            onOpenAuth={() => setIsAuthModalOpen(true)}
+          />
+        );
       case 'transactions':
-        return <TransactionHistoryPage onNavigate={handleNavigate} />;
+        return (
+          <TransactionHistoryPage
+            onNavigate={handleNavigate}
+            onOpenAuth={() => setIsAuthModalOpen(true)}
+          />
+        );
       case 'settings':
-        return <SettingsPage onNavigate={handleNavigate} />;
-      case 'admin':
-        return <AdminDashboard onNavigate={handleNavigate} />;
+        return (
+          <SettingsPage
+            onNavigate={handleNavigate}
+            onOpenAuth={() => setIsAuthModalOpen(true)}
+          />
+        );
       case 'maintenance':
         return <MaintenancePage onNavigate={handleNavigate} />;
       case 'not-found':
@@ -160,8 +240,41 @@ export const MainApp: React.FC = () => {
     }
   };
 
+  // If authenticated user is an Administrator and not previewing the student marketplace
+  if ((isAdmin || currentUser?.role === 'admin') && !adminPreviewMarketplace) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: 'var(--bg-base, #F8FAFC)', width: '100%', maxWidth: '100vw', overflowX: 'hidden' }}>
+        <AdminDashboard onNavigate={(view, params) => {
+          if (view !== 'admin') {
+            setAdminPreviewMarketplace(true);
+          }
+          handleNavigate(view, params);
+        }} />
+      </div>
+    );
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: 'var(--bg-base, #F8FAFC)', width: '100%', maxWidth: '100vw', overflowX: 'hidden' }}>
+      {/* Admin Marketplace Preview Banner */}
+      {(isAdmin || currentUser?.role === 'admin') && adminPreviewMarketplace && (
+        <div style={{ backgroundColor: '#002B7F', color: '#FFFFFF', padding: '0.45rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: 700, zIndex: 1100 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ backgroundColor: '#FFC72C', color: '#002B7F', fontSize: '0.68rem', fontWeight: 900, padding: '0.15rem 0.45rem', borderRadius: '4px', textTransform: 'uppercase' }}>Admin Preview</span>
+            <span>You are previewing the student marketplace.</span>
+          </div>
+          <button
+            onClick={() => {
+              setAdminPreviewMarketplace(false);
+              handleNavigate('admin');
+            }}
+            style={{ backgroundColor: '#FFC72C', color: '#002B7F', border: 'none', borderRadius: '6px', padding: '0.3rem 0.75rem', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer' }}
+          >
+            Return to Moderation Desk →
+          </button>
+        </div>
+      )}
+
       {/* 1. Official Campus Navbar */}
       <Navbar
         currentView={currentView}

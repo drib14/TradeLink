@@ -51,7 +51,7 @@ export const HandshakeQRModal: React.FC<HandshakeQRModalProps> = ({
   if (!isOpen) return null;
 
   const handleCopyCode = () => {
-    if (navigator.clipboard) {
+    if (meetup.verificationCode && navigator.clipboard) {
       navigator.clipboard.writeText(meetup.verificationCode);
       setIsCopied(true);
       showToast('Code Copied', `4-digit code ${meetup.verificationCode} copied to clipboard!`, 'info');

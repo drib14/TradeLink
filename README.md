@@ -131,7 +131,7 @@ DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_USER=root
 DB_PASSWORD=your_mysql_password
-DB_NAME=tradelink_db
+DB_NAME=tradelink_db_test
 
 # Security Secrets (Use 64+ char random keys in production)
 JWT_ACCESS_SECRET=your_jwt_access_secret_key_min_32_chars

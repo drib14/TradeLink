@@ -19,7 +19,7 @@ module.exports = (io, socket) => {
       if (!conv) return;
 
       // Verify user is a participant
-      if (conv.participant_a === userId || conv.participant_b === userId) {
+      if (conv.user_one_id === userId || conv.user_two_id === userId) {
         socket.join(`conv:${conversationId}`);
         logger.debug(`User [${userId}] joined room conv:${conversationId}`);
       }

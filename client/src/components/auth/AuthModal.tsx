@@ -4,21 +4,12 @@ import { useToast } from '../common/Toast';
 import { Campus, College } from '../../types';
 import {
   X,
-  Lock,
-  Mail,
   ShieldCheck,
-  Hash,
-  MapPin,
-  Sparkles,
-  School,
-  CheckCircle2,
   Loader2,
-  ArrowLeft,
   Eye,
   EyeOff
 } from 'lucide-react';
 import { Logo } from '../common/Logo';
-import { CampusBadge } from '../common/CampusBadge';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -26,17 +17,6 @@ interface AuthModalProps {
   initialMode?: 'login' | 'register' | 'forgot';
   onRegisterSuccess?: () => void;
 }
-
-const CAMPUS_OPTIONS: { value: Campus; label: string; location: string; short: string }[] = [
-  { value: 'UC Main', label: 'UC Main Campus', location: 'Sanciangko St. & J. Alcantara St., Cebu City', short: 'Main' },
-  { value: 'UC Banilad', label: 'UC Banilad Campus', location: 'Gov. M. Cuenco Ave, Banilad, Cebu City', short: 'Banilad' },
-  { value: 'UC LM', label: 'UC Lapu-Lapu & Mandaue (LM)', location: 'A.C. Cortes Ave, Mandaue City', short: 'LM' },
-  { value: 'UC METC', label: 'UC Maritime Education & Training (METC)', location: 'Alumnos, Mambaling, Cebu City', short: 'METC' },
-  { value: 'UC PRI', label: 'UC P. del Rosario Interactive (PRI)', location: 'P. del Rosario St., Cebu City (JHS/SHS)', short: 'PRI' },
-  { value: 'UC Pardo-Talisay', label: 'UC Pardo-Talisay', location: 'Bulacao, Pardo / Talisay Boundary', short: 'Pardo' },
-  { value: 'UC South Campus', label: 'UC South Campus', location: 'Sanciangko Extension, Cebu City', short: 'South' },
-  { value: 'UC Medical Center', label: 'UC Medical Center (UCMed)', location: 'Subangdaku, Mandaue City', short: 'UCMed' }
-];
 
 export const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
@@ -48,13 +28,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const { showToast } = useToast();
 
   const [mode, setMode] = useState<'login' | 'register' | 'forgot' | 'reset'>(initialMode);
-  const [loginMethod, setLoginMethod] = useState<'id' | 'email'>('id');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Login inputs
   const [loginIdentifier, setLoginIdentifier] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
-  const [selectedLoginCampus, setSelectedLoginCampus] = useState<Campus>('UC Main');
 
   // Register inputs
   const [regName, setRegName] = useState('');
@@ -125,7 +103,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!loginIdentifier.trim()) {
-      showToast('Input Required', loginMethod === 'id' ? 'Please enter your UC Student ID.' : 'Please enter your UC email.', 'warning');
+      showToast('Input Required', 'Please enter your Student ID or ID Number.', 'warning');
       return;
     }
     if (!loginPassword) {
@@ -325,154 +303,47 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
           {/* 1. LOGIN FORM */}
           {mode === 'login' && (
-            <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {/* UC Campus Dropdown Selector */}
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                    <School size={14} color="var(--uc-blue)" />
-                    <span>Select Your UC Campus</span>
-                  </label>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--uc-blue)', fontWeight: 700 }}>
-                    {selectedLoginCampus}
-                  </span>
-                </div>
-                <div style={{ position: 'relative' }}>
-                  <MapPin size={15} color="var(--uc-blue)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-                  <select
-                    value={selectedLoginCampus}
-                    onChange={(e) => setSelectedLoginCampus(e.target.value as any)}
-                    className="clean-input"
-                    style={{
-                      paddingLeft: '2.25rem',
-                      fontWeight: 700,
-                      color: 'var(--uc-blue)',
-                      backgroundColor: 'var(--bg-subtle)',
-                      borderColor: 'var(--border-subtle)'
-                    }}
-                  >
-                    {CAMPUS_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label} ({opt.short})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.25rem', paddingLeft: '0.2rem' }}>
-                  Location: {CAMPUS_OPTIONS.find(c => c.value === selectedLoginCampus)?.location}
-                </div>
-              </div>
-
-              {/* Login Method Segmented Buttons */}
-              <div style={{ display: 'flex', backgroundColor: 'var(--bg-subtle)', padding: '3px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLoginMethod('id');
-                    setLoginIdentifier('');
-                  }}
-                  style={{
-                    flex: 1,
-                    padding: '0.45rem',
-                    borderRadius: '7px',
-                    fontSize: '0.8rem',
-                    fontWeight: loginMethod === 'id' ? 800 : 600,
-                    backgroundColor: loginMethod === 'id' ? 'var(--bg-surface)' : 'transparent',
-                    color: loginMethod === 'id' ? 'var(--uc-blue)' : 'var(--text-muted)',
-                    boxShadow: loginMethod === 'id' ? 'var(--shadow-sm)' : 'none',
-                    cursor: 'pointer',
-                    border: 'none',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  Student ID Number
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLoginMethod('email');
-                    setLoginIdentifier('');
-                  }}
-                  style={{
-                    flex: 1,
-                    padding: '0.45rem',
-                    borderRadius: '7px',
-                    fontSize: '0.8rem',
-                    fontWeight: loginMethod === 'email' ? 800 : 600,
-                    backgroundColor: loginMethod === 'email' ? 'var(--bg-surface)' : 'transparent',
-                    color: loginMethod === 'email' ? 'var(--uc-blue)' : 'var(--text-muted)',
-                    boxShadow: loginMethod === 'email' ? 'var(--shadow-sm)' : 'none',
-                    cursor: 'pointer',
-                    border: 'none',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  UC Email Address
-                </button>
-              </div>
-
+            <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
               {/* Identifier Input */}
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
-                  {loginMethod === 'id' ? 'UC Student ID Number' : 'Official Email Address'}
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+                  ID Number
                 </label>
-                <div style={{ position: 'relative' }}>
-                  {loginMethod === 'id' ? (
-                    <>
-                      <Hash size={15} color="var(--text-muted)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
-                      <input
-                        type="text"
-                        value={loginIdentifier}
-                        onChange={(e) => setLoginIdentifier(e.target.value)}
-                        placeholder="e.g. 202104982"
-                        className="clean-input"
-                        style={{ paddingLeft: '2.25rem', fontWeight: 600 }}
-                        maxLength={15}
-                        required
-                        disabled={isSubmitting}
-                      />
-                    </>
-                  ) : (
-                    <>
-                      <Mail size={15} color="var(--text-muted)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
-                      <input
-                        type="email"
-                        value={loginIdentifier}
-                        onChange={(e) => setLoginIdentifier(e.target.value)}
-                        placeholder="e.g. maria.nursing@uc.edu.ph"
-                        className="clean-input"
-                        style={{ paddingLeft: '2.25rem', fontWeight: 600 }}
-                        required
-                        disabled={isSubmitting}
-                      />
-                    </>
-                  )}
-                </div>
+                <input
+                  type="text"
+                  value={loginIdentifier}
+                  onChange={(e) => setLoginIdentifier(e.target.value)}
+                  placeholder="ID Number"
+                  className="clean-input"
+                  style={{ fontWeight: 500 }}
+                  required
+                  autoFocus
+                  disabled={isSubmitting}
+                />
               </div>
 
               {/* Password Input */}
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)' }}>
                     Password
                   </label>
                   <button
                     type="button"
                     onClick={() => setMode('forgot')}
-                    style={{ fontSize: '0.75rem', color: 'var(--uc-blue)', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer' }}
+                    style={{ fontSize: '0.75rem', color: 'var(--uc-blue)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}
                   >
                     Forgot password?
                   </button>
                 </div>
                 <div style={{ position: 'relative' }}>
-                  <Lock size={15} color="var(--text-muted)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
                   <input
                     type={showLoginPassword ? 'text' : 'password'}
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
-                    placeholder="Enter account password"
+                    placeholder="Password"
                     className="clean-input"
-                    style={{ paddingLeft: '2.25rem', paddingRight: '2.5rem' }}
+                    style={{ paddingRight: '2.5rem' }}
                     required
                     disabled={isSubmitting}
                   />
@@ -513,8 +384,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '0.5rem',
-                  fontSize: '0.9rem',
-                  fontWeight: 800
+                  fontSize: '0.88rem',
+                  fontWeight: 600,
+                  borderRadius: '8px'
                 }}
               >
                 {isSubmitting ? (
@@ -523,7 +395,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     <span>Signing In...</span>
                   </>
                 ) : (
-                  <span>Sign In to TradeLink</span>
+                  <span>Sign In</span>
                 )}
               </button>
 
@@ -546,14 +418,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <form onSubmit={handleRegisterSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
                     Full Legal Name *
                   </label>
                   <input
                     type="text"
                     value={regName}
                     onChange={(e) => setRegName(e.target.value)}
-                    placeholder="Juan Dela Cruz"
+                    placeholder="Full Name"
                     className="clean-input"
                     required
                     disabled={isSubmitting}
@@ -561,14 +433,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
-                    UC Student ID Number *
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+                    Student ID Number *
                   </label>
                   <input
                     type="text"
                     value={regStudentId}
                     onChange={(e) => setRegStudentId(e.target.value.replace(/\D/g, ''))}
-                    placeholder="e.g. 202104982 (digits only)"
+                    placeholder="ID Number"
                     className="clean-input"
                     maxLength={15}
                     required
@@ -579,14 +451,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
-                    Email Address *
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+                    Personal Email Address *
                   </label>
                   <input
                     type="email"
                     value={regEmail}
                     onChange={(e) => setRegEmail(e.target.value)}
-                    placeholder="student@uc.edu.ph"
+                    placeholder="Email Address"
                     className="clean-input"
                     required
                     disabled={isSubmitting}
@@ -594,15 +466,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
-                    Create Password *
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+                    Password *
                   </label>
                   <div style={{ position: 'relative' }}>
                     <input
                       type={showRegPassword ? 'text' : 'password'}
                       value={regPassword}
                       onChange={(e) => setRegPassword(e.target.value)}
-                      placeholder="Min. 6 characters"
+                      placeholder="Password"
                       className="clean-input"
                       style={{ paddingRight: '2.5rem' }}
                       required
@@ -757,31 +629,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
           {/* 3. FORGOT PASSWORD */}
           {mode === 'forgot' && (
-            <form onSubmit={handleForgotSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <form onSubmit={handleForgotSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
-                  UC Student Email
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+                  Email Address
                 </label>
-                <div style={{ position: 'relative' }}>
-                  <Mail size={15} color="var(--text-muted)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
-                  <input
-                    type="email"
-                    value={forgotEmail}
-                    onChange={(e) => setForgotEmail(e.target.value)}
-                    placeholder="student@uc.edu.ph"
-                    className="clean-input"
-                    style={{ paddingLeft: '2.25rem' }}
-                    required
-                    disabled={isSubmitting}
-                  />
-                </div>
+                <input
+                  type="email"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  placeholder="Email Address"
+                  className="clean-input"
+                  required
+                  autoFocus
+                  disabled={isSubmitting}
+                />
               </div>
 
               <button
                 type="submit"
                 className="btn-primary"
                 disabled={isSubmitting}
-                style={{ padding: '0.75rem', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                style={{ padding: '0.75rem', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', borderRadius: '8px', fontWeight: 600 }}
               >
                 {isSubmitting ? (
                   <>
@@ -797,7 +666,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setMode('login')}
-                  style={{ color: 'var(--uc-blue)', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer' }}
+                  style={{ color: 'var(--uc-blue)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}
                 >
                   Back to Sign In
                 </button>
@@ -807,37 +676,37 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
           {/* 4. RESET PASSWORD */}
           {mode === 'reset' && (
-            <form onSubmit={handleResetSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <form onSubmit={handleResetSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
-                  4-Digit Verification Code
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+                  Verification Code
                 </label>
                 <input
                   type="text"
                   value={resetCode}
                   onChange={(e) => setResetCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                  placeholder="0000"
+                  placeholder="Code"
                   className="clean-input"
                   maxLength={4}
                   style={{ textAlign: 'center', fontSize: '1.3rem', letterSpacing: '0.3em', fontWeight: 800, color: 'var(--uc-blue)' }}
                   required
+                  autoFocus
                   disabled={isSubmitting}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
-                  Set New Password
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+                  New Password
                 </label>
                 <div style={{ position: 'relative' }}>
-                  <Lock size={15} color="var(--text-muted)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
                   <input
                     type={showNewPassword ? 'text' : 'password'}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Enter new password"
+                    placeholder="New Password"
                     className="clean-input"
-                    style={{ paddingLeft: '2.25rem', paddingRight: '2.5rem' }}
+                    style={{ paddingRight: '2.5rem' }}
                     required
                     disabled={isSubmitting}
                   />

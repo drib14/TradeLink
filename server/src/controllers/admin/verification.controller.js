@@ -4,19 +4,22 @@ const asyncHandler = require('../../utils/asyncHandler');
 
 async function logAdminAction(adminUser, action, targetType, targetId, details, req) {
   const ip = req?.headers ? (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1') : '127.0.0.1';
-  const userAgent = req?.headers ? req.headers['user-agent'] || null : null;
 
-  await db('admin_audit_logs').insert({
-    id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-    admin_id: adminUser.id,
-    admin_name: adminUser.name,
-    action,
-    target_type: targetType,
-    target_id: targetId,
-    details,
-    ip_address: typeof ip === 'string' ? ip.split(',')[0].trim() : ip,
-    user_agent: userAgent
-  });
+  try {
+    await db('admin_audit_logs').insert({
+      id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      admin_id: adminUser.id,
+      admin_name: adminUser.name || 'Administrator',
+      action,
+      target_type: targetType,
+      target_id: targetId,
+      details: details || '',
+      ip_address: typeof ip === 'string' ? ip.split(',')[0].trim() : ip,
+      created_at: new Date()
+    });
+  } catch (err) {
+    console.error('Audit log error:', err.message);
+  }
 }
 
 /**
@@ -33,7 +36,9 @@ const getVerifications = asyncHandler(async (req, res) => {
     .select(
       'verification_requests.*',
       'users.name as user_name',
-      'users.email as user_email'
+      'users.email as user_email',
+      'users.campus as user_campus',
+      'users.college as user_college'
     );
 
   if (status) {
@@ -41,7 +46,7 @@ const getVerifications = asyncHandler(async (req, res) => {
   }
 
   const requests = await query
-    .orderBy('verification_requests.submitted_at', 'desc')
+    .orderBy('verification_requests.created_at', 'desc')
     .limit(parsedLimit)
     .offset(offset);
 
@@ -51,12 +56,12 @@ const getVerifications = asyncHandler(async (req, res) => {
     userName: r.user_name,
     userEmail: r.user_email,
     studentIdNumber: r.student_id_number,
-    campus: r.campus,
-    college: r.college,
-    idCardImageUrl: r.id_card_image_url,
-    selfiePhotoUrl: r.selfie_photo_url,
+    campus: r.user_campus || 'UC Main',
+    college: r.user_college || 'General Student',
+    idCardImageUrl: r.id_photo_url || r.id_card_image_url || '',
+    selfiePhotoUrl: r.selfie_photo_url || null,
     status: r.status,
-    submittedAt: r.submitted_at,
+    submittedAt: r.created_at || r.submitted_at,
     reviewedAt: r.reviewed_at
   }));
 
@@ -118,7 +123,7 @@ const rejectVerification = asyncHandler(async (req, res, next) => {
     status: 'rejected',
     reviewed_at: new Date(),
     reviewed_by: req.user.id,
-    reject_reason: reason
+    rejection_reason: reason
   });
 
   await logAdminAction(req.user, 'Rejected Verification', 'verification', id, `Rejected: ${reason}`, req);

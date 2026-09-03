@@ -43,12 +43,12 @@ testApp.use('/api/auth', authRoutes);
 testApp.use(errorHandler);
 
 describe('Integration Test: Auth Module & Registration Workflows', () => {
-  it('should reject registration with non-UC email domain', async () => {
+  it('should accept registration with personal email domain', async () => {
     const res = await request(testApp)
       .post('/api/auth/register')
       .send({
         name: 'Juan Dela Cruz',
-        email: 'juan@gmail.com', // Non-UC domain
+        email: 'juan@gmail.com', // Personal email domain allowed
         password: 'Password123!',
         studentId: '202300001',
         campus: 'UC Main',
@@ -56,8 +56,8 @@ describe('Integration Test: Auth Module & Registration Workflows', () => {
         yearLevel: '3rd Year'
       });
 
-    expect(res.status).toBe(400);
-    expect(res.body.status).toBe('fail');
+    // Valid payload passes validation schema (status is 201 or DB duplicate in real app)
+    expect(res.status).not.toBe(400);
   });
 
   it('should reject registration with invalid student ID format', async () => {
@@ -65,7 +65,7 @@ describe('Integration Test: Auth Module & Registration Workflows', () => {
       .post('/api/auth/register')
       .send({
         name: 'Juan Dela Cruz',
-        email: 'juan.ccs@uc.edu.ph',
+        email: 'juan.personal@gmail.com',
         password: 'Password123!',
         studentId: 'abc-invalid',
         campus: 'UC Main',
@@ -77,11 +77,11 @@ describe('Integration Test: Auth Module & Registration Workflows', () => {
     expect(res.body.message).toContain('digits with no hyphens or letters');
   });
 
-  it('should reject login without password or email', async () => {
+  it('should reject login without password', async () => {
     const res = await request(testApp)
       .post('/api/auth/login')
       .send({
-        email: 'student@uc.edu.ph'
+        studentId: '2024123456'
       });
 
     expect(res.status).toBe(400);

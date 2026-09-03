@@ -9,7 +9,6 @@ import { VerificationRequest, User, Listing, Campus, TradeDispute } from '../typ
 import { CAMPUS_MEETUP_SPOTS } from '../data/campusLocations';
 import {
   ShieldAlert,
-  ShieldCheck,
   UserX,
   UserCheck,
   AlertTriangle,
@@ -212,46 +211,43 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
           </div>
 
           {/* Standard Secure Login Form */}
-          <form onSubmit={handleAdminGateSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <form onSubmit={handleAdminGateSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
-                Administrator ID or Email
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#334155', marginBottom: '0.35rem' }}>
+                ID Number
               </label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type="text"
-                  value={adminEmailInput}
-                  onChange={(e) => setAdminEmailInput(e.target.value)}
-                  placeholder="e.g. admin@uc.edu.ph"
-                  className="clean-input"
-                  required
-                />
-              </div>
+              <input
+                type="text"
+                value={adminEmailInput}
+                onChange={(e) => setAdminEmailInput(e.target.value)}
+                placeholder="ID Number"
+                className="clean-input"
+                autoFocus
+                required
+              />
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#334155', marginBottom: '0.35rem' }}>
                 Password
               </label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type="password"
-                  value={adminPasswordInput}
-                  onChange={(e) => setAdminPasswordInput(e.target.value)}
-                  placeholder="Enter administrator password"
-                  className="clean-input"
-                  required
-                />
-              </div>
+              <input
+                type="password"
+                value={adminPasswordInput}
+                onChange={(e) => setAdminPasswordInput(e.target.value)}
+                placeholder="Password"
+                className="clean-input"
+                required
+              />
             </div>
 
             <button
               type="submit"
               className="btn-primary"
-              style={{ padding: '0.75rem', width: '100%', fontWeight: 800, fontSize: '0.88rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem', marginTop: '0.25rem' }}
+              style={{ padding: '0.75rem', width: '100%', fontWeight: 600, fontSize: '0.88rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem', marginTop: '0.25rem', borderRadius: '8px' }}
             >
               <LogIn size={16} style={{ flexShrink: 0 }} />
-              <span>Authenticate as Administrator</span>
+              <span>Sign In</span>
             </button>
           </form>
 
@@ -523,9 +519,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
       >
         {[
           { id: 'overview', label: 'Overview', icon: <TrendingUp size={14} /> },
-          { id: 'verifications', label: `ID Verifications (${pendingRequests.length})`, icon: <BadgeCheck size={14} /> },
+          { id: 'verifications', label: `ID Verifications (${pendingVerificationsCount})`, icon: <BadgeCheck size={14} /> },
           { id: 'users', label: `Users & Moderation (${allUsers.length})`, icon: <UserCheck size={14} /> },
-          { id: 'listings', label: `Listings & Flags (${pendingFlags.length})`, icon: <ShieldAlert size={14} /> },
+          { id: 'listings', label: `Listings & Flags (${pendingFlagsCount})`, icon: <ShieldAlert size={14} /> },
           { id: 'scanner', label: `Prohibited Scanner (${scannedViolations.length})`, icon: <Shield size={14} /> },
           { id: 'disputes', label: `Trade Disputes (${pendingDisputesCount})`, icon: <Scale size={14} /> },
           { id: 'reputation', label: 'Trust & Reputation', icon: <Award size={14} /> },
@@ -1821,7 +1817,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
               </p>
             </div>
 
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              <input
+                type="text"
+                value={auditSearch}
+                onChange={(e) => setAuditSearch(e.target.value)}
+                placeholder="Search audit trail..."
+                className="clean-input"
+                style={{ padding: '0.45rem 0.75rem', fontSize: '0.8rem', minWidth: '180px' }}
+              />
               <select
                 value={auditTypeFilter}
                 onChange={(e) => setAuditTypeFilter(e.target.value)}

@@ -11,6 +11,8 @@ if (envMode === 'production') {
   }
 }
 
+const crypto = require('crypto');
+
 const config = {
   env: envMode,
   port: parseInt(process.env.PORT, 10) || 3001,
@@ -21,13 +23,13 @@ const config = {
     port: parseInt(process.env.DB_PORT, 10) || 3306,
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'tradelink_db',
+    database: process.env.DB_NAME || 'tradelink_db_test',
     ssl: process.env.DB_SSL === 'true'
   },
 
   jwt: {
-    accessSecret: process.env.JWT_ACCESS_SECRET || (envMode === 'test' ? 'test_jwt_access_secret_key_1234567890' : 'tradelink_dev_access_secret_key_2026_only'),
-    refreshSecret: process.env.JWT_REFRESH_SECRET || (envMode === 'test' ? 'test_jwt_refresh_secret_key_1234567890' : 'tradelink_dev_refresh_secret_key_2026_only'),
+    accessSecret: process.env.JWT_ACCESS_SECRET || (envMode === 'test' ? 'test_jwt_access_secret_key_1234567890' : crypto.randomBytes(48).toString('hex')),
+    refreshSecret: process.env.JWT_REFRESH_SECRET || (envMode === 'test' ? 'test_jwt_refresh_secret_key_1234567890' : crypto.randomBytes(48).toString('hex')),
     accessExpiresIn: process.env.JWT_ACCESS_EXPIRY || '15m',
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRY || '7d'
   },
@@ -45,6 +47,18 @@ const config = {
   upload: {
     path: process.env.UPLOAD_PATH || './uploads',
     maxSizeMB: parseInt(process.env.MAX_FILE_SIZE_MB, 10) || 5
+  },
+
+  r2: {
+    enabled: process.env.R2_ENABLED !== 'false',
+    accountId: process.env.R2_ACCOUNT_ID || process.env.CLOUDFLARE_ACCOUNT_ID || '',
+    accessKeyId: process.env.R2_ACCESS_KEY_ID || process.env.CLOUDFLARE_R2_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY || '',
+    bucketName: process.env.R2_BUCKET_NAME || process.env.CLOUDFLARE_R2_BUCKET_NAME || 'tradelink-media',
+    publicUrl: (process.env.R2_PUBLIC_URL || process.env.CLOUDFLARE_R2_PUBLIC_URL || '').replace(/\/+$/, ''),
+    apiToken: process.env.R2_TOKEN || process.env.CLOUDFLARE_API_TOKEN || process.env.CLOUDFLARE_GLOBAL_API_KEY || '',
+    globalApiKey: process.env.CLOUDFLARE_GLOBAL_API_KEY || '',
+    customEndpoint: process.env.R2_CUSTOM_ENDPOINT || null
   }
 };
 

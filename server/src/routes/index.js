@@ -22,29 +22,38 @@ const adminRoutes = require('./admin.routes');
 router.get('/health', async (req, res) => {
   const dbHealth = await db.testConnection();
   res.status(dbHealth.ok ? 200 : 503).json({
-    status: dbHealth.ok ? 'success' : 'error',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    database: dbHealth
+    status: dbHealth.ok ? 'ok' : 'degraded'
   });
 });
 
-// File Upload endpoint (single image)
-router.post('/upload', authenticate, upload.single('image'), (req, res, next) => {
+const storageService = require('../services/storage.service');
+const asyncHandler = require('../utils/asyncHandler');
+
+// File Upload endpoint (single image to Cloudflare R2 / secure storage)
+router.post('/upload', authenticate, upload.single('image'), asyncHandler(async (req, res, next) => {
   if (!req.file) {
     return next(new AppError('No file uploaded.', 400));
   }
 
-  const relativeUrl = `/uploads/${req.file.destination.split(/[\\/]/).pop()}/${req.file.filename}`;
+  const folder = req.body.folder || req.query.folder || 'listings';
+  const result = await storageService.uploadBuffer(
+    req.file.buffer,
+    req.file.originalname,
+    req.file.mimetype,
+    folder
+  );
+
   res.status(201).json({
     status: 'success',
     data: {
-      url: relativeUrl,
-      filename: req.file.filename,
-      size: req.file.size
+      url: result.url,
+      key: result.key,
+      filename: result.filename,
+      size: result.size,
+      storage: result.storage
     }
   });
-});
+}));
 
 // Mount domain routes
 router.use('/auth', authRoutes);

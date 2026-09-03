@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useMarket } from '../context/MarketContext';
+import { useAuth } from '../context/AuthContext';
 import { ListingCard } from '../components/marketplace/ListingCard';
 import { CampusCarouselBanner } from '../components/home/CampusCarouselBanner';
 import { ListingCardSkeleton } from '../components/common/SkeletonLoader';
@@ -10,8 +11,9 @@ import {
   Flame,
   ArrowLeftRight,
   MapPin,
-  Sparkles,
-  ShoppingBag
+  ShoppingBag,
+  ShieldCheck,
+  LogIn
 } from 'lucide-react';
 
 interface HomePageProps {
@@ -19,8 +21,9 @@ interface HomePageProps {
   onOpenChat?: () => void;
 }
 
-export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
+export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenChat: _onOpenChat }) => {
   const { listings, isLoading, setSelectedCampus, favorites } = useMarket();
+  const { isAuthenticated } = useAuth();
   const [activeFeedTab, setActiveFeedTab] = useState<'all' | 'featured' | 'swaps' | 'free'>('all');
 
   const handleCampusSelect = (campus: Campus | 'ALL') => {

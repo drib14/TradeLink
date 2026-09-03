@@ -124,7 +124,7 @@ interface CampusCarouselBannerProps {
 export const CampusCarouselBanner: React.FC<CampusCarouselBannerProps> = ({
   onSelectCampus,
   onPostListing,
-  onExplore
+  onExplore: _onExplore
 }) => {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [isPaused, setIsPaused] = useState(false);

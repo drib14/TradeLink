@@ -16,17 +16,21 @@ const banUserSchema = Joi.object({
 });
 
 const warnUserSchema = Joi.object({
-  note: Joi.string().trim().max(500).default('Violation of community trading rules.')
+  note: Joi.string().trim().max(500),
+  reason: Joi.string().trim().max(500)
 });
 
 const adjustTrustScoreSchema = Joi.object({
-  delta: Joi.number().integer().min(-100).max(100).required(),
-  reason: Joi.string().trim().min(3).max(300).required()
-});
+  delta: Joi.number().integer().min(-100).max(100),
+  adjustment: Joi.number().integer().min(-100).max(100),
+  amount: Joi.number().integer().min(-100).max(100),
+  newScore: Joi.number().integer().min(0).max(100),
+  reason: Joi.string().trim().min(1).max(300).default('Administrator adjustment')
+}).or('delta', 'adjustment', 'amount', 'newScore');
 
 const resolveDisputeSchema = Joi.object({
   action: Joi.string().valid(...DISPUTE_ACTIONS).required(),
-  note: Joi.string().trim().min(5).max(1000).required()
+  note: Joi.string().trim().min(1).max(1000).default('Dispute resolved by administrator')
 });
 
 const addKeywordSchema = Joi.object({
@@ -41,7 +45,7 @@ const updateSystemConfigSchema = Joi.object({
   wantedBoardEnabled: Joi.boolean(),
   freeDonationEnabled: Joi.boolean(),
   maxListingsPerUser: Joi.number().min(1).max(100)
-});
+}).unknown(true);
 
 module.exports = {
   createAnnouncementSchema,

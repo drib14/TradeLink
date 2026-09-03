@@ -183,10 +183,14 @@ export const api = {
     request<T>('DELETE', endpoint, undefined, options),
 };
 
-// Upload helper (multipart/form-data, not JSON)
-export async function uploadFile(file: File): Promise<{ url: string; filename: string }> {
+// Upload helper (multipart/form-data, streamed to Cloudflare R2 / storage service)
+export async function uploadFile(
+  file: File,
+  folder: 'listings' | 'avatars' | 'id-photos' | 'chat' = 'listings'
+): Promise<{ url: string; key?: string; filename: string; size?: number; storage?: string }> {
   const formData = new FormData();
   formData.append('image', file);
+  formData.append('folder', folder);
 
   const headers: Record<string, string> = {};
   if (accessToken) {

@@ -5,16 +5,12 @@ import {
   CreditCard,
   Camera,
   CheckCircle2,
-  AlertCircle,
   RefreshCw,
   ArrowRight,
   ArrowLeft,
   Upload,
-  UserCheck,
   Loader2,
-  Lock,
   Sparkles,
-  Zap,
   Check,
   RotateCcw,
   Maximize2,
@@ -46,7 +42,6 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
   const { showToast } = useToast();
 
   const [step, setStep] = useState<VerificationStep>('id_upload');
-  const [docType, setDocType] = useState<'id_card' | 'cor'>('id_card');
   const [studentIdInput, setStudentIdInput] = useState(currentUser?.studentId || '');
   const [idPhotoUrl, setIdPhotoUrl] = useState<string>('');
   const [selfiePhotoUrl, setSelfiePhotoUrl] = useState<string>('');
@@ -234,7 +229,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
   const handleProceedToSelfie = (e: React.FormEvent) => {
     e.preventDefault();
     if (!idPhotoUrl) {
-      showToast('ID Photo Required', 'Please upload a clear photo of your student ID or study load.', 'warning');
+      showToast('ID Photo Required', 'Please upload a clear photo of your student ID card.', 'warning');
       return;
     }
     if (!studentIdInput.trim()) {
@@ -256,7 +251,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
   const handleSubmitVerification = async () => {
     setIsSubmitting(true);
     try {
-      submitIdVerification(studentIdInput.trim(), idPhotoUrl, selfiePhotoUrl);
+      await submitIdVerification(studentIdInput.trim(), idPhotoUrl, selfiePhotoUrl);
       confetti({
         particleCount: 120,
         spread: 70,
@@ -379,68 +374,16 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
           {/* STEP 1: ID DOCUMENT UPLOAD */}
           {step === 'id_upload' && (
             <form onSubmit={handleProceedToSelfie} style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
-              {/* Document Type Selector */}
-              <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.4rem' }}>
-                  1. Select Verification Document
-                </label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
-                  <button
-                    type="button"
-                    onClick={() => setDocType('id_card')}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      padding: '0.8rem 1rem',
-                      borderRadius: '12px',
-                      border: `1.5px solid ${docType === 'id_card' ? 'var(--uc-blue)' : 'var(--border-subtle)'}`,
-                      backgroundColor: docType === 'id_card' ? 'var(--uc-blue-subtle)' : 'var(--bg-surface)',
-                      color: docType === 'id_card' ? 'var(--uc-blue)' : 'var(--text-primary)',
-                      fontWeight: 800,
-                      fontSize: '0.82rem',
-                      cursor: 'pointer',
-                      boxShadow: docType === 'id_card' ? '0 2px 8px rgba(0, 43, 127, 0.12)' : 'none'
-                    }}
-                  >
-                    <CreditCard size={18} />
-                    <span>Physical Student ID Card</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setDocType('cor')}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      padding: '0.8rem 1rem',
-                      borderRadius: '12px',
-                      border: `1.5px solid ${docType === 'cor' ? 'var(--uc-blue)' : 'var(--border-subtle)'}`,
-                      backgroundColor: docType === 'cor' ? 'var(--uc-blue-subtle)' : 'var(--bg-surface)',
-                      color: docType === 'cor' ? 'var(--uc-blue)' : 'var(--text-primary)',
-                      fontWeight: 800,
-                      fontSize: '0.82rem',
-                      cursor: 'pointer',
-                      boxShadow: docType === 'cor' ? '0 2px 8px rgba(0, 43, 127, 0.12)' : 'none'
-                    }}
-                  >
-                    <CheckCircle2 size={18} />
-                    <span>Study Load (COR)</span>
-                  </button>
-                </div>
-              </div>
-
               {/* Student ID Input */}
               <div>
                 <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-                  2. Official Student ID Number *
+                  1. Official Student ID Number *
                 </label>
                 <input
                   type="text"
                   value={studentIdInput}
                   onChange={(e) => setStudentIdInput(e.target.value.replace(/\D/g, ''))}
-                  placeholder="e.g. 202104982"
+                  placeholder="ID Number"
                   className="clean-input"
                   maxLength={15}
                   required
@@ -450,7 +393,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
               {/* Document Image Dropzone */}
               <div>
                 <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-                  3. Upload Clear Photo of {docType === 'id_card' ? 'Student ID Card' : 'Certificate of Registration (COR)'} *
+                  2. Upload Clear Photo of Physical Student ID Card *
                 </label>
 
                 {idPhotoUrl ? (

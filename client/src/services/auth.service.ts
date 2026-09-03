@@ -49,8 +49,8 @@ function mapUserFromApi(raw: any): User {
 }
 
 export const authService = {
-  async login(emailOrStudentId: string, password: string): Promise<{ user: User; accessToken: string; message: string }> {
-    const res = await api.post<LoginResponse>('/auth/login', { emailOrStudentId, password }, { skipAuth: true });
+  async login(idNumber: string, password: string): Promise<{ user: User; accessToken: string; message: string }> {
+    const res = await api.post<LoginResponse>('/auth/login', { studentId: idNumber, idNumber, emailOrStudentId: idNumber, password }, { skipAuth: true });
     const user = mapUserFromApi(res.data!.user);
     const token = res.data!.accessToken;
     setAccessToken(token);

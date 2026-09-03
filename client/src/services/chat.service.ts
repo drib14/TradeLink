@@ -138,8 +138,13 @@ export const chatService = {
   },
 
   async scheduleMeetup(data: any): Promise<MeetupTransaction> {
-    const res = await api.post<{ meetup: any }>('/meetups', data);
-    return res.data?.meetup || res.data;
+    const res = await api.post<{ meetup: any; verificationCode?: string }>('/meetups', data);
+    const rawMeetup = res.data?.meetup || res.data;
+    const vCode = res.data?.verificationCode || rawMeetup?.verificationCode || '';
+    return {
+      ...rawMeetup,
+      verificationCode: vCode
+    };
   },
 
   async verifyMeetupCode(id: string, code: string): Promise<{ success: boolean; message: string }> {

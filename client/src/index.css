@@ -1593,6 +1593,26 @@ input, select, textarea {
     height: 100dvh !important;
     border-radius: 0 !important;
   }
+
+  .mobile-detail-sticky-bar {
+    display: flex !important;
+    position: fixed;
+    bottom: 58px;
+    left: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border-subtle, #E2E8F0);
+    padding: 0.65rem 1rem;
+    z-index: 80;
+    align-items: center;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+  }
+}
+
+.mobile-detail-sticky-bar {
+  display: none;
 }
 
 /* =========================================================================

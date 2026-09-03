@@ -320,7 +320,7 @@ export interface FeatureFlag {
   updatedAt?: string;
 }
 
-export interface SuperAdminConfig {
+export interface SystemConfig {
   maintenanceMode?: boolean;
   maintenanceMessage?: string;
   allowNewRegistrations?: boolean;
@@ -338,3 +338,6 @@ export interface SuperAdminConfig {
   lastUpdatedBy?: string;
   lastUpdatedAt?: string;
 }
+
+export type SuperAdminConfig = SystemConfig;
+

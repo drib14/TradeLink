@@ -17,6 +17,8 @@ const { apiLimiter } = require('./middleware/rateLimiter');
 const errorHandler = require('./middleware/errorHandler');
 const apiRoutes = require('./routes');
 const initializeSocket = require('./socket');
+const storageService = require('./services/storage.service');
+const { autoInitDatabase } = require('./config/dbInit');
 
 const app = express();
 const server = http.createServer(app);
@@ -26,7 +28,18 @@ app.use(
   helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
     referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-    contentSecurityPolicy: false
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'", env.clientUrl],
+        fontSrc: ["'self'", "https:", "data:"],
+        objectSrc: ["'none'"],
+        upgradeInsecureRequests: []
+      }
+    }
   })
 );
 
@@ -51,19 +64,9 @@ app.use('/api', apiLimiter);
 // 7. Static Uploads Folder
 app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')));
 
-// 8. Root Welcome & Health Check Route
+// 8. Root Health Check Route
 app.get('/', (req, res) => {
-  res.status(200).json({
-    name: 'TradeLink Backend API',
-    version: '1.0.0',
-    university: 'University of Cebu',
-    campuses: [
-      'UC Main', 'UC Banilad', 'UC LM', 'UC METC',
-      'UC Pardo-Talisay', 'UC South Campus', 'UC Medical Center', 'UC PRI'
-    ],
-    documentation: '/api/health',
-    status: 'online'
-  });
+  res.status(200).json({ status: 'ok' });
 });
 
 // 9. Mount Main API Routes
@@ -91,13 +94,22 @@ if (require.main === module) {
     logger.info(`CORS Allowed: ${env.clientUrl}`);
     logger.info('=======================================================');
 
-    // Test database connection at startup
+    // Test database connection at startup and auto-initialize schema & seed
     const dbHealth = await db.testConnection();
     if (dbHealth.ok) {
       logger.info(`MySQL Database connected successfully [${env.db.database}]`);
+      await autoInitDatabase();
     } else {
       logger.warn(`MySQL Database connection warning: ${dbHealth.error}`);
       logger.warn(`Make sure MySQL server is running on ${env.db.host}:${env.db.port}`);
+    }
+
+    // Check media storage status (Cloudflare R2 / secure fallback)
+    const storageHealth = await storageService.testR2Connection();
+    if (storageHealth.ok) {
+      logger.info(`Cloudflare R2 Object Storage active [Bucket: ${storageHealth.bucket}]`);
+    } else {
+      logger.info(`Media Storage: ${storageHealth.message}`);
     }
   });
 

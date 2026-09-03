@@ -64,7 +64,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     restoreSession();
   }, []);
 
-  // Fetch all users if admin/superadmin
+  // Fetch all users if admin
   useEffect(() => {
     if (isAdmin) {
       adminService.getUsers().then((res) => {
@@ -75,18 +75,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [isAdmin]);
 
-  const login = useCallback(async (emailOrStudentId: string, password?: string): Promise<{ success: boolean; message: string }> => {
-    const cleanQuery = emailOrStudentId.trim().toLowerCase();
+  const login = useCallback(async (idNumber: string, password?: string): Promise<{ success: boolean; message: string }> => {
+    const cleanId = idNumber.trim();
 
-    if (!cleanQuery) {
-      return { success: false, message: 'Please enter your Student ID or Email.' };
+    if (!cleanId) {
+      return { success: false, message: 'Please enter your Student ID or ID Number.' };
     }
     if (!password) {
       return { success: false, message: 'Please enter your password.' };
     }
 
     try {
-      const result = await authService.login(cleanQuery, password);
+      const result = await authService.login(cleanId, password);
       setCurrentUser(result.user);
       setIsOffline(false);
       return { success: true, message: result.message };

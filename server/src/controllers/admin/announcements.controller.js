@@ -30,10 +30,18 @@ const getAnnouncements = asyncHandler(async (req, res) => {
 /**
  * Create announcement
  */
-const createAnnouncement = asyncHandler(async (req, res) => {
+const createAnnouncement = asyncHandler(async (req, res, next) => {
   const { title, message, campus = 'All', type = 'info' } = req.body;
 
-  const annId = `ann_${uuidv4()}`;
+  const existing = await db('announcements')
+    .where({ title: title.trim(), campus, is_active: true })
+    .first();
+
+  if (existing) {
+    return next(new AppError('An active announcement with this title already exists for this campus.', 409));
+  }
+
+  const annId = uuidv4();
   const newAnn = {
     id: annId,
     title: title.trim(),

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useMarket } from '../context/MarketContext';
 import { useAuth } from '../context/AuthContext';
 import { useChat } from '../context/ChatContext';
+import { useToast } from '../components/common/Toast';
 import { ListingCard } from '../components/marketplace/ListingCard';
 import { SwapProposalModal } from '../components/marketplace/SwapProposalModal';
 import { Listing, SwapOffer } from '../types';
@@ -14,18 +15,27 @@ import {
   XCircle,
   Clock,
   MessageSquare,
-  ShoppingBag
+  ShoppingBag,
+  MapPin
 } from 'lucide-react';
 
 interface SwapsPageProps {
   onNavigate: (view: string, param?: any) => void;
   onOpenChat: () => void;
+  onOpenAuth?: () => void;
+  onOpenVerification?: () => void;
 }
 
-export const SwapsPage: React.FC<SwapsPageProps> = ({ onNavigate, onOpenChat }) => {
+export const SwapsPage: React.FC<SwapsPageProps> = ({
+  onNavigate,
+  onOpenChat,
+  onOpenAuth,
+  onOpenVerification
+}) => {
   const { listings } = useMarket();
-  const { currentUser } = useAuth();
+  const { currentUser, isAuthenticated } = useAuth();
   const { swaps, respondToSwap } = useChat();
+  const { showToast } = useToast();
 
   const [activeTab, setActiveTab] = useState<'catalog' | 'proposals'>('catalog');
   const [selectedTargetForSwap, setSelectedTargetForSwap] = useState<Listing | null>(null);
@@ -36,6 +46,20 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({ onNavigate, onOpenChat }) 
         (s: SwapOffer) => s.targetSellerId === currentUser.id || s.offererId === currentUser.id
       )
     : [];
+
+  const handleProposeClick = (item: Listing) => {
+    if (!isAuthenticated || !currentUser) {
+      showToast('Log In Required', 'Please log in with your UC account to propose a swap.', 'warning');
+      if (onOpenAuth) onOpenAuth();
+      return;
+    }
+    if (!currentUser.isVerified) {
+      showToast('Verification Required', 'Student ID verification is required before proposing item swaps.', 'warning');
+      if (onOpenVerification) onOpenVerification();
+      return;
+    }
+    setSelectedTargetForSwap(item);
+  };
 
   return (
     <div className="container page-enter" style={{ padding: '2rem 1.5rem 5rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -95,9 +119,9 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({ onNavigate, onOpenChat }) 
                     listing={item}
                     onClick={() => onNavigate('item-detail', { id: item.id })}
                   />
-                  {currentUser && item.sellerId !== currentUser.id && (
+                  {(!currentUser || item.sellerId !== currentUser.id) && (
                     <button
-                      onClick={() => setSelectedTargetForSwap(item)}
+                      onClick={() => handleProposeClick(item)}
                       className="btn-secondary"
                       style={{
                         padding: '0.45rem 0.75rem',
@@ -133,7 +157,40 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({ onNavigate, onOpenChat }) 
       {/* Tab 2: My Swap Proposals */}
       {activeTab === 'proposals' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {mySwaps.length > 0 ? (
+          {!currentUser ? (
+            <div className="clean-card" style={{ padding: '3.5rem 1.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ width: '54px', height: '54px', borderRadius: '50%', backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', color: 'var(--uc-blue, #002B7F)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ArrowLeftRight size={26} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                  Sign In Required to View Proposals
+                </h3>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.35rem', maxWidth: '440px' }}>
+                  Log in with your University of Cebu student account to manage your incoming barter offers and track outgoing proposals.
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+                <button
+                  onClick={() => {
+                    if (onOpenAuth) onOpenAuth();
+                    else onNavigate('home');
+                  }}
+                  className="btn-gold"
+                  style={{ padding: '0.65rem 1.5rem', fontSize: '0.85rem', fontWeight: 800 }}
+                >
+                  Sign In to TradeLink
+                </button>
+                <button
+                  onClick={() => setActiveTab('catalog')}
+                  className="btn-secondary"
+                  style={{ padding: '0.65rem 1.25rem', fontSize: '0.85rem', fontWeight: 700 }}
+                >
+                  Browse Available Swaps
+                </button>
+              </div>
+            </div>
+          ) : mySwaps.length > 0 ? (
             mySwaps.map((swap: SwapOffer) => {
               const isReceiver = !!currentUser && swap.targetSellerId === currentUser.id;
 
@@ -297,6 +354,22 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({ onNavigate, onOpenChat }) 
                       </button>
                     </div>
                   )}
+
+                  {swap.status === 'accepted' && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-subtle)' }}>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--accent-green, #059669)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <CheckCircle size={15} /> Swap terms accepted! Schedule a campus meeting spot.
+                      </div>
+                      <button
+                        onClick={() => onNavigate('meetups')}
+                        className="btn-primary"
+                        style={{ padding: '0.45rem 1rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                      >
+                        <MapPin size={14} />
+                        <span>Go to Meetup Coordinator</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })
@@ -314,6 +387,7 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({ onNavigate, onOpenChat }) 
           isOpen={!!selectedTargetForSwap}
           onClose={() => setSelectedTargetForSwap(null)}
           targetListing={selectedTargetForSwap}
+          onOpenVerification={onOpenVerification}
         />
       )}
     </div>

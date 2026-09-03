@@ -17,6 +17,10 @@ const getWantedRequests = asyncHandler(async (req, res) => {
     .join('users as requester', 'wanted_requests.requester_id', 'requester.id')
     .select(
       'wanted_requests.*',
+      'wanted_requests.item_name as item_title',
+      'wanted_requests.target_campus as preferred_campus',
+      'wanted_requests.budget_range as target_budget',
+      'wanted_requests.notes as description',
       'requester.name as requester_name',
       'requester.avatar_url as requester_avatar',
       'requester.campus as requester_campus',
@@ -26,7 +30,7 @@ const getWantedRequests = asyncHandler(async (req, res) => {
     .orderBy('wanted_requests.created_at', 'desc');
 
   if (campus && campus !== 'All') {
-    query = query.where('wanted_requests.preferred_campus', campus);
+    query = query.where('wanted_requests.target_campus', campus);
   }
 
   if (category && category !== 'All') {
@@ -36,23 +40,28 @@ const getWantedRequests = asyncHandler(async (req, res) => {
 
   const requests = await query;
 
-  const formatted = requests.map((r) => ({
-    id: r.id,
-    requesterId: r.requester_id,
-    requesterName: r.requester_name,
-    requesterAvatar: r.requester_avatar,
-    requesterCampus: r.requester_campus,
-    requesterCollege: r.requester_college,
-    itemTitle: r.item_title,
-    category: r.category,
-    targetBudget: parseFloat(r.target_budget || 0),
-    urgency: r.urgency,
-    description: r.description,
-    preferredCampus: r.preferred_campus,
-    status: r.status,
-    offersCount: Number(r.offers_count || 0),
-    createdAt: r.created_at
-  }));
+  const formatted = requests.map((r) => {
+    let budgetNum = parseFloat(r.target_budget || r.budget_range || 0);
+    if (isNaN(budgetNum)) budgetNum = 0;
+
+    return {
+      id: r.id,
+      requesterId: r.requester_id,
+      requesterName: r.requester_name,
+      requesterAvatar: r.requester_avatar,
+      requesterCampus: r.requester_campus,
+      requesterCollege: r.requester_college,
+      itemTitle: r.item_title || r.item_name || 'Wanted Item',
+      category: r.category,
+      targetBudget: budgetNum,
+      urgency: r.urgency || 'Flexible',
+      description: r.description || r.notes || '',
+      preferredCampus: r.preferred_campus || r.target_campus || 'UC Main',
+      status: r.status,
+      offersCount: Number(r.offers_count || 0),
+      createdAt: r.created_at
+    };
+  });
 
   res.status(200).json({
     status: 'success',
@@ -70,21 +79,21 @@ const createWantedRequest = asyncHandler(async (req, res) => {
     itemTitle,
     category,
     targetBudget = 0,
-    urgency,
+    urgency = 'Flexible',
     description,
     preferredCampus
   } = req.body;
 
-  const reqId = `req_${uuidv4()}`;
+  const reqId = uuidv4();
   const newReq = {
     id: reqId,
     requester_id: req.user.id,
-    item_title: itemTitle.trim(),
+    item_name: (itemTitle || '').trim(),
     category,
-    target_budget: targetBudget,
+    target_campus: preferredCampus || req.user.campus || 'UC Main',
     urgency,
-    description: description.trim(),
-    preferred_campus: preferredCampus,
+    budget_range: String(targetBudget || '0.00'),
+    notes: (description || '').trim(),
     status: 'open',
     offers_count: 0
   };
@@ -96,11 +105,21 @@ const createWantedRequest = asyncHandler(async (req, res) => {
     message: 'Wanted request posted to campus board.',
     data: {
       request: {
-        ...newReq,
+        id: reqId,
+        requesterId: req.user.id,
         requesterName: req.user.name,
         requesterAvatar: req.user.avatar_url,
         requesterCampus: req.user.campus,
-        requesterCollege: req.user.college
+        requesterCollege: req.user.college,
+        itemTitle: (itemTitle || '').trim(),
+        category,
+        targetBudget: parseFloat(targetBudget || 0),
+        urgency,
+        description: (description || '').trim(),
+        preferredCampus: preferredCampus || req.user.campus || 'UC Main',
+        status: 'open',
+        offersCount: 0,
+        createdAt: new Date().toISOString()
       }
     }
   });
@@ -121,13 +140,12 @@ const respondToWanted = asyncHandler(async (req, res, next) => {
 
   // Notify requester
   await db('notifications').insert({
-    id: `notif_${uuidv4()}`,
+    id: uuidv4(),
     user_id: target.requester_id,
     title: 'New Response on Wanted Board',
-    message: `${req.user.name} offered an item for your request "${target.item_title}".`,
+    message: `${req.user.name} offered an item for your request "${target.item_name || target.item_title}".`,
     type: 'wanted_response',
-    link_view: 'wanted',
-    link_params: JSON.stringify({ requestId: id })
+    link_url: `/wanted`
   });
 
   res.status(200).json({

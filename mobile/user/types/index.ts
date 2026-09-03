@@ -69,7 +69,7 @@ export interface User {
   name: string;
   email: string;
   studentId: string;
-  role?: 'student' | 'admin' | 'superadmin';
+  role?: 'student' | 'admin';
   campus: Campus;
   college: College;
   yearLevel?: string;

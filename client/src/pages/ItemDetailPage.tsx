@@ -23,19 +23,26 @@ import {
   Zap,
   MapPin,
   Maximize2,
+  ShoppingBag,
   X
 } from 'lucide-react';
+
+import { StudentVerificationModal } from '../components/verification/StudentVerificationModal';
 
 interface ItemDetailPageProps {
   listingId: string;
   onNavigate: (view: string, param?: any) => void;
   onOpenChat: () => void;
+  onOpenAuth?: () => void;
+  onOpenVerification?: () => void;
 }
 
 export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
   listingId,
   onNavigate,
-  onOpenChat
+  onOpenChat,
+  onOpenAuth,
+  onOpenVerification
 }) => {
   const { listings, favorites, toggleFavorite } = useMarket();
   const { currentUser, isAuthenticated } = useAuth();
@@ -50,6 +57,7 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
   const [isBuyModalOpen, setIsBuyModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
   const [reportReason, setReportReason] = useState('');
 
   if (!listing) {
@@ -75,6 +83,7 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
   const handleFavoriteClick = () => {
     if (!isAuthenticated) {
       showToast('Log In Required', 'Please log in to save items to your favorites.', 'info');
+      if (onOpenAuth) onOpenAuth();
       return;
     }
     toggleFavorite(listing.id);
@@ -86,16 +95,30 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
   };
 
   const handleBuyClick = () => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !currentUser) {
       showToast('Log In Required', 'Please log in with your UC account to purchase or schedule a meetup.', 'warning');
+      if (onOpenAuth) onOpenAuth();
+      return;
+    }
+    if (!currentUser.isVerified) {
+      showToast('Verification Required', 'Student ID verification is required before placing orders.', 'warning');
+      if (onOpenVerification) onOpenVerification();
+      else setIsVerificationModalOpen(true);
       return;
     }
     setIsBuyModalOpen(true);
   };
 
   const handleSwapClick = () => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !currentUser) {
       showToast('Log In Required', 'Please log in with your UC account to propose a swap.', 'warning');
+      if (onOpenAuth) onOpenAuth();
+      return;
+    }
+    if (!currentUser.isVerified) {
+      showToast('Verification Required', 'Student ID verification is required before proposing item swaps.', 'warning');
+      if (onOpenVerification) onOpenVerification();
+      else setIsVerificationModalOpen(true);
       return;
     }
     setIsSwapModalOpen(true);
@@ -104,6 +127,7 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
   const handleContactSeller = () => {
     if (!isAuthenticated) {
       showToast('Log In Required', 'Please log in with your UC account to chat with the seller.', 'warning');
+      if (onOpenAuth) onOpenAuth();
       return;
     }
     openChatWithSeller(listing);
@@ -653,6 +677,12 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
         />
       )}
 
+      {/* Student ID Verification Modal */}
+      <StudentVerificationModal
+        isOpen={isVerificationModalOpen}
+        onClose={() => setIsVerificationModalOpen(false)}
+      />
+
       {/* Report Modal */}
       {isReportModalOpen && (
         <Modal
@@ -731,6 +761,47 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
               alt={listing.title}
               style={{ maxWidth: '100%', maxHeight: '85vh', objectFit: 'contain', borderRadius: '10px' }}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Sticky Bottom Action Bar */}
+      {!isOwner && !isSoldOut && (
+        <div className="mobile-detail-sticky-bar">
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Price</span>
+            <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--uc-blue)', fontFamily: 'var(--font-display)' }}>
+              {listing.tradeMode === 'free_donation' ? 'FREE' : `₱${listing.price.toLocaleString()}`}
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem', flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
+            <button
+              onClick={handleContactSeller}
+              className="btn-secondary"
+              style={{ padding: '0.55rem 0.85rem', fontSize: '0.8rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+            >
+              <MessageSquare size={15} />
+              <span>Chat</span>
+            </button>
+            {listing.tradeMode === 'swap' ? (
+              <button
+                onClick={handleSwapClick}
+                className="btn-primary"
+                style={{ padding: '0.55rem 1rem', fontSize: '0.82rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+              >
+                <ArrowLeftRight size={15} />
+                <span>Swap</span>
+              </button>
+            ) : (
+              <button
+                onClick={handleBuyClick}
+                className="btn-gold"
+                style={{ padding: '0.55rem 1.1rem', fontSize: '0.85rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+              >
+                <ShoppingBag size={15} />
+                <span>Buy Now</span>
+              </button>
+            )}
           </div>
         </div>
       )}

@@ -15,15 +15,55 @@ import {
 
 interface TransactionHistoryPageProps {
   onNavigate: (view: string, param?: any) => void;
+  onOpenAuth?: () => void;
 }
 
 type TxnFilter = 'all' | 'bought' | 'sold' | 'swapped';
 
-export const TransactionHistoryPage: React.FC<TransactionHistoryPageProps> = ({ onNavigate }) => {
+export const TransactionHistoryPage: React.FC<TransactionHistoryPageProps> = ({ onNavigate, onOpenAuth }) => {
   const { currentUser } = useAuth();
   const { meetups } = useChat();
   const [filter, setFilter] = useState<TxnFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  if (!currentUser) {
+    return (
+      <div className="container page-enter" style={{ padding: '5rem 1.5rem', textAlign: 'center', maxWidth: '520px' }}>
+        <div className="clean-card" style={{ padding: '3rem 2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
+          <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', color: 'var(--uc-blue, #002B7F)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Receipt size={28} />
+          </div>
+          <div>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary, #0F172A)' }}>
+              Sign In to View Transaction History
+            </h2>
+            <p style={{ fontSize: '0.86rem', color: 'var(--text-muted, #64748B)', marginTop: '0.35rem', lineHeight: 1.5 }}>
+              Log in with your University of Cebu account to view completed campus trades, earnings, purchases, and Handshake receipts.
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
+            <button
+              onClick={() => {
+                if (onOpenAuth) onOpenAuth();
+                else onNavigate('home');
+              }}
+              className="btn-gold"
+              style={{ padding: '0.75rem 1.5rem', fontSize: '0.88rem', fontWeight: 800 }}
+            >
+              Sign In to TradeLink
+            </button>
+            <button
+              onClick={() => onNavigate('marketplace')}
+              className="btn-secondary"
+              style={{ padding: '0.75rem 1.25rem', fontSize: '0.88rem', fontWeight: 700 }}
+            >
+              Browse Marketplace
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const myMeetups = currentUser
     ? meetups.filter(

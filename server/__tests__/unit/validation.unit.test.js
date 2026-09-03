@@ -20,6 +20,32 @@ describe('Unit Test: Joi Input Validation Schemas', () => {
       expect(value.name).toBe('Juan Dela Cruz');
     });
 
+    it('should validate registration with a personal email domain (e.g. gmail.com)', () => {
+      const personalEmailData = {
+        name: 'Maria Santos',
+        studentId: '2024987654',
+        email: 'maria.santos@gmail.com',
+        password: 'SecurePassword123!',
+        campus: 'UC Banilad',
+        college: 'Nursing',
+        yearLevel: '2nd Year'
+      };
+
+      const { error, value } = registerSchema.validate(personalEmailData);
+      expect(error).toBeUndefined();
+      expect(value.email).toBe('maria.santos@gmail.com');
+    });
+
+    it('should validate login with studentId', () => {
+      const validLogin = {
+        studentId: '2024123456',
+        password: 'Password123'
+      };
+
+      const { error } = loginSchema.validate(validLogin);
+      expect(error).toBeUndefined();
+    });
+
     it('should reject invalid studentId containing letters or special characters', () => {
       const invalidData = {
         name: 'Juan Dela Cruz',

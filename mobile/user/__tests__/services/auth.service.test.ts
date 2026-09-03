@@ -16,11 +16,12 @@ describe('Mobile App Auth Service Test Suite', () => {
     jest.clearAllMocks();
   });
 
-  it('should call /auth/login with credentials and return user and token', async () => {
+  it('should call /auth/login with student ID and return user and token', async () => {
     const mockUser = {
       id: 'usr_test_123',
       name: 'Maria Santos',
-      email: 'maria@uc.edu.ph',
+      email: 'maria.santos@gmail.com',
+      studentId: '202104982',
       campus: 'UC Banilad',
       role: 'student',
     };
@@ -33,20 +34,22 @@ describe('Mobile App Auth Service Test Suite', () => {
       },
     });
 
-    const result = await mobileAuthService.login('maria@uc.edu.ph', 'password123');
+    const result = await mobileAuthService.login('202104982', 'password123');
 
     expect(mobileApi.post).toHaveBeenCalledWith('/auth/login', {
-      emailOrStudentId: 'maria@uc.edu.ph',
+      studentId: '202104982',
+      idNumber: '202104982',
+      emailOrStudentId: '202104982',
       password: 'password123',
     });
     expect(result.user).toEqual(mockUser);
     expect(result.accessToken).toBe('access_token_123');
   });
 
-  it('should call /auth/register with full student details', async () => {
+  it('should call /auth/register with personal email and student details', async () => {
     const newStudent = {
       name: 'Kenzo Lim',
-      email: 'kenzo@uc.edu.ph',
+      email: 'kenzo.lim@gmail.com',
       studentId: '2023123456',
       campus: 'UC LM' as const,
       college: 'Engineering' as const,
@@ -65,7 +68,7 @@ describe('Mobile App Auth Service Test Suite', () => {
 
     expect(mobileApi.post).toHaveBeenCalledWith('/auth/register', expect.objectContaining({
       name: 'Kenzo Lim',
-      email: 'kenzo@uc.edu.ph',
+      email: 'kenzo.lim@gmail.com',
       studentId: '2023123456',
       campus: 'UC LM',
       college: 'Engineering',

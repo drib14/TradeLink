@@ -3,6 +3,7 @@ const db = require('../config/db');
 const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
 const { serializeListing } = require('../serializers/listingSerializer');
+const storageService = require('../services/storage.service');
 
 /**
  * Escapes special wildcard characters for SQL LIKE statements
@@ -86,7 +87,7 @@ const getListings = asyncHandler(async (req, res) => {
 
   // Sorting
   if (sortBy === 'recent') {
-    query = query.orderBy('listings.is_boosted', 'desc').orderBy('listings.created_at', 'desc');
+    query = query.orderBy('listings.is_featured', 'desc').orderBy('listings.created_at', 'desc');
   } else if (sortBy === 'price_low') {
     query = query.orderBy('listings.price', 'asc');
   } else if (sortBy === 'price_high') {
@@ -94,7 +95,7 @@ const getListings = asyncHandler(async (req, res) => {
   } else if (sortBy === 'trust_high') {
     query = query.orderBy('seller.trust_score', 'desc');
   } else if (sortBy === 'views_high') {
-    query = query.orderBy('listings.views', 'desc');
+    query = query.orderBy('listings.views_count', 'desc');
   }
 
   // Pagination
@@ -104,7 +105,7 @@ const getListings = asyncHandler(async (req, res) => {
   // Fetch images and tags for returned listings with single bulk queries
   const listingIds = listings.map((l) => l.id);
   const images = listingIds.length > 0
-    ? await db('listing_images').whereIn('listing_id', listingIds).orderBy('sort_order', 'asc')
+    ? await db('listing_images').whereIn('listing_id', listingIds).orderBy('display_order', 'asc')
     : [];
   const tags = listingIds.length > 0
     ? await db('listing_tags').whereIn('listing_id', listingIds)
@@ -151,9 +152,11 @@ const getListingById = asyncHandler(async (req, res, next) => {
   }
 
   // Increment view counter safely
-  await db('listings').where({ id }).increment('views', 1);
+  try {
+    await db('listings').where({ id }).increment('views_count', 1);
+  } catch {}
 
-  const images = await db('listing_images').where({ listing_id: id }).orderBy('sort_order', 'asc');
+  const images = await db('listing_images').where({ listing_id: id }).orderBy('display_order', 'asc');
   const tags = await db('listing_tags').where({ listing_id: id });
 
   res.status(200).json({
@@ -181,6 +184,8 @@ const createListing = asyncHandler(async (req, res, next) => {
     swapPreference,
     category,
     condition,
+    campus,
+    department,
     quantity = 1,
     tags = [],
     images = [],
@@ -203,45 +208,58 @@ const createListing = asyncHandler(async (req, res, next) => {
     }
   }
 
-  const parsedQty = Math.max(1, parseInt(quantity, 10) || 1);
-  const listingId = `list_${uuidv4()}`;
+  // Prevent rapid double-click duplicate creation
+  const recentDuplicate = await db('listings')
+    .where({ seller_id: req.user.id, title: title.trim(), status: 'active' })
+    .andWhere('created_at', '>', new Date(Date.now() - 15000))
+    .first();
+
+  if (recentDuplicate) {
+    return next(new AppError('A listing with this exact title was just published. Please wait before creating another.', 409));
+  }
+
+  const listingId = uuidv4();
   const newListing = {
     id: listingId,
+    seller_id: req.user.id,
     title: title.trim(),
     description: description.trim(),
-    price: price || 0,
-    original_srp: originalSrp || 0,
-    trade_mode: tradeMode,
+    price: parseFloat(price || 0),
+    original_srp: originalSrp ? parseFloat(originalSrp) : null,
+    trade_mode: tradeMode || 'buy_sell',
     swap_preference: swapPreference ? swapPreference.trim() : null,
     category,
-    condition,
-    quantity: parsedQty,
-    seller_id: req.user.id,
-    preferred_meetup_spots: JSON.stringify(preferredMeetupSpots),
-    custom_meetup_spot: customMeetupSpot ? customMeetupSpot.trim() : null,
-    is_boosted: false,
-    is_sold: false,
-    course_code: courseCode ? courseCode.trim().toUpperCase() : null,
-    views: 1,
-    favorites_count: 0
+    condition: condition || 'Gently Used',
+    campus: campus || req.user.campus || 'UC Main',
+    department: department || req.user.college || null,
+    status: 'active',
+    views_count: 1,
+    favorites_count: 0,
+    is_featured: false
   };
+
+  // Upload any base64 images to Cloudflare R2 / secure storage
+  const resolvedImages = Array.isArray(images)
+    ? await Promise.all(images.map((img) => storageService.uploadBase64(img, 'listings')))
+    : [];
 
   await db.transaction(async (trx) => {
     await trx('listings').insert(newListing);
 
-    if (images.length > 0) {
-      const imgRows = images.map((url, index) => ({
-        id: `img_${uuidv4()}`,
+    if (resolvedImages.length > 0) {
+      const imgRows = resolvedImages.map((url, index) => ({
+        id: uuidv4(),
         listing_id: listingId,
         image_url: url,
-        sort_order: index
+        is_primary: index === 0,
+        display_order: index
       }));
       await trx('listing_images').insert(imgRows);
     }
 
     if (tags.length > 0) {
       const tagRows = tags.map((t) => ({
-        id: `tag_${uuidv4()}`,
+        id: uuidv4(),
         listing_id: listingId,
         tag: t.trim()
       }));
@@ -267,7 +285,7 @@ const createListing = asyncHandler(async (req, res, next) => {
     status: 'success',
     message: 'Listing created successfully.',
     data: {
-      listing: serializeListing(createdListing, images, tags)
+      listing: serializeListing(createdListing, resolvedImages, tags)
     }
   });
 });
@@ -283,7 +301,7 @@ const updateListing = asyncHandler(async (req, res, next) => {
     return next(new AppError('Listing not found.', 404));
   }
 
-  // Ensure owner or admin (superadmin removed)
+  // Ensure owner or admin
   if (listing.seller_id !== req.user.id && req.user.role !== 'admin') {
     return next(new AppError('You are not authorized to edit this listing.', 403));
   }
@@ -291,24 +309,41 @@ const updateListing = asyncHandler(async (req, res, next) => {
   const updates = {};
   if (req.body.title) updates.title = req.body.title.trim();
   if (req.body.description) updates.description = req.body.description.trim();
-  if (req.body.price !== undefined) updates.price = req.body.price;
-  if (req.body.originalSrp !== undefined) updates.original_srp = req.body.originalSrp;
+  if (req.body.price !== undefined) updates.price = parseFloat(req.body.price);
+  if (req.body.originalSrp !== undefined) updates.original_srp = parseFloat(req.body.originalSrp);
   if (req.body.tradeMode) updates.trade_mode = req.body.tradeMode;
   if (req.body.swapPreference !== undefined) updates.swap_preference = req.body.swapPreference;
   if (req.body.category) updates.category = req.body.category;
   if (req.body.condition) updates.condition = req.body.condition;
-  if (req.body.quantity !== undefined) {
-    const qty = Math.max(0, parseInt(req.body.quantity, 10) || 0);
-    updates.quantity = qty;
-    if (qty === 0) updates.is_sold = true;
+  if (req.body.campus) updates.campus = req.body.campus;
+  if (req.body.status) updates.status = req.body.status;
+  if (req.body.isSold) updates.status = 'sold';
+  if (req.body.isFeatured !== undefined || req.body.isBoosted !== undefined) {
+    updates.is_featured = Boolean(req.body.isFeatured ?? req.body.isBoosted);
   }
-  if (req.body.isSold !== undefined) updates.is_sold = req.body.isSold;
-  if (req.body.isBoosted !== undefined) updates.is_boosted = req.body.isBoosted;
-  if (req.body.customMeetupSpot !== undefined) updates.custom_meetup_spot = req.body.customMeetupSpot;
-  if (req.body.courseCode !== undefined) updates.course_code = req.body.courseCode;
-  if (req.body.preferredMeetupSpots) updates.preferred_meetup_spots = JSON.stringify(req.body.preferredMeetupSpots);
 
-  await db('listings').where({ id }).update(updates);
+  await db.transaction(async (trx) => {
+    if (Object.keys(updates).length > 0) {
+      await trx('listings').where({ id }).update(updates);
+    }
+
+    if (Array.isArray(req.body.images)) {
+      const resolvedImages = await Promise.all(
+        req.body.images.map((img) => storageService.uploadBase64(img, 'listings'))
+      );
+      await trx('listing_images').where({ listing_id: id }).delete();
+      if (resolvedImages.length > 0) {
+        const imgRows = resolvedImages.map((url, index) => ({
+          id: uuidv4(),
+          listing_id: id,
+          image_url: url,
+          is_primary: index === 0,
+          display_order: index
+        }));
+        await trx('listing_images').insert(imgRows);
+      }
+    }
+  });
 
   res.status(200).json({
     status: 'success',
@@ -329,6 +364,12 @@ const deleteListing = asyncHandler(async (req, res, next) => {
 
   if (listing.seller_id !== req.user.id && req.user.role !== 'admin') {
     return next(new AppError('You are not authorized to delete this listing.', 403));
+  }
+
+  // Clean up listing images from storage
+  const listingImages = await db('listing_images').where({ listing_id: id });
+  for (const img of listingImages) {
+    await storageService.deleteFile(img.image_url);
   }
 
   await db('listings').where({ id }).delete();
@@ -354,7 +395,7 @@ const boostListing = asyncHandler(async (req, res, next) => {
     return next(new AppError('You are not authorized to boost this listing.', 403));
   }
 
-  await db('listings').where({ id }).update({ is_boosted: true });
+  await db('listings').where({ id }).update({ is_featured: true });
 
   res.status(200).json({
     status: 'success',
@@ -377,7 +418,7 @@ const markAsSold = asyncHandler(async (req, res, next) => {
     return next(new AppError('You are not authorized to modify this listing.', 403));
   }
 
-  await db('listings').where({ id }).update({ is_sold: true, quantity: 0 });
+  await db('listings').where({ id }).update({ status: 'sold' });
 
   res.status(200).json({
     status: 'success',
@@ -398,10 +439,10 @@ const reportListing = asyncHandler(async (req, res, next) => {
   }
 
   await db('flagged_listings').insert({
-    id: `flag_${uuidv4()}`,
+    id: uuidv4(),
     listing_id: id,
     reporter_id: req.user.id,
-    reason: reason.trim(),
+    reason: (reason || 'Inappropriate listing').trim(),
     status: 'pending'
   });
 

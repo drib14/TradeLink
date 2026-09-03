@@ -13,23 +13,59 @@ import {
   Save,
   ToggleLeft,
   ToggleRight,
-  LogOut,
-  Sparkles,
-  School,
-  IdCard,
-  Camera
+  LogOut
 } from 'lucide-react';
 
 interface SettingsPageProps {
   onNavigate: (view: string, param?: any) => void;
+  onOpenAuth?: () => void;
 }
 
-export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
-  const { currentUser, updateProfile, logout, resetAllData } = useAuth();
+export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate, onOpenAuth }) => {
+  const { currentUser, updateProfile, logout } = useAuth();
   const { showToast } = useToast();
 
   const [activeSection, setActiveSection] = useState<'account' | 'notifications' | 'privacy' | 'data'>('account');
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  if (!currentUser) {
+    return (
+      <div className="container page-enter" style={{ padding: '5rem 1.5rem', textAlign: 'center', maxWidth: '520px' }}>
+        <div className="clean-card" style={{ padding: '3rem 2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
+          <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', color: 'var(--uc-blue, #002B7F)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <SettingsIcon size={28} />
+          </div>
+          <div>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary, #0F172A)' }}>
+              Sign In Required for Settings
+            </h2>
+            <p style={{ fontSize: '0.86rem', color: 'var(--text-muted, #64748B)', marginTop: '0.35rem', lineHeight: 1.5 }}>
+              Please log in with your University of Cebu student account to access account settings, notification controls, and privacy preferences.
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
+            <button
+              onClick={() => {
+                if (onOpenAuth) onOpenAuth();
+                else onNavigate('home');
+              }}
+              className="btn-gold"
+              style={{ padding: '0.75rem 1.5rem', fontSize: '0.88rem', fontWeight: 800 }}
+            >
+              Sign In to TradeLink
+            </button>
+            <button
+              onClick={() => onNavigate('marketplace')}
+              className="btn-secondary"
+              style={{ padding: '0.75rem 1.25rem', fontSize: '0.88rem', fontWeight: 700 }}
+            >
+              Browse Marketplace
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Account settings
   const [nameInput, setNameInput] = useState(currentUser?.name || '');

@@ -10,11 +10,11 @@ const getConversations = asyncHandler(async (req, res) => {
   const userId = req.user.id;
 
   const convs = await db('conversations')
-    .where('participant_a', userId)
-    .orWhere('participant_b', userId)
-    .join('listings', 'conversations.listing_id', 'listings.id')
-    .join('users as userA', 'conversations.participant_a', 'userA.id')
-    .join('users as userB', 'conversations.participant_b', 'userB.id')
+    .where('user_one_id', userId)
+    .orWhere('user_two_id', userId)
+    .leftJoin('listings', 'conversations.listing_id', 'listings.id')
+    .join('users as userA', 'conversations.user_one_id', 'userA.id')
+    .join('users as userB', 'conversations.user_two_id', 'userB.id')
     .leftJoin('conversation_read_status as readStatus', function() {
       this.on('conversations.id', '=', 'readStatus.conversation_id')
         .andOn('readStatus.user_id', '=', db.raw('?', [userId]));
@@ -37,13 +37,13 @@ const getConversations = asyncHandler(async (req, res) => {
     .orderBy('conversations.last_message_at', 'desc');
 
   // Fetch listing images with a single query
-  const listingIds = [...new Set(convs.map((c) => c.listing_id))];
+  const listingIds = [...new Set(convs.map((c) => c.listing_id).filter(Boolean))];
   const images = listingIds.length > 0
-    ? await db('listing_images').whereIn('listing_id', listingIds).where('sort_order', 0)
+    ? await db('listing_images').whereIn('listing_id', listingIds).orderBy('display_order', 'asc')
     : [];
 
   const formatted = convs.map((c) => {
-    const isUserA = c.participant_a === userId;
+    const isUserA = c.user_one_id === userId;
     const otherUser = isUserA
       ? {
           id: c.user_b_id,
@@ -62,13 +62,13 @@ const getConversations = asyncHandler(async (req, res) => {
 
     return {
       id: c.id,
-      participantIds: [c.participant_a, c.participant_b],
+      participantIds: [c.user_one_id, c.user_two_id],
       otherParticipant: otherUser,
-      listingId: c.listing_id,
-      listingTitle: c.listing_title,
+      listingId: c.listing_id || '',
+      listingTitle: c.listing_title || 'Campus Item',
       listingImage: images.find((i) => i.listing_id === c.listing_id)?.image_url || '',
-      lastMessage: c.last_message,
-      lastMessageTimestamp: c.last_message_at,
+      lastMessage: c.last_message || '',
+      lastMessageTimestamp: c.last_message_at || c.created_at,
       unreadCount: c.unread_count || 0
     };
   });
@@ -93,7 +93,7 @@ const getMessages = asyncHandler(async (req, res, next) => {
     return next(new AppError('Conversation not found.', 404));
   }
 
-  if (conv.participant_a !== userId && conv.participant_b !== userId) {
+  if (conv.user_one_id !== userId && conv.user_two_id !== userId && req.user.role !== 'admin') {
     return next(new AppError('Unauthorized access to this conversation.', 403));
   }
 

@@ -67,7 +67,7 @@ const register = asyncHandler(async (req, res, next) => {
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
-  const userId = `usr_${uuidv4()}`;
+  const userId = uuidv4();
   const isVerified = false;
   const trustScore = 60;
 
@@ -99,12 +99,10 @@ const register = asyncHandler(async (req, res, next) => {
   // If ID was uploaded, create pending verification request
   if (idPhotoUrl) {
     await db('verification_requests').insert({
-      id: `verif_${uuidv4()}`,
+      id: uuidv4(),
       user_id: userId,
       student_id_number: studentId.trim(),
-      campus,
-      college: college.trim(),
-      id_card_image_url: idPhotoUrl,
+      id_photo_url: idPhotoUrl,
       status: 'pending'
     });
   }
@@ -119,9 +117,9 @@ const register = asyncHandler(async (req, res, next) => {
 
   res.status(201).json({
     status: 'success',
-    message: `Account created for ${newUser.name}! Welcome to TradeLink.`,
+    message: 'Account created successfully. Welcome to TradeLink.',
     data: {
-      user: serializeUser(newUser),
+      user: serializeUser(newUser, { isSelf: true }),
       accessToken
     }
   });
@@ -131,21 +129,22 @@ const register = asyncHandler(async (req, res, next) => {
  * Login user
  */
 const login = asyncHandler(async (req, res, next) => {
-  const { emailOrStudentId, password } = req.body;
-  const cleanQuery = emailOrStudentId.toLowerCase().trim();
+  const { studentId, idNumber, emailOrStudentId, identifier, email, password } = req.body;
+  const cleanQuery = (studentId || idNumber || emailOrStudentId || identifier || email || '').trim();
 
   const user = await db('users')
-    .whereRaw('LOWER(email) = ? OR student_id = ?', [cleanQuery, cleanQuery])
+    .where({ student_id: cleanQuery })
+    .orWhereRaw('LOWER(email) = ?', [cleanQuery.toLowerCase()])
     .first();
 
   if (!user) {
-    return next(new AppError('No account found with this Student ID or email address.', 401));
+    return next(new AppError('Invalid credentials.', 401));
   }
 
   if (user.is_banned) {
     return next(
       new AppError(
-        `Account suspended by campus administration. Reason: ${user.ban_reason || 'Violation of safety guidelines'}`,
+        'This account has been suspended. Contact administration for details.',
         403
       )
     );
@@ -153,7 +152,7 @@ const login = asyncHandler(async (req, res, next) => {
 
   const isMatch = await bcrypt.compare(password, user.password_hash);
   if (!isMatch) {
-    return next(new AppError('Incorrect password entered. Please check your credentials.', 401));
+    return next(new AppError('Invalid credentials.', 401));
   }
 
   const { accessToken, refreshToken } = generateTokens(user.id, user.role, user.campus);
@@ -164,9 +163,9 @@ const login = asyncHandler(async (req, res, next) => {
 
   res.status(200).json({
     status: 'success',
-    message: `Welcome back, ${user.name}!`,
+    message: 'Login successful.',
     data: {
-      user: serializeUser(user),
+      user: serializeUser(user, { isSelf: true, isAdmin: user.role === 'admin' }),
       accessToken
     }
   });
@@ -211,7 +210,7 @@ const refreshToken = asyncHandler(async (req, res, next) => {
     status: 'success',
     data: {
       accessToken: newTokens.accessToken,
-      user: serializeUser(user)
+      user: serializeUser(user, { isSelf: true, isAdmin: user.role === 'admin' })
     }
   });
 });
@@ -239,7 +238,11 @@ const forgotPassword = asyncHandler(async (req, res, next) => {
   const user = await db('users').whereRaw('LOWER(email) = ?', [email.toLowerCase().trim()]).first();
 
   if (!user) {
-    return next(new AppError('No registered UC account found with that email address.', 404));
+    // Return generic success to prevent email enumeration
+    return res.status(200).json({
+      status: 'success',
+      message: 'If an account exists with that email address, a verification code has been sent.'
+    });
   }
 
   const code = generate4DigitCode();
@@ -255,7 +258,7 @@ const forgotPassword = asyncHandler(async (req, res, next) => {
 
   res.status(200).json({
     status: 'success',
-    message: `Verification code sent to ${user.email}.`
+    message: 'If an account exists with that email address, a verification code has been sent.'
   });
 });
 
@@ -299,7 +302,7 @@ const getMe = asyncHandler(async (req, res) => {
   res.status(200).json({
     status: 'success',
     data: {
-      user: serializeUser(req.user)
+      user: serializeUser(req.user, { isSelf: true, isAdmin: req.user.role === 'admin' })
     }
   });
 });

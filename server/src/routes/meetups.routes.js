@@ -10,11 +10,13 @@ const {
   updateMeetupStatusSchema
 } = require('../validations/meetup.validation');
 
+const { requireVerified } = require('../middleware/rbac');
+
 decodeParams.bindRouter(router);
 router.use(authenticate);
 
 router.get('/', meetupsController.getMeetups);
-router.post('/', validate(scheduleMeetupSchema), meetupsController.scheduleMeetup);
+router.post('/', requireVerified, validate(scheduleMeetupSchema), meetupsController.scheduleMeetup);
 router.post('/:id/verify', validate(verifyMeetupCodeSchema), meetupsController.verifyMeetupCode);
 router.patch('/:id/status', validate(updateMeetupStatusSchema), meetupsController.updateMeetupStatus);
 

@@ -1,12 +1,15 @@
 import React from 'react';
 import { Logo } from '../common/Logo';
 import { Compass, HelpCircle } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 interface FooterProps {
   onNavigate: (view: string, param?: any) => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
+  const { isAuthenticated } = useAuth();
+
   return (
     <footer
       style={{
@@ -19,11 +22,11 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
       }}
     >
       <div className="container">
-        {/* Clean 3-Column Layout */}
+        {/* Clean Layout */}
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gridTemplateColumns: isAuthenticated ? 'repeat(auto-fit, minmax(220px, 1fr))' : 'repeat(auto-fit, minmax(280px, 1fr))',
             gap: '2.5rem',
             paddingBottom: '2.5rem',
             borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
@@ -42,52 +45,54 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             </div>
           </div>
 
-          {/* Col 2: Marketplace Navigation */}
-          <div>
-            <h5
-              style={{
-                color: '#FFC72C',
-                fontSize: '0.82rem',
-                fontWeight: 800,
-                marginBottom: '0.85rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.4rem'
-              }}
-            >
-              <Compass size={14} style={{ flexShrink: 0 }} /> <span>Marketplace</span>
-            </h5>
-            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.82rem' }}>
-              {[
-                { label: 'Browse Catalog', view: 'marketplace' },
-                { label: 'Wanted Board (LTB)', view: 'wanted' },
-                { label: 'Direct Item Swaps', view: 'swaps' },
-                { label: 'Guarded Meetup Zones', view: 'campus-map' }
-              ].map((link) => (
-                <li key={link.label}>
-                  <button
-                    onClick={() => onNavigate(link.view)}
-                    style={{
-                      color: '#CBD5E1',
-                      textAlign: 'left',
-                      fontWeight: 500,
-                      transition: 'color 0.15s ease',
-                      cursor: 'pointer',
-                      background: 'none',
-                      border: 'none',
-                      padding: 0
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.color = '#FFC72C')}
-                    onMouseLeave={(e) => (e.currentTarget.style.color = '#CBD5E1')}
-                  >
-                    {link.label}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {/* Col 2: Marketplace Navigation (Logged In Only) */}
+          {isAuthenticated && (
+            <div>
+              <h5
+                style={{
+                  color: '#FFC72C',
+                  fontSize: '0.82rem',
+                  fontWeight: 800,
+                  marginBottom: '0.85rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem'
+                }}
+              >
+                <Compass size={14} style={{ flexShrink: 0 }} /> <span>Marketplace</span>
+              </h5>
+              <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.82rem' }}>
+                {[
+                  { label: 'Browse Catalog', view: 'marketplace' },
+                  { label: 'Wanted Board (LTB)', view: 'wanted' },
+                  { label: 'Direct Item Swaps', view: 'swaps' },
+                  { label: 'Guarded Meetup Zones', view: 'campus-map' }
+                ].map((link) => (
+                  <li key={link.label}>
+                    <button
+                      onClick={() => onNavigate(link.view)}
+                      style={{
+                        color: '#CBD5E1',
+                        textAlign: 'left',
+                        fontWeight: 500,
+                        transition: 'color 0.15s ease',
+                        cursor: 'pointer',
+                        background: 'none',
+                        border: 'none',
+                        padding: 0
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.color = '#FFC72C')}
+                      onMouseLeave={(e) => (e.currentTarget.style.color = '#CBD5E1')}
+                    >
+                      {link.label}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Col 3: Trust & Safety */}
           <div>

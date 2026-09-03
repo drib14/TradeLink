@@ -15,10 +15,12 @@ function serializeUser(user, options = {}) {
     }
   }
 
+  const isSelf = Boolean(options.isSelf);
+  const isAdmin = Boolean(options.isAdmin);
+
   const base = {
     id: user.id,
     name: user.name,
-    email: user.email,
     studentId: user.student_id || user.studentId,
     role: user.role || 'student',
     campus: user.campus,
@@ -27,7 +29,7 @@ function serializeUser(user, options = {}) {
     avatar: user.avatar_url || user.avatar || null,
     isVerified,
     verificationStatus,
-    idPhotoUrl: user.id_photo_url || user.idPhotoUrl || null,
+    idPhotoUrl: isSelf || isAdmin ? (user.id_photo_url || user.idPhotoUrl || null) : null,
     trustScore: user.trust_score ?? user.trustScore ?? 60,
     rating: parseFloat(user.rating || 5.0),
     totalReviews: user.total_reviews ?? user.totalReviews ?? 0,
@@ -35,12 +37,17 @@ function serializeUser(user, options = {}) {
     punctualityRate: user.punctuality_rate ?? user.punctualityRate ?? 100,
     bio: user.bio || '',
     isProMerchant: Boolean(user.is_pro_merchant ?? user.isProMerchant),
-    isBanned: Boolean(user.is_banned ?? user.isBanned),
-    banReason: user.ban_reason || user.banReason || null,
-    bannedAt: user.banned_at || user.bannedAt || null,
-    warningsCount: user.warnings_count ?? user.warningsCount ?? 0,
     joinedDate: user.created_at || user.joinedDate || new Date().toISOString()
   };
+
+  // Only expose email, ban details, and warnings to the user themselves or administrators
+  if (isSelf || isAdmin) {
+    base.email = user.email;
+    base.isBanned = Boolean(user.is_banned ?? user.isBanned);
+    base.banReason = user.ban_reason || user.banReason || null;
+    base.bannedAt = user.banned_at || user.bannedAt || null;
+    base.warningsCount = user.warnings_count ?? user.warningsCount ?? 0;
+  }
 
   return base;
 }

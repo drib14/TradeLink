@@ -27,7 +27,7 @@ function serializeSwap(s, targetImage = '', offeredImage = '') {
   };
 }
 
-function serializeMeetup(m, listingImage = '') {
+function serializeMeetup(m, listingImage = '', verificationCode = null) {
   if (!m) return null;
   return {
     id: m.id,
@@ -44,6 +44,7 @@ function serializeMeetup(m, listingImage = '') {
     campus: m.campus,
     landmarkSpot: m.landmark_spot || m.landmarkSpot,
     scheduledDateTime: m.scheduled_datetime || m.scheduledDateTime,
+    verificationCode: verificationCode || m.verification_code || m.verificationCode || '',
     status: m.status || 'scheduled',
     notes: m.notes || null,
     createdAt: m.created_at || m.createdAt || new Date().toISOString()

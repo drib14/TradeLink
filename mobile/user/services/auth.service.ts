@@ -14,9 +14,11 @@ export interface MobileRegisterPayload {
 }
 
 export const mobileAuthService = {
-  async login(emailOrStudentId: string, password?: string): Promise<{ user: User; accessToken: string }> {
+  async login(idNumber: string, password?: string): Promise<{ user: User; accessToken: string }> {
     const res = await mobileApi.post('/auth/login', {
-      emailOrStudentId,
+      studentId: idNumber,
+      idNumber,
+      emailOrStudentId: idNumber,
       password: password || 'default123',
     });
 

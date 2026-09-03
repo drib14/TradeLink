@@ -6,6 +6,7 @@ import { Bookmark, ArrowRight, Trash2 } from 'lucide-react';
 
 interface FavoritesPageProps {
   onNavigate: (view: string, param?: any) => void;
+  onOpenAuth?: () => void;
 }
 
 export const FavoritesPage: React.FC<FavoritesPageProps> = ({ onNavigate }) => {

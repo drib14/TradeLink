@@ -23,11 +23,11 @@ async function createMessage({
     throw new AppError('Conversation not found.', 404);
   }
 
-  if (conv.participant_a !== senderId && conv.participant_b !== senderId) {
+  if (conv.user_one_id !== senderId && conv.user_two_id !== senderId) {
     throw new AppError('Unauthorized access to this conversation.', 403);
   }
 
-  const msgId = `msg_${uuidv4()}`;
+  const msgId = uuidv4();
   const newMsg = {
     id: msgId,
     conversation_id: conversationId,

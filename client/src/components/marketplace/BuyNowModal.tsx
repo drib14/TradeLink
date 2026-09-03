@@ -5,19 +5,16 @@ import { useChat } from '../../context/ChatContext';
 import { useToast } from '../common/Toast';
 import { VerifiedBadge } from '../common/VerifiedBadge';
 import { UserAvatar } from '../common/UserAvatar';
-import { CAMPUS_MEETUP_SPOTS, CAMPUS_DETAILS } from '../../data/campusLocations';
+import { CAMPUS_MEETUP_SPOTS } from '../../data/campusLocations';
 import {
   X,
   ShieldCheck,
-  MapPin,
-  Calendar,
   CreditCard,
   Banknote,
   CheckCircle2,
-  Lock,
   ArrowRight,
   ShoppingBag,
-  Building2
+  Lock
 } from 'lucide-react';
 
 interface BuyNowModalProps {
@@ -25,15 +22,17 @@ interface BuyNowModalProps {
   onClose: () => void;
   listing: Listing;
   onSuccess?: () => void;
+  onOpenVerification?: () => void;
 }
 
 export const BuyNowModal: React.FC<BuyNowModalProps> = ({
   isOpen,
   onClose,
   listing,
-  onSuccess
+  onSuccess,
+  onOpenVerification
 }) => {
-  const { currentUser } = useAuth();
+  const { currentUser, isAuthenticated } = useAuth();
   const { scheduleMeetup } = useChat();
   const { showToast } = useToast();
 
@@ -51,6 +50,49 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
   const [generatedCode, setGeneratedCode] = useState('');
 
   if (!isOpen) return null;
+
+  if (!isAuthenticated || !currentUser) {
+    return (
+      <div className="modal-backdrop-custom" onClick={onClose}>
+        <div className="modal-card-custom" style={{ maxWidth: '440px', textAlign: 'center', padding: '2rem' }} onClick={(e) => e.stopPropagation()}>
+          <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--uc-blue)' }}>Sign In Required</h3>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0.75rem 0 1.25rem 0' }}>
+            Please log in with your University of Cebu student account to place an order.
+          </p>
+          <button onClick={onClose} className="btn-gold" style={{ width: '100%' }}>Close</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentUser.isVerified) {
+    return (
+      <div className="modal-backdrop-custom" onClick={onClose}>
+        <div className="modal-card-custom" style={{ maxWidth: '460px', textAlign: 'center', padding: '2rem' }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ width: '54px', height: '54px', borderRadius: '50%', backgroundColor: 'rgba(255, 199, 44, 0.2)', color: '#B45309', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem auto' }}>
+            <ShieldCheck size={28} />
+          </div>
+          <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--uc-blue)' }}>Student ID Verification Required</h3>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0.75rem 0 1.25rem 0', lineHeight: 1.5 }}>
+            To protect buyers and sellers across all UC campuses, placing orders and scheduling meetups requires official student ID verification.
+          </p>
+          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+            <button onClick={onClose} className="btn-secondary" style={{ flex: 1 }}>Cancel</button>
+            <button
+              onClick={() => {
+                onClose();
+                if (onOpenVerification) onOpenVerification();
+              }}
+              className="btn-gold"
+              style={{ flex: 1.3 }}
+            >
+              Verify Student ID
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const isFree = listing.tradeMode === 'free_donation';
   const availableSpots = CAMPUS_MEETUP_SPOTS.filter((s) => s.campus === selectedCampus);

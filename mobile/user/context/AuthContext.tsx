@@ -20,7 +20,7 @@ interface AuthContextType {
   isLoading: boolean;
   openAuthModal: () => void;
   closeAuthModal: () => void;
-  login: (email: string, password?: string) => Promise<{ success: boolean; error?: string }>;
+  login: (idNumber: string, password?: string) => Promise<{ success: boolean; error?: string }>;
   register: (data: RegisterData) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   updateProfile: (updatedData: Partial<User>) => Promise<void>;
@@ -57,10 +57,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initAuth();
   }, [refreshCurrentUser]);
 
-  const login = async (emailOrStudentId: string, password?: string): Promise<{ success: boolean; error?: string }> => {
-    const cleanId = emailOrStudentId.trim();
+  const login = async (idNumber: string, password?: string): Promise<{ success: boolean; error?: string }> => {
+    const cleanId = idNumber.trim();
     if (!cleanId) {
-      return { success: false, error: 'Please enter your student email or ID.' };
+      return { success: false, error: 'Please enter your Student ID or ID Number.' };
     }
 
     try {
@@ -83,7 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (!cleanName) return { success: false, error: 'Full name is required.' };
     if (!cleanId) return { success: false, error: 'Student ID Number is required.' };
-    if (!cleanEmail) return { success: false, error: 'Student Email is required.' };
+    if (!cleanEmail) return { success: false, error: 'Email is required.' };
 
     try {
       const payload: MobileRegisterPayload = {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useChat } from '../../context/ChatContext';
 import { useMarket } from '../../context/MarketContext';
@@ -13,7 +13,8 @@ import {
   ShieldCheck,
   CheckCircle2,
   XCircle,
-  ExternalLink
+  ExternalLink,
+  ArrowLeft
 } from 'lucide-react';
 
 interface ChatDrawerProps {
@@ -37,6 +38,15 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose, onNavig
 
   const [inputMessage, setInputMessage] = useState('');
   const [isMeetupModalOpen, setIsMeetupModalOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 640);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   if (!isOpen) return null;
 
@@ -80,106 +90,127 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose, onNavig
         onClick={(e) => e.stopPropagation()}
       >
         {/* Left Col: Conversation List */}
-        <div
-          style={{
-            width: '260px',
-            borderRight: '1px solid var(--border-subtle)',
-            display: 'flex',
-            flexDirection: 'column',
-            backgroundColor: 'var(--bg-subtle)'
-          }}
-        >
+        {(!isMobile || !activeConversation) && (
           <div
             style={{
-              padding: '1rem',
-              borderBottom: '1px solid var(--border-subtle)',
+              width: isMobile ? '100%' : '260px',
+              borderRight: isMobile ? 'none' : '1px solid var(--border-subtle)',
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              backgroundColor: 'var(--bg-surface)'
+              flexDirection: 'column',
+              backgroundColor: 'var(--bg-subtle)'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <MessageSquare size={16} color="var(--uc-blue)" />
-              <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                Messages
-              </h4>
+            <div
+              style={{
+                padding: '1rem',
+                borderBottom: '1px solid var(--border-subtle)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                backgroundColor: 'var(--bg-surface)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <MessageSquare size={16} color="var(--uc-blue)" />
+                <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  Messages
+                </h4>
+              </div>
+              {isMobile && (
+                <button
+                  onClick={onClose}
+                  style={{ background: 'none', border: 'none', padding: '0.35rem', color: 'var(--text-muted)', cursor: 'pointer' }}
+                  title="Close"
+                >
+                  <X size={18} />
+                </button>
+              )}
+            </div>
+
+            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+              {conversations.length === 0 ? (
+                <div style={{ padding: '2rem 1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
+                  No active conversations yet.
+                </div>
+              ) : (
+                conversations.map((conv) => {
+                  const isSelected = activeConversation?.id === conv.id;
+                  return (
+                    <button
+                      key={conv.id}
+                      onClick={() => setActiveConversationId(conv.id)}
+                      style={{
+                        padding: '0.75rem 0.85rem',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '0.65rem',
+                        textAlign: 'left',
+                        borderBottom: '1px solid var(--border-subtle)',
+                        backgroundColor: isSelected ? 'var(--bg-surface)' : 'transparent',
+                        borderLeft: isSelected ? '3px solid var(--uc-blue)' : '3px solid transparent',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <UserAvatar
+                        src={conv.otherParticipant.avatar}
+                        name={conv.otherParticipant.name}
+                        size="sm"
+                      />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                            {conv.otherParticipant.name.split(' ')[0]}
+                          </span>
+                          <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+                            {conv.lastMessageTimestamp}
+                          </span>
+                        </div>
+                        <p style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--uc-blue)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {conv.listingTitle}
+                        </p>
+                        <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {conv.lastMessage}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })
+              )}
             </div>
           </div>
-
-          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-            {conversations.length === 0 ? (
-              <div style={{ padding: '2rem 1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
-                No active conversations yet.
-              </div>
-            ) : (
-              conversations.map((conv) => {
-                const isSelected = activeConversation?.id === conv.id;
-                return (
-                  <button
-                    key={conv.id}
-                    onClick={() => setActiveConversationId(conv.id)}
-                    style={{
-                      padding: '0.75rem 0.85rem',
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '0.65rem',
-                      textAlign: 'left',
-                      borderBottom: '1px solid var(--border-subtle)',
-                      backgroundColor: isSelected ? 'var(--bg-surface)' : 'transparent',
-                      borderLeft: isSelected ? '3px solid var(--uc-blue)' : '3px solid transparent',
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    <UserAvatar
-                      src={conv.otherParticipant.avatar}
-                      name={conv.otherParticipant.name}
-                      size="sm"
-                    />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                          {conv.otherParticipant.name.split(' ')[0]}
-                        </span>
-                        <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
-                          {conv.lastMessageTimestamp}
-                        </span>
-                      </div>
-                      <p style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--uc-blue)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {conv.listingTitle}
-                      </p>
-                      <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {conv.lastMessage}
-                      </p>
-                    </div>
-                  </button>
-                );
-              })
-            )}
-          </div>
-        </div>
+        )}
 
         {/* Right Col: Active Conversation */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg-surface)' }}>
-          {activeConversation ? (
-            <>
-              {/* Header */}
-              <div
-                style={{
-                  padding: '0.75rem 1rem',
-                  borderBottom: '1px solid var(--border-subtle)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  backgroundColor: 'var(--bg-surface)'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <UserAvatar
-                    src={activeConversation.otherParticipant.avatar}
-                    name={activeConversation.otherParticipant.name}
-                    size="sm"
-                  />
+        {(!isMobile || Boolean(activeConversation)) && (
+          <div style={{ flex: 1, width: isMobile ? '100%' : 'auto', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg-surface)' }}>
+            {activeConversation ? (
+              <>
+                {/* Header */}
+                <div
+                  style={{
+                    padding: '0.75rem 1rem',
+                    borderBottom: '1px solid var(--border-subtle)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    backgroundColor: 'var(--bg-surface)'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    {isMobile && (
+                      <button
+                        onClick={() => setActiveConversationId('')}
+                        style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '0.35rem', display: 'flex', alignItems: 'center' }}
+                        title="Back to conversations"
+                      >
+                        <ArrowLeft size={18} />
+                      </button>
+                    )}
+                    <UserAvatar
+                      src={activeConversation.otherParticipant.avatar}
+                      name={activeConversation.otherParticipant.name}
+                      size="sm"
+                    />
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                       <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
@@ -373,11 +404,11 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose, onNavig
             </>
           ) : (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
-              Select a conversation to start chatting.
             </div>
           )}
         </div>
-      </div>
+      )}
+    </div>
 
       {currentListing && (
         <MeetupSchedulerModal
