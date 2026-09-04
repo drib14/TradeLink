@@ -119,7 +119,8 @@ CREATE TABLE `listings` (
   INDEX `idx_listings_status` (`status`),
   INDEX `idx_listings_trade_mode` (`trade_mode`),
   INDEX `idx_listings_created_at` (`created_at`),
-  FULLTEXT `ft_listings_search` (`title`, `description`)
+  FULLTEXT `ft_listings_title` (`title`),
+  FULLTEXT `ft_listings_description` (`description`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------

@@ -1,17 +1,33 @@
 require('dotenv').config();
 
+const getSslConfig = () => {
+  if (process.env.DB_SSL === 'true') {
+    return { minVersion: 'TLSv1.2', rejectUnauthorized: true };
+  }
+  return false;
+};
+
+const buildConnection = (defaultDbName = 'tradelink_db_test') => {
+  const ssl = getSslConfig();
+  if (process.env.DATABASE_URL) {
+    return ssl ? { uri: process.env.DATABASE_URL, ssl } : process.env.DATABASE_URL;
+  }
+  return {
+    host: process.env.DB_HOST || 'localhost',
+    port: Number(process.env.DB_PORT) || 3306,
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '',
+    database: process.env.DB_NAME || defaultDbName,
+    charset: 'utf8mb4',
+    timezone: '+00:00',
+    ssl
+  };
+};
+
 module.exports = {
   development: {
     client: 'mysql2',
-    connection: process.env.DATABASE_URL || {
-      host: process.env.DB_HOST || 'localhost',
-      port: Number(process.env.DB_PORT) || 3306,
-      user: process.env.DB_USER || 'root',
-      password: process.env.DB_PASSWORD || '',
-      database: process.env.DB_NAME || 'tradelink_db_test',
-      charset: 'utf8mb4',
-      timezone: '+00:00'
-    },
+    connection: buildConnection('tradelink_db'),
     pool: {
       min: 2,
       max: 10,
@@ -56,19 +72,7 @@ module.exports = {
 
   production: {
     client: 'mysql2',
-    connection: process.env.DATABASE_URL
-      ? (process.env.DB_SSL === 'true'
-          ? { uri: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } }
-          : process.env.DATABASE_URL)
-      : {
-          host: process.env.DB_HOST,
-          port: Number(process.env.DB_PORT) || 3306,
-          user: process.env.DB_USER,
-          password: process.env.DB_PASSWORD,
-          database: process.env.DB_NAME,
-          charset: 'utf8mb4',
-          ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
-        },
+    connection: buildConnection('tradelink_db'),
     pool: {
       min: 2,
       max: 25,
