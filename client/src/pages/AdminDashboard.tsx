@@ -5,7 +5,7 @@ import { useMarket } from '../context/MarketContext';
 import { useWanted } from '../context/WantedContext';
 import { useChat } from '../context/ChatContext';
 import { useToast } from '../components/common/Toast';
-import { VerificationRequest, User, Listing, Campus, TradeDispute } from '../types';
+import { VerificationRequest, User, Listing, Campus, TradeDispute, PasswordResetRequest } from '../types';
 import { CAMPUS_MEETUP_SPOTS } from '../data/campusLocations';
 import {
   ShieldAlert,
@@ -34,7 +34,8 @@ import {
   Award,
   DollarSign,
   AlertCircle,
-  Shield
+  Shield,
+  KeyRound
 } from 'lucide-react';
 import { VerifiedBadge } from '../components/common/VerifiedBadge';
 import { CampusBadge } from '../components/common/CampusBadge';
@@ -54,8 +55,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     pendingVerificationsCount,
     pendingFlagsCount,
     pendingDisputesCount,
+    passwordResetRequests,
+    pendingPasswordResetsCount,
     approveVerification,
     rejectVerification,
+    approvePasswordReset,
+    rejectPasswordReset,
     resolveFlag,
     removeListingByAdmin,
     boostListingByAdmin,
@@ -85,6 +90,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   const [activeTab, setActiveTab] = useState<
     | 'overview'
     | 'verifications'
+    | 'passwordResets'
     | 'users'
     | 'listings'
     | 'scanner'
@@ -106,6 +112,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   const [userSearch, setUserSearch] = useState('');
   const [userCampusFilter, setUserCampusFilter] = useState<string>('All');
   const [verificationFilter, setVerificationFilter] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending');
+
+  // Password Resets Filter & Reject State
+  const [passwordResetFilter, setPasswordResetFilter] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending');
+  const [passwordResetSearch, setPasswordResetSearch] = useState('');
+  const [rejectPasswordResetModal, setRejectPasswordResetModal] = useState<PasswordResetRequest | null>(null);
+  const [passwordResetRejectReason, setPasswordResetRejectReason] = useState('');
 
   // Scanner Tool State
   const [newKeywordInput, setNewKeywordInput] = useState('');
@@ -321,6 +333,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     rejectVerification(rejectReqModal.id, rejectReasonInput.trim() || 'Incomplete or unreadable photo');
     showToast('Request Declined', `Declined verification for ${rejectReqModal.userName}.`, 'info');
     setRejectReqModal(null);
+  };
+
+  // Password Reset Actions
+  const handleApprovePasswordReset = async (req: PasswordResetRequest) => {
+    try {
+      const msg = await approvePasswordReset(req.id);
+      showToast('Reset Approved', msg || `Approved password reset for ${req.userName}. Code dispatched to email.`, 'success');
+    } catch (err: any) {
+      showToast('Action Failed', err?.message || 'Failed to approve reset request.', 'error');
+    }
+  };
+
+  const handleConfirmRejectPasswordReset = async () => {
+    if (!rejectPasswordResetModal) return;
+    try {
+      const msg = await rejectPasswordReset(rejectPasswordResetModal.id, passwordResetRejectReason.trim() || 'Request declined by administration');
+      showToast('Request Refused', msg || `Declined reset request for ${rejectPasswordResetModal.userName}.`, 'info');
+      setRejectPasswordResetModal(null);
+      setPasswordResetRejectReason('');
+    } catch (err: any) {
+      showToast('Action Failed', err?.message || 'Failed to refuse reset request.', 'error');
+    }
   };
 
   // Listing Actions
@@ -541,6 +575,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
         {[
           { id: 'overview', label: 'Overview', icon: <TrendingUp size={14} /> },
           { id: 'verifications', label: `ID Verifications (${pendingVerificationsCount})`, icon: <BadgeCheck size={14} /> },
+          { id: 'passwordResets', label: `Password Resets (${pendingPasswordResetsCount})`, icon: <KeyRound size={14} /> },
           { id: 'users', label: `Users & Moderation (${allUsers.length})`, icon: <UserCheck size={14} /> },
           { id: 'listings', label: `Listings & Flags (${pendingFlagsCount})`, icon: <ShieldAlert size={14} /> },
           { id: 'scanner', label: `Prohibited Scanner (${scannedViolations.length})`, icon: <Shield size={14} /> },
@@ -828,6 +863,240 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                   )}
                 </div>
               ))}
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          TAB 2.5: PASSWORD RESET REQUESTS (ADMIN CONFIRMATION / REFUSAL)
+          ========================================================================= */}
+      {activeTab === 'passwordResets' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Controls Bar */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              {(['pending', 'approved', 'rejected', 'all'] as const).map((filter) => (
+                <button
+                  key={filter}
+                  onClick={() => setPasswordResetFilter(filter)}
+                  style={{
+                    padding: '0.45rem 0.85rem',
+                    borderRadius: '8px',
+                    fontSize: '0.8rem',
+                    fontWeight: passwordResetFilter === filter ? 800 : 600,
+                    backgroundColor: passwordResetFilter === filter ? '#002B7F' : '#FFFFFF',
+                    color: passwordResetFilter === filter ? '#FFFFFF' : '#475569',
+                    border: '1px solid #CBD5E1',
+                    cursor: 'pointer',
+                    textTransform: 'capitalize'
+                  }}
+                >
+                  {filter === 'pending'
+                    ? `Pending (${pendingPasswordResetsCount})`
+                    : filter}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ position: 'relative', width: '280px' }}>
+              <Search size={14} color="#64748B" style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' }} />
+              <input
+                type="text"
+                placeholder="Search name, ID, or email..."
+                value={passwordResetSearch}
+                onChange={(e) => setPasswordResetSearch(e.target.value)}
+                className="clean-input"
+                style={{ paddingLeft: '2.25rem', fontSize: '0.82rem', padding: '0.45rem 0.75rem 0.45rem 2.2rem' }}
+              />
+            </div>
+          </div>
+
+          {/* Info Banner */}
+          <div style={{
+            backgroundColor: 'rgba(0, 43, 127, 0.04)',
+            border: '1px solid rgba(0, 43, 127, 0.12)',
+            borderRadius: '12px',
+            padding: '0.85rem 1.15rem',
+            fontSize: '0.82rem',
+            color: '#1E293B',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem'
+          }}>
+            <KeyRound size={20} color="#002B7F" style={{ flexShrink: 0 }} />
+            <div>
+              <strong>Security Protocol:</strong> Student password reset requests require campus administrator confirmation. When you click <strong>Approve & Send Code</strong>, a one-time verification code is generated, hashed, and dispatched directly from <code>uc.tradelink@gmail.com</code> to their registered student email.
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="clean-card" style={{ padding: '1rem', overflowX: 'auto' }}>
+            {passwordResetRequests
+              .filter((r) => {
+                if (passwordResetFilter !== 'all' && r.status !== passwordResetFilter) return false;
+                if (!passwordResetSearch.trim()) return true;
+                const q = passwordResetSearch.toLowerCase();
+                return (
+                  r.userName.toLowerCase().includes(q) ||
+                  r.userEmail.toLowerCase().includes(q) ||
+                  r.studentId.toLowerCase().includes(q) ||
+                  r.campus.toLowerCase().includes(q)
+                );
+              }).length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#64748B' }}>
+                <KeyRound size={40} color="#94A3B8" style={{ margin: '0 auto 0.75rem auto', opacity: 0.5 }} />
+                <p style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: '0.25rem' }}>No Password Reset Requests Found</p>
+                <p style={{ fontSize: '0.82rem' }}>
+                  {passwordResetFilter === 'pending'
+                    ? 'There are currently no pending student password reset requests awaiting approval.'
+                    : `No reset requests match the "${passwordResetFilter}" filter.`}
+                </p>
+              </div>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid #E2E8F0', color: '#64748B' }}>
+                    <th style={{ padding: '0.65rem 0.75rem' }}>Student Profile</th>
+                    <th style={{ padding: '0.65rem 0.75rem' }}>Campus & Department</th>
+                    <th style={{ padding: '0.65rem 0.75rem' }}>Requested On</th>
+                    <th style={{ padding: '0.65rem 0.75rem' }}>Status</th>
+                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>Admin Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {passwordResetRequests
+                    .filter((r) => {
+                      if (passwordResetFilter !== 'all' && r.status !== passwordResetFilter) return false;
+                      if (!passwordResetSearch.trim()) return true;
+                      const q = passwordResetSearch.toLowerCase();
+                      return (
+                        r.userName.toLowerCase().includes(q) ||
+                        r.userEmail.toLowerCase().includes(q) ||
+                        r.studentId.toLowerCase().includes(q) ||
+                        r.campus.toLowerCase().includes(q)
+                      );
+                    })
+                    .map((req) => {
+                      const isPending = req.status === 'pending';
+                      const isApproved = req.status === 'approved';
+                      const isRejected = req.status === 'rejected';
+                      const isCompleted = req.status === 'completed';
+
+                      return (
+                        <tr key={req.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                          <td style={{ padding: '0.75rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                              {req.avatarUrl ? (
+                                <img src={req.avatarUrl} alt={req.userName} style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
+                              ) : (
+                                <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#475569' }}>
+                                  {req.userName.charAt(0)}
+                                </div>
+                              )}
+                              <div>
+                                <div style={{ fontWeight: 800, color: '#1E293B' }}>{req.userName}</div>
+                                <div style={{ fontSize: '0.75rem', color: '#64748B' }}>
+                                  ID: <code style={{ backgroundColor: '#F1F5F9', padding: '1px 5px', borderRadius: '4px' }}>{req.studentId}</code> · {req.userEmail}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td style={{ padding: '0.75rem' }}>
+                            <div style={{ fontWeight: 600, color: '#334155' }}>{req.campus}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#64748B' }}>{req.college}</div>
+                          </td>
+                          <td style={{ padding: '0.75rem', color: '#64748B', fontSize: '0.78rem' }}>
+                            {new Date(req.createdAt).toLocaleString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: 'numeric',
+                              minute: '2-digit'
+                            })}
+                          </td>
+                          <td style={{ padding: '0.75rem' }}>
+                            {isPending && (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.25rem 0.6rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 700, backgroundColor: '#FEF3C7', color: '#92400E' }}>
+                                ⏳ Pending Approval
+                              </span>
+                            )}
+                            {isApproved && (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.25rem 0.6rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 700, backgroundColor: '#DEF7EC', color: '#03543F' }}>
+                                ✓ Code Emailed
+                              </span>
+                            )}
+                            {isRejected && (
+                              <div>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.25rem 0.6rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 700, backgroundColor: '#FDE8E8', color: '#9B1C1C' }}>
+                                  ✕ Refused
+                                </span>
+                                {req.adminNote && (
+                                  <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '0.2rem' }}>{req.adminNote}</div>
+                                )}
+                              </div>
+                            )}
+                            {isCompleted && (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.25rem 0.6rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 700, backgroundColor: '#E0E7FF', color: '#3730A3' }}>
+                                ✓ Password Updated
+                              </span>
+                            )}
+                          </td>
+                          <td style={{ padding: '0.75rem', textAlign: 'right' }}>
+                            {isPending ? (
+                              <div style={{ display: 'inline-flex', gap: '0.45rem' }}>
+                                <button
+                                  onClick={() => handleApprovePasswordReset(req)}
+                                  style={{
+                                    padding: '0.4rem 0.75rem',
+                                    borderRadius: '6px',
+                                    fontSize: '0.78rem',
+                                    fontWeight: 700,
+                                    backgroundColor: '#057A55',
+                                    color: '#FFFFFF',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.3rem'
+                                  }}
+                                >
+                                  <Check size={14} /> Approve & Send Code
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setRejectPasswordResetModal(req);
+                                    setPasswordResetRejectReason('');
+                                  }}
+                                  style={{
+                                    padding: '0.4rem 0.75rem',
+                                    borderRadius: '6px',
+                                    fontSize: '0.78rem',
+                                    fontWeight: 700,
+                                    backgroundColor: '#FFFFFF',
+                                    color: '#E02424',
+                                    border: '1px solid #F98080',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.3rem'
+                                  }}
+                                >
+                                  <X size={14} /> Refuse
+                                </button>
+                              </div>
+                            ) : (
+                              <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
+                                {req.reviewedAt
+                                  ? `Reviewed ${new Date(req.reviewedAt).toLocaleDateString()}`
+                                  : 'Completed'}
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       )}
@@ -2197,6 +2466,86 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODALS: REFUSE PASSWORD RESET
+          ========================================================================= */}
+      {rejectPasswordResetModal && (
+        <div
+          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0, 0, 0, 0.65)', backdropFilter: 'blur(4px)', zIndex: 3500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
+          onClick={() => setRejectPasswordResetModal(null)}
+        >
+          <div
+            className="clean-card"
+            style={{ maxWidth: '440px', width: '100%', padding: '1.5rem', backgroundColor: '#FFFFFF', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.75rem' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#FDE8E8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <X size={20} color="#E02424" />
+              </div>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#1E293B', margin: 0 }}>
+                Refuse Password Reset
+              </h3>
+            </div>
+
+            <p style={{ fontSize: '0.82rem', color: '#64748B', lineHeight: 1.5, marginBottom: '1rem' }}>
+              Refusing password reset request for <strong>{rejectPasswordResetModal.userName}</strong> ({rejectPasswordResetModal.studentId}). An email notification will be sent to <code>{rejectPasswordResetModal.userEmail}</code>.
+            </p>
+
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                Refusal Reason (Optional)
+              </label>
+              <textarea
+                rows={3}
+                placeholder="e.g. Identity verification could not be confirmed, please visit student affairs..."
+                value={passwordResetRejectReason}
+                onChange={(e) => setPasswordResetRejectReason(e.target.value)}
+                className="clean-input"
+                style={{ width: '100%', fontSize: '0.82rem', padding: '0.6rem' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button
+                type="button"
+                onClick={() => setRejectPasswordResetModal(null)}
+                style={{
+                  flex: 1,
+                  padding: '0.6rem',
+                  borderRadius: '8px',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  backgroundColor: '#F1F5F9',
+                  color: '#475569',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmRejectPasswordReset}
+                style={{
+                  flex: 1,
+                  padding: '0.6rem',
+                  borderRadius: '8px',
+                  fontSize: '0.82rem',
+                  fontWeight: 800,
+                  backgroundColor: '#E02424',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                Confirm Refusal
+              </button>
+            </div>
           </div>
         </div>
       )}

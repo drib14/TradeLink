@@ -23,6 +23,9 @@ const { autoInitDatabase } = require('./config/dbInit');
 const app = express();
 const server = http.createServer(app);
 
+// Enable trust proxy for IP detection across network interfaces, LAN, and proxies
+app.set('trust proxy', true);
+
 // 1. Security Headers (Helmet)
 app.use(
   helmet({
@@ -34,7 +37,7 @@ app.use(
         scriptSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["'self'", env.clientUrl],
+        connectSrc: ["*"],
         fontSrc: ["'self'", "https:", "data:"],
         objectSrc: ["'none'"],
         upgradeInsecureRequests: []
@@ -85,13 +88,14 @@ const io = initializeSocket(server);
 app.set('io', io);
 
 // 13. Start HTTP + Socket Server (Only when run directly, not when required by tests)
+const HOST = env.host || '0.0.0.0';
 const PORT = env.port;
 if (require.main === module) {
-  server.listen(PORT, async () => {
+  server.listen(PORT, HOST, async () => {
     logger.info('=======================================================');
-    logger.info(`TradeLink Server listening on port ${PORT} [${env.env}]`);
-    logger.info(`Base API URL: http://localhost:${PORT}/api`);
-    logger.info(`CORS Allowed: ${env.clientUrl}`);
+    logger.info(`TradeLink Server listening on ${HOST}:${PORT} [${env.env}]`);
+    logger.info(`Base API URL: http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}/api`);
+    logger.info('IP Whitelist: 0.0.0.0 (All incoming IPs and origins allowed)');
     logger.info('=======================================================');
 
     // Test database connection at startup and auto-initialize schema & seed
@@ -104,10 +108,10 @@ if (require.main === module) {
       logger.warn(`Make sure MySQL server is running on ${env.db.host}:${env.db.port}`);
     }
 
-    // Check media storage status (Cloudflare R2 / secure fallback)
-    const storageHealth = await storageService.testR2Connection();
-    if (storageHealth.ok) {
-      logger.info(`Cloudflare R2 Object Storage active [Bucket: ${storageHealth.bucket}]`);
+    // Check media storage status (Cloudinary / secure fallback)
+    const storageHealth = await storageService.testCloudinaryConnection();
+    if (storageHealth.ok && storageHealth.storage === 'cloudinary') {
+      logger.info(`Cloudinary Object Storage active [Cloud: ${storageHealth.cloudName}]`);
     } else {
       logger.info(`Media Storage: ${storageHealth.message}`);
     }

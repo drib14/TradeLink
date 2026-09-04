@@ -5,15 +5,18 @@ const db = require('../config/db');
 const logger = require('../utils/logger');
 const registerChatHandler = require('./chatHandler');
 const registerNotificationHandler = require('./notificationHandler');
+const { isOriginAllowed } = require('../config/cors');
 
 function initializeSocket(httpServer) {
   const io = new Server(httpServer, {
     cors: {
-      origin: [
-        env.clientUrl,
-        'http://localhost:5173',
-        'http://127.0.0.1:5173'
-      ],
+      origin: (origin, callback) => {
+        if (isOriginAllowed(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error('CORS policy: Origin not allowed for WebSocket connection.'));
+        }
+      },
       methods: ['GET', 'POST'],
       credentials: true
     },

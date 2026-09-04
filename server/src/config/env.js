@@ -16,6 +16,7 @@ const crypto = require('crypto');
 const config = {
   env: envMode,
   port: parseInt(process.env.PORT, 10) || 3001,
+  host: process.env.HOST || '0.0.0.0',
   
   db: {
     connectionString: process.env.DATABASE_URL || null,
@@ -38,10 +39,10 @@ const config = {
 
   email: {
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.SMTP_PORT, 10) || 587,
-    user: process.env.SMTP_USER || '',
+    port: parseInt(process.env.SMTP_PORT, 10) || 465,
+    user: process.env.SMTP_USER || 'uc.tradelink@gmail.com',
     pass: process.env.SMTP_PASS || '',
-    from: process.env.SMTP_FROM || 'TradeLink UC <notifications@uc.edu.ph>'
+    from: process.env.SMTP_FROM || 'TradeLink UC <uc.tradelink@gmail.com>'
   },
 
   upload: {
@@ -49,16 +50,10 @@ const config = {
     maxSizeMB: parseInt(process.env.MAX_FILE_SIZE_MB, 10) || 5
   },
 
-  r2: {
-    enabled: process.env.R2_ENABLED !== 'false',
-    accountId: process.env.R2_ACCOUNT_ID || process.env.CLOUDFLARE_ACCOUNT_ID || '',
-    accessKeyId: process.env.R2_ACCESS_KEY_ID || process.env.CLOUDFLARE_R2_ACCESS_KEY_ID || '',
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY || '',
-    bucketName: process.env.R2_BUCKET_NAME || process.env.CLOUDFLARE_R2_BUCKET_NAME || 'tradelink-media',
-    publicUrl: (process.env.R2_PUBLIC_URL || process.env.CLOUDFLARE_R2_PUBLIC_URL || '').replace(/\/+$/, ''),
-    apiToken: process.env.R2_TOKEN || process.env.CLOUDFLARE_API_TOKEN || process.env.CLOUDFLARE_GLOBAL_API_KEY || '',
-    globalApiKey: process.env.CLOUDFLARE_GLOBAL_API_KEY || '',
-    customEndpoint: process.env.R2_CUSTOM_ENDPOINT || null
+  cloudinary: {
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME || 'uyytbpe1',
+    apiKey: process.env.CLOUDINARY_API_KEY || '444765518329932',
+    apiSecret: process.env.CLOUDINARY_API_SECRET || '8bzdy9kQjlWHTx6DhOsxOGHqSEo'
   }
 };
 

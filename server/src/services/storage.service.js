@@ -1,7 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
-const { S3Client, PutObjectCommand, DeleteObjectCommand, HeadBucketCommand } = require('@aws-sdk/client-s3');
+const cloudinary = require('cloudinary').v2;
 const config = require('../config/env');
 const logger = require('../utils/logger');
 
@@ -16,35 +16,26 @@ folders.forEach((folder) => {
   }
 });
 
-// Determine S3 Endpoint for Cloudflare R2
-function getR2Endpoint() {
-  if (config.r2.customEndpoint) {
-    return config.r2.customEndpoint;
-  }
-  if (config.r2.accountId) {
-    return `https://${config.r2.accountId}.r2.cloudflarestorage.com`;
-  }
-  return null;
+// Configure Cloudinary SDK
+if (config.cloudinary && config.cloudinary.cloudName && config.cloudinary.apiKey && config.cloudinary.apiSecret) {
+  cloudinary.config({
+    cloud_name: config.cloudinary.cloudName,
+    api_key: config.cloudinary.apiKey,
+    api_secret: config.cloudinary.apiSecret,
+    secure: true
+  });
 }
 
-// Build S3 Client if Cloudflare R2 credentials/endpoint are provided
-let s3Client = null;
-const r2Endpoint = getR2Endpoint();
-
-if (config.r2.enabled && (r2Endpoint || (config.r2.accessKeyId && config.r2.secretAccessKey))) {
-  try {
-    s3Client = new S3Client({
-      region: 'auto',
-      endpoint: r2Endpoint || undefined,
-      credentials: {
-        accessKeyId: config.r2.accessKeyId || config.r2.apiToken || '',
-        secretAccessKey: config.r2.secretAccessKey || config.r2.apiToken || ''
-      }
-    });
-  } catch (err) {
-    logger.warn(`Failed to initialize Cloudflare R2 S3 client: ${err.message}`);
-    s3Client = null;
-  }
+/**
+ * Check if Cloudinary is configured and ready
+ */
+function isCloudinaryConfigured() {
+  return Boolean(
+    config.cloudinary &&
+    config.cloudinary.cloudName &&
+    config.cloudinary.apiKey &&
+    config.cloudinary.apiSecret
+  );
 }
 
 /**
@@ -71,17 +62,14 @@ function getExtension(filename, mimeType) {
 
 /**
  * Constructs a safe public URL for an uploaded file
- * NEVER exposes any access keys, tokens, or query-string credentials.
  */
 function buildPublicUrl(key) {
-  if (config.r2.publicUrl) {
-    const base = config.r2.publicUrl.replace(/\/+$/, '');
-    return `${base}/${key}`;
+  if (key && (key.startsWith('http://') || key.startsWith('https://'))) {
+    return key;
   }
-  if (config.r2.accountId && config.r2.bucketName) {
-    return `https://${config.r2.bucketName}.${config.r2.accountId}.r2.cloudflarestorage.com/${key}`;
+  if (isCloudinaryConfigured()) {
+    return cloudinary.url(key, { secure: true });
   }
-  // If no public CDN URL configured, serve via clean relative upload path
   return `/uploads/${key}`;
 }
 
@@ -105,7 +93,7 @@ async function saveLocalBuffer(buffer, folder, filename) {
 }
 
 /**
- * Upload a binary buffer to Cloudflare R2 (or local fallback)
+ * Upload a binary buffer to Cloudinary (or local fallback)
  *
  * @param {Buffer} buffer - File buffer
  * @param {string} originalFilename - Original name of uploaded file
@@ -122,33 +110,33 @@ async function uploadBuffer(buffer, originalFilename = 'file.jpg', mimeType = 'i
   const ext = getExtension(originalFilename, mimeType);
   const uniqueId = uuidv4();
   const filename = `${uniqueId}${ext}`;
-  const key = `${safeFolder}/${filename}`;
 
-  const isR2Ready = config.r2.enabled && s3Client && config.r2.bucketName && (config.r2.accountId || config.r2.customEndpoint);
-
-  if (isR2Ready) {
+  if (isCloudinaryConfigured()) {
     try {
-      const command = new PutObjectCommand({
-        Bucket: config.r2.bucketName,
-        Key: key,
-        Body: buffer,
-        ContentType: mimeType || 'application/octet-stream',
-        CacheControl: 'public, max-age=31536000, immutable'
+      const result = await new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          {
+            folder: `tradelink/${safeFolder}`,
+            public_id: uniqueId,
+            resource_type: 'auto'
+          },
+          (error, res) => {
+            if (error) return reject(error);
+            resolve(res);
+          }
+        );
+        uploadStream.end(buffer);
       });
 
-      await s3Client.send(command);
-
-      const publicUrl = buildPublicUrl(key);
       return {
-        url: publicUrl,
-        key,
+        url: result.secure_url,
+        key: result.public_id,
         filename,
-        size: buffer.length,
-        storage: 'r2'
+        size: result.bytes || buffer.length,
+        storage: 'cloudinary'
       };
     } catch (err) {
-      // Safe logging without credentials
-      logger.warn(`Cloudflare R2 upload failed, falling back to local storage: ${err.message}`);
+      logger.warn(`Cloudinary upload failed, falling back to local storage: ${err.message}`);
       return saveLocalBuffer(buffer, safeFolder, filename);
     }
   }
@@ -158,8 +146,7 @@ async function uploadBuffer(buffer, originalFilename = 'file.jpg', mimeType = 'i
 }
 
 /**
- * Upload a Base64 string or Data URI to Cloudflare R2 (or local fallback)
- * If already a remote or local URL, returns unchanged.
+ * Upload a Base64 string or Data URI to Cloudinary (or local fallback)
  *
  * @param {string} dataUriOrBase64 - Base64 data URI or raw base64 string
  * @param {string} folder - Target subfolder
@@ -177,65 +164,69 @@ async function uploadBase64(dataUriOrBase64, folder = 'listings') {
     return trimmed;
   }
 
-  // Match Data URI: data:image/png;base64,iVBORw0...
-  const dataUriMatch = trimmed.match(/^data:([a-zA-Z0-9/+-]+);base64,(.+)$/);
+  const safeFolder = folders.includes(folder) ? folder : 'listings';
 
+  if (isCloudinaryConfigured()) {
+    try {
+      const result = await cloudinary.uploader.upload(trimmed, {
+        folder: `tradelink/${safeFolder}`,
+        resource_type: 'auto'
+      });
+      return result.secure_url;
+    } catch (err) {
+      logger.warn(`Cloudinary base64 upload failed, using buffer fallback: ${err.message}`);
+    }
+  }
+
+  // Parse buffer fallback
+  const dataUriMatch = trimmed.match(/^data:([a-zA-Z0-9/+-]+);base64,(.+)$/);
   let buffer;
   let mimeType = 'image/jpeg';
 
   if (dataUriMatch) {
     mimeType = dataUriMatch[1];
     buffer = Buffer.from(dataUriMatch[2], 'base64');
+  } else if (/^[A-Za-z0-9+/=]+$/.test(trimmed) && trimmed.length > 50) {
+    buffer = Buffer.from(trimmed, 'base64');
   } else {
-    // Attempt parsing as raw base64 if longer than 50 chars and valid base64
-    if (/^[A-Za-z0-9+/=]+$/.test(trimmed) && trimmed.length > 50) {
-      buffer = Buffer.from(trimmed, 'base64');
-    } else {
-      return trimmed;
-    }
+    return trimmed;
   }
 
   const ext = getExtension(null, mimeType);
-  const result = await uploadBuffer(buffer, `upload${ext}`, mimeType, folder);
+  const result = await uploadBuffer(buffer, `upload${ext}`, mimeType, safeFolder);
   return result.url;
 }
 
 /**
- * Delete file from Cloudflare R2 or local disk
+ * Delete file from Cloudinary or local disk
  *
  * @param {string} fileUrlOrKey - File URL or storage key
  */
 async function deleteFile(fileUrlOrKey) {
   if (!fileUrlOrKey || typeof fileUrlOrKey !== 'string') return;
 
-  // Extract key from URL or path
-  let key = fileUrlOrKey;
-  if (fileUrlOrKey.startsWith('http://') || fileUrlOrKey.startsWith('https://')) {
+  if (isCloudinaryConfigured() && (fileUrlOrKey.includes('cloudinary') || fileUrlOrKey.startsWith('tradelink/'))) {
     try {
-      const parsed = new URL(fileUrlOrKey);
-      key = parsed.pathname.replace(/^\/+/, '');
-    } catch {
-      key = fileUrlOrKey;
-    }
-  } else if (fileUrlOrKey.startsWith('/uploads/')) {
-    key = fileUrlOrKey.replace(/^\/uploads\//, '');
-  }
-
-  // If R2 is enabled and S3 client is initialized
-  if (config.r2.enabled && s3Client && config.r2.bucketName) {
-    try {
-      const command = new DeleteObjectCommand({
-        Bucket: config.r2.bucketName,
-        Key: key
-      });
-      await s3Client.send(command);
+      let publicId = fileUrlOrKey;
+      if (fileUrlOrKey.startsWith('http://') || fileUrlOrKey.startsWith('https://')) {
+        const parts = fileUrlOrKey.split('/upload/');
+        if (parts.length > 1) {
+          const afterUpload = parts[1].replace(/^v\d+\//, '');
+          publicId = afterUpload.substring(0, afterUpload.lastIndexOf('.')) || afterUpload;
+        }
+      }
+      await cloudinary.uploader.destroy(publicId);
     } catch (err) {
-      logger.warn(`Failed to delete object from Cloudflare R2: ${err.message}`);
+      logger.warn(`Failed to delete object from Cloudinary: ${err.message}`);
     }
   }
 
-  // Also check and clean up local file if present
+  // Clean local file if present
   try {
+    let key = fileUrlOrKey;
+    if (fileUrlOrKey.startsWith('/uploads/')) {
+      key = fileUrlOrKey.replace(/^\/uploads\//, '');
+    }
     const localPath = path.join(uploadBase, key);
     if (fs.existsSync(localPath)) {
       await fs.promises.unlink(localPath);
@@ -246,52 +237,34 @@ async function deleteFile(fileUrlOrKey) {
 }
 
 /**
- * Check if Cloudflare R2 is configured and ready
+ * Test connectivity to Cloudinary or local storage
  */
-function isR2Configured() {
-  return Boolean(
-    config.r2.enabled &&
-    s3Client &&
-    config.r2.bucketName &&
-    config.r2.accountId &&
-    config.r2.accessKeyId &&
-    config.r2.secretAccessKey
-  );
-}
-
-/**
- * Test connectivity to Cloudflare R2 or local storage
- * Returns safe diagnostic object without exposing sensitive keys.
- */
-async function testR2Connection() {
-  if (!config.r2.enabled || !config.r2.accountId || !config.r2.accessKeyId || !config.r2.secretAccessKey) {
+async function testCloudinaryConnection() {
+  if (!isCloudinaryConfigured()) {
     return {
       ok: true,
       configured: false,
       storage: 'local',
-      message: 'Local Storage active (/uploads). To enable Cloudflare R2, set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY in .env.'
+      message: 'Local Storage active (/uploads). Cloudinary credentials not configured.'
     };
   }
 
   try {
-    const command = new HeadBucketCommand({
-      Bucket: config.r2.bucketName
-    });
-    await s3Client.send(command);
+    const res = await cloudinary.api.ping();
     return {
       ok: true,
       configured: true,
-      storage: 'r2',
-      bucket: config.r2.bucketName,
-      message: `Cloudflare R2 Object Storage active [Bucket: ${config.r2.bucketName}]`
+      storage: 'cloudinary',
+      cloudName: config.cloudinary.cloudName,
+      message: `Cloudinary Object Storage active [Cloud: ${config.cloudinary.cloudName}, status: ${res.status || 'ok'}]`
     };
   } catch (err) {
     return {
       ok: false,
       configured: true,
       storage: 'local',
-      bucket: config.r2.bucketName,
-      message: `Cloudflare R2 connection notice: ${err.message}. Using local storage fallback (/uploads).`
+      cloudName: config.cloudinary.cloudName,
+      message: `Cloudinary ping warning: ${err.message}. Using local storage fallback (/uploads).`
     };
   }
 }
@@ -301,7 +274,8 @@ module.exports = {
   uploadBase64,
   deleteFile,
   buildPublicUrl,
-  isR2Configured,
-  testR2Connection,
-  _setS3ClientForTesting: (mockClient) => { s3Client = mockClient; }
+  isCloudinaryConfigured,
+  testCloudinaryConnection,
+  testR2Connection: testCloudinaryConnection, // Backward compatibility alias
+  isR2Configured: isCloudinaryConfigured // Backward compatibility alias
 };

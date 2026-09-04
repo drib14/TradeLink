@@ -47,6 +47,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [forgotEmail, setForgotEmail] = useState('');
   const [resetCode, setResetCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [forgotSubmitted, setForgotSubmitted] = useState(false);
+  const [forgotMessage, setForgotMessage] = useState('');
 
   // Password visibility states
   const [showLoginPassword, setShowLoginPassword] = useState(false);
@@ -172,17 +174,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const handleForgotSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!forgotEmail.trim()) {
-      showToast('Email Required', 'Please enter your account email address.', 'warning');
+      showToast('Email Required', 'Please enter your registered student email address.', 'warning');
       return;
     }
     setIsSubmitting(true);
     try {
       const res = await forgotPassword(forgotEmail);
       if (res.success) {
-        showToast('Verification Code Sent', res.message, 'success');
-        setMode('reset');
+        showToast('Request Submitted', res.message, 'success');
+        setForgotSubmitted(true);
+        setForgotMessage(res.message);
       } else {
-        showToast('Reset Failed', res.message, 'error');
+        showToast('Request Failed', res.message, 'error');
       }
     } catch (err: any) {
       showToast('Error', err?.message || 'Password reset request failed.', 'error');
@@ -629,49 +632,143 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
           {/* 3. FORGOT PASSWORD */}
           {mode === 'forgot' && (
-            <form onSubmit={handleForgotSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  value={forgotEmail}
-                  onChange={(e) => setForgotEmail(e.target.value)}
-                  placeholder="Email Address"
-                  className="clean-input"
-                  required
-                  autoFocus
-                  disabled={isSubmitting}
-                />
-              </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+              {forgotSubmitted ? (
+                <div style={{ textAlign: 'center', padding: '0.5rem 0' }}>
+                  <div style={{
+                    width: '56px',
+                    height: '56px',
+                    borderRadius: '50%',
+                    backgroundColor: '#DEF7EC',
+                    color: '#03543F',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 0.75rem auto',
+                    fontSize: '1.5rem',
+                    fontWeight: 'bold'
+                  }}>
+                    ✓
+                  </div>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.4rem' }}>
+                    Request Submitted to Administration
+                  </h3>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '1rem' }}>
+                    {forgotMessage || 'Your password reset request is now awaiting campus administration review. Once approved, your verification code will be sent to your registered email.'}
+                  </p>
+                  <div style={{
+                    backgroundColor: 'var(--bg-subtle)',
+                    border: '1px solid var(--border-subtle)',
+                    padding: '0.75rem 0.9rem',
+                    borderRadius: '10px',
+                    fontSize: '0.78rem',
+                    color: 'var(--text-secondary)',
+                    textAlign: 'left',
+                    marginBottom: '1rem',
+                    lineHeight: 1.45
+                  }}>
+                    🛡️ <strong>What happens next?</strong> Campus moderators verify student identity for account safety. Once approved, check your inbox (or Spam) for an email from <code>uc.tradelink@gmail.com</code> containing your verification code.
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    onClick={() => {
+                      setForgotSubmitted(false);
+                      setMode('reset');
+                    }}
+                    style={{
+                      padding: '0.75rem 1.25rem',
+                      width: '100%',
+                      borderRadius: '8px',
+                      fontWeight: 700,
+                      marginBottom: '0.75rem'
+                    }}
+                  >
+                    Enter Verification Code & Set New Password →
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForgotSubmitted(false);
+                      setMode('login');
+                    }}
+                    style={{
+                      color: 'var(--text-muted)',
+                      fontWeight: 600,
+                      fontSize: '0.82rem',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Back to Sign In
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleForgotSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+                  <div style={{
+                    backgroundColor: 'rgba(0, 43, 127, 0.05)',
+                    border: '1px solid rgba(0, 43, 127, 0.12)',
+                    borderRadius: '10px',
+                    padding: '0.75rem 0.9rem',
+                    fontSize: '0.8rem',
+                    color: 'var(--uc-blue)',
+                    lineHeight: 1.45
+                  }}>
+                    🛡️ <strong>Campus Security Verification:</strong> Enter your registered student email. TradeLink will search your account and send a confirmation request to campus administrators. Upon approval, your reset code will be delivered to your inbox.
+                  </div>
 
-              <button
-                type="submit"
-                className="btn-primary"
-                disabled={isSubmitting}
-                style={{ padding: '0.75rem', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', borderRadius: '8px', fontWeight: 600 }}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 size={16} className="spin-animation" />
-                    <span>Sending Code...</span>
-                  </>
-                ) : (
-                  <span>Send Reset Code</span>
-                )}
-              </button>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+                      Registered Student Email Address
+                    </label>
+                    <input
+                      type="email"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      placeholder="e.g. student@uc.edu.ph"
+                      className="clean-input"
+                      required
+                      autoFocus
+                      disabled={isSubmitting}
+                    />
+                  </div>
 
-              <div style={{ textAlign: 'center', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                <button
-                  type="button"
-                  onClick={() => setMode('login')}
-                  style={{ color: 'var(--uc-blue)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}
-                >
-                  Back to Sign In
-                </button>
-              </div>
-            </form>
+                  <button
+                    type="submit"
+                    className="btn-primary"
+                    disabled={isSubmitting}
+                    style={{ padding: '0.75rem', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', borderRadius: '8px', fontWeight: 600 }}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 size={16} className="spin-animation" />
+                        <span>Checking Account & Submitting...</span>
+                      </>
+                    ) : (
+                      <span>Submit Request for Admin Approval</span>
+                    )}
+                  </button>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', textAlign: 'center', fontSize: '0.82rem', marginTop: '0.2rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => setMode('reset')}
+                      style={{ color: 'var(--uc-blue)', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer' }}
+                    >
+                      Already have an approved code? Enter Code Here →
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMode('login')}
+                      style={{ color: 'var(--text-muted)', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer' }}
+                    >
+                      Back to Sign In
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
           )}
 
           {/* 4. RESET PASSWORD */}

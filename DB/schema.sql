@@ -546,4 +546,26 @@ CREATE TABLE `feature_flags` (
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ----------------------------------------------------------------------------
+-- 23. PASSWORD RESET REQUESTS TABLE
+-- ----------------------------------------------------------------------------
+DROP TABLE IF EXISTS `password_reset_requests`;
+CREATE TABLE `password_reset_requests` (
+  `id` VARCHAR(36) NOT NULL PRIMARY KEY,
+  `user_id` VARCHAR(36) NOT NULL,
+  `email` VARCHAR(150) NOT NULL,
+  `status` ENUM('pending', 'approved', 'rejected', 'completed') NOT NULL DEFAULT 'pending',
+  `code_hash` VARCHAR(255) DEFAULT NULL,
+  `code_exp` DATETIME DEFAULT NULL,
+  `reviewed_by` VARCHAR(36) DEFAULT NULL,
+  `admin_note` VARCHAR(500) DEFAULT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `reviewed_at` DATETIME DEFAULT NULL,
+
+  INDEX `idx_pw_reset_user_id` (`user_id`),
+  INDEX `idx_pw_reset_status` (`status`),
+  INDEX `idx_pw_reset_email` (`email`),
+  CONSTRAINT `fk_pw_reset_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SET FOREIGN_KEY_CHECKS = 1;

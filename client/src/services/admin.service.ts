@@ -1,6 +1,6 @@
 // Admin moderation service
 import { api } from './api';
-import type { VerificationRequest, TradeDispute, CampusAnnouncement, AdminAuditLog, SystemConfig, Campus, User } from '../types';
+import type { VerificationRequest, TradeDispute, CampusAnnouncement, AdminAuditLog, SystemConfig, Campus, User, PasswordResetRequest } from '../types';
 
 export interface FlaggedListingItem {
   id: string;
@@ -44,6 +44,24 @@ export const adminService = {
 
   async rejectVerification(id: string, reason?: string): Promise<void> {
     await api.patch(`/admin/verifications/${id}/reject`, { reason });
+  },
+
+  // Password Resets
+  async getPasswordResetRequests(status?: string): Promise<{ requests: PasswordResetRequest[]; pendingCount: number }> {
+    const res = await api.get<{ requests: PasswordResetRequest[]; pendingCount: number }>('/admin/password-resets', { status });
+    const requests = res.data?.requests || [];
+    const pendingCount = res.data?.pendingCount ?? requests.filter((r: any) => r.status === 'pending').length;
+    return { requests: Array.isArray(requests) ? requests : [], pendingCount };
+  },
+
+  async approvePasswordReset(id: string): Promise<string> {
+    const res = await api.patch<{ message: string }>(`/admin/password-resets/${id}/approve`);
+    return res.message || 'Password reset request approved. Code sent via system email.';
+  },
+
+  async rejectPasswordReset(id: string, reason?: string): Promise<string> {
+    const res = await api.patch<{ message: string }>(`/admin/password-resets/${id}/reject`, { reason });
+    return res.message || 'Password reset request rejected.';
   },
 
   // Flags

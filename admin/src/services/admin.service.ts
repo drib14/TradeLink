@@ -21,6 +21,21 @@ export const adminService = {
     return res;
   },
 
+  async getPasswordResets(page = 1, limit = 50, status?: string) {
+    const res = await api.get('/admin/password-resets', { page, limit, status });
+    return res.data || { requests: [], pendingCount: 0 };
+  },
+
+  async approvePasswordReset(id: string) {
+    const res = await api.patch(`/admin/password-resets/${id}/approve`);
+    return res;
+  },
+
+  async rejectPasswordReset(id: string, reason?: string) {
+    const res = await api.patch(`/admin/password-resets/${id}/reject`, { reason });
+    return res;
+  },
+
   async getFlags(page = 1, limit = 50) {
     const res = await api.get('/admin/flags', { page, limit });
     return res.data?.flags || [];

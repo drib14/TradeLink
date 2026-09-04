@@ -249,6 +249,21 @@ export interface VerificationRequest {
   reviewedAt?: string;
 }
 
+export interface PasswordResetRequest {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  studentId: string;
+  campus: Campus;
+  college: College;
+  avatarUrl?: string | null;
+  status: 'pending' | 'approved' | 'rejected' | 'completed';
+  adminNote?: string | null;
+  createdAt: string;
+  reviewedAt?: string | null;
+}
+
 export interface Review {
   id: string;
   transactionId: string;

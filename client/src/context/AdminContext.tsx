@@ -6,7 +6,8 @@ import {
   AdminAuditLog,
   TradeDispute,
   SystemConfig,
-  Campus
+  Campus,
+  PasswordResetRequest
 } from '../types';
 import { useAuth } from './AuthContext';
 import { adminService } from '../services/admin.service';
@@ -22,9 +23,13 @@ interface AdminContextType {
   pendingVerificationsCount: number;
   pendingFlagsCount: number;
   pendingDisputesCount: number;
+  passwordResetRequests: PasswordResetRequest[];
+  pendingPasswordResetsCount: number;
   isLoading: boolean;
   approveVerification: (requestId: string) => Promise<void>;
   rejectVerification: (requestId: string, reason?: string) => Promise<void>;
+  approvePasswordReset: (requestId: string) => Promise<string>;
+  rejectPasswordReset: (requestId: string, reason?: string) => Promise<string>;
   reportListing: (listingId: string, listingTitle: string, listingImage: string, sellerName: string, campus: Campus, reason: string) => Promise<void>;
   resolveFlag: (flagId: string) => Promise<void>;
   removeListingByAdmin: (flagId: string, listingId: string, reason?: string) => Promise<void>;
@@ -74,6 +79,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const { allUsers, banUser, unbanUser, warnUser, toggleVerifyUser, deleteUser, updateProfile, currentUser, isAdmin } = useAuth();
 
   const [verificationRequests, setVerificationRequests] = useState<VerificationRequest[]>([]);
+  const [passwordResetRequests, setPasswordResetRequests] = useState<PasswordResetRequest[]>([]);
   const [flaggedListings, setFlaggedListings] = useState<FlaggedListingItem[]>([]);
   const [announcements, setAnnouncements] = useState<CampusAnnouncement[]>([]);
   const [auditLogs, setAuditLogs] = useState<AdminAuditLog[]>([]);
@@ -88,8 +94,9 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (!isAdmin) return;
     setIsLoading(true);
     try {
-      const [verifs, flags, disps, anns, logs, keys, cfg] = await Promise.allSettled([
+      const [verifs, pwResets, flags, disps, anns, logs, keys, cfg] = await Promise.allSettled([
         adminService.getVerifications(),
+        adminService.getPasswordResetRequests(),
         adminService.getFlaggedListings(),
         adminService.getDisputes(),
         adminService.getAnnouncements(),
@@ -100,6 +107,9 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       if (verifs.status === 'fulfilled' && verifs.value.length > 0) {
         setVerificationRequests(verifs.value);
+      }
+      if (pwResets.status === 'fulfilled' && pwResets.value?.requests) {
+        setPasswordResetRequests(pwResets.value.requests);
       }
       if (flags.status === 'fulfilled' && flags.value.length > 0) {
         setFlaggedListings(flags.value);
@@ -162,6 +172,24 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     );
     logAuditAction('REJECTED_VERIFICATION', 'verification', requestId, `Rejected ID verification. Reason: ${reason}`);
     await adminService.rejectVerification(requestId, reason);
+  };
+
+  const approvePasswordReset = async (requestId: string): Promise<string> => {
+    const msg = await adminService.approvePasswordReset(requestId);
+    setPasswordResetRequests((prev) =>
+      prev.map((r) => (r.id === requestId ? { ...r, status: 'approved', reviewedAt: new Date().toISOString() } : r))
+    );
+    logAuditAction('PASSWORD_RESET_APPROVED', 'user', requestId, 'Approved student password reset and dispatched verification code');
+    return msg;
+  };
+
+  const rejectPasswordReset = async (requestId: string, reason = 'Refused by administration'): Promise<string> => {
+    const msg = await adminService.rejectPasswordReset(requestId, reason);
+    setPasswordResetRequests((prev) =>
+      prev.map((r) => (r.id === requestId ? { ...r, status: 'rejected', adminNote: reason, reviewedAt: new Date().toISOString() } : r))
+    );
+    logAuditAction('PASSWORD_RESET_REJECTED', 'user', requestId, `Refused student password reset. Reason: ${reason}`);
+    return msg;
   };
 
   const reportListing = async (listingId: string, listingTitle: string, listingImage: string, sellerName: string, campus: Campus, reason: string) => {
@@ -318,11 +346,13 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const pendingVerificationsCount = verificationRequests.filter((r) => r.status === 'pending').length;
   const pendingFlagsCount = flaggedListings.filter((f) => f.status === 'pending').length;
   const pendingDisputesCount = disputes.filter((d) => d.status === 'pending').length;
+  const pendingPasswordResetsCount = passwordResetRequests.filter((r) => r.status === 'pending').length;
 
   return (
     <AdminContext.Provider
       value={{
         verificationRequests,
+        passwordResetRequests,
         flaggedListings,
         announcements,
         auditLogs,
@@ -332,9 +362,12 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         pendingVerificationsCount,
         pendingFlagsCount,
         pendingDisputesCount,
+        pendingPasswordResetsCount,
         isLoading,
         approveVerification,
         rejectVerification,
+        approvePasswordReset,
+        rejectPasswordReset,
         reportListing,
         resolveFlag,
         removeListingByAdmin,

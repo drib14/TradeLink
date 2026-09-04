@@ -32,6 +32,11 @@ router.get('/verifications', adminController.getVerifications);
 router.patch('/verifications/:id/approve', adminController.approveVerification);
 router.patch('/verifications/:id/reject', adminController.rejectVerification);
 
+// Password Reset Requests (Admin Confirmation / Refusal)
+router.get('/password-resets', adminController.getPasswordResetRequests);
+router.patch('/password-resets/:id/approve', adminController.approvePasswordReset);
+router.patch('/password-resets/:id/reject', adminController.rejectPasswordReset);
+
 // Flagged Listings
 router.get('/flags', adminController.getFlaggedListings);
 router.patch('/flags/:id/resolve', adminController.resolveFlag);

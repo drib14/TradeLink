@@ -1,7 +1,20 @@
 // Centralized HTTP client for TradeLink API
 // Handles auth token injection, refresh, and error normalization
+const getApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+  if (typeof window !== 'undefined' && window.location.hostname) {
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return `${window.location.protocol}//${window.location.hostname}:3001/api`;
+    }
+    // In production deployment (e.g., Vercel), fall back to relative /api to use reverse-proxy rewrites
+    return '/api';
+  }
+  return 'http://localhost:3001/api';
+};
 
-const API_BASE_URL = 'http://localhost:3001/api';
+const API_BASE_URL = getApiBaseUrl();
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
@@ -48,7 +61,7 @@ function addRefreshSubscriber(cb: (token: string) => void) {
 
 async function attemptTokenRefresh(): Promise<string | null> {
   try {
-    const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+    const res = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },

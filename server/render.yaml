@@ -4,6 +4,7 @@ services:
     runtime: node
     plan: free
     region: singapore
+    rootDir: server
     buildCommand: npm install
     startCommand: node src/index.js
     healthCheckPath: /api/health
@@ -22,5 +23,25 @@ services:
         value: 7d
       - key: CLIENT_URL
         value: https://tradelink-uc.vercel.app
+      - key: ALLOW_VERCEL_PREVIEWS
+        value: "true"
+      - key: DATABASE_URL
+        sync: false
+      - key: DB_SSL
+        value: "true"
       - key: MAX_FILE_SIZE_MB
         value: 5
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: 465
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false

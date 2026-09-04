@@ -231,39 +231,57 @@ const logout = asyncHandler(async (req, res) => {
 });
 
 /**
- * Request password reset code
+ * Request password reset — searches if email exists, then registers a pending request for admin approval
  */
 const forgotPassword = asyncHandler(async (req, res, next) => {
   const { email } = req.body;
-  const user = await db('users').whereRaw('LOWER(email) = ?', [email.toLowerCase().trim()]).first();
+  if (!email) {
+    return next(new AppError('Email is required.', 400));
+  }
+
+  const cleanEmail = email.toLowerCase().trim();
+  const user = await db('users').whereRaw('LOWER(email) = ?', [cleanEmail]).first();
 
   if (!user) {
-    // Return generic success to prevent email enumeration
+    return next(new AppError('No registered account found with that email address. Please check your email or register.', 404));
+  }
+
+  // Check if a reset request is already pending admin review
+  const existingPending = await db('password_reset_requests')
+    .where({ user_id: user.id, status: 'pending' })
+    .first();
+
+  if (existingPending) {
     return res.status(200).json({
       status: 'success',
-      message: 'If an account exists with that email address, a verification code has been sent.'
+      message: 'A password reset request for this account is already pending administrator confirmation. Please wait for an administrator to review it.',
+      data: {
+        requestId: existingPending.id,
+        status: 'pending'
+      }
     });
   }
 
-  const code = generate4DigitCode();
-  const codeHash = await hashCode(code);
-  const expiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
-
-  await db('users').where({ id: user.id }).update({
-    reset_code_hash: codeHash,
-    reset_code_exp: expiry
+  const requestId = uuidv4();
+  await db('password_reset_requests').insert({
+    id: requestId,
+    user_id: user.id,
+    email: user.email,
+    status: 'pending'
   });
-
-  await sendPasswordResetEmail(user.email, code, user.name);
 
   res.status(200).json({
     status: 'success',
-    message: 'If an account exists with that email address, a verification code has been sent.'
+    message: 'Password reset request submitted successfully. It has been sent to campus administration for approval. Once approved, your verification code will be sent to your registered email.',
+    data: {
+      requestId,
+      status: 'pending'
+    }
   });
 });
 
 /**
- * Reset password with 4-digit verification code
+ * Reset password with admin-approved verification code
  */
 const resetPassword = asyncHandler(async (req, res, next) => {
   const { email, code, newPassword } = req.body;
@@ -274,24 +292,30 @@ const resetPassword = asyncHandler(async (req, res, next) => {
   }
 
   if (!user.reset_code_hash || !user.reset_code_exp || new Date() > new Date(user.reset_code_exp)) {
-    return next(new AppError('Verification code has expired. Please request a new one.', 400));
+    return next(new AppError('Verification code has expired or has not been approved by administration. Please request a new one.', 400));
   }
 
   const isMatch = await verifyCode(code, user.reset_code_hash);
   if (!isMatch) {
-    return next(new AppError('Invalid 4-digit verification code.', 400));
+    return next(new AppError('Invalid verification code.', 400));
   }
 
   const passwordHash = await bcrypt.hash(newPassword, 12);
   await db('users').where({ id: user.id }).update({
     password_hash: passwordHash,
     reset_code_hash: null,
-    reset_code_exp: null
+    reset_code_exp: null,
+    refresh_token_hash: null // Invalidate existing sessions for security
   });
+
+  // Mark latest approved request as completed
+  await db('password_reset_requests')
+    .where({ user_id: user.id, status: 'approved' })
+    .update({ status: 'completed' });
 
   res.status(200).json({
     status: 'success',
-    message: 'Password reset successfully. You may now login.'
+    message: 'Password reset successfully. You may now login with your new password.'
   });
 });
 

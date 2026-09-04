@@ -57,10 +57,9 @@ module.exports = {
   production: {
     client: 'mysql2',
     connection: process.env.DATABASE_URL
-      ? {
-          connectionString: process.env.DATABASE_URL,
-          ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
-        }
+      ? (process.env.DB_SSL === 'true'
+          ? { uri: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } }
+          : process.env.DATABASE_URL)
       : {
           host: process.env.DB_HOST,
           port: Number(process.env.DB_PORT) || 3306,
