@@ -17,6 +17,7 @@ const wantedRoutes = require('./wanted.routes');
 const reviewsRoutes = require('./reviews.routes');
 const notificationsRoutes = require('./notifications.routes');
 const adminRoutes = require('./admin.routes');
+const adminAuthRoutes = require('./adminAuth.routes');
 
 // System Health Check
 router.get('/health', async (req, res) => {
@@ -67,5 +68,6 @@ router.use('/wanted', wantedRoutes);
 router.use('/reviews', reviewsRoutes);
 router.use('/notifications', notificationsRoutes);
 router.use('/admin', adminRoutes);
+router.use('/admin-auth', adminAuthRoutes);
 
 module.exports = router;

@@ -14,7 +14,32 @@ export const usersService = {
     return mapUserFromApi(res.data?.user || res.data);
   },
 
-  async submitIdVerification(studentIdNumber: string, idPhotoUrl: string, selfiePhotoUrl?: string): Promise<void> {
-    await api.post('/users/me/verify-id', { studentIdNumber, idPhotoUrl, idCardImageUrl: idPhotoUrl, selfiePhotoUrl });
+  async getVerificationSession(): Promise<{ sessionToken: string; challengeAction: { id: string; instruction: string }; flashColor: string; expiresAt: number }> {
+    const res = await api.get<{ sessionToken: string; challengeAction: { id: string; instruction: string }; flashColor: string; expiresAt: number }>('/users/me/verification-session');
+    return res.data;
+  },
+
+  async getVerificationStatus(): Promise<{
+    status: 'unverified' | 'pending' | 'approved' | 'rejected';
+    isVerified: boolean;
+    studentIdNumber: string;
+    rejectionReason: string | null;
+    submittedAt: string | null;
+    reviewedAt: string | null;
+    idPhotoUrl: string | null;
+    selfiePhotoUrl: string | null;
+  }> {
+    const res = await api.get<any>('/users/me/verification-status');
+    return res.data;
+  },
+
+  async submitIdVerification(studentIdNumber: string, idPhotoUrl: string, selfiePhotoUrl?: string, sessionToken?: string): Promise<void> {
+    await api.post('/users/me/verify-id', {
+      studentIdNumber,
+      idPhotoUrl,
+      idCardImageUrl: idPhotoUrl,
+      selfiePhotoUrl,
+      sessionToken
+    });
   },
 };

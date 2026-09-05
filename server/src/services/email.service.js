@@ -19,7 +19,80 @@ if (env.email.user && env.email.pass) {
 }
 
 /**
- * Sends a password reset email with the approved verification code
+ * TradeLink logo SVG for email templates (inline, self-contained)
+ */
+const TRADELINK_LOGO_SVG = `
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="44" viewBox="0 0 180 44" fill="none">
+  <rect width="38" height="38" rx="10" x="0" y="3" fill="#002B7F"/>
+  <path d="M11 14h16M19 14v14" stroke="#FFC72C" stroke-width="3" stroke-linecap="round"/>
+  <path d="M13 22l6 6 6-6" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="46" y="20" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="900" fill="#002B7F" letter-spacing="-0.5">Trade</text>
+  <text x="100" y="20" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="900" fill="#FFC72C" letter-spacing="-0.5">Link</text>
+  <text x="46" y="34" font-family="Arial, Helvetica, sans-serif" font-size="9.5" font-weight="600" fill="#64748B" letter-spacing="0.5">University of Cebu</text>
+</svg>
+`;
+
+/**
+ * Shared branded email layout wrapper
+ * All emails use this to ensure consistent TradeLink branding
+ * @param {string} bodyContent - The inner HTML content
+ * @param {string} [preheader] - Optional preheader text
+ * @returns {string} Complete branded HTML email
+ */
+function buildEmailLayout(bodyContent, preheader = '') {
+  return `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>TradeLink UC</title>
+    </head>
+    <body style="margin: 0; padding: 0; background-color: #F1F5F9; font-family: Arial, Helvetica, sans-serif;">
+      ${preheader ? `<div style="display: none; max-height: 0; overflow: hidden;">${preheader}</div>` : ''}
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #F1F5F9;">
+        <tr>
+          <td align="center" style="padding: 32px 16px;">
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width: 520px; background-color: #FFFFFF; border-radius: 16px; border: 1px solid #E2E8F0; overflow: hidden; box-shadow: 0 4px 24px rgba(0, 43, 127, 0.06);">
+              <!-- Logo Header -->
+              <tr>
+                <td style="background: linear-gradient(135deg, #002B7F 0%, #0A1931 100%); padding: 20px 24px; text-align: center;">
+                  <div style="display: inline-block;">
+                    ${TRADELINK_LOGO_SVG}
+                  </div>
+                </td>
+              </tr>
+              <!-- Gold accent line -->
+              <tr>
+                <td style="height: 3px; background: linear-gradient(90deg, #FFC72C 0%, #FFD54F 50%, #FFC72C 100%);"></td>
+              </tr>
+              <!-- Body Content -->
+              <tr>
+                <td style="padding: 28px 24px;">
+                  ${bodyContent}
+                </td>
+              </tr>
+              <!-- Footer -->
+              <tr>
+                <td style="padding: 0 24px 20px 24px;">
+                  <hr style="border: none; border-top: 1px solid #E2E8F0; margin: 0 0 16px 0;" />
+                  <p style="font-size: 11px; color: #94A3B8; text-align: center; margin: 0; line-height: 1.5;">
+                    University of Cebu TradeLink · Safe &amp; Verified Campus Marketplace<br/>
+                    <span style="color: #CBD5E1;">This is an automated message from TradeLink UC. Please do not reply.</span>
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `;
+}
+
+/**
+ * Sends a password reset email with the approved verification code (for students)
  * @param {string} toEmail
  * @param {string} code
  * @param {string} userName
@@ -27,31 +100,26 @@ if (env.email.user && env.email.pass) {
 async function sendPasswordResetApprovedEmail(toEmail, code, userName = 'Student') {
   const subject = `[TradeLink UC] Password Reset Approved - Verification Code: ${code}`;
   const text = `Hello ${userName},\n\nYour password reset request has been APPROVED by University of Cebu campus administration.\n\nYour TradeLink verification code is: ${code}\n\nThis code will expire in 30 minutes. Enter this code on the TradeLink reset password screen to complete resetting your password.\n\nIf you did not request this, please contact campus administration immediately.\n\nBest regards,\nUniversity of Cebu TradeLink Administration Team`;
-  const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 520px; margin: auto; padding: 24px; border: 1px solid #E2E8F0; border-radius: 16px; background-color: #FFFFFF;">
-      <div style="text-align: center; margin-bottom: 20px;">
-        <h2 style="color: #002B7F; margin-bottom: 4px;">TradeLink UC</h2>
-        <span style="display: inline-block; background-color: #DEF7EC; color: #03543F; font-size: 12px; font-weight: bold; padding: 4px 10px; border-radius: 12px;">
-          ✓ Password Reset Approved
-        </span>
-      </div>
-      <p style="color: #334155; font-size: 15px;">Hello <strong>${userName}</strong>,</p>
-      <p style="color: #475569; font-size: 14px; line-height: 1.5;">
-        Your password reset request has been verified and <strong>approved</strong> by campus administration. Use the verification code below to set your new password:
-      </p>
-      <div style="background-color: #F8FAFC; border: 2px dashed #002B7F; font-size: 32px; font-weight: 800; letter-spacing: 8px; text-align: center; padding: 18px; border-radius: 12px; color: #002B7F; margin: 24px 0;">
-        ${code}
-      </div>
-      <p style="font-size: 13px; color: #64748B; margin-bottom: 20px;">
-        ⏱️ <strong>Valid for 30 minutes.</strong> Return to the TradeLink sign-in dialog, choose "Reset Password", and enter this code along with your new password.
-      </p>
-      <hr style="border: none; border-top: 1px solid #E2E8F0; margin: 20px 0;" />
-      <p style="font-size: 12px; color: #94A3B8; text-align: center; margin: 0;">
-        University of Cebu TradeLink · Safe & Verified Campus Marketplace
-      </p>
+
+  const bodyContent = `
+    <div style="text-align: center; margin-bottom: 16px;">
+      <span style="display: inline-block; background-color: #DEF7EC; color: #03543F; font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 12px;">
+        ✓ Password Reset Approved
+      </span>
     </div>
+    <p style="color: #334155; font-size: 15px; margin: 0 0 12px 0;">Hello <strong>${userName}</strong>,</p>
+    <p style="color: #475569; font-size: 14px; line-height: 1.6; margin: 0 0 20px 0;">
+      Your password reset request has been verified and <strong>approved</strong> by campus administration. Use the verification code below to set your new password:
+    </p>
+    <div style="background-color: #F8FAFC; border: 2px dashed #002B7F; font-size: 32px; font-weight: 800; letter-spacing: 8px; text-align: center; padding: 18px; border-radius: 12px; color: #002B7F; margin: 0 0 20px 0;">
+      ${code}
+    </div>
+    <p style="font-size: 13px; color: #64748B; margin: 0;">
+      ⏱️ <strong>Valid for 30 minutes.</strong> Return to the TradeLink sign-in dialog, choose "Reset Password", and enter this code along with your new password.
+    </p>
   `;
 
+  const html = buildEmailLayout(bodyContent, `Your verification code is ${code}`);
   return sendMail(toEmail, subject, text, html);
 }
 
@@ -63,30 +131,59 @@ async function sendPasswordResetApprovedEmail(toEmail, code, userName = 'Student
  */
 async function sendPasswordResetRejectedEmail(toEmail, userName = 'Student', reason = '') {
   const subject = `[TradeLink UC] Password Reset Request Status`;
-  const text = `Hello ${userName},\n\nYour password reset request was reviewed by campus administration and was not approved.\n\nReason: ${reason || 'Identity verification could not be confirmed.'}\n\nIf you believe this is an error, please visit the campus moderation desk or contact admin@uc.edu.ph with your Student ID.\n\nBest regards,\nUniversity of Cebu TradeLink Administration Team`;
-  const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 520px; margin: auto; padding: 24px; border: 1px solid #E2E8F0; border-radius: 16px; background-color: #FFFFFF;">
-      <div style="text-align: center; margin-bottom: 20px;">
-        <h2 style="color: #002B7F; margin-bottom: 4px;">TradeLink UC</h2>
-        <span style="display: inline-block; background-color: #FDE8E8; color: #9B1C1C; font-size: 12px; font-weight: bold; padding: 4px 10px; border-radius: 12px;">
-          Notice: Request Not Approved
-        </span>
-      </div>
-      <p style="color: #334155; font-size: 15px;">Hello <strong>${userName}</strong>,</p>
-      <p style="color: #475569; font-size: 14px; line-height: 1.5;">
-        Your password reset request was reviewed by campus administration and could not be approved at this time.
-      </p>
-      ${reason ? `<div style="background-color: #FFF5F5; border-left: 4px solid #E02424; padding: 12px 16px; border-radius: 4px; margin: 16px 0; color: #771D1D; font-size: 14px;"><strong>Admin Note:</strong> ${reason}</div>` : ''}
-      <p style="font-size: 13px; color: #64748B; margin-top: 16px;">
-        If you require assistance regaining access to your student account, please visit the campus moderation desk or email <a href="mailto:admin@uc.edu.ph" style="color: #002B7F;">admin@uc.edu.ph</a> with proof of enrollment.
-      </p>
-      <hr style="border: none; border-top: 1px solid #E2E8F0; margin: 20px 0;" />
-      <p style="font-size: 12px; color: #94A3B8; text-align: center; margin: 0;">
-        University of Cebu TradeLink · Safe & Verified Campus Marketplace
-      </p>
+  const text = `Hello ${userName},\n\nYour password reset request was reviewed by campus administration and was not approved.\n\nReason: ${reason || 'Identity verification could not be confirmed.'}\n\nIf you believe this is an error, please visit the campus moderation desk or contact uc.tradelink@gmail.com with your Student ID.\n\nBest regards,\nUniversity of Cebu TradeLink Administration Team`;
+
+  const bodyContent = `
+    <div style="text-align: center; margin-bottom: 16px;">
+      <span style="display: inline-block; background-color: #FDE8E8; color: #9B1C1C; font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 12px;">
+        Notice: Request Not Approved
+      </span>
+    </div>
+    <p style="color: #334155; font-size: 15px; margin: 0 0 12px 0;">Hello <strong>${userName}</strong>,</p>
+    <p style="color: #475569; font-size: 14px; line-height: 1.6; margin: 0 0 16px 0;">
+      Your password reset request was reviewed by campus administration and could not be approved at this time.
+    </p>
+    ${reason ? `<div style="background-color: #FFF5F5; border-left: 4px solid #E02424; padding: 12px 16px; border-radius: 4px; margin: 0 0 16px 0; color: #771D1D; font-size: 14px;"><strong>Admin Note:</strong> ${reason}</div>` : ''}
+    <p style="font-size: 13px; color: #64748B; margin: 0;">
+      If you require assistance regaining access to your student account, please visit the campus moderation desk or email <a href="mailto:uc.tradelink@gmail.com" style="color: #002B7F;">uc.tradelink@gmail.com</a> with proof of enrollment.
+    </p>
+  `;
+
+  const html = buildEmailLayout(bodyContent);
+  return sendMail(toEmail, subject, text, html);
+}
+
+/**
+ * Sends a password reset code directly to an admin (no approval step)
+ * @param {string} toEmail
+ * @param {string} code
+ */
+async function sendAdminPasswordResetEmail(toEmail, code) {
+  const subject = `[TradeLink UC] Administrator Password Reset - Code: ${code}`;
+  const text = `TradeLink Administration Portal\n\nYour administrator password reset verification code is: ${code}\n\nThis code will expire in 30 minutes. Enter this code on the TradeLink Administration Portal to complete resetting your password.\n\nIf you did not request this, your account may be compromised. Please secure your account immediately.\n\nTradeLink UC Administration`;
+
+  const bodyContent = `
+    <div style="text-align: center; margin-bottom: 16px;">
+      <span style="display: inline-block; background-color: #DBEAFE; color: #1E40AF; font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 12px;">
+        🔐 Administrator Password Reset
+      </span>
+    </div>
+    <p style="color: #334155; font-size: 15px; margin: 0 0 12px 0;">Hello <strong>Administrator</strong>,</p>
+    <p style="color: #475569; font-size: 14px; line-height: 1.6; margin: 0 0 20px 0;">
+      A password reset was requested for your TradeLink administrator account. Use the verification code below to set a new password:
+    </p>
+    <div style="background-color: #F0F4FF; border: 2px dashed #002B7F; font-size: 32px; font-weight: 800; letter-spacing: 8px; text-align: center; padding: 18px; border-radius: 12px; color: #002B7F; margin: 0 0 20px 0;">
+      ${code}
+    </div>
+    <p style="font-size: 13px; color: #64748B; margin: 0 0 12px 0;">
+      ⏱️ <strong>Valid for 30 minutes.</strong> Return to the Administration Portal and enter this code along with your new password.
+    </p>
+    <div style="background-color: #FFFBEB; border-left: 4px solid #F59E0B; padding: 10px 14px; border-radius: 4px; margin: 0; color: #92400E; font-size: 12px;">
+      <strong>Security Notice:</strong> If you did not request this reset, your account may be at risk. Please contact the development team immediately.
     </div>
   `;
 
+  const html = buildEmailLayout(bodyContent, `Your admin reset code is ${code}`);
   return sendMail(toEmail, subject, text, html);
 }
 
@@ -119,5 +216,6 @@ async function sendMail(toEmail, subject, text, html) {
 module.exports = {
   sendPasswordResetApprovedEmail,
   sendPasswordResetRejectedEmail,
+  sendAdminPasswordResetEmail,
   sendPasswordResetEmail: sendPasswordResetApprovedEmail // Alias for backwards compatibility
 };

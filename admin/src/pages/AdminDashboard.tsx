@@ -1,9 +1,6 @@
 import React, { useState } from 'react';
 import { useAdmin } from '../context/AdminContext';
-import { useAuth } from '../context/AuthContext';
-import { useMarket } from '../context/MarketContext';
-import { useWanted } from '../context/WantedContext';
-import { useChat } from '../context/ChatContext';
+import { useAdminAuth } from '../context/AdminAuthContext';
 import { useToast } from '../components/common/Toast';
 import { VerificationRequest, User, Listing, Campus, TradeDispute } from '../types';
 import { CAMPUS_MEETUP_SPOTS } from '../data/campusLocations';
@@ -58,7 +55,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     rejectVerification,
     resolveFlag,
     removeListingByAdmin,
-    boostListingByAdmin,
     banUserByAdmin,
     unbanUserByAdmin,
     warnUserByAdmin,
@@ -67,19 +63,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     createAnnouncement,
     deleteAnnouncement,
     toggleAnnouncement,
-    removeWantedByAdmin,
-    cancelMeetupByAdmin,
-    completeMeetupByAdmin,
     addProhibitedKeyword,
     removeProhibitedKeyword,
     resolveDispute,
-    adjustUserTrustScore
+    adjustUserTrustScore,
+    allUsers,
+    listings,
+    wantedRequests,
+    meetups,
+    boostListingByAdmin,
+    removeWantedByAdmin,
+    deleteWantedRequest,
+    completeMeetupByAdmin,
+    cancelMeetupByAdmin
   } = useAdmin();
 
-  const { allUsers, currentUser, login, logout, isAdmin } = useAuth();
-  const { listings } = useMarket();
-  const { requests: wantedRequests, deleteRequest: deleteWantedRequest } = useWanted();
-  const { meetups } = useChat();
+  const { adminUser: currentUser, isAdminAuthenticated: isAdmin, login, logout, forgotPassword, resetPassword } = useAdminAuth();
   const { showToast } = useToast();
 
   const [activeTab, setActiveTab] = useState<
@@ -148,13 +147,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   const pendingFlags = flaggedListings.filter((f) => f.status === 'pending');
   const bannedUsers = allUsers.filter((u) => u.isBanned);
 
-  const handleAdminGateSubmit = (e: React.FormEvent) => {
+  const handleAdminGateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!adminEmailInput.trim() || !adminPasswordInput.trim()) {
       showToast('Input Required', 'Please enter your administrator ID/email and password.', 'warning');
       return;
     }
-    const res = login(adminEmailInput, adminPasswordInput);
+    const res = await login(adminEmailInput, adminPasswordInput);
     if (res.success) {
       showToast('Admin Authorized', res.message, 'success');
     } else {
@@ -732,38 +731,75 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     </span>
                   </div>
 
-                  {/* ID Photo Preview */}
-                  {req.idCardImageUrl && (
-                    <div
-                      onClick={() => setInspectedImage(req.idCardImageUrl)}
-                      style={{
-                        width: '100%',
-                        height: '140px',
-                        borderRadius: '8px',
-                        overflow: 'hidden',
-                        backgroundColor: '#0F172A',
-                        position: 'relative',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <img src={req.idCardImageUrl} alt="Student ID" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  {/* Side-by-Side ID & Biometric Selfie Preview */}
+                  <div style={{ display: 'grid', gridTemplateColumns: req.selfiePhotoUrl ? '1fr 1fr' : '1fr', gap: '0.5rem' }}>
+                    {req.idCardImageUrl && (
                       <div
+                        onClick={() => setInspectedImage(req.idCardImageUrl)}
                         style={{
-                          position: 'absolute',
-                          bottom: '6px',
-                          right: '6px',
-                          backgroundColor: 'rgba(0,0,0,0.7)',
-                          color: '#FFFFFF',
-                          padding: '0.2rem 0.5rem',
-                          borderRadius: '4px',
-                          fontSize: '0.68rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.25rem'
+                          height: '130px',
+                          borderRadius: '8px',
+                          overflow: 'hidden',
+                          backgroundColor: '#0F172A',
+                          position: 'relative',
+                          cursor: 'pointer'
                         }}
                       >
-                        <Eye size={12} /> Inspect Photo
+                        <img src={req.idCardImageUrl} alt="Student ID" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <div
+                          style={{
+                            position: 'absolute',
+                            bottom: '4px',
+                            left: '4px',
+                            backgroundColor: 'rgba(0,0,0,0.75)',
+                            color: '#FFFFFF',
+                            padding: '0.15rem 0.4rem',
+                            borderRadius: '4px',
+                            fontSize: '0.62rem',
+                            fontWeight: 700
+                          }}
+                        >
+                          ID Card
+                        </div>
                       </div>
+                    )}
+
+                    {req.selfiePhotoUrl && (
+                      <div
+                        onClick={() => setInspectedImage(req.selfiePhotoUrl)}
+                        style={{
+                          height: '130px',
+                          borderRadius: '8px',
+                          overflow: 'hidden',
+                          backgroundColor: '#0F172A',
+                          position: 'relative',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <img src={req.selfiePhotoUrl} alt="Live Biometric Selfie" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <div
+                          style={{
+                            position: 'absolute',
+                            bottom: '4px',
+                            left: '4px',
+                            backgroundColor: 'rgba(5, 150, 105, 0.85)',
+                            color: '#FFFFFF',
+                            padding: '0.15rem 0.4rem',
+                            borderRadius: '4px',
+                            fontSize: '0.62rem',
+                            fontWeight: 700
+                          }}
+                        >
+                          Live Selfie
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Rejection reason if already rejected */}
+                  {req.status === 'rejected' && (req as any).rejectionReason && (
+                    <div style={{ fontSize: '0.72rem', color: '#DC2626', backgroundColor: '#FEF2F2', padding: '0.35rem 0.5rem', borderRadius: '6px', border: '1px solid #FECACA' }}>
+                      <strong>Reason:</strong> {(req as any).rejectionReason}
                     </div>
                   )}
 
@@ -2034,6 +2070,37 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
             <p style={{ fontSize: '0.84rem', color: '#475569' }}>
               Specify the reason for declining <strong>{rejectReqModal.userName}</strong>'s verification request:
             </p>
+
+            {/* Preset Rejection Reasons */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B' }}>Quick Presets:</span>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                {[
+                  'Incomplete or blurry student ID photo',
+                  'Face in live selfie does not match student ID photo',
+                  'Student ID number does not match card details',
+                  'ID card appears expired or unreadable'
+                ].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => setRejectReasonInput(preset)}
+                    style={{
+                      fontSize: '0.68rem',
+                      padding: '0.2rem 0.5rem',
+                      borderRadius: '4px',
+                      backgroundColor: rejectReasonInput === preset ? '#FEF2F2' : '#F8FAFC',
+                      color: rejectReasonInput === preset ? '#DC2626' : '#475569',
+                      border: `1px solid ${rejectReasonInput === preset ? '#FECACA' : '#E2E8F0'}`,
+                      cursor: 'pointer',
+                      textAlign: 'left'
+                    }}
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             <textarea
               rows={3}

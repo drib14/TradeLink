@@ -61,6 +61,7 @@ const getVerifications = asyncHandler(async (req, res) => {
     idCardImageUrl: r.id_photo_url || r.id_card_image_url || '',
     selfiePhotoUrl: r.selfie_photo_url || null,
     status: r.status,
+    rejectionReason: r.rejection_reason || null,
     submittedAt: r.created_at || r.submitted_at,
     reviewedAt: r.reviewed_at
   }));
@@ -119,11 +120,17 @@ const rejectVerification = asyncHandler(async (req, res, next) => {
     return next(new AppError('Verification request not found.', 404));
   }
 
-  await db('verification_requests').where({ id }).update({
-    status: 'rejected',
-    reviewed_at: new Date(),
-    reviewed_by: req.user.id,
-    rejection_reason: reason
+  await db.transaction(async (trx) => {
+    await trx('verification_requests').where({ id }).update({
+      status: 'rejected',
+      reviewed_at: new Date(),
+      reviewed_by: req.user.id,
+      rejection_reason: reason
+    });
+
+    await trx('users').where({ id: verif.user_id }).update({
+      is_verified: false
+    });
   });
 
   await logAdminAction(req.user, 'Rejected Verification', 'verification', id, `Rejected: ${reason}`, req);

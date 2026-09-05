@@ -1,42 +1,24 @@
 const fs = require('fs');
 const path = require('path');
-const mysql = require('mysql2/promise');
 const bcrypt = require('bcryptjs');
 const db = require('./db');
 const env = require('./env');
 const logger = require('../utils/logger');
 
 /**
- * Automatically initializes database tables and default seed data on server startup.
+ * Auto-initialize database tables, default administrator credentials, and baseline system records.
  */
 async function autoInitDatabase() {
   try {
-    // 0. Ensure database exists on MySQL server (local development only)
-    if (!env.db.connectionString) {
-      try {
-        const rootConn = await mysql.createConnection({
-          host: env.db.host,
-          port: env.db.port,
-          user: env.db.user,
-          password: env.db.password
-        });
-        await rootConn.query(`CREATE DATABASE IF NOT EXISTS \`${env.db.database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`);
-        await rootConn.end();
-      } catch (e) {
-        logger.debug(`[DB Init] Root connection check: ${e.message}`);
-      }
-    }
+    logger.info('[DB Init] Checking TradeLink database schema and baseline records...');
 
-    logger.info('[DB Init] Checking TradeLink database schema and seed data...');
-
-    // 1. Check if 'users' table exists. If not, execute schema.sql
+    // 1. Check if 'users' table exists. If not, initialize from DB/schema.sql
     const hasUsersTable = await db.schema.hasTable('users');
     if (!hasUsersTable) {
       logger.info('[DB Init] Tables not found. Initializing database schema from DB/schema.sql...');
       const schemaPath = path.resolve(__dirname, '../../../DB/schema.sql');
       if (fs.existsSync(schemaPath)) {
         const schemaSql = fs.readFileSync(schemaPath, 'utf8');
-        // Split by semicolon statements
         const statements = schemaSql
           .split(/;\s*[\r\n]+/)
           .map((s) => s.trim())
@@ -52,7 +34,7 @@ async function autoInitDatabase() {
         await db.raw('SET FOREIGN_KEY_CHECKS = 1;');
         logger.info('[DB Init] Database schema initialized successfully.');
       } else {
-        logger.warn('[DB Init] schema.sql not found at ' + schemaPath);
+        logger.warn(`[DB Init] schema.sql not found at ${schemaPath}`);
       }
     }
 
@@ -80,17 +62,22 @@ async function autoInitDatabase() {
       logger.info('[DB Init] Created password_reset_requests table.');
     }
 
-    // 2. Ensure Default Administrator Account Exists
-    const adminEmail = 'admin@uc.edu.ph';
+    // 2. Ensure Default Administrator Account Exists (uc.tradelink@gmail.com / TradeLink@2026)
+    const adminEmail = 'uc.tradelink@gmail.com';
+    const adminPassword = 'TradeLink@2026';
+    const adminPasswordHash = await bcrypt.hash(adminPassword, 10);
+
     const existingAdmin = await db('users').where({ email: adminEmail }).first();
-    const adminPasswordHash = await bcrypt.hash('password123', 10);
 
     if (!existingAdmin) {
+      // Remove any previous legacy user-admin ID if email differed
+      await db('users').where({ id: 'user-admin' }).del().catch(() => {});
+
       await db('users').insert({
         id: 'user-admin',
         name: 'UC Administrator',
         email: adminEmail,
-        student_id: '000001',
+        student_id: 'ADMIN001',
         password_hash: adminPasswordHash,
         role: 'admin',
         campus: 'UC Main',
@@ -108,95 +95,110 @@ async function autoInitDatabase() {
         is_pro_merchant: false,
         is_banned: false
       });
-      logger.info(`[DB Init] Created default administrator: ${adminEmail} (password: password123)`);
+      logger.info(`[DB Init] Created default administrator: ${adminEmail}`);
     } else {
-      // Ensure password_hash is valid bcrypt for password123
-      const isMatch = await bcrypt.compare('password123', existingAdmin.password_hash);
+      // Ensure password_hash is valid bcrypt for TradeLink@2026
+      const isMatch = await bcrypt.compare(adminPassword, existingAdmin.password_hash);
       if (!isMatch) {
-        await db('users').where({ id: existingAdmin.id }).update({ password_hash: adminPasswordHash });
-        logger.info(`[DB Init] Verified and updated admin password hash for ${adminEmail}`);
+        await db('users').where({ id: existingAdmin.id }).update({
+          password_hash: adminPasswordHash,
+          role: 'admin'
+        });
+        logger.info(`[DB Init] Synchronized admin credentials for ${adminEmail}`);
       }
     }
 
     // 3. Ensure Default System Configuration Exists
-    const existingConfig = await db('system_config').where({ config_key: 'platform_rules' }).first();
-    if (!existingConfig) {
-      await db('system_config').insert({
-        config_key: 'platform_rules',
-        config_value: JSON.stringify({
-          maintenanceMode: false,
-          maxListingPrice: 50000,
-          maxImagesPerListing: 5,
-          swapModeEnabled: true,
-          wantedBoardEnabled: true,
-          freeDonationEnabled: true,
-          maxListingsPerUser: 20
-        }),
-        last_updated_by: 'user-admin'
-      });
-      logger.info('[DB Init] Initialized default system configuration.');
+    const hasConfigTable = await db.schema.hasTable('system_config');
+    if (hasConfigTable) {
+      const existingConfig = await db('system_config').where({ config_key: 'platform_rules' }).first();
+      if (!existingConfig) {
+        await db('system_config').insert({
+          config_key: 'platform_rules',
+          config_value: JSON.stringify({
+            maintenanceMode: false,
+            maxListingPrice: 50000,
+            maxImagesPerListing: 5,
+            swapModeEnabled: true,
+            wantedBoardEnabled: true,
+            freeDonationEnabled: true,
+            maxListingsPerUser: 20
+          }),
+          last_updated_by: 'user-admin'
+        });
+        logger.info('[DB Init] Initialized default system configuration.');
+      }
     }
 
     // 4. Ensure Default Announcements Exist
-    const announcementCount = await db('announcements').count('id as count').first();
-    if (Number(announcementCount?.count || 0) === 0) {
-      await db('announcements').insert([
-        {
-          id: 'ann-1',
-          title: 'Guarded Meetup Reminder',
-          message: 'Always meet inside official UC campus security gates during daytime hours. Inspect items before scanning the Handshake QR code.',
-          campus: 'All',
-          type: 'alert',
-          author_id: 'user-admin',
-          author_name: 'UC Administration',
-          is_active: true
-        },
-        {
-          id: 'ann-2',
-          title: 'Junior High & Senior High Trading Desk Live',
-          message: 'Students from UC PRI and UC South high school departments can now trade textbooks and PE uniforms with zero platform fees.',
-          campus: 'UC PRI',
-          type: 'info',
-          author_id: 'user-admin',
-          author_name: 'High School Coordinator',
-          is_active: true
-        }
-      ]);
-      logger.info('[DB Init] Seeded baseline campus announcements.');
+    const hasAnnouncementsTable = await db.schema.hasTable('announcements');
+    if (hasAnnouncementsTable) {
+      const announcementCount = await db('announcements').count('id as count').first();
+      if (Number(announcementCount?.count || 0) === 0) {
+        await db('announcements').insert([
+          {
+            id: 'ann-1',
+            title: 'Guarded Meetup Reminder',
+            message: 'Always meet inside official UC campus security gates during daytime hours. Inspect items before scanning the Handshake QR code.',
+            campus: 'All',
+            type: 'alert',
+            author_id: 'user-admin',
+            author_name: 'UC Administration',
+            is_active: true
+          },
+          {
+            id: 'ann-2',
+            title: 'Junior High & Senior High Trading Desk Live',
+            message: 'Students from UC PRI and UC South high school departments can now trade textbooks and PE uniforms with zero platform fees.',
+            campus: 'UC PRI',
+            type: 'info',
+            author_id: 'user-admin',
+            author_name: 'High School Coordinator',
+            is_active: true
+          }
+        ]);
+        logger.info('[DB Init] Seeded baseline campus announcements.');
+      }
     }
 
     // 5. Ensure Default Prohibited Keywords Exist
-    const keywordCount = await db('prohibited_keywords').count('id as count').first();
-    if (Number(keywordCount?.count || 0) === 0) {
-      const defaultKeywords = [
-        'exam leak', 'test bank', 'test paper', 'midterm answer', 'final exam key',
-        'homework service', 'essay writer', 'shabu', 'marijuana', 'weed', 'vape',
-        'cigarette', 'alcohol', 'gambling', 'weapon', 'knife', 'proxy test'
-      ];
-      const keywordRows = defaultKeywords.map((kw, idx) => ({
-        id: `kw-${idx + 1}`,
-        keyword: kw,
-        added_by: 'user-admin'
-      }));
-      await db('prohibited_keywords').insert(keywordRows);
-      logger.info(`[DB Init] Seeded ${defaultKeywords.length} prohibited security keywords.`);
+    const hasKeywordsTable = await db.schema.hasTable('prohibited_keywords');
+    if (hasKeywordsTable) {
+      const keywordCount = await db('prohibited_keywords').count('id as count').first();
+      if (Number(keywordCount?.count || 0) === 0) {
+        const defaultKeywords = [
+          'exam leak', 'test bank', 'test paper', 'midterm answer', 'final exam key',
+          'homework service', 'essay writer', 'shabu', 'marijuana', 'weed', 'vape',
+          'cigarette', 'alcohol', 'gambling', 'weapon', 'knife', 'proxy test'
+        ];
+        const keywordRows = defaultKeywords.map((kw, idx) => ({
+          id: `kw-${idx + 1}`,
+          keyword: kw,
+          added_by: 'user-admin'
+        }));
+        await db('prohibited_keywords').insert(keywordRows);
+        logger.info(`[DB Init] Seeded ${defaultKeywords.length} prohibited security keywords.`);
+      }
     }
 
     // 6. Ensure Default Feature Flags Exist
-    const flagCount = await db('feature_flags').count('id as count').first();
-    if (Number(flagCount?.count || 0) === 0) {
-      await db('feature_flags').insert([
-        { id: 'ff-1', name: 'Price Advisor AI', description: 'Enable AI-powered pricing suggestions', enabled: true },
-        { id: 'ff-2', name: 'Campus Map', description: 'Interactive campus meetup map', enabled: true },
-        { id: 'ff-3', name: 'Pro Merchant Badge', description: 'Allow pro merchant status for top sellers', enabled: true },
-        { id: 'ff-4', name: 'Dark Mode', description: 'Dark mode toggle for all users', enabled: true }
-      ]);
-      logger.info('[DB Init] Seeded default feature flags.');
+    const hasFlagsTable = await db.schema.hasTable('feature_flags');
+    if (hasFlagsTable) {
+      const flagCount = await db('feature_flags').count('id as count').first();
+      if (Number(flagCount?.count || 0) === 0) {
+        await db('feature_flags').insert([
+          { id: 'ff-1', name: 'Price Advisor AI', description: 'Enable AI-powered pricing suggestions', enabled: true },
+          { id: 'ff-2', name: 'Campus Map', description: 'Interactive campus meetup map', enabled: true },
+          { id: 'ff-3', name: 'Pro Merchant Badge', description: 'Allow pro merchant status for top sellers', enabled: true },
+          { id: 'ff-4', name: 'Dark Mode', description: 'Dark mode toggle for all users', enabled: true }
+        ]);
+        logger.info('[DB Init] Seeded default feature flags.');
+      }
     }
 
-    logger.info('[DB Init] Database is fully synchronized and ready for production operations.');
+    logger.info('[DB Init] Database is fully synchronized.');
   } catch (err) {
-    logger.error(`[DB Init Error] Failed to auto-initialize database: ${err.message}`);
+    logger.warn(`[DB Init Warning] autoInitDatabase: ${err.message}`);
   }
 }
 

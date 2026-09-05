@@ -4,7 +4,6 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { MarketProvider } from './context/MarketContext';
 import { ChatProvider } from './context/ChatContext';
 import { WantedProvider } from './context/WantedContext';
-import { AdminProvider } from './context/AdminContext';
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
 import { MobileBottomNav } from './components/layout/MobileBottomNav';
@@ -32,7 +31,6 @@ import { NotFoundPage } from './pages/NotFoundPage';
 import { FavoritesPage } from './pages/FavoritesPage';
 import { TransactionHistoryPage } from './pages/TransactionHistoryPage';
 import { SettingsPage } from './pages/SettingsPage';
-import { AdminDashboard } from './pages/AdminDashboard';
 import { encodeHashedId, decodeHashedId } from './utils/security';
 
 const pathToView = (path: string, search: string = window.location.search): { view: string; params: any } => {
@@ -67,12 +65,11 @@ const pathToView = (path: string, search: string = window.location.search): { vi
   if (cleanLower === 'favorites' || cleanLower === 'saved') return { view: 'favorites', params: {} };
   if (cleanLower === 'transactions' || cleanLower === 'history') return { view: 'transactions', params: {} };
   if (cleanLower === 'settings' || cleanLower === 'preferences') return { view: 'settings', params: {} };
-  if (cleanLower === 'admin' || cleanLower === 'moderation') return { view: 'admin', params: {} };
   return { view: 'not-found', params: {} };
 };
 
 export const MainApp: React.FC = () => {
-  const { currentUser, isAdmin } = useAuth();
+  const { currentUser } = useAuth();
   const [currentView, setCurrentView] = useState<string>('home');
   const [viewParams, setViewParams] = useState<any>({});
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -108,19 +105,9 @@ export const MainApp: React.FC = () => {
     'not-found'
   ];
 
-  const AUTH_REQUIRED_VIEWS = ['admin'];
 
-  const [adminPreviewMarketplace, setAdminPreviewMarketplace] = useState(false);
 
   const handleNavigate = (view: string, params: any = {}) => {
-    if (view === 'admin') {
-      setAdminPreviewMarketplace(false);
-      if (!currentUser || (!isAdmin && currentUser.role !== 'admin')) {
-        setIsAuthModalOpen(true);
-        return;
-      }
-    }
-
     setCurrentView(view);
     setViewParams(params);
 
@@ -133,148 +120,8 @@ export const MainApp: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const renderCurrentPage = () => {
-    // Route guard: Only Admin dashboard is strictly gated to authenticated administrators
-    if (currentView === 'admin' && (!currentUser || (!isAdmin && currentUser.role !== 'admin'))) {
-      return (
-        <HomePage
-          onNavigate={handleNavigate}
-          onOpenChat={() => {
-            setIsAuthModalOpen(true);
-          }}
-        />
-      );
-    }
-
-    switch (currentView) {
-      case 'home':
-        return <HomePage onNavigate={handleNavigate} onOpenChat={() => setIsChatOpen(true)} />;
-      case 'marketplace':
-        return <MarketplacePage onNavigate={handleNavigate} />;
-      case 'item-detail':
-        return (
-          <ItemDetailPage
-            listingId={viewParams.id}
-            onNavigate={handleNavigate}
-            onOpenChat={() => setIsChatOpen(true)}
-            onOpenAuth={() => setIsAuthModalOpen(true)}
-            onOpenVerification={() => setIsVerificationModalOpen(true)}
-          />
-        );
-      case 'create-listing':
-        return (
-          <CreateListingPage
-            onNavigate={handleNavigate}
-            onOpenAuth={() => setIsAuthModalOpen(true)}
-          />
-        );
-      case 'wanted':
-        return (
-          <WantedBoardPage
-            onNavigate={handleNavigate}
-            onOpenChat={() => setIsChatOpen(true)}
-            onOpenAuth={() => setIsAuthModalOpen(true)}
-          />
-        );
-      case 'swaps':
-        return (
-          <SwapsPage
-            onNavigate={handleNavigate}
-            onOpenChat={() => setIsChatOpen(true)}
-            onOpenAuth={() => setIsAuthModalOpen(true)}
-            onOpenVerification={() => setIsVerificationModalOpen(true)}
-          />
-        );
-      case 'meetups':
-        return (
-          <MeetupsPage
-            onNavigate={handleNavigate}
-            onOpenAuth={() => setIsAuthModalOpen(true)}
-          />
-        );
-      case 'campus-map':
-        return <CampusMapPage onNavigate={handleNavigate} />;
-      case 'profile':
-        return (
-          <ProfilePage
-            userId={viewParams.userId}
-            onNavigate={handleNavigate}
-            onOpenAuth={() => setIsAuthModalOpen(true)}
-            onOpenVerification={() => setIsVerificationModalOpen(true)}
-          />
-        );
-      case 'about':
-        return <AboutPage onNavigate={handleNavigate} />;
-      case 'faq':
-        return <FAQPage onNavigate={handleNavigate} />;
-      case 'help-safety':
-        return <HelpSafetyPage onNavigate={handleNavigate} />;
-      case 'terms':
-        return <TermsPrivacyPage onNavigate={handleNavigate} />;
-      case 'favorites':
-        return (
-          <FavoritesPage
-            onNavigate={handleNavigate}
-            onOpenAuth={() => setIsAuthModalOpen(true)}
-          />
-        );
-      case 'transactions':
-        return (
-          <TransactionHistoryPage
-            onNavigate={handleNavigate}
-            onOpenAuth={() => setIsAuthModalOpen(true)}
-          />
-        );
-      case 'settings':
-        return (
-          <SettingsPage
-            onNavigate={handleNavigate}
-            onOpenAuth={() => setIsAuthModalOpen(true)}
-          />
-        );
-      case 'maintenance':
-        return <MaintenancePage onNavigate={handleNavigate} />;
-      case 'not-found':
-      default:
-        return <NotFoundPage onNavigate={handleNavigate} />;
-    }
-  };
-
-  // If authenticated user is an Administrator and not previewing the student marketplace
-  if ((isAdmin || currentUser?.role === 'admin') && !adminPreviewMarketplace) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: 'var(--bg-base, #F8FAFC)', width: '100%', maxWidth: '100vw', overflowX: 'hidden' }}>
-        <AdminDashboard onNavigate={(view, params) => {
-          if (view !== 'admin') {
-            setAdminPreviewMarketplace(true);
-          }
-          handleNavigate(view, params);
-        }} />
-      </div>
-    );
-  }
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: 'var(--bg-base, #F8FAFC)', width: '100%', maxWidth: '100vw', overflowX: 'hidden' }}>
-      {/* Admin Marketplace Preview Banner */}
-      {(isAdmin || currentUser?.role === 'admin') && adminPreviewMarketplace && (
-        <div style={{ backgroundColor: '#002B7F', color: '#FFFFFF', padding: '0.45rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: 700, zIndex: 1100 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ backgroundColor: '#FFC72C', color: '#002B7F', fontSize: '0.68rem', fontWeight: 900, padding: '0.15rem 0.45rem', borderRadius: '4px', textTransform: 'uppercase' }}>Admin Preview</span>
-            <span>You are previewing the student marketplace.</span>
-          </div>
-          <button
-            onClick={() => {
-              setAdminPreviewMarketplace(false);
-              handleNavigate('admin');
-            }}
-            style={{ backgroundColor: '#FFC72C', color: '#002B7F', border: 'none', borderRadius: '6px', padding: '0.3rem 0.75rem', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer' }}
-          >
-            Return to Moderation Desk →
-          </button>
-        </div>
-      )}
-
       {/* 1. Official Campus Navbar */}
       <Navbar
         currentView={currentView}
@@ -284,8 +131,102 @@ export const MainApp: React.FC = () => {
         onOpenVerification={() => setIsVerificationModalOpen(true)}
       />
 
-      {/* 2. Main Page Content View */}
-      <main style={{ flex: 1, width: '100%', maxWidth: '100vw', overflowX: 'hidden' }}>{renderCurrentPage()}</main>
+      <main style={{ flex: 1, width: '100%', maxWidth: '100vw', overflowX: 'hidden' }}>
+        {(() => {
+          switch (currentView) {
+            case 'home':
+              return <HomePage onNavigate={handleNavigate} onOpenChat={() => setIsChatOpen(true)} />;
+            case 'marketplace':
+              return <MarketplacePage onNavigate={handleNavigate} />;
+            case 'item-detail':
+              return (
+                <ItemDetailPage
+                  listingId={viewParams.id}
+                  onNavigate={handleNavigate}
+                  onOpenChat={() => setIsChatOpen(true)}
+                  onOpenAuth={() => setIsAuthModalOpen(true)}
+                  onOpenVerification={() => setIsVerificationModalOpen(true)}
+                />
+              );
+            case 'create-listing':
+              return (
+                <CreateListingPage
+                  onNavigate={handleNavigate}
+                  onOpenAuth={() => setIsAuthModalOpen(true)}
+                />
+              );
+            case 'wanted':
+              return (
+                <WantedBoardPage
+                  onNavigate={handleNavigate}
+                  onOpenChat={() => setIsChatOpen(true)}
+                  onOpenAuth={() => setIsAuthModalOpen(true)}
+                />
+              );
+            case 'swaps':
+              return (
+                <SwapsPage
+                  onNavigate={handleNavigate}
+                  onOpenChat={() => setIsChatOpen(true)}
+                  onOpenAuth={() => setIsAuthModalOpen(true)}
+                  onOpenVerification={() => setIsVerificationModalOpen(true)}
+                />
+              );
+            case 'meetups':
+              return (
+                <MeetupsPage
+                  onNavigate={handleNavigate}
+                  onOpenAuth={() => setIsAuthModalOpen(true)}
+                />
+              );
+            case 'campus-map':
+              return <CampusMapPage onNavigate={handleNavigate} />;
+            case 'profile':
+              return (
+                <ProfilePage
+                  userId={viewParams.userId}
+                  onNavigate={handleNavigate}
+                  onOpenAuth={() => setIsAuthModalOpen(true)}
+                  onOpenVerification={() => setIsVerificationModalOpen(true)}
+                />
+              );
+            case 'about':
+              return <AboutPage onNavigate={handleNavigate} />;
+            case 'faq':
+              return <FAQPage onNavigate={handleNavigate} />;
+            case 'help-safety':
+              return <HelpSafetyPage onNavigate={handleNavigate} />;
+            case 'terms':
+              return <TermsPrivacyPage onNavigate={handleNavigate} />;
+            case 'favorites':
+              return (
+                <FavoritesPage
+                  onNavigate={handleNavigate}
+                  onOpenAuth={() => setIsAuthModalOpen(true)}
+                />
+              );
+            case 'transactions':
+              return (
+                <TransactionHistoryPage
+                  onNavigate={handleNavigate}
+                  onOpenAuth={() => setIsAuthModalOpen(true)}
+                />
+              );
+            case 'settings':
+              return (
+                <SettingsPage
+                  onNavigate={handleNavigate}
+                  onOpenAuth={() => setIsAuthModalOpen(true)}
+                />
+              );
+            case 'maintenance':
+              return <MaintenancePage onNavigate={handleNavigate} />;
+            case 'not-found':
+            default:
+              return <NotFoundPage onNavigate={handleNavigate} />;
+          }
+        })()}
+      </main>
 
       {/* 3. Campus Footer */}
       <Footer onNavigate={handleNavigate} />
@@ -338,15 +279,13 @@ export default function App() {
   return (
     <ToastProvider>
       <AuthProvider>
-        <AdminProvider>
-          <MarketProvider>
-            <ChatProvider>
-              <WantedProvider>
-                <MainApp />
-              </WantedProvider>
-            </ChatProvider>
-          </MarketProvider>
-        </AdminProvider>
+        <MarketProvider>
+          <ChatProvider>
+            <WantedProvider>
+              <MainApp />
+            </WantedProvider>
+          </ChatProvider>
+        </MarketProvider>
       </AuthProvider>
     </ToastProvider>
   );

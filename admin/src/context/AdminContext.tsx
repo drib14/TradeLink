@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { adminService } from '../services/admin.service';
+import { Listing, WantedRequest, MeetupTransaction, VerificationRequest, TradeDispute, CampusAnnouncement, AdminAuditLog } from '../types';
 
 export interface FlaggedListingItem {
   id: string;
@@ -15,13 +16,16 @@ export interface FlaggedListingItem {
 }
 
 interface AdminContextType {
-  verificationRequests: any[];
+  verificationRequests: VerificationRequest[];
   flaggedListings: FlaggedListingItem[];
-  announcements: any[];
-  auditLogs: any[];
+  announcements: CampusAnnouncement[];
+  auditLogs: AdminAuditLog[];
   prohibitedKeywords: string[];
-  disputes: any[];
+  disputes: TradeDispute[];
   allUsers: any[];
+  listings: Listing[];
+  wantedRequests: WantedRequest[];
+  meetups: MeetupTransaction[];
   systemConfig: any;
   stats: any;
   pendingVerificationsCount: number;
@@ -32,6 +36,11 @@ interface AdminContextType {
   rejectVerification: (requestId: string, reason?: string) => Promise<void>;
   resolveFlag: (flagId: string) => Promise<void>;
   removeListingByAdmin: (flagId: string, listingId: string, reason?: string) => Promise<void>;
+  boostListingByAdmin: (listingId: string) => Promise<void>;
+  removeWantedByAdmin: (wantedId: string, reason?: string) => Promise<void>;
+  deleteWantedRequest: (wantedId: string, reason?: string) => Promise<void>;
+  completeMeetupByAdmin: (meetupId: string) => Promise<void>;
+  cancelMeetupByAdmin: (meetupId: string, reason?: string) => Promise<void>;
   banUserByAdmin: (userId: string, reason: string) => Promise<void>;
   unbanUserByAdmin: (userId: string) => Promise<void>;
   warnUserByAdmin: (userId: string, note?: string) => Promise<void>;
@@ -53,13 +62,16 @@ interface AdminContextType {
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
 
 export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [verificationRequests, setVerificationRequests] = useState<any[]>([]);
+  const [verificationRequests, setVerificationRequests] = useState<VerificationRequest[]>([]);
   const [flaggedListings, setFlaggedListings] = useState<FlaggedListingItem[]>([]);
-  const [announcements, setAnnouncements] = useState<any[]>([]);
-  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [announcements, setAnnouncements] = useState<CampusAnnouncement[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AdminAuditLog[]>([]);
   const [prohibitedKeywords, setProhibitedKeywords] = useState<string[]>([]);
-  const [disputes, setDisputes] = useState<any[]>([]);
+  const [disputes, setDisputes] = useState<TradeDispute[]>([]);
   const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [wantedRequests, setWantedRequests] = useState<WantedRequest[]>([]);
+  const [meetups, setMeetups] = useState<MeetupTransaction[]>([]);
   const [systemConfig, setSystemConfig] = useState<any>({});
   const [stats, setStats] = useState<any>({
     totalUsers: 0,
@@ -83,7 +95,10 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         logs,
         usersList,
         keywords,
-        configData
+        configData,
+        listingsData,
+        wantedData,
+        meetupsData
       ] = await Promise.allSettled([
         adminService.getStats(),
         adminService.getVerifications(),
@@ -93,7 +108,10 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         adminService.getAuditLogs(),
         adminService.getAllUsers(),
         adminService.getKeywords(),
-        adminService.getSystemConfig()
+        adminService.getSystemConfig(),
+        adminService.getListings(),
+        adminService.getWantedRequests(),
+        adminService.getMeetups()
       ]);
 
       if (statsData.status === 'fulfilled' && statsData.value) setStats(statsData.value);
@@ -105,6 +123,9 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (usersList.status === 'fulfilled') setAllUsers(usersList.value || []);
       if (keywords.status === 'fulfilled') setProhibitedKeywords(keywords.value || []);
       if (configData.status === 'fulfilled') setSystemConfig(configData.value || {});
+      if (listingsData.status === 'fulfilled') setListings(listingsData.value || []);
+      if (wantedData.status === 'fulfilled') setWantedRequests(wantedData.value || []);
+      if (meetupsData.status === 'fulfilled') setMeetups(meetupsData.value || []);
     } catch (e) {
       console.warn('Failed to load admin data:', e);
     } finally {
@@ -131,8 +152,37 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     fetchAdminData();
   };
 
-  const removeListingByAdmin = async (flagId: string, _listingId: string, reason?: string) => {
-    await adminService.removeListing(flagId, reason);
+  const removeListingByAdmin = async (flagId: string, listingId: string, reason?: string) => {
+    if (flagId) {
+      await adminService.removeListing(flagId, reason);
+    } else if (listingId) {
+      await adminService.deleteListing(listingId);
+    }
+    fetchAdminData();
+  };
+
+  const boostListingByAdmin = async (listingId: string) => {
+    await adminService.boostListing(listingId);
+    fetchAdminData();
+  };
+
+  const removeWantedByAdmin = async (wantedId: string, reason?: string) => {
+    await adminService.deleteWanted(wantedId, reason);
+    fetchAdminData();
+  };
+
+  const deleteWantedRequest = async (wantedId: string, reason?: string) => {
+    await adminService.deleteWanted(wantedId, reason);
+    fetchAdminData();
+  };
+
+  const completeMeetupByAdmin = async (meetupId: string) => {
+    await adminService.updateMeetupStatus(meetupId, 'completed');
+    fetchAdminData();
+  };
+
+  const cancelMeetupByAdmin = async (meetupId: string, reason?: string) => {
+    await adminService.updateMeetupStatus(meetupId, 'cancelled', reason);
     fetchAdminData();
   };
 
@@ -225,6 +275,9 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         prohibitedKeywords,
         disputes,
         allUsers,
+        listings,
+        wantedRequests,
+        meetups,
         systemConfig,
         stats,
         pendingVerificationsCount,
@@ -235,6 +288,11 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         rejectVerification,
         resolveFlag,
         removeListingByAdmin,
+        boostListingByAdmin,
+        removeWantedByAdmin,
+        deleteWantedRequest,
+        completeMeetupByAdmin,
+        cancelMeetupByAdmin,
         banUserByAdmin,
         unbanUserByAdmin,
         warnUserByAdmin,

@@ -9,6 +9,8 @@ const { updateProfileSchema } = require('../validations/auth.validation');
 decodeParams.bindRouter(router);
 
 router.patch('/me', authenticate, validate(updateProfileSchema), usersController.updateProfile);
+router.get('/me/verification-session', authenticate, usersController.getVerificationSession);
+router.get('/me/verification-status', authenticate, usersController.getVerificationStatus);
 router.post('/me/verify-id', authenticate, usersController.submitIdVerification);
 router.get('/:id', usersController.getUserProfile);
 router.get('/:id/reviews', usersController.getUserReviews);

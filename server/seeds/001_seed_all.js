@@ -21,15 +21,15 @@ exports.seed = async function(knex) {
   }
   await knex.raw('SET FOREIGN_KEY_CHECKS = 1');
 
-  const adminHash = await bcrypt.hash('AdminUC', 12);
+  const adminHash = await bcrypt.hash('TradeLink@2026', 10);
 
   // 1. Seed Default Administrator Account
   await knex('users').insert([
     {
       id: 'user-admin',
       name: 'UC Administrator',
-      email: 'admin@uc.edu.ph',
-      student_id: '000001',
+      email: 'uc.tradelink@gmail.com',
+      student_id: 'ADMIN001',
       password_hash: adminHash,
       role: 'admin',
       campus: 'UC Main',

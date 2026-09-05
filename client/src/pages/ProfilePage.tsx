@@ -92,7 +92,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   const [isPendingInfoModalOpen, setIsPendingInfoModalOpen] = useState(false);
   const [userReviews, setUserReviews] = useState<Review[]>([]);
 
-  const isPendingVerification = !targetUser?.isVerified && (targetUser?.verificationStatus === 'pending' || !!targetUser?.idPhotoUrl);
+  const isRejectedVerification = !targetUser?.isVerified && (targetUser?.verificationStatus === 'rejected' || !!(targetUser as any)?.verificationRejectionReason);
+  const isPendingVerification = !targetUser?.isVerified && !isRejectedVerification && (targetUser?.verificationStatus === 'pending' || !!targetUser?.idPhotoUrl);
 
   React.useEffect(() => {
     if (targetUser?.id) {
@@ -535,7 +536,40 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
 
       {/* Dynamic Verification Banner */}
       {isSelf && !targetUser.isVerified && (
-        isPendingVerification ? (
+        isRejectedVerification ? (
+          <div
+            style={{
+              backgroundColor: 'rgba(239, 68, 68, 0.08)',
+              border: '1.5px solid rgba(239, 68, 68, 0.3)',
+              borderRadius: 'var(--radius-lg)',
+              padding: '1.25rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '1rem'
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <ShieldAlert size={18} color="#DC2626" />
+                <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: '#DC2626' }}>
+                  Verification Resubmission Needed
+                </h3>
+              </div>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem', margin: 0 }}>
+                Moderator Note: <strong>{(targetUser as any)?.verificationRejectionReason || 'Uploaded ID document or selfie was unreadable.'}</strong>
+              </p>
+            </div>
+            <button
+              onClick={() => setIsVerificationModalOpen(true)}
+              className="btn-primary"
+              style={{ padding: '0.55rem 1.15rem', fontSize: '0.82rem', fontWeight: 800, backgroundColor: '#DC2626', borderColor: '#DC2626' }}
+            >
+              Fix & Resubmit ID
+            </button>
+          </div>
+        ) : isPendingVerification ? (
           <div
             style={{
               backgroundColor: 'rgba(0, 43, 127, 0.06)',

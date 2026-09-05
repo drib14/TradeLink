@@ -154,5 +154,40 @@ export const adminService = {
   async updateSystemConfig(config: any) {
     const res = await api.patch('/admin/config', config);
     return res;
+  },
+
+  async getListings(page = 1, limit = 100) {
+    const res = await api.get('/listings', { page, limit });
+    return res.data?.listings || [];
+  },
+
+  async boostListing(id: string) {
+    const res = await api.post(`/listings/${id}/boost`);
+    return res;
+  },
+
+  async deleteListing(id: string) {
+    const res = await api.delete(`/listings/${id}`);
+    return res;
+  },
+
+  async getWantedRequests(page = 1, limit = 100) {
+    const res = await api.get('/wanted', { page, limit });
+    return res.data?.requests || res.data || [];
+  },
+
+  async deleteWanted(id: string, _reason?: string) {
+    const res = await api.delete(`/wanted/${id}`);
+    return res;
+  },
+
+  async getMeetups(page = 1, limit = 100) {
+    const res = await api.get('/meetups', { page, limit });
+    return res.data?.meetups || res.data || [];
+  },
+
+  async updateMeetupStatus(id: string, status: string, _reason?: string) {
+    const res = await api.patch(`/meetups/${id}/status`, { status });
+    return res;
   }
 };

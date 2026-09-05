@@ -47,6 +47,7 @@ function serializeUser(user, options = {}) {
     base.banReason = user.ban_reason || user.banReason || null;
     base.bannedAt = user.banned_at || user.bannedAt || null;
     base.warningsCount = user.warnings_count ?? user.warningsCount ?? 0;
+    base.verificationRejectionReason = user.rejection_reason || user.verification_rejection_reason || user.rejectionReason || null;
   }
 
   return base;

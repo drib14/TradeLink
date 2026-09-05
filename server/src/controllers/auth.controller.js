@@ -6,37 +6,8 @@ const env = require('../config/env');
 const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
 const { serializeUser } = require('../serializers/userSerializer');
-const { generate4DigitCode, hashCode, verifyCode } = require('../utils/generateCode');
-const { sendPasswordResetEmail } = require('../services/email.service');
-
-// Helper to generate access & refresh tokens
-function generateTokens(userId, role, campus) {
-  const accessToken = jwt.sign(
-    { userId, role, campus },
-    env.jwt.accessSecret,
-    { expiresIn: env.jwt.accessExpiresIn }
-  );
-
-  const refreshToken = jwt.sign(
-    { userId, role, campus },
-    env.jwt.refreshSecret,
-    { expiresIn: env.jwt.refreshExpiresIn }
-  );
-
-  return { accessToken, refreshToken };
-}
-
-// Set refresh token in HttpOnly secure cookie
-function setRefreshTokenCookie(res, refreshToken) {
-  const isProd = env.env === 'production';
-  res.cookie('refreshToken', refreshToken, {
-    httpOnly: true,
-    secure: isProd,
-    sameSite: isProd ? 'strict' : 'lax',
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    path: '/api/auth'
-  });
-}
+const { hashCode, verifyCode } = require('../utils/generateCode');
+const { generateTokens, setRefreshTokenCookie } = require('../utils/authHelpers');
 
 /**
  * Register a new student account
@@ -44,8 +15,8 @@ function setRefreshTokenCookie(res, refreshToken) {
 const register = asyncHandler(async (req, res, next) => {
   const {
     name,
-    studentId,
     email,
+    studentId,
     password,
     campus,
     college,
@@ -54,16 +25,20 @@ const register = asyncHandler(async (req, res, next) => {
     idPhotoUrl
   } = req.body;
 
-  // Check duplicate email
-  const existingEmail = await db('users').whereRaw('LOWER(email) = ?', [email.toLowerCase().trim()]).first();
+  // Check if email already registered
+  const existingEmail = await db('users')
+    .whereRaw('LOWER(email) = ?', [email.toLowerCase().trim()])
+    .first();
   if (existingEmail) {
-    return next(new AppError('A student account with this email is already registered.', 409));
+    return next(new AppError('Email address is already in use.', 409));
   }
 
-  // Check duplicate student ID
-  const existingStudentId = await db('users').where({ student_id: studentId.trim() }).first();
+  // Check if student ID already registered
+  const existingStudentId = await db('users')
+    .where({ student_id: studentId.trim() })
+    .first();
   if (existingStudentId) {
-    return next(new AppError('A student account with this Student ID is already registered.', 409));
+    return next(new AppError('Student ID is already registered.', 409));
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
@@ -96,7 +71,7 @@ const register = asyncHandler(async (req, res, next) => {
 
   await db('users').insert(newUser);
 
-  // If ID was uploaded, create pending verification request
+  // If ID was uploaded during registration, create pending verification request
   if (idPhotoUrl) {
     await db('verification_requests').insert({
       id: uuidv4(),
@@ -108,8 +83,6 @@ const register = asyncHandler(async (req, res, next) => {
   }
 
   const { accessToken, refreshToken } = generateTokens(newUser.id, newUser.role, newUser.campus);
-  
-  // Store hashed refresh token in DB for rotation & revocation
   const refreshTokenHash = await hashCode(refreshToken);
   await db('users').where({ id: userId }).update({ refresh_token_hash: refreshTokenHash });
 
@@ -126,7 +99,7 @@ const register = asyncHandler(async (req, res, next) => {
 });
 
 /**
- * Login user
+ * Login student user (blocks administrator accounts from student portal)
  */
 const login = asyncHandler(async (req, res, next) => {
   const { studentId, idNumber, emailOrStudentId, identifier, email, password } = req.body;
@@ -141,10 +114,20 @@ const login = asyncHandler(async (req, res, next) => {
     return next(new AppError('Invalid credentials.', 401));
   }
 
+  // Guard: Administrator accounts must use the dedicated Admin Portal
+  if (user.role === 'admin') {
+    return next(
+      new AppError(
+        'Administrator accounts must log in via the dedicated TradeLink Administration Portal.',
+        403
+      )
+    );
+  }
+
   if (user.is_banned) {
     return next(
       new AppError(
-        'This account has been suspended. Contact administration for details.',
+        'This account has been suspended. Contact campus administration for details.',
         403
       )
     );
@@ -165,7 +148,7 @@ const login = asyncHandler(async (req, res, next) => {
     status: 'success',
     message: 'Login successful.',
     data: {
-      user: serializeUser(user, { isSelf: true, isAdmin: user.role === 'admin' }),
+      user: serializeUser(user, { isSelf: true, isAdmin: false }),
       accessToken
     }
   });
@@ -223,7 +206,7 @@ const logout = asyncHandler(async (req, res) => {
     await db('users').where({ id: req.user.id }).update({ refresh_token_hash: null });
   }
 
-  res.clearCookie('refreshToken', { path: '/api/auth' });
+  res.clearCookie('refreshToken', { path: '/api' });
   res.status(200).json({
     status: 'success',
     message: 'Logged out successfully.'
@@ -231,7 +214,7 @@ const logout = asyncHandler(async (req, res) => {
 });
 
 /**
- * Request password reset — searches if email exists, then registers a pending request for admin approval
+ * Request password reset (Student flow: registered for campus administrator review)
  */
 const forgotPassword = asyncHandler(async (req, res, next) => {
   const { email } = req.body;
@@ -244,6 +227,16 @@ const forgotPassword = asyncHandler(async (req, res, next) => {
 
   if (!user) {
     return next(new AppError('No registered account found with that email address. Please check your email or register.', 404));
+  }
+
+  // Guard: Administrator accounts must use the admin portal forgot password flow
+  if (user.role === 'admin') {
+    return next(
+      new AppError(
+        'Administrator accounts must request password reset via the TradeLink Administration Portal.',
+        403
+      )
+    );
   }
 
   // Check if a reset request is already pending admin review

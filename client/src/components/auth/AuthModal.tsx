@@ -413,6 +413,30 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   Create Student Account
                 </button>
               </div>
+
+              {/* Admin Portal Link */}
+              <div style={{ textAlign: 'center', marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-light, #E2E8F0)' }}>
+                <a
+                  href={`${window.location.protocol}//${window.location.hostname}:5174`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    fontSize: '0.75rem',
+                    color: 'var(--text-muted, #64748B)',
+                    textDecoration: 'none',
+                    fontWeight: 600,
+                    transition: 'color 0.15s ease'
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--uc-blue, #002B7F)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted, #64748B)')}
+                >
+                  <ShieldCheck size={13} />
+                  <span>Login as Administrator</span>
+                </a>
+              </div>
             </form>
           )}
 
