@@ -26,6 +26,12 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
   const { currentUser, openAuthModal } = useAuth();
   const fav = isFavorite(listing.id);
 
+  const rawMode = (listing.tradeMode || '').toLowerCase();
+  const isFree = rawMode === 'free' || rawMode === 'free_donation';
+  const isSwap = rawMode === 'swap' || rawMode === 'barter';
+  const isSold = listing.isSold || listing.status === 'sold';
+  const isNew = !isSold && Boolean(listing.createdAt) && (Date.now() - new Date(listing.createdAt).getTime() < 24 * 60 * 60 * 1000);
+
   const discountPercent =
     listing.originalPrice && listing.price < listing.originalPrice
       ? Math.round(((listing.originalPrice - listing.price) / listing.originalPrice) * 100)
@@ -41,25 +47,17 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
   };
 
   const getTradeModeLabel = () => {
-    switch (listing.tradeMode) {
-      case 'SWAP':
-        return 'SWAP';
-      case 'FREE':
-        return 'FREE';
-      default:
-        return 'FOR SALE';
-    }
+    if (isSold) return 'SOLD';
+    if (isSwap) return 'SWAP';
+    if (isFree) return 'FREE';
+    return 'FOR SALE';
   };
 
   const getTradeModeStyle = () => {
-    switch (listing.tradeMode) {
-      case 'SWAP':
-        return { bg: '#8B5CF6', text: '#FFFFFF' };
-      case 'FREE':
-        return { bg: '#10B981', text: '#FFFFFF' };
-      default:
-        return { bg: '#002B7F', text: '#FFFFFF' };
-    }
+    if (isSold) return { bg: '#64748B', text: '#FFFFFF' };
+    if (isSwap) return { bg: '#8B5CF6', text: '#FFFFFF' };
+    if (isFree) return { bg: '#10B981', text: '#FFFFFF' };
+    return { bg: '#002B7F', text: '#FFFFFF' };
   };
 
   const tradeStyle = getTradeModeStyle();
@@ -67,14 +65,18 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
 
   return (
     <TouchableOpacity
-      style={[styles.card, { width: cardWidth }]}
+      style={[styles.card, { width: cardWidth }, isSold && { opacity: 0.75 }]}
       activeOpacity={0.88}
       onPress={() => router.push(`/item/${listing.id}`)}
     >
       {/* 1. Image Container & Overlay Badges */}
       <View style={styles.imageContainer}>
         <Image
-          source={{ uri: listing.images[0] || 'https://via.placeholder.com/300' }}
+          source={{
+            uri:
+              listing.images?.[0] ||
+              'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=300&auto=format&fit=crop&q=80',
+          }}
           style={styles.image}
           resizeMode="cover"
         />
@@ -86,8 +88,15 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
           </Text>
         </View>
 
+        {/* New Badge */}
+        {isNew && (
+          <View style={styles.newBadge}>
+            <Text style={styles.newText}>NEW</Text>
+          </View>
+        )}
+
         {/* Savings Pill */}
-        {discountPercent && discountPercent > 0 && (
+        {!isNew && discountPercent && discountPercent > 0 && (
           <View style={styles.discountBadge}>
             <Text style={styles.discountText}>-{discountPercent}%</Text>
           </View>
@@ -126,15 +135,17 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
 
         {/* Price & Savings Row */}
         <View style={styles.priceRow}>
-          {listing.tradeMode === 'FREE' ? (
+          {isFree ? (
             <Text style={styles.freePrice}>₱0.00 (FREE)</Text>
-          ) : listing.tradeMode === 'SWAP' ? (
+          ) : isSwap ? (
             <Text style={styles.swapPrice}>Item Barter</Text>
           ) : (
             <View style={styles.priceGroup}>
               <Text style={styles.price}>₱{listing.price.toLocaleString()}</Text>
-              {listing.originalPrice && (
-                <Text style={styles.originalPrice}>₱{listing.originalPrice.toLocaleString()}</Text>
+              {(listing.originalPrice || listing.originalSrp) && (
+                <Text style={styles.originalPrice}>
+                  ₱{(listing.originalPrice || listing.originalSrp || 0).toLocaleString()}
+                </Text>
               )}
             </View>
           )}
@@ -155,7 +166,12 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
         <View style={styles.sellerRow}>
           <View style={styles.sellerInfo}>
             <Image
-              source={{ uri: listing.seller?.avatar || listing.sellerAvatar || 'https://via.placeholder.com/50' }}
+              source={{
+                uri:
+                  listing.seller?.avatar ||
+                  listing.sellerAvatar ||
+                  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+              }}
               style={styles.sellerAvatar}
             />
             <Text style={styles.sellerName} numberOfLines={1}>
@@ -164,9 +180,19 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
             {(listing.seller?.isVerified ?? listing.sellerIsVerified) && <VerifiedBadge size="sm" />}
           </View>
 
-          <View style={styles.viewsRow}>
-            <Ionicons name="eye-outline" size={11} color="#94A3B8" />
-            <Text style={styles.viewsText}>{listing.views || 0}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <View style={styles.viewsRow}>
+              <Ionicons name="eye-outline" size={11} color="#94A3B8" />
+              <Text style={styles.viewsText}>{listing.views || 0}</Text>
+            </View>
+            {(listing.favoritesCount || 0) > 0 && (
+              <View style={styles.viewsRow}>
+                <Ionicons name="heart" size={10} color="#EF4444" />
+                <Text style={[styles.viewsText, { color: '#EF4444' }]}>
+                  {listing.favoritesCount}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
       </View>
@@ -210,6 +236,20 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '800',
     letterSpacing: 0.3,
+  },
+  newBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 38,
+    backgroundColor: '#FFC72C',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  newText: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#002B7F',
   },
   discountBadge: {
     position: 'absolute',

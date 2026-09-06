@@ -156,13 +156,18 @@ export const adminService = {
     return res;
   },
 
-  async getListings(page = 1, limit = 100) {
-    const res = await api.get('/listings', { page, limit });
+  async getListings(page = 1, limit = 100, params?: { status?: string; search?: string; campus?: string; category?: string }) {
+    const res = await api.get('/listings', { page, limit, status: params?.status || 'All', ...params });
     return res.data?.listings || [];
   },
 
   async boostListing(id: string) {
     const res = await api.post(`/listings/${id}/boost`);
+    return res;
+  },
+
+  async markListingAsSold(id: string) {
+    const res = await api.patch(`/listings/${id}/sold`);
     return res;
   },
 

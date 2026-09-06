@@ -16,10 +16,11 @@ const createListingSchema = Joi.object({
   swapPreference: Joi.string().trim().max(300).allow('', null),
   category: Joi.string().trim().min(2).max(100).required(),
   condition: Joi.string().valid(...CONDITIONS).required(),
-  quantity: Joi.number().integer().min(1).max(9999).default(1),
-  tags: Joi.array().items(Joi.string().trim().max(50)).default([]),
-  images: Joi.array().items(Joi.string().uri()).min(1).required().messages({
-    'array.min': 'At least one listing photo is required.'
+  quantity: Joi.number().integer().min(1).max(999).default(1),
+  tags: Joi.array().items(Joi.string().trim().max(50)).max(10).default([]),
+  images: Joi.array().items(Joi.string()).min(1).max(5).required().messages({
+    'array.min': 'At least one listing photo is required.',
+    'array.max': 'A maximum of 5 photos are allowed per listing.'
   }),
   preferredMeetupSpots: Joi.array().items(Joi.string().trim().max(200)).default([]),
   customMeetupSpot: Joi.string().trim().max(200).allow('', null),
@@ -35,14 +36,14 @@ const updateListingSchema = Joi.object({
   swapPreference: Joi.string().trim().max(300).allow('', null),
   category: Joi.string().trim().min(2).max(100),
   condition: Joi.string().valid(...CONDITIONS),
-  quantity: Joi.number().integer().min(0).max(9999),
-  tags: Joi.array().items(Joi.string().trim().max(50)),
-  images: Joi.array().items(Joi.string().uri()).min(1),
+  quantity: Joi.number().integer().min(0).max(999),
+  tags: Joi.array().items(Joi.string().trim().max(50)).max(10),
+  images: Joi.array().items(Joi.string()).min(1).max(5),
   preferredMeetupSpots: Joi.array().items(Joi.string().trim().max(200)),
   customMeetupSpot: Joi.string().trim().max(200).allow('', null),
   courseCode: Joi.string().trim().max(30).allow('', null),
-  isSold: Joi.boolean(),
-  isBoosted: Joi.boolean()
+  status: Joi.string().valid('active', 'sold'),
+  isSold: Joi.boolean()
 });
 
 const queryListingsSchema = Joi.object({
@@ -50,6 +51,7 @@ const queryListingsSchema = Joi.object({
   category: Joi.string().trim().allow('All', ''),
   tradeMode: Joi.string().valid('All', ...TRADE_MODES).default('All'),
   condition: Joi.string().valid('All', ...CONDITIONS).default('All'),
+  status: Joi.string().valid('All', 'active', 'sold', 'flagged').default('active'),
   search: Joi.string().trim().max(100).allow(''),
   sortBy: Joi.string().valid('recent', 'price_low', 'price_high', 'trust_high', 'views_high').default('recent'),
   priceMin: Joi.number().min(0).default(0),
@@ -59,8 +61,8 @@ const queryListingsSchema = Joi.object({
 });
 
 const reportListingSchema = Joi.object({
-  reason: Joi.string().trim().min(5).max(1000).required().messages({
-    'string.min': 'Please provide a clear reason for reporting this item.'
+  reason: Joi.string().trim().min(10).max(1000).required().messages({
+    'string.min': 'Please provide a clear reason for reporting this item (at least 10 characters).'
   })
 });
 

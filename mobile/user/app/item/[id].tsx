@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Alert,
   SafeAreaView,
   Dimensions,
+  Share,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,11 +22,25 @@ import { Listing } from '../../types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+function formatRelativeTime(dateStr?: string) {
+  if (!dateStr) return '';
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return 'Yesterday';
+  if (days < 30) return `${days}d ago`;
+  return new Date(dateStr).toLocaleDateString();
+}
+
 export default function ItemDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { listings, favorites, toggleFavorite } = useMarket();
-  const { currentUser } = useAuth();
+  const { currentUser, openAuthModal } = useAuth();
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [asyncListing, setAsyncListing] = useState<Listing | null>(null);
@@ -44,7 +59,14 @@ export default function ItemDetailScreen() {
     }
   }, [id, listings]);
 
-  if (!listing && !loadingItem) {
+  if (!listing) {
+    if (loadingItem) {
+      return (
+        <SafeAreaView style={styles.notFoundContainer}>
+          <Text style={styles.notFoundSub}>Loading listing details...</Text>
+        </SafeAreaView>
+      );
+    }
     return (
       <SafeAreaView style={styles.notFoundContainer}>
         <Ionicons name="alert-circle-outline" size={56} color="#DC2626" />
@@ -57,21 +79,69 @@ export default function ItemDetailScreen() {
     );
   }
 
-  if (!listing && loadingItem) {
-    return (
-      <SafeAreaView style={styles.notFoundContainer}>
-        <Text style={styles.notFoundSub}>Loading listing details...</Text>
-      </SafeAreaView>
-    );
-  }
-
   const isFavorite = favorites.includes(listing.id);
+  const isSold = listing.isSold || listing.status === 'sold';
   const savingsPct =
     listing.originalSrp && listing.price < listing.originalSrp
       ? Math.round(((listing.originalSrp - listing.price) / listing.originalSrp) * 100)
       : 0;
 
+  const handleShare = async () => {
+    if (!listing) return;
+    try {
+      await Share.share({
+        title: listing.title,
+        message: `Check out "${listing.title}" on TradeLink UC Marketplace: https://tradelink.uc.edu.ph/item/${listing.id}`,
+      });
+    } catch (err) {
+      console.warn('Share error:', err);
+    }
+  };
+
+  const submitReport = async (reason: string) => {
+    if (!listing) return;
+    try {
+      await mobileListingsService.reportListing(listing.id, reason);
+      Alert.alert('Report Received', 'Thank you. Campus moderators will review this listing promptly.');
+    } catch (err: any) {
+      Alert.alert('Report Status', err?.message || 'Listing report could not be submitted.');
+    }
+  };
+
+  const handleReport = () => {
+    if (!currentUser) {
+      Alert.alert('Sign In Required', 'Please sign in to report a listing.', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Sign In', onPress: openAuthModal },
+      ]);
+      return;
+    }
+    Alert.alert(
+      'Report Listing',
+      'Why are you reporting this listing?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Prohibited / Contraband',
+          onPress: () => submitReport('Prohibited item, contraband, or unauthorized exam materials.'),
+        },
+        {
+          text: 'Misleading / Condition Issue',
+          onPress: () => submitReport('Misleading information, fake item, or condition discrepancy.'),
+        },
+        {
+          text: 'Suspicious / Scam',
+          onPress: () => submitReport('Suspicious seller activity, off-platform payment request, or scam.'),
+        },
+      ]
+    );
+  };
+
   const handleAction = () => {
+    if (isSold) {
+      Alert.alert('Item Sold', 'This item has already been purchased or completed.');
+      return;
+    }
     if (listing.tradeMode === 'swap') {
       Alert.alert(
         'Propose Swap',
@@ -156,8 +226,54 @@ export default function ItemDetailScreen() {
             </View>
           )}
 
+          {/* Top Floating Navigation Overlay */}
+          <View style={styles.topNavOverlay}>
+            <TouchableOpacity
+              style={styles.navCircleBtn}
+              onPress={() => router.back()}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="chevron-back" size={20} color="#FFFFFF" />
+            </TouchableOpacity>
+
+            <View style={styles.navRightButtons}>
+              <TouchableOpacity
+                style={styles.navCircleBtn}
+                onPress={handleShare}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="share-social-outline" size={18} color="#FFFFFF" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.navCircleBtn}
+                onPress={handleReport}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="flag-outline" size={17} color="#FFFFFF" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.navCircleBtn, isFavorite && { backgroundColor: '#FFFFFF' }]}
+                onPress={() => toggleFavorite(listing.id)}
+                activeOpacity={0.8}
+              >
+                <Ionicons
+                  name={isFavorite ? 'heart' : 'heart-outline'}
+                  size={18}
+                  color={isFavorite ? '#EF4444' : '#FFFFFF'}
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+
           {/* Trade Mode Pill */}
-          {listing.tradeMode === 'swap' ? (
+          {isSold ? (
+            <View style={[styles.swapBadge, { backgroundColor: '#64748B' }]}>
+              <Ionicons name="lock-closed" size={12} color="#FFFFFF" />
+              <Text style={[styles.swapBadgeText, { color: '#FFFFFF' }]}>SOLD</Text>
+            </View>
+          ) : listing.tradeMode === 'swap' ? (
             <View style={styles.swapBadge}>
               <Ionicons name="repeat" size={12} color="#FFC72C" />
               <Text style={styles.swapBadgeText}>SWAP OFFER</Text>
@@ -168,18 +284,6 @@ export default function ItemDetailScreen() {
               <Text style={styles.freeBadgeText}>FREE DONATION</Text>
             </View>
           ) : null}
-
-          {/* Favorite Button */}
-          <TouchableOpacity
-            style={[styles.favoriteFab, isFavorite && styles.favoriteFabActive]}
-            onPress={() => toggleFavorite(listing.id)}
-          >
-            <Ionicons
-              name={isFavorite ? 'bookmark' : 'bookmark-outline'}
-              size={18}
-              color={isFavorite ? '#FFC72C' : '#0F172A'}
-            />
-          </TouchableOpacity>
         </View>
 
         {/* 2. Main Content Details */}
@@ -208,6 +312,27 @@ export default function ItemDetailScreen() {
 
           {/* Title */}
           <Text style={styles.title}>{listing.title}</Text>
+
+          {/* Relative Time & Engagement Counter */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+              <Ionicons name="time-outline" size={13} color="#64748B" />
+              <Text style={{ fontSize: 11, color: '#64748B' }}>
+                {listing.createdAt ? `Posted ${formatRelativeTime(listing.createdAt)}` : 'Recently listed'}
+              </Text>
+            </View>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Ionicons name="eye-outline" size={12} color="#64748B" />
+                <Text style={{ fontSize: 11, color: '#64748B', fontWeight: '600' }}>{listing.views || 0} views</Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Ionicons name="heart" size={12} color="#EF4444" />
+                <Text style={{ fontSize: 11, color: '#EF4444', fontWeight: '700' }}>{listing.favoritesCount || 0} saved</Text>
+              </View>
+            </View>
+          </View>
 
           {/* Tags & Metadata */}
           <View style={styles.metaBadges}>
@@ -277,10 +402,15 @@ export default function ItemDetailScreen() {
                 <Text style={styles.sellerCollegeText}>
                   {listing.sellerCampus} • College of {listing.sellerCollege}
                 </Text>
-                <View style={styles.trustScoreRow}>
-                  <View style={styles.scorePill}>
-                    <Ionicons name="shield" size={11} color="#002B7F" />
-                    <Text style={styles.scorePillText}>{listing.sellerTrustScore}% Trust Score</Text>
+                <View style={{ marginTop: 4, gap: 4 }}>
+                  <View style={styles.trustScoreRow}>
+                    <View style={styles.scorePill}>
+                      <Ionicons name="shield" size={11} color="#002B7F" />
+                      <Text style={styles.scorePillText}>{listing.sellerTrustScore}% Trust Score</Text>
+                    </View>
+                  </View>
+                  <View style={{ height: 5, backgroundColor: '#E2E8F0', borderRadius: 3, overflow: 'hidden' }}>
+                    <View style={{ width: `${Math.min(100, Math.max(15, listing.sellerTrustScore || 90))}%`, height: '100%', backgroundColor: (listing.sellerTrustScore || 90) >= 80 ? '#059669' : '#D97706', borderRadius: 3 }} />
                   </View>
                 </View>
               </View>
@@ -299,24 +429,31 @@ export default function ItemDetailScreen() {
           <Text style={styles.chatIconText}>Chat</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionMainBtn} onPress={handleAction} activeOpacity={0.85}>
-          {listing.tradeMode === 'swap' ? (
-            <>
-              <Ionicons name="repeat" size={18} color="#FFC72C" />
-              <Text style={styles.actionMainBtnText}>Propose Swap</Text>
-            </>
-          ) : listing.tradeMode === 'free_donation' ? (
-            <>
-              <Ionicons name="gift" size={18} color="#FFFFFF" />
-              <Text style={styles.actionMainBtnText}>Claim Free Item</Text>
-            </>
-          ) : (
-            <>
-              <Ionicons name="bag-check" size={18} color="#FFFFFF" />
-              <Text style={styles.actionMainBtnText}>Buy Now • ₱{listing.price.toLocaleString()}</Text>
-            </>
-          )}
-        </TouchableOpacity>
+        {isSold ? (
+          <View style={[styles.actionMainBtn, { backgroundColor: '#94A3B8' }]}>
+            <Ionicons name="lock-closed" size={18} color="#FFFFFF" />
+            <Text style={styles.actionMainBtnText}>Sold / Trade Completed</Text>
+          </View>
+        ) : (
+          <TouchableOpacity style={styles.actionMainBtn} onPress={handleAction} activeOpacity={0.85}>
+            {listing.tradeMode === 'swap' ? (
+              <>
+                <Ionicons name="repeat" size={18} color="#FFC72C" />
+                <Text style={styles.actionMainBtnText}>Propose Swap</Text>
+              </>
+            ) : listing.tradeMode === 'free_donation' ? (
+              <>
+                <Ionicons name="gift" size={18} color="#FFFFFF" />
+                <Text style={styles.actionMainBtnText}>Claim Free Item</Text>
+              </>
+            ) : (
+              <>
+                <Ionicons name="bag-check" size={18} color="#FFFFFF" />
+                <Text style={styles.actionMainBtnText}>Buy Now • ₱{listing.price.toLocaleString()}</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -358,10 +495,33 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFC72C',
     width: 16,
   },
+  topNavOverlay: {
+    position: 'absolute',
+    top: 14,
+    left: 14,
+    right: 14,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    zIndex: 20,
+  },
+  navCircleBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navRightButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
   swapBadge: {
     position: 'absolute',
-    top: 16,
-    left: 16,
+    top: 62,
+    left: 14,
     backgroundColor: '#002B7F',
     flexDirection: 'row',
     alignItems: 'center',
@@ -377,8 +537,8 @@ const styles = StyleSheet.create({
   },
   freeBadge: {
     position: 'absolute',
-    top: 16,
-    left: 16,
+    top: 62,
+    left: 14,
     backgroundColor: '#059669',
     flexDirection: 'row',
     alignItems: 'center',
@@ -391,21 +551,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '800',
-  },
-  favoriteFab: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    padding: 8,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  favoriteFabActive: {
-    backgroundColor: '#002B7F',
   },
   body: {
     padding: 16,

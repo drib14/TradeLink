@@ -21,6 +21,7 @@ const getListings = asyncHandler(async (req, res) => {
     category,
     tradeMode,
     condition,
+    status = 'active',
     search,
     sortBy = 'recent',
     priceMin = 0,
@@ -46,6 +47,11 @@ const getListings = asyncHandler(async (req, res) => {
       'seller.trust_score as seller_trust_score'
     )
     .where('seller.is_banned', false);
+
+  // Filter: Status (default 'active', or specific status if not 'All')
+  if (status && status !== 'All') {
+    query = query.where('listings.status', status);
+  }
 
   // Filter: Campus
   if (campus && campus !== 'All') {
@@ -151,10 +157,13 @@ const getListingById = asyncHandler(async (req, res, next) => {
     return next(new AppError('Listing not found.', 404));
   }
 
-  // Increment view counter safely
-  try {
-    await db('listings').where({ id }).increment('views_count', 1);
-  } catch {}
+  // Increment view counter safely for non-owners only (prevent self-inflation)
+  const isOwner = req.user && req.user.id === listing.seller_id;
+  if (!isOwner) {
+    try {
+      await db('listings').where({ id }).increment('views_count', 1);
+    } catch {}
+  }
 
   const images = await db('listing_images').where({ listing_id: id }).orderBy('display_order', 'asc');
   const tags = await db('listing_tags').where({ listing_id: id });
@@ -238,10 +247,12 @@ const createListing = asyncHandler(async (req, res, next) => {
     is_featured: false
   };
 
-  // Upload any base64 images to Cloudflare R2 / secure storage
-  const resolvedImages = Array.isArray(images)
-    ? await Promise.all(images.map((img) => storageService.uploadBase64(img, 'listings')))
-    : [];
+  // Upload any base64 images to Cloudflare R2 / secure storage (cap to 5)
+  const cappedImages = (Array.isArray(images) ? images : []).slice(0, 5);
+  const cappedTags = (Array.isArray(tags) ? tags : []).slice(0, 10);
+  const resolvedImages = await Promise.all(
+    cappedImages.map((img) => storageService.uploadBase64(img, 'listings'))
+  );
 
   await db.transaction(async (trx) => {
     await trx('listings').insert(newListing);
@@ -257,8 +268,8 @@ const createListing = asyncHandler(async (req, res, next) => {
       await trx('listing_images').insert(imgRows);
     }
 
-    if (tags.length > 0) {
-      const tagRows = tags.map((t) => ({
+    if (cappedTags.length > 0) {
+      const tagRows = cappedTags.map((t) => ({
         id: uuidv4(),
         listing_id: listingId,
         tag: t.trim()
@@ -309,16 +320,25 @@ const updateListing = asyncHandler(async (req, res, next) => {
   const updates = {};
   if (req.body.title) updates.title = req.body.title.trim();
   if (req.body.description) updates.description = req.body.description.trim();
-  if (req.body.price !== undefined) updates.price = parseFloat(req.body.price);
+  if (req.body.price !== undefined) updates.price = Math.max(0, parseFloat(req.body.price) || 0);
   if (req.body.originalSrp !== undefined) updates.original_srp = parseFloat(req.body.originalSrp);
   if (req.body.tradeMode) updates.trade_mode = req.body.tradeMode;
   if (req.body.swapPreference !== undefined) updates.swap_preference = req.body.swapPreference;
   if (req.body.category) updates.category = req.body.category;
   if (req.body.condition) updates.condition = req.body.condition;
   if (req.body.campus) updates.campus = req.body.campus;
-  if (req.body.status) updates.status = req.body.status;
+
+  // Status check: regular users can only mark active or sold; admins can set any status
+  if (req.body.status) {
+    if (req.user.role !== 'admin' && !['active', 'sold'].includes(req.body.status)) {
+      return next(new AppError('Unauthorized status change. Allowed values: active, sold.', 403));
+    }
+    updates.status = req.body.status;
+  }
   if (req.body.isSold) updates.status = 'sold';
-  if (req.body.isFeatured !== undefined || req.body.isBoosted !== undefined) {
+
+  // Only admins can modify is_featured / isBoosted via update
+  if (req.user.role === 'admin' && (req.body.isFeatured !== undefined || req.body.isBoosted !== undefined)) {
     updates.is_featured = Boolean(req.body.isFeatured ?? req.body.isBoosted);
   }
 
@@ -328,8 +348,9 @@ const updateListing = asyncHandler(async (req, res, next) => {
     }
 
     if (Array.isArray(req.body.images)) {
+      const cappedImages = req.body.images.slice(0, 5);
       const resolvedImages = await Promise.all(
-        req.body.images.map((img) => storageService.uploadBase64(img, 'listings'))
+        cappedImages.map((img) => storageService.uploadBase64(img, 'listings'))
       );
       await trx('listing_images').where({ listing_id: id }).delete();
       if (resolvedImages.length > 0) {
@@ -372,7 +393,14 @@ const deleteListing = asyncHandler(async (req, res, next) => {
     await storageService.deleteFile(img.image_url);
   }
 
-  await db('listings').where({ id }).delete();
+  // Clean up dependent child rows in a single transaction to prevent orphans
+  await db.transaction(async (trx) => {
+    await trx('listing_tags').where({ listing_id: id }).delete();
+    await trx('listing_images').where({ listing_id: id }).delete();
+    await trx('favorites').where({ listing_id: id }).delete();
+    await trx('flagged_listings').where({ listing_id: id }).delete();
+    await trx('listings').where({ id }).delete();
+  });
 
   res.status(200).json({
     status: 'success',
@@ -436,6 +464,20 @@ const reportListing = asyncHandler(async (req, res, next) => {
   const listing = await db('listings').where({ id }).first();
   if (!listing) {
     return next(new AppError('Listing not found.', 404));
+  }
+
+  // Prevent self-reporting
+  if (listing.seller_id === req.user.id) {
+    return next(new AppError('You cannot report your own listing.', 400));
+  }
+
+  // Prevent duplicate pending reports from the same user
+  const existingReport = await db('flagged_listings')
+    .where({ listing_id: id, reporter_id: req.user.id, status: 'pending' })
+    .first();
+
+  if (existingReport) {
+    return next(new AppError('You have already submitted a report for this listing that is pending review.', 409));
   }
 
   await db('flagged_listings').insert({

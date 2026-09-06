@@ -27,11 +27,16 @@ export const mobileListingsService = {
   },
 
   async boostListing(id: string): Promise<void> {
-    await mobileApi.patch(`/listings/${id}/boost`);
+    await mobileApi.post(`/listings/${id}/boost`);
   },
 
   async markAsSold(id: string, isSold: boolean): Promise<void> {
     await mobileApi.patch(`/listings/${id}/sold`, { isSold });
+  },
+
+  async reportListing(id: string, reason: string): Promise<any> {
+    const res = await mobileApi.post(`/listings/${id}/report`, { reason });
+    return res.data;
   },
 
   async getFavorites(): Promise<string[]> {

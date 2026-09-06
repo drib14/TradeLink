@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useMarket } from '../context/MarketContext';
 import { useToast } from '../components/common/Toast';
@@ -16,7 +16,9 @@ import {
   ArrowLeftRight,
   Gift,
   ShieldAlert,
-  Clock
+  Clock,
+  AlertTriangle,
+  Loader2
 } from 'lucide-react';
 
 interface CreateListingPageProps {
@@ -44,8 +46,32 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
   const [images, setImages] = useState<string[]>([]);
   const [spotSelection, setSpotSelection] = useState<string>('');
   const [customLocationText, setCustomLocationText] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
+
+  const isDirty = Boolean(title.trim() || description.trim() || images.length > 0 || customTagInput.trim());
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty && !isSubmitting) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty, isSubmitting]);
+
+  const handleCancel = () => {
+    if (isDirty) {
+      if (window.confirm('You have unsaved changes on this listing. Discard them?')) {
+        onNavigate('marketplace');
+      }
+    } else {
+      onNavigate('marketplace');
+    }
+  };
 
   if (!isAuthenticated || !currentUser) {
     return (
@@ -185,9 +211,20 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
 
-    if (!title.trim()) {
-      showToast('Title Required', 'Please enter a title for your item.', 'warning');
+    if (!title.trim() || title.trim().length < 5) {
+      showToast('Title Too Short', 'Item title must be at least 5 characters long.', 'warning');
+      return;
+    }
+
+    if (description.trim().length < 10) {
+      showToast('Description Too Short', 'Please provide at least 10 characters describing the item condition and inclusions.', 'warning');
+      return;
+    }
+
+    if (images.length === 0) {
+      showToast('Photo Required', 'Please add at least 1 photo of your item.', 'warning');
       return;
     }
 
@@ -200,11 +237,12 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
       ? customLocationText.trim()
       : (spotSelection || campusSpots[0]?.name || `${currentUser.campus} Main Guard Station`);
 
+    setIsSubmitting(true);
     try {
       const newListing = await addListing({
         title: title.trim(),
         category: category.trim(),
-        description: description.trim() || `Clean and well-kept ${title} available for campus pickup at ${currentUser.campus}.`,
+        description: description.trim(),
         price: tradeMode === 'free_donation' ? 0 : price,
         originalSrp: originalSrp > 0 ? originalSrp : (tradeMode === 'free_donation' ? 0 : price),
         condition,
@@ -212,7 +250,7 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
         tradeMode,
         swapPreference: tradeMode === 'swap' ? swapPreference.trim() : undefined,
         images,
-        tags: tags.length > 0 ? tags : [category.split(' ')[0] || 'Campus'],
+        tags: tags.length > 0 ? tags.slice(0, 10) : [category.split(' ')[0] || 'Campus'],
         sellerId: currentUser.id,
         sellerName: currentUser.name,
         sellerAvatar: currentUser.avatar,
@@ -235,6 +273,8 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
       } else {
         showToast('Posting Failed', msg, 'error');
       }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -243,7 +283,7 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
       {/* Header */}
       <div style={{ marginBottom: '1.25rem' }}>
         <button
-          onClick={() => onNavigate('marketplace')}
+          onClick={handleCancel}
           className="btn-ghost"
           style={{
             padding: '0.3rem 0.6rem',
@@ -273,12 +313,18 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-              Item Title *
-            </label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+              <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                Item Title *
+              </label>
+              <span style={{ fontSize: '0.72rem', color: title.length > 190 ? '#DC2626' : title.length > 0 && title.length < 5 ? '#EA580C' : 'var(--text-muted)' }}>
+                {title.length}/200 {title.length > 0 && title.length < 5 ? '(min 5)' : ''}
+              </span>
+            </div>
             <input
               type="text"
               value={title}
+              maxLength={200}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Casio FX-991EX Calculator, BSN Nursing Scrub (M), Accounting 101 Book"
               className="clean-input"
@@ -451,49 +497,59 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
 
           {/* Pricing or Swap Preferences */}
           {tradeMode === 'buy_sell' && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-                  Selling Price (PHP) *
-                </label>
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                  <div style={{ position: 'relative', width: '100%' }}>
+            <div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+                    Selling Price (PHP) *
+                  </label>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <div style={{ position: 'relative', width: '100%' }}>
+                      <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, color: 'var(--text-muted)' }}>
+                        ₱
+                      </span>
+                      <input
+                        type="number"
+                        value={price}
+                        onChange={(e) => setPrice(Number(e.target.value))}
+                        className="clean-input"
+                        style={{ paddingLeft: '1.75rem', fontWeight: 800, fontSize: '0.95rem', color: 'var(--uc-blue)' }}
+                        placeholder="0"
+                        min="1"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+                    Original SRP / Store Price (Optional)
+                  </label>
+                  <div style={{ position: 'relative' }}>
                     <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, color: 'var(--text-muted)' }}>
                       ₱
                     </span>
                     <input
                       type="number"
-                      value={price}
-                      onChange={(e) => setPrice(Number(e.target.value))}
+                      value={originalSrp || ''}
+                      onChange={(e) => setOriginalSrp(Number(e.target.value))}
                       className="clean-input"
-                      style={{ paddingLeft: '1.75rem', fontWeight: 800, fontSize: '0.95rem', color: 'var(--uc-blue)' }}
-                      placeholder="0"
-                      min="1"
-                      required
+                      style={{ paddingLeft: '1.75rem', fontSize: '0.95rem' }}
+                      placeholder="e.g. 1200"
+                      min="0"
                     />
                   </div>
                 </div>
               </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-                  Original SRP / Store Price (Optional)
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, color: 'var(--text-muted)' }}>
-                    ₱
-                  </span>
-                  <input
-                    type="number"
-                    value={originalSrp || ''}
-                    onChange={(e) => setOriginalSrp(Number(e.target.value))}
-                    className="clean-input"
-                    style={{ paddingLeft: '1.75rem', fontSize: '0.95rem' }}
-                    placeholder="e.g. 1200"
-                    min="0"
-                  />
+              {/* Price vs SRP Warning */}
+              {originalSrp > 0 && price > originalSrp && (
+                <div style={{ marginTop: '0.5rem', padding: '0.45rem 0.75rem', borderRadius: '6px', backgroundColor: 'rgba(234, 88, 12, 0.08)', border: '1px solid rgba(234, 88, 12, 0.25)', color: '#C2410C', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <AlertTriangle size={14} style={{ flexShrink: 0 }} />
+                  <span>Notice: Selling price (₱{price.toLocaleString()}) exceeds the original SRP (₱{originalSrp.toLocaleString()}).</span>
                 </div>
-              </div>
+              )}
             </div>
           )}
 
@@ -522,30 +578,32 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
           {/* Tags */}
           <div>
             <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-              Item Tags (Optional)
+              Item Tags (Max 10)
             </label>
             <div style={{ display: 'flex', gap: '0.5rem', marginBottom: tags.length > 0 ? '0.45rem' : '0' }}>
               <input
                 type="text"
                 value={customTagInput}
                 onChange={(e) => setCustomTagInput(e.target.value)}
+                disabled={tags.length >= 10}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
-                    if (customTagInput.trim() && !tags.includes(customTagInput.trim())) {
+                    if (customTagInput.trim() && !tags.includes(customTagInput.trim()) && tags.length < 10) {
                       setTags([...tags, customTagInput.trim()]);
                       setCustomTagInput('');
                     }
                   }
                 }}
-                placeholder="Type tag (e.g. 2nd-year, nursing, calc) and press Enter"
+                placeholder={tags.length >= 10 ? 'Maximum 10 tags reached' : 'Type tag (e.g. 2nd-year, nursing, calc) and press Enter'}
                 className="clean-input"
                 style={{ fontSize: '0.84rem' }}
               />
               <button
                 type="button"
+                disabled={tags.length >= 10 || !customTagInput.trim()}
                 onClick={() => {
-                  if (customTagInput.trim() && !tags.includes(customTagInput.trim())) {
+                  if (customTagInput.trim() && !tags.includes(customTagInput.trim()) && tags.length < 10) {
                     setTags([...tags, customTagInput.trim()]);
                     setCustomTagInput('');
                   }
@@ -588,16 +646,23 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-              Description (Optional)
-            </label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+              <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                Description *
+              </label>
+              <span style={{ fontSize: '0.72rem', color: description.length > 4900 ? '#DC2626' : description.length > 0 && description.length < 10 ? '#EA580C' : 'var(--text-muted)' }}>
+                {description.length}/5000 {description.length > 0 && description.length < 10 ? '(min 10 chars)' : ''}
+              </span>
+            </div>
             <textarea
-              rows={2}
+              rows={3}
               value={description}
+              maxLength={5000}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Inclusions, edition, or notes about the item..."
               className="clean-input"
               style={{ fontSize: '0.84rem' }}
+              required
             />
           </div>
         </div>
@@ -610,9 +675,14 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-              Item Photos (Up to 4)
-            </label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+              <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                Item Photos *
+              </label>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: images.length === 0 ? '#EA580C' : 'var(--accent-green, #059669)' }}>
+                {images.length}/4 photos {images.length === 0 ? '(at least 1 required)' : 'added'}
+              </span>
+            </div>
             <DragDropUpload
               images={images}
               onChange={setImages}
@@ -667,7 +737,7 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.25rem' }}>
           <button
             type="button"
-            onClick={() => onNavigate('marketplace')}
+            onClick={handleCancel}
             className="btn-secondary"
             style={{ padding: '0.65rem 1.25rem', fontSize: '0.84rem', fontWeight: 700 }}
           >
@@ -675,11 +745,30 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
           </button>
           <button
             type="submit"
+            disabled={isSubmitting}
             className="btn-gold"
-            style={{ padding: '0.65rem 1.75rem', fontSize: '0.88rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+            style={{
+              padding: '0.65rem 1.75rem',
+              fontSize: '0.88rem',
+              fontWeight: 800,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              opacity: isSubmitting ? 0.7 : 1,
+              cursor: isSubmitting ? 'not-allowed' : 'pointer'
+            }}
           >
-            <Tag size={16} />
-            <span>Publish Listing Now</span>
+            {isSubmitting ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                <span>Publishing Listing...</span>
+              </>
+            ) : (
+              <>
+                <Tag size={16} />
+                <span>Publish Listing Now</span>
+              </>
+            )}
           </button>
         </div>
       </form>

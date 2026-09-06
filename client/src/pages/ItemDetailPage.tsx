@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useMarket } from '../context/MarketContext';
 import { useAuth } from '../context/AuthContext';
 import { useChat } from '../context/ChatContext';
@@ -20,6 +20,7 @@ import {
   Share2,
   AlertTriangle,
   ChevronLeft,
+  ChevronRight,
   Zap,
   MapPin,
   Maximize2,
@@ -28,6 +29,28 @@ import {
 } from 'lucide-react';
 
 import { StudentVerificationModal } from '../components/verification/StudentVerificationModal';
+
+function formatRelativeTime(dateStr?: string) {
+  if (!dateStr) return '';
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return 'Yesterday';
+  if (days < 30) return `${days}d ago`;
+  return new Date(dateStr).toLocaleDateString();
+}
+
+const REPORT_CATEGORIES = [
+  'Prohibited or Restricted Item',
+  'Suspected Scam or Fake Listing',
+  'Academic Dishonesty Material (Exam/Leaked)',
+  'Wrong Campus or Inaccurate Details',
+  'Other Safety Concern'
+];
 
 interface ItemDetailPageProps {
   listingId: string;
@@ -58,7 +81,24 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
+  const [reportCategory, setReportCategory] = useState(REPORT_CATEGORIES[0]);
   const [reportReason, setReportReason] = useState('');
+
+  // Keyboard navigation for Lightbox
+  useEffect(() => {
+    if (!isLightboxOpen || !listing?.images) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsLightboxOpen(false);
+      } else if (e.key === 'ArrowRight' && listing.images.length > 1) {
+        setActiveImageIdx((prev) => (prev + 1) % listing.images.length);
+      } else if (e.key === 'ArrowLeft' && listing.images.length > 1) {
+        setActiveImageIdx((prev) => (prev - 1 + listing.images.length) % listing.images.length);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isLightboxOpen, listing?.images]);
 
   if (!listing) {
     return (
@@ -136,20 +176,37 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
 
   const handleReport = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!reportReason.trim()) return;
+    const fullReason = `[${reportCategory}] ${reportReason.trim()}`.trim();
+    if (fullReason.length < 10) {
+      showToast('Reason Too Short', 'Please provide at least 10 characters explaining your concern.', 'warning');
+      return;
+    }
 
     try {
-      await listingsService.flagListing(listing.id, reportReason.trim());
+      await listingsService.flagListing(listing.id, fullReason);
       showToast('Report Submitted', 'Our campus moderation desk will review this listing shortly.', 'info');
+      setIsReportModalOpen(false);
+      setReportReason('');
     } catch (err: any) {
       showToast('Report Failed', err?.message || 'Unable to submit report. Please try again.', 'error');
     }
-
-    setIsReportModalOpen(false);
-    setReportReason('');
   };
 
-  const handleShare = () => {
+  const handleShare = async () => {
+    const shareData = {
+      title: `${listing.title} - TradeLink UC`,
+      text: `Check out ${listing.title} on TradeLink University of Cebu:`,
+      url: window.location.href
+    };
+    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+      try {
+        await navigator.share(shareData);
+        showToast('Shared', 'Listing link shared successfully.', 'success');
+        return;
+      } catch (err: any) {
+        if (err.name === 'AbortError') return;
+      }
+    }
     if (navigator.clipboard) {
       navigator.clipboard.writeText(window.location.href);
       showToast('Link Copied', 'Listing link copied to clipboard.', 'success');
@@ -171,7 +228,9 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
         <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
           <span style={{ cursor: 'pointer', color: 'var(--uc-blue)' }} onClick={() => onNavigate('home')}>Home</span> /{' '}
           <span style={{ cursor: 'pointer', color: 'var(--uc-blue)' }} onClick={() => onNavigate('marketplace')}>{listing.category}</span> /{' '}
-          <span style={{ color: 'var(--text-secondary)' }}>{listing.title.slice(0, 24)}...</span>
+          <span style={{ color: 'var(--text-secondary)' }}>
+            {listing.title.length > 35 ? `${listing.title.slice(0, 35)}...` : listing.title}
+          </span>
         </div>
       </div>
 
@@ -328,11 +387,17 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
         {/* Right Column: Listing Details & Seller Card */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {/* Category & Actions */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.4rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
               <span style={{ fontWeight: 800, color: 'var(--uc-blue)' }}>{listing.sellerCampus}</span>
               <span>•</span>
               <span>{listing.category}</span>
+              {listing.createdAt && (
+                <>
+                  <span>•</span>
+                  <span>Posted {formatRelativeTime(listing.createdAt)}</span>
+                </>
+              )}
             </div>
 
             <div style={{ display: 'flex', gap: '0.35rem' }}>
@@ -690,19 +755,65 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
           onClose={() => setIsReportModalOpen(false)}
           title="Report Safety Concern"
           subtitle="Help keep our campus safe by reporting prohibited or non-compliant listings."
-          maxWidth="460px"
+          maxWidth="480px"
         >
           <form onSubmit={handleReport} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-            <textarea
-              rows={3}
-              required
-              value={reportReason}
-              onChange={(e) => setReportReason(e.target.value)}
-              placeholder="Describe the issue (e.g. counterfeit item, wrong campus, prohibited goods)..."
-              className="clean-textarea"
-              style={{ fontSize: '0.85rem' }}
-            />
-            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.4rem' }}>
+                Primary Concern *
+              </label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                {REPORT_CATEGORIES.map((cat) => (
+                  <label
+                    key={cat}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      padding: '0.45rem 0.65rem',
+                      borderRadius: '6px',
+                      border: reportCategory === cat ? '1.5px solid var(--uc-blue)' : '1px solid var(--border-subtle)',
+                      backgroundColor: reportCategory === cat ? 'var(--uc-blue-subtle)' : 'transparent',
+                      cursor: 'pointer',
+                      fontSize: '0.78rem',
+                      fontWeight: reportCategory === cat ? 700 : 500,
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="reportCategory"
+                      checked={reportCategory === cat}
+                      onChange={() => setReportCategory(cat)}
+                      style={{ accentColor: 'var(--uc-blue)' }}
+                    />
+                    <span>{cat}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  Detailed Description *
+                </label>
+                <span style={{ fontSize: '0.72rem', color: reportReason.trim().length < 10 ? '#EA580C' : 'var(--text-muted)' }}>
+                  {reportReason.trim().length} chars {reportReason.trim().length < 10 ? '(min 10)' : ''}
+                </span>
+              </div>
+              <textarea
+                rows={4}
+                required
+                value={reportReason}
+                onChange={(e) => setReportReason(e.target.value)}
+                placeholder="Explain why this listing violates campus guidelines, with any specifics..."
+                className="clean-textarea"
+                style={{ fontSize: '0.84rem' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
               <button
                 type="button"
                 onClick={() => setIsReportModalOpen(false)}
@@ -713,8 +824,14 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
               </button>
               <button
                 type="submit"
+                disabled={reportReason.trim().length < 10}
                 className="btn-danger"
-                style={{ padding: '0.5rem 1.25rem', fontSize: '0.82rem' }}
+                style={{
+                  padding: '0.5rem 1.25rem',
+                  fontSize: '0.82rem',
+                  opacity: reportReason.trim().length < 10 ? 0.6 : 1,
+                  cursor: reportReason.trim().length < 10 ? 'not-allowed' : 'pointer'
+                }}
               >
                 Submit Report
               </button>
@@ -728,39 +845,122 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
         <div
           className="modal-backdrop-custom"
           onClick={() => setIsLightboxOpen(false)}
-          style={{ zIndex: 1000, backgroundColor: 'rgba(0,0,0,0.85)' }}
+          style={{ zIndex: 1000, backgroundColor: 'rgba(0,0,0,0.88)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
         >
           <div
             style={{
               position: 'relative',
-              maxWidth: '90vw',
+              maxWidth: '92vw',
               maxHeight: '90vh',
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center'
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <button
-              onClick={() => setIsLightboxOpen(false)}
+            {/* Header with counter and close */}
+            <div
               style={{
-                position: 'absolute',
-                top: '-40px',
-                right: '0',
+                width: '100%',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
                 color: '#FFFFFF',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '0.5rem'
+                marginBottom: '0.75rem',
+                padding: '0 0.5rem'
               }}
             >
-              <X size={24} />
-            </button>
-            <img
-              src={listing.images[activeImageIdx] || listing.images[0]}
-              alt={listing.title}
-              style={{ maxWidth: '100%', maxHeight: '85vh', objectFit: 'contain', borderRadius: '10px' }}
-            />
+              <span style={{ fontSize: '0.85rem', fontWeight: 700, backgroundColor: 'rgba(0,0,0,0.5)', padding: '0.25rem 0.75rem', borderRadius: '12px' }}>
+                Photo {activeImageIdx + 1} of {listing.images.length || 1}
+              </span>
+              <button
+                onClick={() => setIsLightboxOpen(false)}
+                style={{
+                  color: '#FFFFFF',
+                  background: 'rgba(0,0,0,0.5)',
+                  border: 'none',
+                  borderRadius: '50%',
+                  cursor: 'pointer',
+                  padding: '0.4rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                aria-label="Close photo zoom"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Photo with arrow controls */}
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {listing.images.length > 1 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveImageIdx((prev) => (prev - 1 + listing.images.length) % listing.images.length);
+                  }}
+                  style={{
+                    position: 'absolute',
+                    left: '12px',
+                    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '42px',
+                    height: '42px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    zIndex: 10,
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.4)'
+                  }}
+                  aria-label="Previous image"
+                >
+                  <ChevronLeft size={22} />
+                </button>
+              )}
+
+              <img
+                src={listing.images[activeImageIdx] || listing.images[0]}
+                alt={listing.title}
+                style={{ maxWidth: '88vw', maxHeight: '78vh', objectFit: 'contain', borderRadius: '10px' }}
+              />
+
+              {listing.images.length > 1 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveImageIdx((prev) => (prev + 1) % listing.images.length);
+                  }}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '42px',
+                    height: '42px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    zIndex: 10,
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.4)'
+                  }}
+                  aria-label="Next image"
+                >
+                  <ChevronRight size={22} />
+                </button>
+              )}
+            </div>
+
+            <span style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: '0.6rem' }}>
+              Tip: Use ← → arrow keys to navigate, Esc to close
+            </span>
           </div>
         </div>
       )}

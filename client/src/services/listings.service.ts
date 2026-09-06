@@ -104,7 +104,7 @@ export const listingsService = {
   },
 
   async updateListing(id: string, data: Partial<Listing>): Promise<Listing> {
-    const res = await api.put<{ listing: any }>(`/listings/${id}`, data);
+    const res = await api.patch<{ listing: any }>(`/listings/${id}`, data);
     return mapListingFromApi(res.data?.listing || res.data);
   },
 
@@ -113,7 +113,7 @@ export const listingsService = {
   },
 
   async boostListing(id: string): Promise<void> {
-    await api.patch(`/listings/${id}/boost`);
+    await api.post(`/listings/${id}/boost`);
   },
 
   async markAsSold(id: string, isSold: boolean): Promise<void> {
@@ -129,7 +129,17 @@ export const listingsService = {
   },
 
   async flagListing(id: string, reason: string): Promise<void> {
-    await api.post(`/listings/${id}/flag`, { reason });
+    await api.post(`/listings/${id}/report`, { reason });
+  },
+
+  async getFavorites(): Promise<string[]> {
+    const res = await api.get<{ favorites: string[] }>('/favorites');
+    return res.data?.favorites || [];
+  },
+
+  async toggleFavorite(listingId: string): Promise<{ isFavorited: boolean; listingId: string }> {
+    const res = await api.post<{ isFavorited: boolean; listingId: string }>(`/favorites/${listingId}/toggle`);
+    return res.data;
   },
 };
 

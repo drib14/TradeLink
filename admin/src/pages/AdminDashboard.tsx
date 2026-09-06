@@ -31,10 +31,27 @@ import {
   Award,
   DollarSign,
   AlertCircle,
-  Shield
+  Shield,
+  Heart,
+  ExternalLink,
+  Filter
 } from 'lucide-react';
 import { VerifiedBadge } from '../components/common/VerifiedBadge';
 import { CampusBadge } from '../components/common/CampusBadge';
+
+function formatRelativeTime(dateStr?: string) {
+  if (!dateStr) return '';
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return 'Yesterday';
+  if (days < 30) return `${days}d ago`;
+  return new Date(dateStr).toLocaleDateString();
+}
 
 interface AdminDashboardProps {
   onNavigate: (view: string, param?: any) => void;
@@ -142,6 +159,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   const [newAnnMessage, setNewAnnMessage] = useState('');
   const [newAnnCampus, setNewAnnCampus] = useState<Campus | 'All'>('All');
   const [newAnnType, setNewAnnType] = useState<'info' | 'alert' | 'event'>('info');
+
+  // Listings Manager States
+  const [listingSearch, setListingSearch] = useState('');
+  const [listingStatusFilter, setListingStatusFilter] = useState<'all' | 'active' | 'sold'>('all');
+  const [listingCampusFilter, setListingCampusFilter] = useState<string>('All');
+  const [listingCategoryFilter, setListingCategoryFilter] = useState<string>('All');
+  const [listingDeleteModal, setListingDeleteModal] = useState<{ flagId?: string; listingId: string; title: string } | null>(null);
+  const [visibleListingsCount, setVisibleListingsCount] = useState(25);
 
   const pendingRequests = verificationRequests.filter((r) => r.status === 'pending');
   const pendingFlags = flaggedListings.filter((f) => f.status === 'pending');
@@ -329,10 +354,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   };
 
   const handleRemoveListing = (flagId: string, listingId: string, title: string) => {
-    if (window.confirm(`Permanently take down and remove "${title}"?`)) {
-      removeListingByAdmin(flagId, listingId, 'Removed by campus moderation team');
-      showToast('Item Taken Down', `"${title}" has been deleted from the marketplace.`, 'info');
-    }
+    setListingDeleteModal({ flagId, listingId, title });
   };
 
   const handleBoostListing = (listing: Listing) => {
@@ -447,6 +469,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
       log.details.toLowerCase().includes(auditSearch.toLowerCase()) ||
       log.adminName.toLowerCase().includes(auditSearch.toLowerCase());
     return matchesType && matchesSearch;
+  });
+
+  // Filtered Listings for Admin Management
+  const listingCategories = Array.from(new Set(listings.map((l) => l.category).filter(Boolean)));
+  const filteredAdminListings = listings.filter((l) => {
+    const q = listingSearch.toLowerCase().trim();
+    const matchesSearch =
+      !q ||
+      l.title.toLowerCase().includes(q) ||
+      (l.sellerName && l.sellerName.toLowerCase().includes(q)) ||
+      (l.description && l.description.toLowerCase().includes(q));
+    const matchesCampus = listingCampusFilter === 'All' || l.sellerCampus === listingCampusFilter;
+    const matchesCategory = listingCategoryFilter === 'All' || l.category === listingCategoryFilter;
+    const isItemSold = l.status === 'sold' || l.isSold;
+    const matchesStatus =
+      listingStatusFilter === 'all' ||
+      (listingStatusFilter === 'sold' ? isItemSold : !isItemSold);
+    return matchesSearch && matchesCampus && matchesCategory && matchesStatus;
   });
 
   return (
@@ -579,11 +619,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
             <div className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Active Listings</span>
               <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#002B7F', fontFamily: 'var(--font-display)' }}>
-                {listings.length}
+                {listings.filter((l) => l.status !== 'sold' && !l.isSold).length}
               </div>
               <span style={{ fontSize: '0.75rem', color: '#D97706', fontWeight: 700 }}>
-                {listings.filter((l) => l.tradeMode === 'swap').length} Swaps Available
+                {listings.filter((l) => l.tradeMode === 'swap').length} Swaps • {listings.filter((l) => l.tradeMode === 'free_donation').length} Free
               </span>
+            </div>
+
+            <div className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Completed Trades</span>
+              <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#059669', fontFamily: 'var(--font-display)' }}>
+                {listings.filter((l) => l.status === 'sold' || l.isSold).length}
+              </div>
+              <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 700 }}>Successfully transacted</span>
             </div>
 
             <div className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
@@ -1017,13 +1065,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {/* Flagged Queue */}
           <div className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#DC2626', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <ShieldAlert size={18} /> Reported Items Queue ({pendingFlags.length})
-            </h3>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#DC2626', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <ShieldAlert size={18} /> Reported Items Queue ({pendingFlags.length})
+              </h3>
+              <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
+                Community-submitted listing moderation flags
+              </span>
+            </div>
 
             {pendingFlags.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '2rem', color: '#64748B', fontSize: '0.85rem' }}>
                 <Check size={28} color="#059669" style={{ margin: '0 auto 0.5rem' }} />
+                <span style={{ fontWeight: 700, color: '#059669', display: 'block' }}>All Clean!</span>
                 <span>All reported listings have been reviewed and resolved.</span>
               </div>
             ) : (
@@ -1031,28 +1085,40 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 {pendingFlags.map((flag) => (
                   <div key={flag.id} style={{ border: '1.5px solid #FECACA', borderRadius: '10px', padding: '1rem', backgroundColor: '#FFF5F5', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     <div style={{ display: 'flex', gap: '0.75rem' }}>
-                      <img src={flag.listingImage} alt={flag.listingTitle} style={{ width: '60px', height: '60px', borderRadius: '8px', objectFit: 'cover' }} />
+                      <img
+                        src={flag.listingImage || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=120&auto=format&fit=crop&q=80'}
+                        alt={flag.listingTitle}
+                        style={{ width: '60px', height: '60px', borderRadius: '8px', objectFit: 'cover' }}
+                      />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <h4 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {flag.listingTitle}
                         </h4>
-                        <div style={{ fontSize: '0.75rem', color: '#64748B' }}>Seller: {flag.sellerName} ({flag.campus})</div>
-                        <div style={{ fontSize: '0.72rem', color: '#DC2626', fontWeight: 700, marginTop: '0.2rem' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.15rem' }}>
+                          <span>Seller: {flag.sellerName}</span>
+                          {flag.campus && <CampusBadge campus={flag.campus as Campus} size="sm" />}
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: '#DC2626', fontWeight: 700, marginTop: '0.25rem' }}>
                           Reason: {flag.reason}
                         </div>
+                        {flag.reporterName && (
+                          <div style={{ fontSize: '0.68rem', color: '#64748B', marginTop: '0.2rem' }}>
+                            Reported by <strong>{flag.reporterName}</strong> {flag.reportedAt ? `• ${formatRelativeTime(flag.reportedAt)}` : ''}
+                          </div>
+                        )}
                       </div>
                     </div>
 
                     <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto' }}>
                       <button
                         onClick={() => handleResolveFlag(flag.id)}
-                        style={{ flex: 1, padding: '0.45rem', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 800, backgroundColor: '#059669', color: '#FFFFFF' }}
+                        style={{ flex: 1, padding: '0.45rem', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 800, backgroundColor: '#059669', color: '#FFFFFF', border: 'none', cursor: 'pointer' }}
                       >
-                        Mark Safe
+                        Dismiss / Mark Safe
                       </button>
                       <button
                         onClick={() => handleRemoveListing(flag.id, flag.listingId, flag.listingTitle)}
-                        style={{ flex: 1, padding: '0.45rem', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 800, backgroundColor: '#DC2626', color: '#FFFFFF' }}
+                        style={{ flex: 1, padding: '0.45rem', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 800, backgroundColor: '#DC2626', color: '#FFFFFF', border: 'none', cursor: 'pointer' }}
                       >
                         Take Down
                       </button>
@@ -1063,69 +1129,252 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
             )}
           </div>
 
-          {/* All Listings Manager */}
+          {/* All Listings Manager with Filtering & Search */}
           <div className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A' }}>All Active Marketplace Items ({listings.length})</h3>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
-                <thead>
-                  <tr style={{ borderBottom: '2px solid #E2E8F0', color: '#64748B' }}>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>Listing</th>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>Campus</th>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>Price / Mode</th>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>Seller</th>
-                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {listings.map((l) => (
-                    <tr key={l.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                      <td style={{ padding: '0.75rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <img src={l.images[0]} alt={l.title} style={{ width: '38px', height: '38px', borderRadius: '6px', objectFit: 'cover' }} />
-                          <div>
-                            <div style={{ fontWeight: 700, color: '#0F172A' }}>{l.title}</div>
-                            <div style={{ fontSize: '0.7rem', color: '#64748B' }}>{l.condition}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td style={{ padding: '0.75rem' }}>
-                        <CampusBadge campus={l.sellerCampus} size="sm" />
-                      </td>
-                      <td style={{ padding: '0.75rem', fontWeight: 800, color: '#002B7F' }}>
-                        {l.tradeMode === 'free_donation' ? 'FREE' : `₱${l.price.toLocaleString()}`}
-                      </td>
-                      <td style={{ padding: '0.75rem', color: '#334155' }}>{l.sellerName}</td>
-                      <td style={{ padding: '0.75rem', textAlign: 'right' }}>
-                        <div style={{ display: 'inline-flex', gap: '0.35rem' }}>
-                          <button
-                            onClick={() => handleBoostListing(l)}
-                            title={l.isBoosted ? 'Remove Boost' : 'Boost to Hero Carousel'}
-                            style={{
-                              padding: '0.35rem 0.6rem',
-                              borderRadius: '6px',
-                              fontSize: '0.72rem',
-                              fontWeight: 800,
-                              backgroundColor: l.isBoosted ? '#FFC72C' : '#F1F5F9',
-                              color: '#002B7F'
-                            }}
-                          >
-                            <Zap size={12} fill={l.isBoosted ? '#002B7F' : 'none'} /> {l.isBoosted ? 'Boosted' : 'Boost'}
-                          </button>
-                          <button
-                            onClick={() => handleRemoveListing('direct', l.id, l.title)}
-                            title="Delete Listing"
-                            style={{ padding: '0.35rem 0.55rem', borderRadius: '6px', color: '#DC2626', backgroundColor: '#FEF2F2', border: '1px solid #FECACA' }}
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A' }}>
+                  Marketplace Directory ({filteredAdminListings.length} / {listings.length} items)
+                </h3>
+                <p style={{ fontSize: '0.78rem', color: '#64748B', marginTop: '0.15rem' }}>
+                  Search and manage listings across all 8 UC campuses, toggle hero carousel boosts, or take down non-compliant items.
+                </p>
+              </div>
             </div>
+
+            {/* Filter Controls Bar */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.65rem', alignItems: 'center', backgroundColor: '#F8FAFC', padding: '0.75rem', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
+              {/* Search Bar */}
+              <div style={{ position: 'relative', flex: '1 1 220px', minWidth: '200px' }}>
+                <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                <input
+                  type="text"
+                  placeholder="Search item, seller, or description..."
+                  value={listingSearch}
+                  onChange={(e) => {
+                    setListingSearch(e.target.value);
+                    setVisibleListingsCount(25);
+                  }}
+                  className="clean-input"
+                  style={{ paddingLeft: '2rem', fontSize: '0.82rem', height: '36px' }}
+                />
+              </div>
+
+              {/* Status Filter */}
+              <select
+                value={listingStatusFilter}
+                onChange={(e: any) => {
+                  setListingStatusFilter(e.target.value);
+                  setVisibleListingsCount(25);
+                }}
+                style={{ padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.8rem', height: '36px', backgroundColor: '#FFFFFF', color: '#334155' }}
+              >
+                <option value="all">All Statuses</option>
+                <option value="active">Active Only</option>
+                <option value="sold">Sold / Completed</option>
+              </select>
+
+              {/* Campus Filter */}
+              <select
+                value={listingCampusFilter}
+                onChange={(e) => {
+                  setListingCampusFilter(e.target.value);
+                  setVisibleListingsCount(25);
+                }}
+                style={{ padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.8rem', height: '36px', backgroundColor: '#FFFFFF', color: '#334155' }}
+              >
+                <option value="All">All Campuses</option>
+                <option value="UC Main">UC Main</option>
+                <option value="UC Banilad">UC Banilad</option>
+                <option value="UC LM">UC LM</option>
+                <option value="UC METC">UC METC</option>
+                <option value="UC PRI">UC PRI</option>
+                <option value="UC Pardo-Talisay">UC Pardo-Talisay</option>
+                <option value="UC South Campus">UC South Campus</option>
+                <option value="UC Medical Center">UC Medical Center</option>
+              </select>
+
+              {/* Category Filter */}
+              {listingCategories.length > 0 && (
+                <select
+                  value={listingCategoryFilter}
+                  onChange={(e) => {
+                    setListingCategoryFilter(e.target.value);
+                    setVisibleListingsCount(25);
+                  }}
+                  style={{ padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.8rem', height: '36px', backgroundColor: '#FFFFFF', color: '#334155' }}
+                >
+                  <option value="All">All Categories</option>
+                  {listingCategories.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              )}
+
+              {/* Reset Filters button */}
+              {(listingSearch || listingStatusFilter !== 'all' || listingCampusFilter !== 'All' || listingCategoryFilter !== 'All') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setListingSearch('');
+                    setListingStatusFilter('all');
+                    setListingCampusFilter('All');
+                    setListingCategoryFilter('All');
+                    setVisibleListingsCount(25);
+                  }}
+                  style={{ padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.78rem', fontWeight: 600, color: '#64748B', backgroundColor: '#FFFFFF', cursor: 'pointer' }}
+                >
+                  Reset
+                </button>
+              )}
+            </div>
+
+            {/* Listings Table */}
+            {filteredAdminListings.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '3rem 1.5rem', color: '#64748B' }}>
+                <Search size={32} color="#94A3B8" style={{ margin: '0 auto 0.5rem' }} />
+                <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#334155' }}>No listings matched the filter criteria</div>
+                <p style={{ fontSize: '0.78rem', marginTop: '0.25rem' }}>Try clearing the search query or adjusting campus/status filters.</p>
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid #E2E8F0', color: '#64748B' }}>
+                      <th style={{ padding: '0.65rem 0.75rem' }}>Item</th>
+                      <th style={{ padding: '0.65rem 0.75rem' }}>Campus</th>
+                      <th style={{ padding: '0.65rem 0.75rem' }}>Status</th>
+                      <th style={{ padding: '0.65rem 0.75rem' }}>Price / Mode</th>
+                      <th style={{ padding: '0.65rem 0.75rem' }}>Engagement</th>
+                      <th style={{ padding: '0.65rem 0.75rem' }}>Seller</th>
+                      <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredAdminListings.slice(0, visibleListingsCount).map((l) => {
+                      const isSold = l.status === 'sold' || l.isSold;
+                      return (
+                        <tr key={l.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                          <td style={{ padding: '0.75rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                              <img
+                                src={l.images[0] || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=120&auto=format&fit=crop&q=80'}
+                                alt={l.title}
+                                style={{ width: '42px', height: '42px', borderRadius: '6px', objectFit: 'cover', flexShrink: 0 }}
+                              />
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '240px' }}>
+                                  {l.title}
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.15rem' }}>
+                                  <span style={{ fontSize: '0.68rem', fontWeight: 600, color: '#002B7F', backgroundColor: '#EBF1FC', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
+                                    {l.category}
+                                  </span>
+                                  <span style={{ fontSize: '0.7rem', color: '#64748B' }}>{l.condition}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td style={{ padding: '0.75rem' }}>
+                            <CampusBadge campus={l.sellerCampus} size="sm" />
+                          </td>
+                          <td style={{ padding: '0.75rem' }}>
+                            <span
+                              style={{
+                                padding: '0.2rem 0.5rem',
+                                borderRadius: '6px',
+                                fontSize: '0.72rem',
+                                fontWeight: 800,
+                                textTransform: 'uppercase',
+                                backgroundColor: isSold ? '#F1F5F9' : '#ECFDF5',
+                                color: isSold ? '#64748B' : '#059669'
+                              }}
+                            >
+                              {isSold ? 'Sold' : 'Active'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '0.75rem' }}>
+                            {l.tradeMode === 'free_donation' ? (
+                              <span style={{ fontWeight: 800, color: '#059669', backgroundColor: '#ECFDF5', padding: '0.2rem 0.45rem', borderRadius: '4px', fontSize: '0.75rem' }}>
+                                FREE
+                              </span>
+                            ) : l.tradeMode === 'swap' ? (
+                              <span style={{ fontWeight: 800, color: '#D97706', backgroundColor: '#FFFBEB', padding: '0.2rem 0.45rem', borderRadius: '4px', fontSize: '0.75rem' }}>
+                                SWAP
+                              </span>
+                            ) : (
+                              <span style={{ fontWeight: 800, color: '#002B7F' }}>
+                                ₱{l.price.toLocaleString()}
+                              </span>
+                            )}
+                          </td>
+                          <td style={{ padding: '0.75rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', fontSize: '0.75rem', color: '#64748B' }}>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }} title="Total Views">
+                                <Eye size={13} /> {l.views || 0}
+                              </span>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: (l.favoritesCount || 0) > 0 ? '#E11D48' : '#94A3B8' }} title="Favorites / Wishlists">
+                                <Heart size={13} fill={(l.favoritesCount || 0) > 0 ? '#E11D48' : 'none'} /> {l.favoritesCount || 0}
+                              </span>
+                            </div>
+                          </td>
+                          <td style={{ padding: '0.75rem', color: '#334155' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                              <span style={{ fontWeight: 600 }}>{l.sellerName}</span>
+                              {l.sellerIsVerified && <VerifiedBadge size="sm" />}
+                            </div>
+                          </td>
+                          <td style={{ padding: '0.75rem', textAlign: 'right' }}>
+                            <div style={{ display: 'inline-flex', gap: '0.35rem', alignItems: 'center' }}>
+                              <button
+                                onClick={() => handleBoostListing(l)}
+                                title={l.isBoosted ? 'Remove Boost' : 'Boost to Hero Carousel'}
+                                style={{
+                                  padding: '0.35rem 0.6rem',
+                                  borderRadius: '6px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 800,
+                                  backgroundColor: l.isBoosted ? '#FFC72C' : '#F1F5F9',
+                                  color: '#002B7F',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.25rem'
+                                }}
+                              >
+                                <Zap size={12} fill={l.isBoosted ? '#002B7F' : 'none'} /> {l.isBoosted ? 'Boosted' : 'Boost'}
+                              </button>
+                              <button
+                                onClick={() => handleRemoveListing('direct', l.id, l.title)}
+                                title="Take Down Listing"
+                                style={{ padding: '0.35rem 0.55rem', borderRadius: '6px', color: '#DC2626', backgroundColor: '#FEF2F2', border: '1px solid #FECACA', cursor: 'pointer' }}
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Pagination / Load More */}
+            {filteredAdminListings.length > visibleListingsCount && (
+              <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '0.75rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setVisibleListingsCount((prev) => prev + 25)}
+                  className="btn-outline"
+                  style={{ padding: '0.55rem 1.25rem', fontSize: '0.82rem', fontWeight: 700 }}
+                >
+                  Load More Listings ({filteredAdminListings.length - visibleListingsCount} remaining)
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -2233,6 +2482,56 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODALS: LISTING DELETION CONFIRMATION
+          ========================================================================= */}
+      {listingDeleteModal && (
+        <div
+          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(6px)', zIndex: 3500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
+          onClick={() => setListingDeleteModal(null)}
+        >
+          <div
+            style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', border: '1px solid #CBD5E1', width: '100%', maxWidth: '440px', padding: '1.75rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '12px', backgroundColor: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#DC2626', flexShrink: 0 }}>
+                <Trash2 size={24} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0F172A', fontFamily: 'var(--font-display)' }}>
+                  Take Down Listing?
+                </h3>
+                <p style={{ fontSize: '0.82rem', color: '#64748B', marginTop: '0.35rem', lineHeight: 1.45 }}>
+                  Are you sure you want to permanently remove <strong style={{ color: '#0F172A' }}>"{listingDeleteModal.title}"</strong>? This will delete associated images, tags, favorites, and pending flags.
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.65rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+              <button
+                type="button"
+                onClick={() => setListingDeleteModal(null)}
+                style={{ padding: '0.6rem 1rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, backgroundColor: '#F1F5F9', color: '#475569', border: '1px solid #E2E8F0', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  removeListingByAdmin(listingDeleteModal.listingId, listingDeleteModal.flagId);
+                  showToast('Listing Removed', `"${listingDeleteModal.title}" has been taken down.`, 'info');
+                  setListingDeleteModal(null);
+                }}
+                style={{ padding: '0.6rem 1.25rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 800, backgroundColor: '#DC2626', color: '#FFFFFF', border: 'none', cursor: 'pointer' }}
+              >
+                Confirm Take Down
+              </button>
+            </div>
           </div>
         </div>
       )}

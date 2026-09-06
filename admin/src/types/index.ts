@@ -154,6 +154,7 @@ export interface Listing {
   customMeetupSpot?: string;
   isBoosted: boolean;
   isSold: boolean;
+  status?: 'active' | 'sold' | string;
   quantity: number;
   courseCode?: string;
   createdAt: string;

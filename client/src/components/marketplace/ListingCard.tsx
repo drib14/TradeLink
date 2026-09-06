@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Listing } from '../../types';
 import { VerifiedBadge } from '../common/VerifiedBadge';
 import { UserAvatar } from '../common/UserAvatar';
@@ -7,7 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../common/Toast';
 import { BuyNowModal } from './BuyNowModal';
 import { SwapProposalModal } from './SwapProposalModal';
-import { Bookmark, ArrowLeftRight, Gift, ShoppingBag, Eye, Zap } from 'lucide-react';
+import { Bookmark, ArrowLeftRight, Gift, ShoppingBag, Eye, Zap, Heart, Sparkles } from 'lucide-react';
 
 interface ListingCardProps {
   listing: Listing;
@@ -22,8 +22,15 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
   const [isBuyModalOpen, setIsBuyModalOpen] = useState(false);
   const [isSwapModalOpen, setIsSwapModalOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [isFavPulsing, setIsFavPulsing] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
 
   const isFavorite = favorites.includes(listing.id);
+
+  const isNew = useMemo(() => {
+    if (!listing.createdAt) return false;
+    return (Date.now() - new Date(listing.createdAt).getTime()) < 24 * 60 * 60 * 1000;
+  }, [listing.createdAt]);
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -31,6 +38,8 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
       showToast('Log In Required', 'Please log in to save items to your favorites.', 'info');
       return;
     }
+    setIsFavPulsing(true);
+    setTimeout(() => setIsFavPulsing(false), 300);
     toggleFavorite(listing.id);
     showToast(
       isFavorite ? 'Removed' : 'Saved',
@@ -99,8 +108,8 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
             zIndex: 6,
             backdropFilter: 'blur(8px)',
             boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
-            transform: isFavorite ? 'scale(1.05)' : 'scale(1)',
-            transition: 'all 0.15s ease',
+            transform: isFavPulsing ? 'scale(1.3)' : isFavorite ? 'scale(1.08)' : 'scale(1)',
+            transition: 'all 0.18s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
             cursor: 'pointer',
             border: '1px solid var(--border-subtle, rgba(0,0,0,0.05))'
           }}
@@ -121,6 +130,19 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
             borderTopRightRadius: '13px'
           }}
         >
+          {/* Shimmer loading placeholder */}
+          {!imgLoaded && (
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background: 'linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%)',
+                backgroundSize: '200% 100%',
+                animation: 'pulse 1.5s infinite ease-in-out'
+              }}
+            />
+          )}
+
           {/* Sold Out Dark Overlay Badge */}
           {isSoldOut && (
             <div
@@ -159,6 +181,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
               src={listing.images[0]}
               alt={listing.title}
               loading="lazy"
+              onLoad={() => setImgLoaded(true)}
               style={{
                 position: 'absolute',
                 top: 0,
@@ -166,8 +189,9 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
                 width: '100%',
                 height: '100%',
                 objectFit: 'cover',
+                opacity: imgLoaded ? 1 : 0,
                 transform: isHovered ? 'scale(1.06)' : 'scale(1)',
-                transition: 'transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
+                transition: 'opacity 0.25s ease, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
                 filter: isSoldOut ? 'grayscale(0.65)' : 'none'
               }}
             />
@@ -236,8 +260,8 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
             </div>
           ) : null}
 
-          {/* Boosted Indicator */}
-          {listing.isBoosted && !isSoldOut && (
+          {/* Boosted or New Indicator */}
+          {listing.isBoosted && !isSoldOut ? (
             <div
               style={{
                 position: 'absolute',
@@ -253,12 +277,35 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
                 alignItems: 'center',
                 gap: '0.25rem',
                 boxShadow: '0 2px 6px rgba(229, 168, 0, 0.35)',
-                lineHeight: 1
+                lineHeight: 1,
+                zIndex: 4
               }}
             >
               <Zap size={11} fill="#002B7F" style={{ flexShrink: 0 }} /> <span>FEATURED</span>
             </div>
-          )}
+          ) : isNew && !isSoldOut ? (
+            <div
+              style={{
+                position: 'absolute',
+                top: '10px',
+                left: '10px',
+                background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)',
+                color: '#FFFFFF',
+                padding: '0.2rem 0.55rem',
+                borderRadius: '6px',
+                fontSize: '0.65rem',
+                fontWeight: 900,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+                boxShadow: '0 2px 6px rgba(37, 99, 235, 0.35)',
+                lineHeight: 1,
+                zIndex: 4
+              }}
+            >
+              <Sparkles size={11} style={{ flexShrink: 0 }} /> <span>NEW</span>
+            </div>
+          ) : null}
         </div>
 
         {/* Card Body */}
@@ -414,9 +461,16 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
               {listing.sellerIsVerified && <VerifiedBadge size="xs" variant="green" showTooltip={false} />}
             </div>
 
-            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #94A3B8)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-              <Eye size={12} style={{ flexShrink: 0 }} /> <span>{listing.views}</span>
-            </span>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.7rem', color: 'var(--text-muted, #94A3B8)' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }} title={`${listing.favoritesCount} saved`}>
+                <Heart size={11} fill={listing.favoritesCount > 0 ? '#EF4444' : 'none'} color={listing.favoritesCount > 0 ? '#EF4444' : 'currentColor'} style={{ flexShrink: 0 }} />
+                <span>{listing.favoritesCount}</span>
+              </span>
+              <span style={{ color: 'var(--border-subtle, #CBD5E1)', fontSize: '0.6rem' }}>•</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }} title={`${listing.views} views`}>
+                <Eye size={12} style={{ flexShrink: 0 }} /> <span>{listing.views}</span>
+              </span>
+            </div>
           </div>
         </div>
       </div>

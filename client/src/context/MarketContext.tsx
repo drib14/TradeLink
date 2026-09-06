@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { Listing, Campus, TradeMode, ConditionGrade } from '../types';
 import { listingsService } from '../services/listings.service';
+import { getAccessToken } from '../services/api';
 
 interface MarketContextType {
   listings: Listing[];
@@ -50,11 +51,30 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [sortBy, setSortBy] = useState<'recent' | 'price_low' | 'price_high' | 'trust_high' | 'views_high'>('recent');
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 50000]);
 
+  // Fetch favorites from backend
+  const refreshFavorites = useCallback(async () => {
+    if (!getAccessToken()) {
+      setFavorites([]);
+      return;
+    }
+    try {
+      const serverFavs = await listingsService.getFavorites();
+      if (Array.isArray(serverFavs)) {
+        setFavorites(serverFavs);
+      }
+    } catch {
+      // Non-critical if failed
+    }
+  }, []);
+
   // Fetch listings from backend on mount
   const refreshListings = useCallback(async () => {
     setIsLoading(true);
     try {
-      const serverListings = await listingsService.getListings();
+      const [serverListings] = await Promise.all([
+        listingsService.getListings(),
+        refreshFavorites()
+      ]);
       if (Array.isArray(serverListings)) {
         setListings(serverListings);
         setIsOffline(false);
@@ -64,7 +84,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [refreshFavorites]);
 
   useEffect(() => {
     refreshListings();
@@ -159,21 +179,39 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     await listingsService.deleteListing(id);
   };
 
-  const toggleFavorite = (id: string) => {
+  const toggleFavorite = async (id: string) => {
+    let wasFavorited = false;
+
     setFavorites((prev) => {
-      const exists = prev.includes(id);
-      const updated = exists ? prev.filter((favId) => favId !== id) : [...prev, id];
-
-      setListings((prevListings) =>
-        prevListings.map((l) =>
-          l.id === id
-            ? { ...l, favoritesCount: Math.max(0, l.favoritesCount + (exists ? -1 : 1)) }
-            : l
-        )
-      );
-
-      return updated;
+      wasFavorited = prev.includes(id);
+      return wasFavorited ? prev.filter((favId) => favId !== id) : [...prev, id];
     });
+
+    setListings((prevListings) =>
+      prevListings.map((l) =>
+        l.id === id
+          ? { ...l, favoritesCount: Math.max(0, l.favoritesCount + (wasFavorited ? -1 : 1)) }
+          : l
+      )
+    );
+
+    if (getAccessToken()) {
+      try {
+        await listingsService.toggleFavorite(id);
+      } catch {
+        // Rollback on failure
+        setFavorites((prev) =>
+          wasFavorited ? [...prev, id] : prev.filter((favId) => favId !== id)
+        );
+        setListings((prevListings) =>
+          prevListings.map((l) =>
+            l.id === id
+              ? { ...l, favoritesCount: Math.max(0, l.favoritesCount + (wasFavorited ? 1 : -1)) }
+              : l
+          )
+        );
+      }
+    }
   };
 
   const boostListing = async (id: string) => {

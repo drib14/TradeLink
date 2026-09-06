@@ -145,16 +145,42 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const toggleFavorite = async (id: string) => {
     const isCurrentlyFav = favorites.includes(id);
-    const updatedFavs = isCurrentlyFav
-      ? favorites.filter((fId) => fId !== id)
-      : [...favorites, id];
-    setFavorites(updatedFavs);
+
+    // Optimistically toggle favorites array
+    setFavorites((prev) =>
+      isCurrentlyFav ? prev.filter((fId) => fId !== id) : [...prev, id]
+    );
+
+    // Optimistically update favorites count on listings
+    setListings((prev) =>
+      prev.map((l) =>
+        l.id === id
+          ? {
+              ...l,
+              favoritesCount: Math.max(0, (l.favoritesCount || 0) + (isCurrentlyFav ? -1 : 1)),
+            }
+          : l
+      )
+    );
 
     try {
       await mobileListingsService.toggleFavorite(id);
-    } catch {
-      // Revert if API fails
-      setFavorites(favorites);
+    } catch (err) {
+      console.warn('Failed to toggle favorite on server:', err);
+      // Rollback on failure
+      setFavorites((prev) =>
+        isCurrentlyFav ? [...prev, id] : prev.filter((fId) => fId !== id)
+      );
+      setListings((prev) =>
+        prev.map((l) =>
+          l.id === id
+            ? {
+                ...l,
+                favoritesCount: Math.max(0, (l.favoritesCount || 0) + (isCurrentlyFav ? 1 : -1)),
+              }
+            : l
+        )
+      );
     }
   };
 

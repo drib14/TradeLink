@@ -153,7 +153,11 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const removeListingByAdmin = async (flagId: string, listingId: string, reason?: string) => {
-    if (flagId) {
+    if (listingId) {
+      setListings((prev) => prev.filter((l) => l.id !== listingId));
+    }
+    if (flagId && flagId !== 'direct' && flagId !== 'scanner') {
+      setFlaggedListings((prev) => prev.filter((f) => f.id !== flagId));
       await adminService.removeListing(flagId, reason);
     } else if (listingId) {
       await adminService.deleteListing(listingId);
@@ -162,6 +166,9 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const boostListingByAdmin = async (listingId: string) => {
+    setListings((prev) =>
+      prev.map((l) => (l.id === listingId ? { ...l, isBoosted: true, is_featured: true } : l))
+    );
     await adminService.boostListing(listingId);
     fetchAdminData();
   };
