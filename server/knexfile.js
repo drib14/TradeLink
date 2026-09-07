@@ -46,15 +46,9 @@ module.exports = {
 
   test: {
     client: 'mysql2',
-    connection: process.env.TEST_DATABASE_URL || {
-      host: process.env.DB_HOST || 'localhost',
-      port: Number(process.env.DB_PORT) || 3306,
-      user: process.env.DB_USER || 'root',
-      password: process.env.DB_PASSWORD || '',
-      database: process.env.TEST_DB_NAME || 'tradelink_db_test',
-      charset: 'utf8mb4',
-      timezone: '+00:00'
-    },
+    connection: process.env.TEST_DATABASE_URL
+      ? (getSslConfig() ? { uri: process.env.TEST_DATABASE_URL, ssl: getSslConfig() } : process.env.TEST_DATABASE_URL)
+      : buildConnection(process.env.TEST_DB_NAME || process.env.DB_NAME || 'tradelink_db'),
     pool: {
       min: 1,
       max: 10,

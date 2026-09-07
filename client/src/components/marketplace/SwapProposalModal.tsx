@@ -26,6 +26,18 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
   const { proposeSwap } = useChat();
   const { showToast } = useToast();
 
+  // User's own active listings
+  const myListings = currentUser ? listings.filter((l) => l.sellerId === currentUser.id && !l.isSold) : [];
+
+  const [selectedMyListingId, setSelectedMyListingId] = useState<string>(myListings[0]?.id || '');
+  const [customDescription, setCustomDescription] = useState('');
+  const [cashTopUp, setCashTopUp] = useState<number>(0);
+  const [selectedSpot, setSelectedSpot] = useState<string>(
+    CAMPUS_MEETUP_SPOTS.find((s) => s.campus === targetListing?.sellerCampus)?.name ||
+      CAMPUS_MEETUP_SPOTS[0].name
+  );
+  const [scheduledDate, setScheduledDate] = useState('Tomorrow at 2:00 PM');
+
   if (!isOpen) return null;
 
   if (!isAuthenticated || !currentUser) {
@@ -70,18 +82,6 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
       </div>
     );
   }
-
-  // User's own active listings
-  const myListings = currentUser ? listings.filter((l) => l.sellerId === currentUser.id && !l.isSold) : [];
-
-  const [selectedMyListingId, setSelectedMyListingId] = useState<string>(myListings[0]?.id || '');
-  const [customDescription, setCustomDescription] = useState('');
-  const [cashTopUp, setCashTopUp] = useState<number>(0);
-  const [selectedSpot, setSelectedSpot] = useState<string>(
-    CAMPUS_MEETUP_SPOTS.find((s) => s.campus === targetListing.sellerCampus)?.name ||
-      CAMPUS_MEETUP_SPOTS[0].name
-  );
-  const [scheduledDate, setScheduledDate] = useState('Tomorrow at 2:00 PM');
 
   const selectedMyListing = myListings.find((l) => l.id === selectedMyListingId);
 

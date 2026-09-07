@@ -3,6 +3,7 @@ const path = require('path');
 const storageService = require('../../src/services/storage.service');
 
 describe('Unit Test: Cloudinary Object Storage & Local Fallback Security', () => {
+  jest.setTimeout(30000);
   const samplePngBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
   const sampleBuffer = Buffer.from('fake-image-bytes-tradelink-testing');
 

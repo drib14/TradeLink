@@ -11,9 +11,7 @@ import {
   Flame,
   ArrowLeftRight,
   MapPin,
-  ShoppingBag,
-  ShieldCheck,
-  LogIn
+  ShoppingBag
 } from 'lucide-react';
 
 interface HomePageProps {
@@ -23,7 +21,6 @@ interface HomePageProps {
 
 export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenChat: _onOpenChat }) => {
   const { listings, isLoading, setSelectedCampus, favorites } = useMarket();
-  const { isAuthenticated } = useAuth();
   const [activeFeedTab, setActiveFeedTab] = useState<'all' | 'featured' | 'swaps' | 'free'>('all');
 
   const handleCampusSelect = (campus: Campus | 'ALL') => {

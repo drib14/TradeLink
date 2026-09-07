@@ -43,7 +43,7 @@ const pathToView = (path: string, search: string = window.location.search): { vi
     const userId = rawUserId ? decodeHashedId(rawUserId) : undefined;
     return { view: 'profile', params: { userId } };
   }
-  if (cleanPath.startsWith('item/')) {
+  if (cleanPath.startsWith('item/') || cleanPath === 'item') {
     const rawId = cleanPath.split('/')[1] || searchParams.get('id') || undefined;
     const id = rawId ? decodeHashedId(rawId) : undefined;
     return { view: 'item-detail', params: { id } };

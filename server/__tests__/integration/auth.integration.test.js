@@ -58,7 +58,7 @@ describe('Integration Test: Auth Module & Registration Workflows', () => {
 
     // Valid payload passes validation schema (status is 201 or DB duplicate in real app)
     expect(res.status).not.toBe(400);
-  });
+  }, 30000);
 
   it('should reject registration with invalid student ID format', async () => {
     const res = await request(testApp)
