@@ -22,7 +22,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Zap,
-  MapPin,
+  Play,
+  Film,
   Maximize2,
   ShoppingBag,
   X
@@ -243,143 +244,211 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
           alignItems: 'start'
         }}
       >
-        {/* Left Column: Image & Price Meter */}
+        {/* Left Column: Image & Video Gallery */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          {/* Main Photo with Lightbox Trigger */}
-          <div
-            onClick={() => setIsLightboxOpen(true)}
-            style={{
-              backgroundColor: 'var(--bg-subtle, #F1F5F9)',
-              borderRadius: '14px',
-              border: '1px solid var(--border-subtle, #CBD5E1)',
-              overflow: 'hidden',
-              height: 'clamp(240px, 35vw, 420px)',
-              position: 'relative',
-              cursor: 'zoom-in'
-            }}
-            title="Click to zoom image"
-          >
-            <img
-              src={listing.images[activeImageIdx] || listing.images[0]}
-              alt={listing.title}
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
+          {/* Main Media with Video Support and Lightbox Trigger */}
+          {(() => {
+            const currentMediaUrl = listing.images[activeImageIdx] || listing.images[0] || '';
+            const currentIsVideo = Boolean(
+              (listing.media && listing.media[activeImageIdx]?.mediaType === 'video') ||
+              currentMediaUrl.match(/\.(mp4|webm|mov|mkv)$/i) ||
+              currentMediaUrl.includes('/video/upload/')
+            );
 
-            {/* Sold Out Dark Overlay */}
-            {isSoldOut && (
+            return (
               <div
                 style={{
-                  position: 'absolute',
-                  inset: 0,
-                  backgroundColor: 'rgba(15, 23, 42, 0.6)',
-                  backdropFilter: 'blur(2px)',
+                  backgroundColor: 'var(--bg-subtle, #0F172A)',
+                  borderRadius: '14px',
+                  border: '1px solid var(--border-subtle, #CBD5E1)',
+                  overflow: 'hidden',
+                  height: 'clamp(240px, 35vw, 420px)',
+                  position: 'relative',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  zIndex: 4
+                  justifyContent: 'center'
                 }}
               >
-                <span
+                {currentIsVideo ? (
+                  <video
+                    src={currentMediaUrl}
+                    controls
+                    playsInline
+                    style={{ width: '100%', height: '100%', objectFit: 'contain', backgroundColor: '#000000' }}
+                  />
+                ) : (
+                  <img
+                    src={currentMediaUrl}
+                    alt={listing.title}
+                    onClick={() => setIsLightboxOpen(true)}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'zoom-in' }}
+                  />
+                )}
+
+                {/* Sold Out Dark Overlay */}
+                {isSoldOut && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      backgroundColor: 'rgba(15, 23, 42, 0.6)',
+                      backdropFilter: 'blur(2px)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      zIndex: 4,
+                      pointerEvents: 'none'
+                    }}
+                  >
+                    <span
+                      style={{
+                        backgroundColor: '#DC2626',
+                        color: '#FFFFFF',
+                        padding: '0.45rem 1.25rem',
+                        borderRadius: '24px',
+                        fontWeight: 900,
+                        fontSize: '0.9rem',
+                        letterSpacing: '0.08em',
+                        textTransform: 'uppercase',
+                        boxShadow: '0 4px 14px rgba(0, 0, 0, 0.35)',
+                        border: '2px solid rgba(255, 255, 255, 0.5)'
+                      }}
+                    >
+                      Sold Out
+                    </span>
+                  </div>
+                )}
+
+                {/* Mode Tag */}
+                {listing.tradeMode === 'swap' ? (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '12px',
+                      left: '12px',
+                      backgroundColor: '#002B7F',
+                      color: '#FFC72C',
+                      padding: '0.25rem 0.65rem',
+                      borderRadius: '6px',
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.3rem',
+                      letterSpacing: '0.04em',
+                      zIndex: 3
+                    }}
+                  >
+                    <ArrowLeftRight size={12} /> FOR SWAP / BARTER
+                  </div>
+                ) : listing.tradeMode === 'free_donation' ? (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '12px',
+                      left: '12px',
+                      backgroundColor: '#059669',
+                      color: '#FFFFFF',
+                      padding: '0.25rem 0.65rem',
+                      borderRadius: '6px',
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.3rem',
+                      zIndex: 3
+                    }}
+                  >
+                    <Gift size={12} /> FREE DONATION
+                  </div>
+                ) : currentIsVideo ? (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '12px',
+                      left: '12px',
+                      backgroundColor: 'rgba(0,0,0,0.7)',
+                      color: '#FFFFFF',
+                      padding: '0.25rem 0.65rem',
+                      borderRadius: '6px',
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.3rem',
+                      zIndex: 3
+                    }}
+                  >
+                    <Film size={12} /> PRODUCT SAMPLE VIDEO
+                  </div>
+                ) : null}
+
+                {/* Maximize Icon Overlay */}
+                <div
+                  onClick={() => setIsLightboxOpen(true)}
                   style={{
-                    backgroundColor: '#DC2626',
+                    position: 'absolute',
+                    bottom: '12px',
+                    right: '12px',
+                    backgroundColor: 'rgba(0, 0, 0, 0.65)',
                     color: '#FFFFFF',
-                    padding: '0.45rem 1.25rem',
-                    borderRadius: '24px',
-                    fontWeight: 900,
-                    fontSize: '0.9rem',
-                    letterSpacing: '0.08em',
-                    textTransform: 'uppercase',
-                    boxShadow: '0 4px 14px rgba(0, 0, 0, 0.35)',
-                    border: '2px solid rgba(255, 255, 255, 0.5)'
+                    padding: '0.35rem',
+                    borderRadius: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backdropFilter: 'blur(4px)',
+                    cursor: 'pointer',
+                    zIndex: 3
                   }}
+                  title="Expand preview"
                 >
-                  Sold Out
-                </span>
+                  <Maximize2 size={14} />
+                </div>
               </div>
-            )}
-
-            {/* Mode Tag */}
-            {listing.tradeMode === 'swap' ? (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '12px',
-                  left: '12px',
-                  backgroundColor: '#002B7F',
-                  color: '#FFC72C',
-                  padding: '0.25rem 0.65rem',
-                  borderRadius: '6px',
-                  fontSize: '0.72rem',
-                  fontWeight: 800,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.3rem',
-                  letterSpacing: '0.04em'
-                }}
-              >
-                <ArrowLeftRight size={12} /> FOR SWAP / BARTER
-              </div>
-            ) : listing.tradeMode === 'free_donation' ? (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '12px',
-                  left: '12px',
-                  backgroundColor: '#059669',
-                  color: '#FFFFFF',
-                  padding: '0.25rem 0.65rem',
-                  borderRadius: '6px',
-                  fontSize: '0.72rem',
-                  fontWeight: 800,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.3rem'
-                }}
-              >
-                <Gift size={12} /> FREE DONATION
-              </div>
-            ) : null}
-
-            {/* Maximize Icon Overlay */}
-            <div
-              style={{
-                position: 'absolute',
-                bottom: '12px',
-                right: '12px',
-                backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                color: '#FFFFFF',
-                padding: '0.35rem',
-                borderRadius: '6px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backdropFilter: 'blur(4px)'
-              }}
-            >
-              <Maximize2 size={14} />
-            </div>
-          </div>
+            );
+          })()}
 
           {/* Thumbnail Strip */}
           {listing.images.length > 1 && (
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              {listing.images.map((img: string, idx: number) => (
-                <button
-                  key={idx}
-                  onClick={() => setActiveImageIdx(idx)}
-                  style={{
-                    width: '64px',
-                    height: '64px',
-                    borderRadius: '8px',
-                    overflow: 'hidden',
-                    border: activeImageIdx === idx ? '2.5px solid var(--uc-blue)' : '1px solid var(--border-subtle)',
-                    padding: 0,
-                    cursor: 'pointer'
-                  }}
-                >
-                  <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                </button>
-              ))}
+            <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.25rem' }}>
+              {listing.images.map((img: string, idx: number) => {
+                const isThumbVid = Boolean(
+                  (listing.media && listing.media[idx]?.mediaType === 'video') ||
+                  img.match(/\.(mp4|webm|mov|mkv)$/i) ||
+                  img.includes('/video/upload/')
+                );
+
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => setActiveImageIdx(idx)}
+                    style={{
+                      width: '64px',
+                      height: '64px',
+                      borderRadius: '8px',
+                      overflow: 'hidden',
+                      border: activeImageIdx === idx ? '2.5px solid var(--uc-blue)' : '1px solid var(--border-subtle)',
+                      padding: 0,
+                      cursor: 'pointer',
+                      position: 'relative',
+                      flexShrink: 0,
+                      backgroundColor: '#0F172A'
+                    }}
+                  >
+                    {isThumbVid ? (
+                      <>
+                        <video src={img} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Play size={16} color="#FFFFFF" fill="#FFFFFF" />
+                        </div>
+                      </>
+                    ) : (
+                      <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    )}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
@@ -503,14 +572,6 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
               )}
             </div>
           </div>
-
-          {/* Custom Meetup Spot Callout */}
-          {listing.customMeetupSpot && (
-            <div style={{ backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', borderRadius: '8px', padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '0.45rem', color: 'var(--uc-blue, #002B7F)', fontSize: '0.82rem', fontWeight: 600 }}>
-              <MapPin size={15} style={{ flexShrink: 0 }} />
-              <span>Seller's Preferred Meetup Spot: <strong>{listing.customMeetupSpot}</strong></span>
-            </div>
-          )}
 
           {/* Swap Preference Box */}
           {listing.tradeMode === 'swap' && listing.swapPreference && (
@@ -923,11 +984,34 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
                 </button>
               )}
 
-              <img
-                src={listing.images[activeImageIdx] || listing.images[0]}
-                alt={listing.title}
-                style={{ maxWidth: '88vw', maxHeight: '78vh', objectFit: 'contain', borderRadius: '10px' }}
-              />
+              {(() => {
+                const currentUrl = listing.images[activeImageIdx] || listing.images[0] || '';
+                const isVid = Boolean(
+                  (listing.media && listing.media[activeImageIdx]?.mediaType === 'video') ||
+                  currentUrl.match(/\.(mp4|webm|mov|mkv)$/i) ||
+                  currentUrl.includes('/video/upload/')
+                );
+
+                if (isVid) {
+                  return (
+                    <video
+                      src={currentUrl}
+                      controls
+                      autoPlay
+                      playsInline
+                      style={{ maxWidth: '88vw', maxHeight: '78vh', borderRadius: '10px', backgroundColor: '#000000' }}
+                    />
+                  );
+                }
+
+                return (
+                  <img
+                    src={currentUrl}
+                    alt={listing.title}
+                    style={{ maxWidth: '88vw', maxHeight: '78vh', objectFit: 'contain', borderRadius: '10px' }}
+                  />
+                );
+              })()}
 
               {listing.images.length > 1 && (
                 <button

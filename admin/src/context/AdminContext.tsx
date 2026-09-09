@@ -25,6 +25,7 @@ interface AdminContextType {
   allUsers: any[];
   listings: Listing[];
   wantedRequests: WantedRequest[];
+  transactions: MeetupTransaction[];
   meetups: MeetupTransaction[];
   systemConfig: any;
   stats: any;
@@ -39,6 +40,8 @@ interface AdminContextType {
   boostListingByAdmin: (listingId: string) => Promise<void>;
   removeWantedByAdmin: (wantedId: string, reason?: string) => Promise<void>;
   deleteWantedRequest: (wantedId: string, reason?: string) => Promise<void>;
+  completeTransactionByAdmin: (transactionId: string) => Promise<void>;
+  cancelTransactionByAdmin: (transactionId: string, reason?: string) => Promise<void>;
   completeMeetupByAdmin: (meetupId: string) => Promise<void>;
   cancelMeetupByAdmin: (meetupId: string, reason?: string) => Promise<void>;
   banUserByAdmin: (userId: string, reason: string) => Promise<void>;
@@ -183,15 +186,18 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     fetchAdminData();
   };
 
-  const completeMeetupByAdmin = async (meetupId: string) => {
-    await adminService.updateMeetupStatus(meetupId, 'completed');
+  const completeTransactionByAdmin = async (transactionId: string) => {
+    await adminService.updateTransactionStatus(transactionId, 'completed');
     fetchAdminData();
   };
 
-  const cancelMeetupByAdmin = async (meetupId: string, reason?: string) => {
-    await adminService.updateMeetupStatus(meetupId, 'cancelled', reason);
+  const cancelTransactionByAdmin = async (transactionId: string, reason?: string) => {
+    await adminService.updateTransactionStatus(transactionId, 'cancelled', reason);
     fetchAdminData();
   };
+
+  const completeMeetupByAdmin = completeTransactionByAdmin;
+  const cancelMeetupByAdmin = cancelTransactionByAdmin;
 
   const banUserByAdmin = async (userId: string, reason: string) => {
     await adminService.banUser(userId, reason);
@@ -284,6 +290,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         allUsers,
         listings,
         wantedRequests,
+        transactions: meetups,
         meetups,
         systemConfig,
         stats,
@@ -298,6 +305,8 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         boostListingByAdmin,
         removeWantedByAdmin,
         deleteWantedRequest,
+        completeTransactionByAdmin,
+        cancelTransactionByAdmin,
         completeMeetupByAdmin,
         cancelMeetupByAdmin,
         banUserByAdmin,

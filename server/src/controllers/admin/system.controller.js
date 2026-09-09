@@ -18,7 +18,7 @@ const getStats = asyncHandler(async (req, res) => {
   ] = await Promise.all([
     db('users').count('id as count').first(),
     db('listings').count('id as count').first(),
-    db('meetup_transactions').where({ status: 'completed' }).count('id as count').first(),
+    db('transactions').where({ status: 'completed' }).count('id as count').first(),
     db('verification_requests').where({ status: 'pending' }).count('id as count').first(),
     db('flagged_listings').where({ status: 'pending' }).count('id as count').first(),
     db('trade_disputes').where({ status: 'pending' }).count('id as count').first()

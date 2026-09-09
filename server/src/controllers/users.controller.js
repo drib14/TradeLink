@@ -26,17 +26,13 @@ const getUserProfile = asyncHandler(async (req, res, next) => {
     .limit(12);
 
   const listingIds = listings.map((l) => l.id);
-  const images = listingIds.length > 0
-    ? await db('listing_images').whereIn('listing_id', listingIds).orderBy('display_order', 'asc')
-    : [];
-  const tags = listingIds.length > 0
-    ? await db('listing_tags').whereIn('listing_id', listingIds)
+  const mediaRows = listingIds.length > 0
+    ? await db('listing_media').whereIn('listing_id', listingIds).orderBy('display_order', 'asc')
     : [];
 
   const formattedListings = listings.map((l) => {
-    const lImages = images.filter((img) => img.listing_id === l.id).map((img) => img.image_url);
-    const lTags = tags.filter((t) => t.listing_id === l.id).map((t) => t.tag);
-    return serializeListing(l, lImages, lTags);
+    const lMedia = mediaRows.filter((m) => m.listing_id === l.id);
+    return serializeListing(l, lMedia);
   });
 
   // Get user's reviews

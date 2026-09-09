@@ -1,5 +1,5 @@
 /**
- * Swap, Meetup & Review Serializers
+ * Swap, Transaction & Review Serializers
  */
 
 function serializeSwap(s, targetImage = '', offeredImage = '') {
@@ -21,34 +21,43 @@ function serializeSwap(s, targetImage = '', offeredImage = '') {
     offeredDescription: s.offered_description || s.offeredDescription || '',
     cashTopUp: parseFloat(s.cash_top_up ?? s.cashTopUp ?? 0),
     status: s.status || 'pending',
-    proposedMeetupSpot: s.proposed_meetup_spot || s.proposedMeetupSpot || '',
-    proposedDateTime: s.proposed_datetime || s.proposedDateTime || '',
+    statusNote: s.status_note || s.statusNote || null,
     createdAt: s.created_at || s.createdAt || new Date().toISOString()
   };
 }
 
-function serializeMeetup(m, listingImage = '', verificationCode = null) {
-  if (!m) return null;
+function serializeTransaction(t, listingImage = '') {
+  if (!t) return null;
   return {
-    id: m.id,
-    listingId: m.listing_id || m.listingId,
-    listingTitle: m.listing_title || m.listingTitle || '',
-    listingImage: listingImage || m.listingImage || '',
-    sellerId: m.seller_id || m.sellerId,
-    sellerName: m.seller_name || m.sellerName || '',
-    buyerId: m.buyer_id || m.buyerId,
-    buyerName: m.buyer_name || m.buyerName || '',
-    tradeMode: m.trade_mode || m.tradeMode || 'buy_sell',
-    finalPrice: parseFloat(m.final_price ?? m.finalPrice ?? 0),
-    swapSummary: m.swap_summary || m.swapSummary || null,
-    campus: m.campus,
-    landmarkSpot: m.landmark_spot || m.landmarkSpot,
-    scheduledDateTime: m.scheduled_datetime || m.scheduledDateTime,
-    verificationCode: verificationCode || m.verification_code || m.verificationCode || '',
-    status: m.status || 'scheduled',
-    notes: m.notes || null,
-    createdAt: m.created_at || m.createdAt || new Date().toISOString()
+    id: t.id,
+    referenceNo: t.reference_no || t.referenceNo || `TL-2026-${(t.id || '').substring(0, 4).toUpperCase()}`,
+    listingId: t.listing_id || t.listingId,
+    listingTitle: t.listing_title || t.listingTitle || '',
+    listingImage: listingImage || t.listingImage || '',
+    sellerId: t.seller_id || t.sellerId,
+    sellerName: t.seller_name || t.sellerName || '',
+    sellerAvatar: t.seller_avatar || t.sellerAvatar || null,
+    buyerId: t.buyer_id || t.buyerId,
+    buyerName: t.buyer_name || t.buyerName || '',
+    buyerAvatar: t.buyer_avatar || t.buyerAvatar || null,
+    tradeMode: t.trade_mode || t.tradeMode || 'buy_sell',
+    amount: parseFloat(t.amount ?? t.final_price ?? t.finalPrice ?? 0),
+    finalPrice: parseFloat(t.amount ?? t.final_price ?? t.finalPrice ?? 0),
+    paymentMethod: t.payment_method || t.paymentMethod || 'cash',
+    paymentStatus: t.payment_status || t.paymentStatus || 'unpaid',
+    swapOfferId: t.swap_offer_id || t.swapOfferId || null,
+    status: t.status || 'pending',
+    notes: t.notes || null,
+    completedAt: t.completed_at || t.completedAt || null,
+    cancelledAt: t.cancelled_at || t.cancelledAt || null,
+    cancellationReason: t.cancellation_reason || t.cancellationReason || null,
+    createdAt: t.created_at || t.createdAt || new Date().toISOString()
   };
+}
+
+// Backward compatibility alias
+function serializeMeetup(m, listingImage = '') {
+  return serializeTransaction(m, listingImage);
 }
 
 function serializeReview(r, traitBadges = []) {
@@ -73,6 +82,7 @@ function serializeReview(r, traitBadges = []) {
 
 module.exports = {
   serializeSwap,
+  serializeTransaction,
   serializeMeetup,
   serializeReview
 };

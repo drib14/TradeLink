@@ -11,11 +11,14 @@ async function createMessage({
   receiverId,
   content,
   isSystemMessage = false,
-  swapOfferId = null
+  swapOfferId = null,
+  transactionId = null,
+  mediaUrl = null,
+  mediaType = null
 }) {
   const cleanContent = (content || '').trim();
-  if (!cleanContent) {
-    throw new AppError('Message content cannot be empty.', 400);
+  if (!cleanContent && !mediaUrl) {
+    throw new AppError('Message must contain either text content or media.', 400);
   }
 
   const conv = await db('conversations').where({ id: conversationId }).first();
@@ -28,30 +31,29 @@ async function createMessage({
   }
 
   const msgId = uuidv4();
+  const summaryContent = cleanContent || (mediaType === 'video' ? '📹 Video attachment' : '📷 Image attachment');
+
   const newMsg = {
     id: msgId,
     conversation_id: conversationId,
     sender_id: senderId,
     receiver_id: receiverId,
-    content: cleanContent,
+    content: summaryContent,
+    is_read: false,
     is_system_message: Boolean(isSystemMessage),
+    media_url: mediaUrl || null,
+    media_type: mediaType || null,
     swap_offer_id: swapOfferId || null,
+    transaction_id: transactionId || null,
     created_at: new Date()
   };
 
   await db.transaction(async (trx) => {
     await trx('messages').insert(newMsg);
     await trx('conversations').where({ id: conversationId }).update({
-      last_message: cleanContent,
+      last_message: summaryContent,
       last_message_at: new Date()
     });
-    // Increment recipient unread count
-    await trx.raw(
-      `INSERT INTO conversation_read_status (conversation_id, user_id, unread_count, last_read_at)
-       VALUES (?, ?, 1, NULL)
-       ON DUPLICATE KEY UPDATE unread_count = unread_count + 1`,
-      [conversationId, receiverId]
-    );
   });
 
   return {
@@ -59,10 +61,14 @@ async function createMessage({
     conversationId,
     senderId,
     receiverId,
-    content: cleanContent,
+    content: summaryContent,
+    isRead: false,
+    mediaUrl: mediaUrl || null,
+    mediaType: mediaType || null,
     timestamp: newMsg.created_at.toISOString(),
     isSystemMessage: Boolean(isSystemMessage),
-    swapOfferId: swapOfferId || null
+    swapOfferId: swapOfferId || null,
+    transactionId: transactionId || null
   };
 }
 

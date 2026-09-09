@@ -7,9 +7,8 @@ const bcrypt = require('bcryptjs');
 exports.seed = async function(knex) {
   // Truncate tables in reverse dependency order
   const tables = [
-    'review_badges', 'reviews', 'favorites', 'notifications', 'messages',
-    'conversation_read_status', 'conversations', 'meetup_transactions',
-    'swap_offers', 'wanted_requests', 'listing_tags', 'listing_images',
+    'review_badges', 'reviews', 'messages', 'conversations',
+    'transactions', 'swap_offers', 'wanted_requests', 'listing_media',
     'listings', 'verification_requests', 'flagged_listings', 'trade_disputes',
     'announcements', 'admin_audit_logs', 'prohibited_keywords',
     'feature_flags', 'system_config', 'users'
@@ -17,7 +16,10 @@ exports.seed = async function(knex) {
 
   await knex.raw('SET FOREIGN_KEY_CHECKS = 0');
   for (const table of tables) {
-    await knex(table).truncate();
+    const hasTable = await knex.schema.hasTable(table);
+    if (hasTable) {
+      await knex(table).truncate();
+    }
   }
   await knex.raw('SET FOREIGN_KEY_CHECKS = 1');
 
@@ -53,8 +55,8 @@ exports.seed = async function(knex) {
   await knex('announcements').insert([
     {
       id: 'ann-1',
-      title: 'Guarded Meetup Reminder',
-      message: 'Always meet inside official UC campus security gates during daytime hours. Inspect items before scanning the Handshake QR code.',
+      title: 'Safe Student Trading Reminder',
+      message: 'Coordinate trades safely through direct chat. Always verify items before completing payments.',
       campus: 'All',
       type: 'alert',
       author_id: 'user-admin',
@@ -108,14 +110,14 @@ exports.seed = async function(knex) {
     { id: 'kw-17', keyword: 'proxy test', added_by: 'user-admin' }
   ]);
 
-  // 5. Seed System Configuration
+  // 5. Seed System Configuration & Feature Flags
   await knex('system_config').insert([
     {
       config_key: 'platform_rules',
       config_value: JSON.stringify({
         maintenanceMode: false,
         maxListingPrice: 50000,
-        maxImagesPerListing: 5,
+        maxMediaPerListing: 10,
         swapModeEnabled: true,
         wantedBoardEnabled: true,
         freeDonationEnabled: true,
@@ -125,11 +127,9 @@ exports.seed = async function(knex) {
     }
   ]);
 
-  // 6. Seed Feature Flags
   await knex('feature_flags').insert([
     { id: 'ff-1', name: 'Price Advisor AI', description: 'Enable AI-powered pricing suggestions', enabled: true },
-    { id: 'ff-2', name: 'Campus Map', description: 'Interactive campus meetup map', enabled: true },
-    { id: 'ff-3', name: 'Pro Merchant Badge', description: 'Allow pro merchant status for top sellers', enabled: true },
-    { id: 'ff-4', name: 'Dark Mode', description: 'Dark mode toggle for all users', enabled: true }
+    { id: 'ff-2', name: 'Direct Student Chat', description: 'Enable instant peer-to-peer student messaging', enabled: true },
+    { id: 'ff-3', name: 'Campus Swap Desk', description: 'Allow barter and item-for-item swaps', enabled: true }
   ]);
 };

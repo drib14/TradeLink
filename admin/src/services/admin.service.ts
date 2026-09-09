@@ -186,13 +186,21 @@ export const adminService = {
     return res;
   },
 
-  async getMeetups(page = 1, limit = 100) {
-    const res = await api.get('/meetups', { page, limit });
-    return res.data?.meetups || res.data || [];
+  async getTransactions(page = 1, limit = 100) {
+    const res = await api.get('/transactions', { page, limit });
+    return res.data?.transactions || res.data || [];
   },
 
-  async updateMeetupStatus(id: string, status: string, _reason?: string) {
-    const res = await api.patch(`/meetups/${id}/status`, { status });
+  async updateTransactionStatus(id: string, status: string, notes?: string) {
+    const res = await api.patch(`/transactions/${id}/status`, { status, notes });
     return res;
+  },
+
+  async getMeetups(page = 1, limit = 100) {
+    return this.getTransactions(page, limit);
+  },
+
+  async updateMeetupStatus(id: string, status: string, notes?: string) {
+    return this.updateTransactionStatus(id, status, notes);
   }
 };

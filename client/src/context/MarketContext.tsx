@@ -23,7 +23,7 @@ interface MarketContextType {
   setSortBy: (sort: 'recent' | 'price_low' | 'price_high' | 'trust_high' | 'views_high') => void;
   setPriceRange: (range: [number, number]) => void;
   filteredListings: Listing[];
-  addListing: (listingData: Omit<Listing, 'id' | 'createdAt' | 'views' | 'favoritesCount' | 'isSold'>) => Promise<Listing>;
+  addListing: (listingData: any) => Promise<Listing>;
   updateListing: (id: string, updates: Partial<Listing>) => Promise<void>;
   deleteListing: (id: string) => Promise<void>;
   toggleFavorite: (id: string) => void;
@@ -51,30 +51,11 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [sortBy, setSortBy] = useState<'recent' | 'price_low' | 'price_high' | 'trust_high' | 'views_high'>('recent');
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 50000]);
 
-  // Fetch favorites from backend
-  const refreshFavorites = useCallback(async () => {
-    if (!getAccessToken()) {
-      setFavorites([]);
-      return;
-    }
-    try {
-      const serverFavs = await listingsService.getFavorites();
-      if (Array.isArray(serverFavs)) {
-        setFavorites(serverFavs);
-      }
-    } catch {
-      // Non-critical if failed
-    }
-  }, []);
-
   // Fetch listings from backend on mount
   const refreshListings = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [serverListings] = await Promise.all([
-        listingsService.getListings(),
-        refreshFavorites()
-      ]);
+      const serverListings = await listingsService.getListings();
       if (Array.isArray(serverListings)) {
         setListings(serverListings);
         setIsOffline(false);
@@ -84,7 +65,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } finally {
       setIsLoading(false);
     }
-  }, [refreshFavorites]);
+  }, []);
 
   useEffect(() => {
     refreshListings();
@@ -186,32 +167,6 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       wasFavorited = prev.includes(id);
       return wasFavorited ? prev.filter((favId) => favId !== id) : [...prev, id];
     });
-
-    setListings((prevListings) =>
-      prevListings.map((l) =>
-        l.id === id
-          ? { ...l, favoritesCount: Math.max(0, l.favoritesCount + (wasFavorited ? -1 : 1)) }
-          : l
-      )
-    );
-
-    if (getAccessToken()) {
-      try {
-        await listingsService.toggleFavorite(id);
-      } catch {
-        // Rollback on failure
-        setFavorites((prev) =>
-          wasFavorited ? [...prev, id] : prev.filter((favId) => favId !== id)
-        );
-        setListings((prevListings) =>
-          prevListings.map((l) =>
-            l.id === id
-              ? { ...l, favoritesCount: Math.max(0, l.favoritesCount + (wasFavorited ? 1 : -1)) }
-              : l
-          )
-        );
-      }
-    }
   };
 
   const boostListing = async (id: string) => {

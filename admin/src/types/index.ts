@@ -131,6 +131,14 @@ export interface AdminAuditLog {
   timestamp: string;
 }
 
+export interface ListingMediaItem {
+  id?: string;
+  url: string;
+  mediaType: 'image' | 'video';
+  thumbnailUrl?: string | null;
+  isPrimary?: boolean;
+}
+
 export interface Listing {
   id: string;
   title: string;
@@ -139,10 +147,11 @@ export interface Listing {
   originalSrp?: number;
   tradeMode: TradeMode;
   swapPreference?: string;
-  category: string; // User-defined or selected category
-  tags?: string[];
+  category: string;
   condition: ConditionGrade;
+  media?: ListingMediaItem[];
   images: string[];
+  hasVideo?: boolean;
   sellerId: string;
   sellerName: string;
   sellerAvatar: string;
@@ -150,8 +159,6 @@ export interface Listing {
   sellerCollege: College;
   sellerIsVerified: boolean;
   sellerTrustScore: number;
-  preferredMeetupSpots: string[];
-  customMeetupSpot?: string;
   isBoosted: boolean;
   isSold: boolean;
   status?: 'active' | 'sold' | string;
@@ -159,7 +166,6 @@ export interface Listing {
   courseCode?: string;
   createdAt: string;
   views: number;
-  favoritesCount: number;
 }
 
 export interface SwapOffer {
@@ -179,31 +185,38 @@ export interface SwapOffer {
   offeredDescription: string;
   cashTopUp: number;
   status: 'pending' | 'accepted' | 'declined' | 'completed';
-  proposedMeetupSpot: string;
-  proposedDateTime: string;
   createdAt: string;
 }
 
-export interface MeetupTransaction {
+export interface Transaction {
   id: string;
+  referenceNo: string;
   listingId: string;
   listingTitle: string;
-  listingImage: string;
+  listingImage?: string;
   sellerId: string;
   sellerName: string;
   buyerId: string;
   buyerName: string;
   tradeMode: TradeMode;
-  finalPrice: number;
-  swapSummary?: string;
-  campus: Campus;
-  landmarkSpot: string; // Can be predefined or student custom input
-  scheduledDateTime: string;
-  verificationCode: string; // 4-digit code e.g. "8421"
-  status: 'scheduled' | 'on_the_way' | 'completed' | 'cancelled';
+  amount: number;
+  paymentMethod: 'cash' | 'gcash' | 'maya' | 'barter' | 'free';
+  paymentStatus: 'unpaid' | 'paid' | 'refunded';
+  status: 'pending' | 'completed' | 'cancelled' | 'disputed';
   notes?: string;
+  completedAt?: string;
+  cancelledAt?: string;
+  cancellationReason?: string;
   createdAt: string;
+  // Backward compatibility properties
+  finalPrice?: number;
+  verificationCode?: string;
+  campus?: Campus;
+  landmarkSpot?: string;
+  scheduledDateTime?: string;
 }
+
+export type MeetupTransaction = Transaction;
 
 export interface Message {
   id: string;
@@ -214,6 +227,9 @@ export interface Message {
   timestamp: string;
   isSystemMessage?: boolean;
   swapOfferId?: string;
+  transactionId?: string;
+  mediaUrl?: string | null;
+  mediaType?: 'image' | 'video' | null;
 }
 
 export interface Conversation {

@@ -5,12 +5,12 @@ import { useToast } from '../components/common/Toast';
 import { DragDropUpload } from '../components/common/DragDropUpload';
 import { StudentVerificationModal } from '../components/verification/StudentVerificationModal';
 import { TradeMode, ConditionGrade } from '../types';
-import { CAMPUS_MEETUP_SPOTS } from '../data/campusLocations';
 import {
   Plus,
   ChevronLeft,
   X,
-  MapPin,
+  Film,
+  MessageSquare,
   Tag,
   ShoppingBag,
   ArrowLeftRight,
@@ -44,8 +44,6 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
   const [swapPreference, setSwapPreference] = useState('');
   const [isBoosted] = useState(false);
   const [images, setImages] = useState<string[]>([]);
-  const [spotSelection, setSpotSelection] = useState<string>('');
-  const [customLocationText, setCustomLocationText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
@@ -207,8 +205,6 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
     'General Campus Item'
   ];
 
-  const campusSpots = CAMPUS_MEETUP_SPOTS.filter(s => s.campus === currentUser.campus);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
@@ -224,7 +220,7 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
     }
 
     if (images.length === 0) {
-      showToast('Photo Required', 'Please add at least 1 photo of your item.', 'warning');
+      showToast('Media Required', 'Please add at least 1 photo or video of your item.', 'warning');
       return;
     }
 
@@ -232,10 +228,6 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
       showToast('Price Required', 'Please set a valid price or choose Free Donation.', 'warning');
       return;
     }
-
-    const finalMeetupSpot = (spotSelection === 'custom' && customLocationText.trim())
-      ? customLocationText.trim()
-      : (spotSelection || campusSpots[0]?.name || `${currentUser.campus} Main Guard Station`);
 
     setIsSubmitting(true);
     try {
@@ -250,6 +242,11 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
         tradeMode,
         swapPreference: tradeMode === 'swap' ? swapPreference.trim() : undefined,
         images,
+        media: images.map((url, idx) => ({
+          url,
+          mediaType: (url.match(/\.(mp4|webm|mov|mkv)$/i) || url.includes('/video/upload/')) ? 'video' : 'image',
+          isPrimary: idx === 0
+        })),
         tags: tags.length > 0 ? tags.slice(0, 10) : [category.split(' ')[0] || 'Campus'],
         sellerId: currentUser.id,
         sellerName: currentUser.name,
@@ -258,8 +255,6 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
         sellerCollege: currentUser.college,
         sellerIsVerified: currentUser.isVerified,
         sellerTrustScore: currentUser.trustScore,
-        preferredMeetupSpots: [finalMeetupSpot],
-        customMeetupSpot: finalMeetupSpot,
         isBoosted
       });
 
@@ -667,68 +662,42 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
           </div>
         </div>
 
-        {/* Section 2: Photos & Meetup Hub */}
+        {/* Section 2: Photos & Product Video Demos */}
         <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', borderBottom: '1px solid var(--border-subtle, #F1F5F9)', paddingBottom: '0.75rem' }}>
-            <MapPin size={18} color="var(--uc-blue)" />
-            <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-primary)' }}>2. Photos & Campus Meetup</h3>
+            <Film size={18} color="var(--uc-blue)" />
+            <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-primary)' }}>2. Product Media & Sample Videos</h3>
           </div>
 
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
               <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                Item Photos *
+                Product Photos & Actual Video Sample *
               </label>
               <span style={{ fontSize: '0.75rem', fontWeight: 600, color: images.length === 0 ? '#EA580C' : 'var(--accent-green, #059669)' }}>
-                {images.length}/4 photos {images.length === 0 ? '(at least 1 required)' : 'added'}
+                {images.length}/8 items {images.length === 0 ? '(at least 1 required, max 8)' : 'added'}
               </span>
             </div>
             <DragDropUpload
               images={images}
               onChange={setImages}
-              maxFiles={4}
+              maxFiles={8}
+              acceptVideos={true}
               label=""
-              helperText="Click or drop photos here (PNG, JPG, WEBP)"
+              helperText="Upload photos or product sample videos (MP4, WEBM, PNG, JPG, WEBP up to 50MB)"
               isMultiple={true}
             />
           </div>
 
-          <div>
-            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-              Campus Meeting Place *
-            </label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <select
-                value={spotSelection || (campusSpots[0]?.name || '')}
-                onChange={(e) => setSpotSelection(e.target.value)}
-                className="clean-input"
-              >
-                <optgroup label={`Designated Meeting Spots (${currentUser.campus})`}>
-                  {campusSpots.map((spot) => (
-                    <option key={spot.id} value={spot.name}>
-                      {spot.name}
-                    </option>
-                  ))}
-                </optgroup>
-                <option value="custom">+ Enter My Own Custom Meeting Location</option>
-              </select>
-
-              {spotSelection === 'custom' && (
-                <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
-                  <input
-                    type="text"
-                    value={customLocationText}
-                    onChange={(e) => setCustomLocationText(e.target.value)}
-                    placeholder="e.g. 2nd Floor Canteen Table 4, Main Library Study Area, Engineering Hallway"
-                    className="clean-input"
-                    style={{ fontSize: '0.84rem' }}
-                    required
-                  />
-                  <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                    Specify any landmark or spot where you prefer to meet your buyer or barter partner.
-                  </p>
-                </div>
-              )}
+          <div style={{ backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', border: '1px solid rgba(0, 43, 127, 0.15)', borderRadius: '8px', padding: '0.85rem 1rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+            <MessageSquare size={20} color="var(--uc-blue)" style={{ flexShrink: 0, marginTop: '2px' }} />
+            <div>
+              <h4 style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--uc-blue)', marginBottom: '0.2rem' }}>
+                Direct Campus Chat Coordination
+              </h4>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.45, margin: 0 }}>
+                No rigid meetup spots needed! Once an order is placed, you and the buyer coordinate directly in Campus Chat to agree on the ideal campus spot and meeting time that fits your class schedules.
+              </p>
             </div>
           </div>
         </div>

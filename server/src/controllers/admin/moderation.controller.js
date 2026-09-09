@@ -29,15 +29,15 @@ const getFlaggedListings = asyncHandler(async (req, res) => {
     .offset(offset);
 
   const listingIds = flags.map((f) => f.listing_id);
-  const images = listingIds.length > 0
-    ? await db('listing_images').whereIn('listing_id', listingIds).orderBy('display_order', 'asc')
+  const mediaRows = listingIds.length > 0
+    ? await db('listing_media').whereIn('listing_id', listingIds).orderBy('display_order', 'asc')
     : [];
 
   const formatted = flags.map((f) => ({
     id: f.id,
     listingId: f.listing_id,
     listingTitle: f.listing_title,
-    listingImage: images.find((i) => i.listing_id === f.listing_id)?.image_url || '',
+    listingImage: mediaRows.find((i) => i.listing_id === f.listing_id)?.media_url || '',
     sellerName: f.seller_name,
     reporterName: f.reporter_name || 'Anonymous Student',
     reason: f.reason,
@@ -127,8 +127,8 @@ const getDisputes = asyncHandler(async (req, res) => {
   const disputes = await db('trade_disputes')
     .leftJoin('users as complainant', 'trade_disputes.complainant_id', 'complainant.id')
     .leftJoin('users as respondent', 'trade_disputes.respondent_id', 'respondent.id')
-    .leftJoin('meetup_transactions', 'trade_disputes.transaction_id', 'meetup_transactions.id')
-    .leftJoin('listings', 'meetup_transactions.listing_id', 'listings.id')
+    .leftJoin('transactions', 'trade_disputes.transaction_id', 'transactions.id')
+    .leftJoin('listings', 'transactions.listing_id', 'listings.id')
     .select(
       'trade_disputes.*',
       'complainant.name as complainant_name',
@@ -143,7 +143,7 @@ const getDisputes = asyncHandler(async (req, res) => {
   const formatted = disputes.map((d) => ({
     id: d.id,
     transactionId: d.transaction_id,
-    listingTitle: d.listing_title || 'Campus Meetup Trade',
+    listingTitle: d.listing_title || 'Campus Trade',
     buyerName: d.complainant_name || 'Complainant Student',
     sellerName: d.respondent_name || 'Respondent Student',
     sellerId: d.respondent_id,

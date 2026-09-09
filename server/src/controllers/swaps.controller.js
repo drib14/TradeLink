@@ -33,18 +33,18 @@ const getSwaps = asyncHandler(async (req, res) => {
     )
     .orderBy('swap_offers.created_at', 'desc');
 
-  // Fetch listing images in a single batch query
+  // Fetch listing media in a single batch query
   const targetIds = swaps.map((s) => s.target_listing_id).filter(Boolean);
   const offeredIds = swaps.map((s) => s.offered_listing_id).filter(Boolean);
   const allIds = [...new Set([...targetIds, ...offeredIds])];
 
-  const images = allIds.length > 0
-    ? await db('listing_images').whereIn('listing_id', allIds).orderBy('display_order', 'asc')
+  const mediaRows = allIds.length > 0
+    ? await db('listing_media').whereIn('listing_id', allIds).orderBy('display_order', 'asc')
     : [];
 
   const formatted = swaps.map((s) => {
-    const targetImg = images.find((i) => i.listing_id === s.target_listing_id)?.image_url || '';
-    const offeredImg = images.find((i) => i.listing_id === s.offered_listing_id)?.image_url || s.offered_item_image || '';
+    const targetImg = mediaRows.find((i) => i.listing_id === s.target_listing_id)?.media_url || '';
+    const offeredImg = mediaRows.find((i) => i.listing_id === s.offered_listing_id)?.media_url || s.offered_item_image || '';
     return serializeSwap(s, targetImg, offeredImg);
   });
 
@@ -66,9 +66,7 @@ const proposeSwap = asyncHandler(async (req, res, next) => {
     offeredItemTitle = 'Offered Student Item',
     offeredDescription,
     offeredImage,
-    cashTopUp = 0,
-    proposedMeetupSpot,
-    proposedDateTime
+    cashTopUp = 0
   } = req.body;
 
   const targetListing = await db('listings').where({ id: targetListingId }).first();
@@ -96,8 +94,8 @@ const proposeSwap = asyncHandler(async (req, res, next) => {
     const offListing = await db('listings').where({ id: offeredListingId }).first();
     if (offListing) {
       finalOfferedTitle = offListing.title;
-      const offImg = await db('listing_images').where({ listing_id: offeredListingId }).first();
-      if (offImg) finalOfferedImage = offImg.image_url;
+      const offImg = await db('listing_media').where({ listing_id: offeredListingId }).first();
+      if (offImg) finalOfferedImage = offImg.media_url;
     }
   }
 
@@ -113,20 +111,10 @@ const proposeSwap = asyncHandler(async (req, res, next) => {
     cash_adjustment: parseFloat(cashTopUp || 0),
     adjustment_type: parseFloat(cashTopUp || 0) > 0 ? 'proposer_adds_cash' : 'none',
     status: 'pending',
-    status_note: proposedMeetupSpot && proposedDateTime ? `Proposed: ${proposedMeetupSpot} at ${proposedDateTime}` : null
+    status_note: null
   };
 
   await db('swap_offers').insert(newSwap);
-
-  // Send system notification to seller
-  await db('notifications').insert({
-    id: uuidv4(),
-    user_id: targetListing.seller_id,
-    title: 'New Swap Proposal',
-    message: `${req.user.name} sent a swap proposal for your "${targetListing.title}".`,
-    type: 'swap_offer',
-    link_url: `/swaps`
-  });
 
   res.status(201).json({
     status: 'success',
@@ -170,18 +158,6 @@ const respondToSwap = asyncHandler(async (req, res, next) => {
 
   const mappedStatus = status === 'declined' ? 'rejected' : status;
   await db('swap_offers').where({ id }).update({ status: mappedStatus });
-
-  // Send notification to offerer
-  await db('notifications').insert({
-    id: uuidv4(),
-    user_id: swap.proposer_id,
-    title: status === 'accepted' ? 'Swap Proposal Accepted!' : 'Swap Offer Declined',
-    message: status === 'accepted'
-      ? `${req.user.name} accepted your swap proposal! Coordinate your campus meetup now.`
-      : `${req.user.name} declined your swap proposal.`,
-    type: 'swap_offer',
-    link_url: `/swaps`
-  });
 
   res.status(200).json({
     status: 'success',

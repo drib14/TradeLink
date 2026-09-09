@@ -5,8 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useMarket } from '../../context/MarketContext';
 import { useChat } from '../../context/ChatContext';
 import { useToast } from '../common/Toast';
-import { ArrowLeftRight } from 'lucide-react';
-import { CAMPUS_MEETUP_SPOTS } from '../../data/campusLocations';
+import { ArrowLeftRight, MessageSquare } from 'lucide-react';
 
 interface SwapProposalModalProps {
   isOpen: boolean;
@@ -32,11 +31,6 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
   const [selectedMyListingId, setSelectedMyListingId] = useState<string>(myListings[0]?.id || '');
   const [customDescription, setCustomDescription] = useState('');
   const [cashTopUp, setCashTopUp] = useState<number>(0);
-  const [selectedSpot, setSelectedSpot] = useState<string>(
-    CAMPUS_MEETUP_SPOTS.find((s) => s.campus === targetListing?.sellerCampus)?.name ||
-      CAMPUS_MEETUP_SPOTS[0].name
-  );
-  const [scheduledDate, setScheduledDate] = useState('Tomorrow at 2:00 PM');
 
   if (!isOpen) return null;
 
@@ -103,9 +97,7 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
       offeredListingTitle: selectedMyListing?.title,
       offeredListingImage: selectedMyListing?.images[0],
       offeredDescription: offeredDesc,
-      cashTopUp,
-      proposedMeetupSpot: selectedSpot,
-      proposedDateTime: scheduledDate
+      cashTopUp
     });
 
     showToast(
@@ -200,71 +192,32 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
           )}
         </div>
 
-        {/* Section 2: Cash Top-up & Meetup Spot (2 Column) */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: '0.75rem' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-              Cash Top-Up (Optional)
-            </label>
-            <div style={{ position: 'relative' }}>
-              <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, color: 'var(--text-muted)' }}>
-                ₱
-              </span>
-              <input
-                type="number"
-                value={cashTopUp || ''}
-                onChange={(e) => setCashTopUp(Number(e.target.value))}
-                placeholder="0"
-                className="clean-input"
-                style={{ paddingLeft: '1.75rem', fontWeight: 700 }}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-              Campus Meetup Zone
-            </label>
-            <select
-              value={selectedSpot}
-              onChange={(e) => setSelectedSpot(e.target.value)}
+        {/* Section 2: Cash Top-up (Optional) */}
+        <div>
+          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+            Cash Top-Up (Optional)
+          </label>
+          <div style={{ position: 'relative' }}>
+            <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, color: 'var(--text-muted)' }}>
+              ₱
+            </span>
+            <input
+              type="number"
+              value={cashTopUp || ''}
+              onChange={(e) => setCashTopUp(Number(e.target.value))}
+              placeholder="0 (e.g. 150 to balance the trade value)"
               className="clean-input"
-            >
-              {CAMPUS_MEETUP_SPOTS.filter(s => s.campus === targetListing.sellerCampus || s.campus === currentUser.campus).map((spot) => (
-                <option key={spot.id} value={spot.name}>
-                  [{spot.campus}] {spot.name}
-                </option>
-              ))}
-            </select>
+              style={{ paddingLeft: '1.75rem', fontWeight: 700 }}
+            />
           </div>
         </div>
 
-        {/* Section 3: Meetup Time with Quick Presets */}
-        <div>
-          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-            Preferred Meetup Time
-          </label>
-          <div style={{ display: 'flex', gap: '0.35rem', marginBottom: '0.4rem', flexWrap: 'wrap' }}>
-            {['Tomorrow at Lunch', 'Tomorrow 4:30 PM (After Class)', 'This Friday 2:00 PM'].map((preset) => (
-              <button
-                key={preset}
-                type="button"
-                onClick={() => setScheduledDate(preset)}
-                className="btn-ghost"
-                style={{ padding: '0.25rem 0.55rem', fontSize: '0.74rem', borderRadius: '6px', border: scheduledDate === preset ? '1.5px solid var(--uc-blue)' : '1px solid var(--border-subtle)', backgroundColor: scheduledDate === preset ? 'var(--uc-blue-subtle)' : 'transparent', color: scheduledDate === preset ? 'var(--uc-blue)' : 'var(--text-secondary)' }}
-              >
-                {preset}
-              </button>
-            ))}
+        {/* Section 3: Campus Chat Coordination Note */}
+        <div style={{ backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', border: '1px solid rgba(0, 43, 127, 0.15)', borderRadius: '8px', padding: '0.75rem 0.95rem', display: 'flex', gap: '0.65rem', alignItems: 'flex-start' }}>
+          <MessageSquare size={18} color="var(--uc-blue)" style={{ flexShrink: 0, marginTop: '2px' }} />
+          <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
+            <strong style={{ color: 'var(--uc-blue)' }}>Direct Chat Coordination:</strong> Once the seller reviews and accepts your swap proposal, you can agree on the exact meeting spot and time on campus directly in Campus Chat.
           </div>
-          <input
-            type="text"
-            value={scheduledDate}
-            onChange={(e) => setScheduledDate(e.target.value)}
-            placeholder="e.g. Tomorrow at 2:00 PM"
-            className="clean-input"
-            style={{ fontSize: '0.82rem' }}
-          />
         </div>
 
         {/* Submit Actions */}

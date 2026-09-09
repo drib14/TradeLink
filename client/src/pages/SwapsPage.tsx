@@ -314,16 +314,10 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({
                   </div>
 
 
-                  {/* Proposed Spot & Date */}
-                  <div style={{ fontSize: '0.8rem', color: '#475569', display: 'flex', gap: '1.25rem', flexWrap: 'wrap' }}>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-                      <Building2 size={14} color="#002B7F" style={{ flexShrink: 0 }} />
-                      <span>{swap.proposedMeetupSpot}</span>
-                    </div>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-                      <Calendar size={14} color="#002B7F" style={{ flexShrink: 0 }} />
-                      <span>{swap.proposedDateTime}</span>
-                    </div>
+                  {/* Trade Coordination Note */}
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted, #64748B)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <MessageSquare size={13} color="var(--uc-blue, #002B7F)" style={{ flexShrink: 0 }} />
+                    <span>Coordinate trade details directly in Campus Chat</span>
                   </div>
 
                   {/* Receiver Actions */}

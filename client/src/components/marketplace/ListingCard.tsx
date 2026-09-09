@@ -2,12 +2,11 @@ import React, { useState, useMemo } from 'react';
 import { Listing } from '../../types';
 import { VerifiedBadge } from '../common/VerifiedBadge';
 import { UserAvatar } from '../common/UserAvatar';
-import { useMarket } from '../../context/MarketContext';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../common/Toast';
 import { BuyNowModal } from './BuyNowModal';
 import { SwapProposalModal } from './SwapProposalModal';
-import { Bookmark, ArrowLeftRight, Gift, ShoppingBag, Eye, Zap, Heart, Sparkles } from 'lucide-react';
+import { ArrowLeftRight, Gift, ShoppingBag, Zap, Sparkles, Film, Eye } from 'lucide-react';
 
 interface ListingCardProps {
   listing: Listing;
@@ -15,38 +14,24 @@ interface ListingCardProps {
 }
 
 export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) => {
-  const { favorites, toggleFavorite } = useMarket();
   const { isAuthenticated } = useAuth();
   const { showToast } = useToast();
 
   const [isBuyModalOpen, setIsBuyModalOpen] = useState(false);
   const [isSwapModalOpen, setIsSwapModalOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const [isFavPulsing, setIsFavPulsing] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
 
-  const isFavorite = favorites.includes(listing.id);
+  const hasVideo = Boolean(
+    listing.hasVideo ||
+    listing.media?.some((m) => m.mediaType === 'video') ||
+    listing.images?.some((img) => img.match(/\.(mp4|webm|mov|mkv)$/i) || img.includes('/video/upload/'))
+  );
 
   const isNew = useMemo(() => {
     if (!listing.createdAt) return false;
     return (Date.now() - new Date(listing.createdAt).getTime()) < 24 * 60 * 60 * 1000;
   }, [listing.createdAt]);
-
-  const handleFavoriteClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!isAuthenticated) {
-      showToast('Log In Required', 'Please log in to save items to your favorites.', 'info');
-      return;
-    }
-    setIsFavPulsing(true);
-    setTimeout(() => setIsFavPulsing(false), 300);
-    toggleFavorite(listing.id);
-    showToast(
-      isFavorite ? 'Removed' : 'Saved',
-      isFavorite ? `"${listing.title}" removed from saved items.` : `"${listing.title}" added to saved items.`,
-      'info'
-    );
-  };
 
   const handleActionClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -92,31 +77,33 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
         }}
       >
         {/* Bookmark Favorite Button */}
-        <button
-          onClick={handleFavoriteClick}
-          style={{
-            position: 'absolute',
-            top: '10px',
-            right: '10px',
-            backgroundColor: isFavorite ? 'var(--uc-blue, #002B7F)' : 'var(--bg-surface, rgba(255, 255, 255, 0.92))',
-            color: isFavorite ? '#FFC72C' : 'var(--text-muted, #64748B)',
-            padding: '0.45rem',
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 6,
-            backdropFilter: 'blur(8px)',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
-            transform: isFavPulsing ? 'scale(1.3)' : isFavorite ? 'scale(1.08)' : 'scale(1)',
-            transition: 'all 0.18s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-            cursor: 'pointer',
-            border: '1px solid var(--border-subtle, rgba(0,0,0,0.05))'
-          }}
-          title={isFavorite ? 'Remove saved' : 'Save item'}
-        >
-          <Bookmark size={14} fill={isFavorite ? '#FFC72C' : 'none'} color={isFavorite ? '#FFC72C' : 'currentColor'} style={{ flexShrink: 0 }} />
-        </button>
+        {/* Video Sample Badge */}
+        {hasVideo && (
+          <div
+            style={{
+              position: 'absolute',
+              top: '10px',
+              right: '10px',
+              backgroundColor: 'rgba(15, 23, 42, 0.78)',
+              color: '#FFFFFF',
+              padding: '0.24rem 0.55rem',
+              borderRadius: '6px',
+              fontSize: '0.66rem',
+              fontWeight: 800,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.3rem',
+              zIndex: 6,
+              backdropFilter: 'blur(4px)',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
+              letterSpacing: '0.03em'
+            }}
+            title="Actual product video demonstration available"
+          >
+            <Film size={12} color="#FFC72C" />
+            <span>VIDEO</span>
+          </div>
+        )}
 
         {/* Image Container with Zoom Effect */}
         <div
@@ -462,13 +449,8 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
             </div>
 
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.7rem', color: 'var(--text-muted, #94A3B8)' }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }} title={`${listing.favoritesCount} saved`}>
-                <Heart size={11} fill={listing.favoritesCount > 0 ? '#EF4444' : 'none'} color={listing.favoritesCount > 0 ? '#EF4444' : 'currentColor'} style={{ flexShrink: 0 }} />
-                <span>{listing.favoritesCount}</span>
-              </span>
-              <span style={{ color: 'var(--border-subtle, #CBD5E1)', fontSize: '0.6rem' }}>•</span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }} title={`${listing.views} views`}>
-                <Eye size={12} style={{ flexShrink: 0 }} /> <span>{listing.views}</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }} title={`${listing.views || 0} views`}>
+                <Eye size={12} style={{ flexShrink: 0 }} /> <span>{listing.views || 0} views</span>
               </span>
             </div>
           </div>

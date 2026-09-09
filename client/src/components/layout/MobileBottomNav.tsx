@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, ShoppingBag, Plus, MapPin, MessageSquare } from 'lucide-react';
+import { Home, ShoppingBag, Plus, Receipt, MessageSquare } from 'lucide-react';
 import { useChat } from '../../context/ChatContext';
 import { useAuth } from '../../context/AuthContext';
 
@@ -16,12 +16,12 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   onOpenChat,
   onOpenAuth
 }) => {
-  const { unreadTotal, meetups } = useChat();
+  const { unreadTotal, transactions } = useChat();
   const { currentUser, isAuthenticated } = useAuth();
 
-  const activeMeetupsCount = currentUser
-    ? meetups.filter(
-        (m) => (m.sellerId === currentUser.id || m.buyerId === currentUser.id) && m.status === 'scheduled'
+  const pendingTransactionsCount = currentUser
+    ? transactions.filter(
+        (t) => (t.sellerId === currentUser.id || t.buyerId === currentUser.id) && t.status === 'pending'
       ).length
     : 0;
 
@@ -71,15 +71,15 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
         </button>
       </div>
 
-      {/* 4. Safe Campus Meetups */}
+      {/* 4. Campus Orders / Transactions */}
       <button
-        onClick={() => onNavigate('meetups')}
-        className={`mobile-nav-item ${currentView === 'meetups' ? 'active' : ''}`}
-        aria-label="Campus Meetups"
+        onClick={() => onNavigate('transactions')}
+        className={`mobile-nav-item ${currentView === 'transactions' ? 'active' : ''}`}
+        aria-label="Campus Transactions"
       >
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <MapPin size={19} style={{ flexShrink: 0 }} />
-          {activeMeetupsCount > 0 && (
+          <Receipt size={19} style={{ flexShrink: 0 }} />
+          {pendingTransactionsCount > 0 && (
             <span
               style={{
                 position: 'absolute',
@@ -98,11 +98,11 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
                 lineHeight: 1
               }}
             >
-              {activeMeetupsCount}
+              {pendingTransactionsCount}
             </span>
           )}
         </div>
-        <span style={{ fontSize: '0.68rem', fontWeight: currentView === 'meetups' ? 800 : 600, marginTop: '2px', lineHeight: 1 }}>Meetups</span>
+        <span style={{ fontSize: '0.68rem', fontWeight: currentView === 'transactions' ? 800 : 600, marginTop: '2px', lineHeight: 1 }}>Orders</span>
       </button>
 
       {/* 5. Chat / Messages / Sign In */}

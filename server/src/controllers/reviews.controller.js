@@ -19,14 +19,14 @@ const createReview = asyncHandler(async (req, res, next) => {
     traitBadges = []
   } = req.body;
 
-  // Check if meetup exists and is completed
-  const meetup = await db('meetup_transactions').where({ id: transactionId }).first();
-  if (!meetup) {
-    return next(new AppError('Meetup transaction not found.', 404));
+  // Check if transaction exists and is completed
+  const transaction = await db('transactions').where({ id: transactionId }).first();
+  if (!transaction) {
+    return next(new AppError('Transaction not found.', 404));
   }
 
   // Ensure caller is buyer or seller
-  if (req.user.id !== meetup.seller_id && req.user.id !== meetup.buyer_id) {
+  if (req.user.id !== transaction.seller_id && req.user.id !== transaction.buyer_id) {
     return next(new AppError('Unauthorized to review this transaction.', 403));
   }
 

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Logo } from '../common/Logo';
 import { VerifiedBadge } from '../common/VerifiedBadge';
 import { UserAvatar } from '../common/UserAvatar';
-import { NotificationDropdown } from './NotificationDropdown';
 import { useAuth } from '../../context/AuthContext';
 import { useMarket } from '../../context/MarketContext';
 import { useChat } from '../../context/ChatContext';
@@ -17,7 +16,6 @@ import {
   X,
   LogOut,
   User,
-  Bookmark,
   Receipt,
   Settings,
   Shield
@@ -39,8 +37,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenVerification
 }) => {
   const { currentUser, isAuthenticated, isAdmin, logout } = useAuth();
-  const { selectedCampus, setSelectedCampus, searchQuery, setSearchQuery, favorites } = useMarket();
-  const { unreadTotal, swaps, meetups } = useChat();
+  const { selectedCampus, setSelectedCampus, searchQuery, setSearchQuery } = useMarket();
+  const { unreadTotal, swaps, transactions } = useChat();
   const { showToast } = useToast();
 
   const [isCampusDropdownOpen, setIsCampusDropdownOpen] = useState(false);
@@ -67,9 +65,9 @@ export const Navbar: React.FC<NavbarProps> = ({
       ).length
     : 0;
 
-  const activeMeetupsCount = currentUser
-    ? meetups.filter(
-        (m) => (m.sellerId === currentUser.id || m.buyerId === currentUser.id) && m.status === 'scheduled'
+  const pendingTransactionsCount = currentUser
+    ? transactions.filter(
+        (t) => (t.sellerId === currentUser.id || t.buyerId === currentUser.id) && t.status === 'pending'
       ).length
     : 0;
 
@@ -81,8 +79,8 @@ export const Navbar: React.FC<NavbarProps> = ({
     onNavigate('swaps');
   };
 
-  const handleMeetupsClick = () => {
-    onNavigate('meetups');
+  const handleTransactionsClick = () => {
+    onNavigate('transactions');
   };
 
   const handleChatClick = () => {
@@ -92,10 +90,6 @@ export const Navbar: React.FC<NavbarProps> = ({
       return;
     }
     onOpenChat();
-  };
-
-  const handleFavoritesClick = () => {
-    onNavigate('favorites');
   };
 
   const handleLogout = () => {
@@ -337,21 +331,21 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
 
             <button
-              onClick={handleMeetupsClick}
+              onClick={handleTransactionsClick}
               style={{
                 position: 'relative',
                 padding: '0.45rem 0.75rem',
                 borderRadius: '8px',
                 fontSize: '0.84rem',
-                fontWeight: currentView === 'meetups' ? 800 : 600,
-                color: currentView === 'meetups' ? 'var(--uc-blue, #002B7F)' : 'var(--text-secondary, #475569)',
-                backgroundColor: currentView === 'meetups' ? 'var(--uc-blue-subtle, #EBF1FC)' : 'transparent',
+                fontWeight: currentView === 'transactions' ? 800 : 600,
+                color: currentView === 'transactions' ? 'var(--uc-blue, #002B7F)' : 'var(--text-secondary, #475569)',
+                backgroundColor: currentView === 'transactions' ? 'var(--uc-blue-subtle, #EBF1FC)' : 'transparent',
                 border: 'none',
                 cursor: 'pointer'
               }}
             >
-              <span>Meetups</span>
-              {activeMeetupsCount > 0 && (
+              <span>Transactions</span>
+              {pendingTransactionsCount > 0 && (
                 <span
                   style={{
                     position: 'absolute',
@@ -369,7 +363,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     justifyContent: 'center'
                   }}
                 >
-                  {activeMeetupsCount}
+                  {pendingTransactionsCount}
                 </span>
               )}
             </button>
@@ -393,48 +387,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <div className="desktop-only" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             <div style={{ width: '1px', height: '20px', backgroundColor: 'var(--border-subtle, #E2E8F0)', margin: '0 0.2rem' }} />
-
-            {/* Saved / Favorites Button with Counter */}
-            <button
-              onClick={handleFavoritesClick}
-              style={{
-                position: 'relative',
-                padding: '0.5rem',
-                borderRadius: '8px',
-                color: currentView === 'favorites' ? 'var(--uc-gold, #B45309)' : 'var(--text-secondary, #334155)',
-                backgroundColor: currentView === 'favorites' ? 'var(--uc-gold-light, #FEF3C7)' : 'var(--bg-subtle, #F8FAFC)',
-                border: '1px solid var(--border-subtle, #CBD5E1)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer'
-              }}
-              title="Saved Items"
-            >
-              <Bookmark size={16} color={favorites.length > 0 ? '#F59E0B' : 'var(--text-muted)'} style={{ flexShrink: 0 }} />
-              {favorites.length > 0 && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: '-4px',
-                    right: '-4px',
-                    backgroundColor: '#F59E0B',
-                    color: '#002B7F',
-                    fontSize: '0.6rem',
-                    fontWeight: 800,
-                    minWidth: '15px',
-                    height: '15px',
-                    padding: '0 2px',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  {favorites.length}
-                </span>
-              )}
-            </button>
 
             {/* Authenticated Messaging Drawer */}
             {isAuthenticated && currentUser && (
@@ -497,9 +449,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {isAuthenticated && currentUser ? (
             <>
-              {/* Live Notification Bell */}
-              <NotificationDropdown onNavigate={onNavigate} />
-
               {/* User Menu */}
               <div style={{ position: 'relative' }} ref={userMenuRef}>
                 <button
@@ -643,26 +592,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <span>My Profile & Listings</span>
                     </button>
 
-                    {/* 2. Saved Items */}
-                    <button
-                      onClick={() => {
-                        setIsUserMenuOpen(false);
-                        onNavigate('favorites');
-                      }}
-                      className="dropdown-item mobile-only"
-                    >
-                      <Bookmark size={15} color="#F59E0B" style={{ flexShrink: 0 }} />
-                      <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                        <span>Saved Items</span>
-                        {favorites.length > 0 && (
-                          <span className="badge-pill badge-gold" style={{ fontSize: '0.65rem' }}>
-                            {favorites.length}
-                          </span>
-                        )}
-                      </span>
-                    </button>
-
-                    {/* 3. Transaction History */}
+                    {/* 2. Transaction History */}
                     <button
                       onClick={() => {
                         setIsUserMenuOpen(false);

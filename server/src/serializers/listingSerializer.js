@@ -1,31 +1,45 @@
 /**
- * Listing Serializer
+ * Listing Serializer with Multi-Media (Images & Product Sample Videos)
  */
-function serializeListing(row, images = [], tags = []) {
+function serializeListing(row, mediaItems = []) {
   if (!row) return null;
 
-  const resolvedImages = images.length > 0
-    ? images
-    : (row.images
-        ? (typeof row.images === 'string' ? row.images.split(',') : row.images)
-        : []);
-
-  const resolvedTags = tags.length > 0
-    ? tags
-    : (row.tags
-        ? (typeof row.tags === 'string' ? row.tags.split(',') : row.tags)
-        : []);
-
-  let preferredSpots = [];
-  if (row.preferred_meetup_spots) {
-    preferredSpots = typeof row.preferred_meetup_spots === 'string'
-      ? JSON.parse(row.preferred_meetup_spots)
-      : row.preferred_meetup_spots;
-  } else if (row.preferredMeetupSpots) {
-    preferredSpots = row.preferredMeetupSpots;
+  // Format mediaItems into normalized array
+  let resolvedMedia = [];
+  if (Array.isArray(mediaItems) && mediaItems.length > 0) {
+    resolvedMedia = mediaItems.map((m, idx) => {
+      if (typeof m === 'string') {
+        const isVid = m.match(/\.(mp4|webm|mov|m4v)(\?.*)?$/i) || m.includes('/video/upload/');
+        return {
+          id: `med-${idx}`,
+          url: m,
+          mediaType: isVid ? 'video' : 'image',
+          isPrimary: idx === 0
+        };
+      }
+      return {
+        id: m.id || `med-${idx}`,
+        url: m.media_url || m.url || m.image_url,
+        mediaType: m.media_type || m.mediaType || (m.media_url?.match(/\.(mp4|webm|mov|m4v)(\?.*)?$/i) ? 'video' : 'image'),
+        thumbnailUrl: m.thumbnail_url || m.thumbnailUrl || null,
+        isPrimary: Boolean(m.is_primary ?? m.isPrimary ?? (idx === 0))
+      };
+    });
+  } else if (row.images) {
+    const rawImgs = typeof row.images === 'string' ? row.images.split(',') : row.images;
+    resolvedMedia = rawImgs.map((url, idx) => ({
+      id: `med-${idx}`,
+      url: url.trim(),
+      mediaType: url.match(/\.(mp4|webm|mov|m4v)(\?.*)?$/i) ? 'video' : 'image',
+      isPrimary: idx === 0
+    }));
   }
 
-  const isSoldExplicit = row.is_sold !== undefined ? Boolean(row.is_sold) : (row.isSold !== undefined ? Boolean(row.isSold) : false);
+  // Image URLs list for backwards compatibility
+  const resolvedImages = resolvedMedia.map((m) => m.url);
+  const hasVideo = resolvedMedia.some((m) => m.mediaType === 'video');
+
+  const isSoldExplicit = row.is_sold !== undefined ? Boolean(row.is_sold) : (row.status === 'sold' || row.status === 'swapped' || row.status === 'donated');
   const isOutOfStock = row.quantity !== undefined && row.quantity !== null && Number(row.quantity) <= 0;
 
   return {
@@ -39,22 +53,24 @@ function serializeListing(row, images = [], tags = []) {
     category: row.category,
     condition: row.condition,
     quantity: Number(row.quantity !== undefined && row.quantity !== null ? row.quantity : 1),
-    tags: resolvedTags,
+    media: resolvedMedia,
     images: resolvedImages,
+    hasVideo,
     sellerId: row.seller_id || row.sellerId,
     sellerName: row.seller_name || row.sellerName || '',
     sellerAvatar: row.seller_avatar || row.sellerAvatar || null,
-    sellerCampus: row.seller_campus || row.sellerCampus || '',
-    sellerCollege: row.seller_college || row.sellerCollege || '',
+    sellerCampus: row.seller_campus || row.sellerCampus || row.campus || '',
+    sellerCollege: row.seller_college || row.sellerCollege || row.department || '',
     sellerIsVerified: Boolean(row.seller_is_verified ?? row.sellerIsVerified ?? false),
     sellerTrustScore: row.seller_trust_score ?? row.sellerTrustScore ?? 60,
-    preferredMeetupSpots: preferredSpots,
-    customMeetupSpot: row.custom_meetup_spot || row.customMeetupSpot || null,
-    isBoosted: Boolean(row.is_boosted ?? row.isBoosted),
+    isBoosted: Boolean(row.is_boosted ?? row.is_featured ?? row.isBoosted),
     isSold: isSoldExplicit || isOutOfStock,
+    status: row.status || (isSoldExplicit ? 'sold' : 'active'),
     courseCode: row.course_code || row.courseCode || null,
-    views: Number(row.views || 0),
-    favoritesCount: Number(row.favorites_count ?? row.favoritesCount ?? 0),
+    preferredMeetupSpots: row.preferred_meetup_spots
+      ? (typeof row.preferred_meetup_spots === 'string' ? JSON.parse(row.preferred_meetup_spots) : row.preferred_meetup_spots)
+      : [],
+    views: Number(row.views_count ?? row.views ?? 0),
     createdAt: row.created_at || row.createdAt || new Date().toISOString()
   };
 }

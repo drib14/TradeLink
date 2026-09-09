@@ -8,19 +8,15 @@ USE `tradelink_db_test`;
 
 SET FOREIGN_KEY_CHECKS = 0;
 
--- Using DELETE FROM ensures phpMyAdmin will NEVER throw foreign key error #1701
+-- Using DELETE FROM ensures phpMyAdmin / MySQL will not throw foreign key errors
 DELETE FROM `review_badges`;
 DELETE FROM `reviews`;
-DELETE FROM `favorites`;
-DELETE FROM `notifications`;
 DELETE FROM `messages`;
-DELETE FROM `conversation_read_status`;
 DELETE FROM `conversations`;
-DELETE FROM `meetup_transactions`;
+DELETE FROM `transactions`;
 DELETE FROM `swap_offers`;
 DELETE FROM `wanted_requests`;
-DELETE FROM `listing_tags`;
-DELETE FROM `listing_images`;
+DELETE FROM `listing_media`;
 DELETE FROM `listings`;
 DELETE FROM `verification_requests`;
 DELETE FROM `flagged_listings`;
@@ -48,7 +44,7 @@ INSERT INTO `users` (
 -- ----------------------------------------------------------------------------
 
 INSERT INTO `announcements` (`id`, `title`, `message`, `campus`, `type`, `author_id`, `author_name`, `is_active`) VALUES
-('ann-1', 'Guarded Meetup Reminder', 'Always meet inside official UC campus security gates during daytime hours. Inspect items before scanning the Handshake QR code.', 'All', 'alert', 'user-admin', 'UC Administration', 1),
+('ann-1', 'Safe Student Trading Reminder', 'Coordinate trades safely through our direct chat. Always verify items before completing payments.', 'All', 'alert', 'user-admin', 'UC Administration', 1),
 ('ann-2', 'Junior High & Senior High Trading Desk Live', 'Students from UC PRI and UC South high school departments can now trade textbooks and PE uniforms with zero platform fees.', 'UC PRI', 'info', 'user-admin', 'High School Coordinator', 1);
 
 -- ----------------------------------------------------------------------------
@@ -89,7 +85,7 @@ INSERT INTO `system_config` (`config_key`, `config_value`, `last_updated_by`) VA
 ('platform_rules', JSON_OBJECT(
   'maintenanceMode', false,
   'maxListingPrice', 50000,
-  'maxImagesPerListing', 5,
+  'maxImagesPerListing', 10,
   'swapModeEnabled', true,
   'wantedBoardEnabled', true,
   'freeDonationEnabled', true,
@@ -98,8 +94,7 @@ INSERT INTO `system_config` (`config_key`, `config_value`, `last_updated_by`) VA
 
 INSERT INTO `feature_flags` (`id`, `name`, `description`, `enabled`) VALUES
 ('ff-1', 'Price Advisor AI', 'Enable AI-powered pricing suggestions', 1),
-('ff-2', 'Campus Map', 'Interactive campus meetup map', 1),
-('ff-3', 'Pro Merchant Badge', 'Allow pro merchant status for top sellers', 1),
-('ff-4', 'Dark Mode', 'Dark mode toggle for all users', 1);
+('ff-2', 'Direct Student Chat', 'Enable instant peer-to-peer student messaging', 1),
+('ff-3', 'Campus Swap Desk', 'Allow barter and item-for-item swaps', 1);
 
 SET FOREIGN_KEY_CHECKS = 1;

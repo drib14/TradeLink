@@ -108,19 +108,15 @@ const getListings = asyncHandler(async (req, res) => {
   const offset = (parsedPage - 1) * parsedLimit;
   const listings = await query.limit(parsedLimit).offset(offset);
 
-  // Fetch images and tags for returned listings with single bulk queries
+  // Fetch media for returned listings with single bulk query
   const listingIds = listings.map((l) => l.id);
-  const images = listingIds.length > 0
-    ? await db('listing_images').whereIn('listing_id', listingIds).orderBy('display_order', 'asc')
-    : [];
-  const tags = listingIds.length > 0
-    ? await db('listing_tags').whereIn('listing_id', listingIds)
+  const mediaRows = listingIds.length > 0
+    ? await db('listing_media').whereIn('listing_id', listingIds).orderBy('display_order', 'asc')
     : [];
 
   const formatted = listings.map((l) => {
-    const lImages = images.filter((img) => img.listing_id === l.id).map((img) => img.image_url);
-    const lTags = tags.filter((t) => t.listing_id === l.id).map((t) => t.tag);
-    return serializeListing(l, lImages, lTags);
+    const lMedia = mediaRows.filter((m) => m.listing_id === l.id);
+    return serializeListing(l, lMedia);
   });
 
   res.status(200).json({
@@ -165,23 +161,18 @@ const getListingById = asyncHandler(async (req, res, next) => {
     } catch {}
   }
 
-  const images = await db('listing_images').where({ listing_id: id }).orderBy('display_order', 'asc');
-  const tags = await db('listing_tags').where({ listing_id: id });
+  const media = await db('listing_media').where({ listing_id: id }).orderBy('display_order', 'asc');
 
   res.status(200).json({
     status: 'success',
     data: {
-      listing: serializeListing(
-        listing,
-        images.map((i) => i.image_url),
-        tags.map((t) => t.tag)
-      )
+      listing: serializeListing(listing, media)
     }
   });
 });
 
 /**
- * Create a new listing
+ * Create a new listing with multi-media (photos + product sample videos)
  */
 const createListing = asyncHandler(async (req, res, next) => {
   const {
@@ -196,10 +187,8 @@ const createListing = asyncHandler(async (req, res, next) => {
     campus,
     department,
     quantity = 1,
-    tags = [],
+    media = [],
     images = [],
-    preferredMeetupSpots = [],
-    customMeetupSpot,
     courseCode
   } = req.body;
 
@@ -243,38 +232,39 @@ const createListing = asyncHandler(async (req, res, next) => {
     department: department || req.user.college || null,
     status: 'active',
     views_count: 1,
-    favorites_count: 0,
-    is_featured: false
+    is_featured: false,
+    course_code: courseCode ? courseCode.trim().toUpperCase() : null
   };
 
-  // Upload any base64 images to Cloudflare R2 / secure storage (cap to 5)
-  const cappedImages = (Array.isArray(images) ? images : []).slice(0, 5);
-  const cappedTags = (Array.isArray(tags) ? tags : []).slice(0, 10);
-  const resolvedImages = await Promise.all(
-    cappedImages.map((img) => storageService.uploadBase64(img, 'listings'))
+  // Allow at least 5 media items (up to 10 for video product samples + photos)
+  const rawItems = (Array.isArray(media) && media.length > 0) ? media : (Array.isArray(images) ? images : []);
+  const cappedItems = rawItems.slice(0, 10);
+  const resolvedMedia = await Promise.all(
+    cappedItems.map(async (item, index) => {
+      const rawUrl = typeof item === 'string' ? item : (item.url || item.media_url || item.mediaUrl || '');
+      const uploadedUrl = await storageService.uploadBase64(rawUrl, 'listings');
+      const isExplicitVideo = typeof item === 'object' && item.mediaType === 'video';
+      const isDetectedVideo = Boolean(
+        uploadedUrl.match(/\.(mp4|webm|mov|m4v)(\?.*)?$/i) ||
+        uploadedUrl.includes('/video/upload/')
+      );
+      return {
+        id: uuidv4(),
+        listing_id: listingId,
+        media_url: uploadedUrl,
+        media_type: (isExplicitVideo || isDetectedVideo) ? 'video' : 'image',
+        thumbnail_url: (typeof item === 'object' && item.thumbnailUrl) ? item.thumbnailUrl : null,
+        is_primary: index === 0,
+        display_order: index
+      };
+    })
   );
 
   await db.transaction(async (trx) => {
     await trx('listings').insert(newListing);
 
-    if (resolvedImages.length > 0) {
-      const imgRows = resolvedImages.map((url, index) => ({
-        id: uuidv4(),
-        listing_id: listingId,
-        image_url: url,
-        is_primary: index === 0,
-        display_order: index
-      }));
-      await trx('listing_images').insert(imgRows);
-    }
-
-    if (cappedTags.length > 0) {
-      const tagRows = cappedTags.map((t) => ({
-        id: uuidv4(),
-        listing_id: listingId,
-        tag: t.trim()
-      }));
-      await trx('listing_tags').insert(tagRows);
+    if (resolvedMedia.length > 0) {
+      await trx('listing_media').insert(resolvedMedia);
     }
   });
 
@@ -296,7 +286,7 @@ const createListing = asyncHandler(async (req, res, next) => {
     status: 'success',
     message: 'Listing created successfully.',
     data: {
-      listing: serializeListing(createdListing, resolvedImages, tags)
+      listing: serializeListing(createdListing, resolvedMedia)
     }
   });
 });
@@ -327,6 +317,7 @@ const updateListing = asyncHandler(async (req, res, next) => {
   if (req.body.category) updates.category = req.body.category;
   if (req.body.condition) updates.condition = req.body.condition;
   if (req.body.campus) updates.campus = req.body.campus;
+  if (req.body.courseCode !== undefined) updates.course_code = req.body.courseCode ? req.body.courseCode.trim().toUpperCase() : null;
 
   // Status check: regular users can only mark active or sold; admins can set any status
   if (req.body.status) {
@@ -347,21 +338,32 @@ const updateListing = asyncHandler(async (req, res, next) => {
       await trx('listings').where({ id }).update(updates);
     }
 
-    if (Array.isArray(req.body.images)) {
-      const cappedImages = req.body.images.slice(0, 5);
-      const resolvedImages = await Promise.all(
-        cappedImages.map((img) => storageService.uploadBase64(img, 'listings'))
+    const rawMedia = Array.isArray(req.body.media) ? req.body.media : (Array.isArray(req.body.images) ? req.body.images : null);
+    if (rawMedia) {
+      const cappedMedia = rawMedia.slice(0, 10);
+      const resolvedMedia = await Promise.all(
+        cappedMedia.map(async (item, index) => {
+          const rawUrl = typeof item === 'string' ? item : (item.url || item.media_url || item.mediaUrl || '');
+          const uploadedUrl = await storageService.uploadBase64(rawUrl, 'listings');
+          const isExplicitVideo = typeof item === 'object' && item.mediaType === 'video';
+          const isDetectedVideo = Boolean(
+            uploadedUrl.match(/\.(mp4|webm|mov|m4v)(\?.*)?$/i) ||
+            uploadedUrl.includes('/video/upload/')
+          );
+          return {
+            id: uuidv4(),
+            listing_id: id,
+            media_url: uploadedUrl,
+            media_type: (isExplicitVideo || isDetectedVideo) ? 'video' : 'image',
+            thumbnail_url: (typeof item === 'object' && item.thumbnailUrl) ? item.thumbnailUrl : null,
+            is_primary: index === 0,
+            display_order: index
+          };
+        })
       );
-      await trx('listing_images').where({ listing_id: id }).delete();
-      if (resolvedImages.length > 0) {
-        const imgRows = resolvedImages.map((url, index) => ({
-          id: uuidv4(),
-          listing_id: id,
-          image_url: url,
-          is_primary: index === 0,
-          display_order: index
-        }));
-        await trx('listing_images').insert(imgRows);
+      await trx('listing_media').where({ listing_id: id }).delete();
+      if (resolvedMedia.length > 0) {
+        await trx('listing_media').insert(resolvedMedia);
       }
     }
   });
@@ -387,17 +389,15 @@ const deleteListing = asyncHandler(async (req, res, next) => {
     return next(new AppError('You are not authorized to delete this listing.', 403));
   }
 
-  // Clean up listing images from storage
-  const listingImages = await db('listing_images').where({ listing_id: id });
-  for (const img of listingImages) {
-    await storageService.deleteFile(img.image_url);
+  // Clean up listing media from storage
+  const listingMedia = await db('listing_media').where({ listing_id: id });
+  for (const m of listingMedia) {
+    await storageService.deleteFile(m.media_url);
   }
 
   // Clean up dependent child rows in a single transaction to prevent orphans
   await db.transaction(async (trx) => {
-    await trx('listing_tags').where({ listing_id: id }).delete();
-    await trx('listing_images').where({ listing_id: id }).delete();
-    await trx('favorites').where({ listing_id: id }).delete();
+    await trx('listing_media').where({ listing_id: id }).delete();
     await trx('flagged_listings').where({ listing_id: id }).delete();
     await trx('listings').where({ id }).delete();
   });

@@ -34,7 +34,8 @@ import {
   Shield,
   Heart,
   ExternalLink,
-  Filter
+  Filter,
+  Receipt
 } from 'lucide-react';
 import { VerifiedBadge } from '../components/common/VerifiedBadge';
 import { CampusBadge } from '../components/common/CampusBadge';
@@ -87,10 +88,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     allUsers,
     listings,
     wantedRequests,
+    transactions = [],
     meetups,
     boostListingByAdmin,
     removeWantedByAdmin,
     deleteWantedRequest,
+    completeTransactionByAdmin,
+    cancelTransactionByAdmin,
     completeMeetupByAdmin,
     cancelMeetupByAdmin
   } = useAdmin();
@@ -107,6 +111,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     | 'disputes'
     | 'reputation'
     | 'wanted'
+    | 'transactions'
     | 'meetups'
     | 'landmarks'
     | 'priceAdvisor'
@@ -382,7 +387,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   // Scan Listings for Prohibited Keywords
   const scannedViolations = listings
     .map((item) => {
-      const textToSearch = `${item.title} ${item.description} ${item.category} ${(item.tags || []).join(' ')}`.toLowerCase();
+      const textToSearch = `${item.title} ${item.description} ${item.category}`.toLowerCase();
       const matched = prohibitedKeywords.filter((kw) => textToSearch.includes(kw.toLowerCase()));
       return {
         listing: item,
@@ -565,7 +570,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
           { id: 'disputes', label: `Trade Disputes (${pendingDisputesCount})`, icon: <Scale size={14} /> },
           { id: 'reputation', label: 'Trust & Reputation', icon: <Award size={14} /> },
           { id: 'wanted', label: `Wanted Board (${wantedRequests.length})`, icon: <Flame size={14} /> },
-          { id: 'meetups', label: `Meetup Escrows (${meetups.length})`, icon: <MapPin size={14} /> },
+          { id: 'transactions', label: `Transactions (${transactions.length})`, icon: <Receipt size={14} /> },
           { id: 'landmarks', label: 'Guarded Hubs', icon: <Building2 size={14} /> },
           { id: 'priceAdvisor', label: 'Price Compliance', icon: <DollarSign size={14} /> },
           { id: 'announcements', label: `Broadcasts (${announcements.length})`, icon: <Megaphone size={14} /> },
@@ -1313,9 +1318,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }} title="Total Views">
                                 <Eye size={13} /> {l.views || 0}
                               </span>
-                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: (l.favoritesCount || 0) > 0 ? '#E11D48' : '#94A3B8' }} title="Favorites / Wishlists">
-                                <Heart size={13} fill={(l.favoritesCount || 0) > 0 ? '#E11D48' : 'none'} /> {l.favoritesCount || 0}
-                              </span>
                             </div>
                           </td>
                           <td style={{ padding: '0.75rem', color: '#334155' }}>
@@ -1791,80 +1793,121 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
       )}
 
       {/* =========================================================================
-          TAB 9: SAFE MEETUP ESCROWS & LANDMARK HANDSHAKES
+          TAB 9: CAMPUS TRANSACTIONS MONITOR
           ========================================================================= */}
-      {activeTab === 'meetups' && (
+      {(activeTab === 'transactions' || activeTab === 'meetups') && (
         <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A' }}>Campus Safe Meetup Escrow Monitor ({meetups.length})</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A' }}>
+                Campus Transactions Monitor ({transactions.length})
+              </h3>
+              <p style={{ fontSize: '0.78rem', color: '#64748B', margin: 0 }}>
+                Live ledger of direct student purchases, barter swaps, and order settlements across UC campuses.
+              </p>
+            </div>
+          </div>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid #E2E8F0', color: '#64748B' }}>
-                  <th style={{ padding: '0.65rem 0.75rem' }}>Item & Code</th>
-                  <th style={{ padding: '0.65rem 0.75rem' }}>Guarded Meetup Spot</th>
-                  <th style={{ padding: '0.65rem 0.75rem' }}>Buyer & Seller</th>
-                  <th style={{ padding: '0.65rem 0.75rem' }}>Status</th>
+                  <th style={{ padding: '0.65rem 0.75rem' }}>Reference & Date</th>
+                  <th style={{ padding: '0.65rem 0.75rem' }}>Item & Mode</th>
+                  <th style={{ padding: '0.65rem 0.75rem' }}>Buyer ↔ Seller</th>
+                  <th style={{ padding: '0.65rem 0.75rem' }}>Payment</th>
+                  <th style={{ padding: '0.65rem 0.75rem' }}>Order Status</th>
                   <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>Admin Overrides</th>
                 </tr>
               </thead>
               <tbody>
-                {meetups.map((m) => (
-                  <tr key={m.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                    <td style={{ padding: '0.75rem' }}>
-                      <div style={{ fontWeight: 800, color: '#0F172A' }}>{m.listingTitle}</div>
-                      <div style={{ fontSize: '0.72rem', color: '#002B7F', fontFamily: 'monospace', fontWeight: 800 }}>
-                        Code: {m.verificationCode}
-                      </div>
-                    </td>
-                    <td style={{ padding: '0.75rem' }}>
-                      <div style={{ fontWeight: 700, color: '#002B7F' }}>{m.landmarkSpot}</div>
-                      <div style={{ fontSize: '0.72rem', color: '#64748B' }}>{m.campus} • {m.scheduledDateTime}</div>
-                    </td>
-                    <td style={{ padding: '0.75rem' }}>
-                      <div style={{ fontSize: '0.78rem', color: '#334155' }}>
-                        <strong>{m.buyerName}</strong> ↔ <strong>{m.sellerName}</strong>
-                      </div>
-                    </td>
-                    <td style={{ padding: '0.75rem' }}>
-                      <span
-                        style={{
-                          padding: '0.2rem 0.5rem',
-                          borderRadius: '4px',
-                          fontSize: '0.7rem',
-                          fontWeight: 800,
-                          backgroundColor: m.status === 'completed' ? '#ECFDF5' : m.status === 'cancelled' ? '#FEF2F2' : '#FFFBEB',
-                          color: m.status === 'completed' ? '#059669' : m.status === 'cancelled' ? '#DC2626' : '#D97706'
-                        }}
-                      >
-                        {m.status.toUpperCase()}
-                      </span>
-                    </td>
-                    <td style={{ padding: '0.75rem', textAlign: 'right' }}>
-                      {m.status === 'scheduled' && (
-                        <div style={{ display: 'inline-flex', gap: '0.35rem' }}>
-                          <button
-                            onClick={() => {
-                              completeMeetupByAdmin(m.id);
-                              showToast('Completed', 'Handshake marked as completed.', 'success');
-                            }}
-                            style={{ padding: '0.35rem 0.6rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 800, backgroundColor: '#059669', color: '#FFFFFF' }}
-                          >
-                            Verify
-                          </button>
-                          <button
-                            onClick={() => {
-                              cancelMeetupByAdmin(m.id, 'Cancelled by admin safety desk');
-                              showToast('Cancelled', 'Meetup cancelled and flagged.', 'info');
-                            }}
-                            style={{ padding: '0.35rem 0.6rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 800, backgroundColor: '#DC2626', color: '#FFFFFF' }}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      )}
+                {transactions.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} style={{ padding: '2rem', textAlign: 'center', color: '#64748B' }}>
+                      No transactions recorded yet. When students place orders or swaps, they will appear here in real time.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  transactions.map((tx: any) => {
+                    const refCode = tx.referenceNo || tx.reference_no || `TL-TX-${tx.id?.slice(0, 6)}`;
+                    const amount = Number(tx.amount || tx.finalPrice || 0);
+                    const payMethod = (tx.paymentMethod || tx.payment_method || 'cash').toUpperCase();
+                    const payStatus = tx.paymentStatus || tx.payment_status || 'unpaid';
+                    const txStatus = tx.status || 'pending';
+
+                    return (
+                      <tr key={tx.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                        <td style={{ padding: '0.75rem' }}>
+                          <div style={{ fontWeight: 800, color: '#002B7F', fontFamily: 'monospace' }}>
+                            {refCode}
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
+                            {new Date(tx.createdAt || tx.created_at || Date.now()).toLocaleDateString()}
+                          </div>
+                        </td>
+                        <td style={{ padding: '0.75rem' }}>
+                          <div style={{ fontWeight: 700, color: '#0F172A' }}>{tx.listingTitle || 'Campus Marketplace Item'}</div>
+                          <div style={{ fontSize: '0.72rem', color: '#64748B', textTransform: 'capitalize' }}>
+                            {(tx.tradeMode || tx.trade_mode || 'buy_sell').replace('_', '/')}
+                          </div>
+                        </td>
+                        <td style={{ padding: '0.75rem' }}>
+                          <div style={{ fontSize: '0.78rem', color: '#334155' }}>
+                            <span style={{ color: '#002B7F', fontWeight: 600 }}>Buyer:</span> {tx.buyerName || 'Student Buyer'}
+                          </div>
+                          <div style={{ fontSize: '0.78rem', color: '#334155' }}>
+                            <span style={{ color: '#059669', fontWeight: 600 }}>Seller:</span> {tx.sellerName || 'Student Seller'}
+                          </div>
+                        </td>
+                        <td style={{ padding: '0.75rem' }}>
+                          <div style={{ fontWeight: 800, color: '#0F172A' }}>
+                            {amount > 0 ? `₱${amount.toLocaleString()}` : 'Free / Barter'}
+                          </div>
+                          <div style={{ fontSize: '0.7rem', color: '#64748B' }}>
+                            {payMethod} • <span style={{ color: payStatus === 'paid' ? '#059669' : '#D97706', fontWeight: 600 }}>{payStatus}</span>
+                          </div>
+                        </td>
+                        <td style={{ padding: '0.75rem' }}>
+                          <span
+                            style={{
+                              padding: '0.25rem 0.55rem',
+                              borderRadius: '9999px',
+                              fontSize: '0.7rem',
+                              fontWeight: 800,
+                              backgroundColor: txStatus === 'completed' ? '#ECFDF5' : txStatus === 'cancelled' ? '#FEF2F2' : '#FFFBEB',
+                              color: txStatus === 'completed' ? '#059669' : txStatus === 'cancelled' ? '#DC2626' : '#D97706'
+                            }}
+                          >
+                            {txStatus.toUpperCase()}
+                          </span>
+                        </td>
+                        <td style={{ padding: '0.75rem', textAlign: 'right' }}>
+                          {txStatus === 'pending' && (
+                            <div style={{ display: 'inline-flex', gap: '0.35rem' }}>
+                              <button
+                                onClick={() => {
+                                  completeTransactionByAdmin(tx.id);
+                                  showToast('Completed', 'Transaction marked as completed.', 'success');
+                                }}
+                                style={{ padding: '0.35rem 0.65rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 800, backgroundColor: '#059669', color: '#FFFFFF', border: 'none', cursor: 'pointer' }}
+                              >
+                                Complete
+                              </button>
+                              <button
+                                onClick={() => {
+                                  cancelTransactionByAdmin(tx.id, 'Cancelled by admin moderation desk');
+                                  showToast('Cancelled', 'Transaction cancelled.', 'info');
+                                }}
+                                style={{ padding: '0.35rem 0.65rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 800, backgroundColor: '#DC2626', color: '#FFFFFF', border: 'none', cursor: 'pointer' }}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>

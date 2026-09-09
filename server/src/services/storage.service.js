@@ -39,6 +39,19 @@ function isCloudinaryConfigured() {
 }
 
 /**
+ * Determines media type: 'image' or 'video'
+ */
+function getMediaType(filename = '', mimeType = '') {
+  const lowerMime = (mimeType || '').toLowerCase();
+  const lowerExt = path.extname(filename || '').toLowerCase();
+
+  if (lowerMime.startsWith('video/') || ['.mp4', '.webm', '.mov', '.m4v', '.avi', '.mkv'].includes(lowerExt)) {
+    return 'video';
+  }
+  return 'image';
+}
+
+/**
  * Returns extension from mimeType or filename
  */
 function getExtension(filename, mimeType) {
@@ -53,9 +66,13 @@ function getExtension(filename, mimeType) {
       'image/png': '.png',
       'image/webp': '.webp',
       'image/gif': '.gif',
-      'image/svg+xml': '.svg'
+      'image/svg+xml': '.svg',
+      'video/mp4': '.mp4',
+      'video/webm': '.webm',
+      'video/quicktime': '.mov',
+      'video/x-m4v': '.m4v'
     };
-    return map[mimeType.toLowerCase()] || '.jpg';
+    return map[mimeType.toLowerCase()] || (mimeType.startsWith('video/') ? '.mp4' : '.jpg');
   }
   return '.jpg';
 }
@@ -76,7 +93,7 @@ function buildPublicUrl(key) {
 /**
  * Save buffer to local filesystem (fallback)
  */
-async function saveLocalBuffer(buffer, folder, filename) {
+async function saveLocalBuffer(buffer, folder, filename, mediaType = 'image') {
   const targetDir = path.join(uploadBase, folder);
   if (!fs.existsSync(targetDir)) {
     fs.mkdirSync(targetDir, { recursive: true });
@@ -87,6 +104,7 @@ async function saveLocalBuffer(buffer, folder, filename) {
     url: `/uploads/${folder}/${filename}`,
     key: `${folder}/${filename}`,
     filename,
+    mediaType,
     size: buffer.length,
     storage: 'local'
   };
@@ -97,9 +115,9 @@ async function saveLocalBuffer(buffer, folder, filename) {
  *
  * @param {Buffer} buffer - File buffer
  * @param {string} originalFilename - Original name of uploaded file
- * @param {string} mimeType - MIME type (e.g. 'image/jpeg')
+ * @param {string} mimeType - MIME type (e.g. 'image/jpeg', 'video/mp4')
  * @param {string} folder - Target folder ('listings', 'avatars', 'id-photos', 'chat')
- * @returns {Promise<{ url: string, key: string, filename: string, size: number, storage: string }>}
+ * @returns {Promise<{ url: string, key: string, filename: string, mediaType: string, size: number, storage: string }>}
  */
 async function uploadBuffer(buffer, originalFilename = 'file.jpg', mimeType = 'image/jpeg', folder = 'listings') {
   if (!buffer || !Buffer.isBuffer(buffer)) {
@@ -108,6 +126,7 @@ async function uploadBuffer(buffer, originalFilename = 'file.jpg', mimeType = 'i
 
   const safeFolder = folders.includes(folder) ? folder : 'listings';
   const ext = getExtension(originalFilename, mimeType);
+  const mediaType = getMediaType(originalFilename, mimeType);
   const uniqueId = uuidv4();
   const filename = `${uniqueId}${ext}`;
 
@@ -132,17 +151,18 @@ async function uploadBuffer(buffer, originalFilename = 'file.jpg', mimeType = 'i
         url: result.secure_url,
         key: result.public_id,
         filename,
+        mediaType: result.resource_type === 'video' ? 'video' : mediaType,
         size: result.bytes || buffer.length,
         storage: 'cloudinary'
       };
     } catch (err) {
       logger.warn(`Cloudinary upload failed, falling back to local storage: ${err.message}`);
-      return saveLocalBuffer(buffer, safeFolder, filename);
+      return saveLocalBuffer(buffer, safeFolder, filename, mediaType);
     }
   }
 
   // Local fallback
-  return saveLocalBuffer(buffer, safeFolder, filename);
+  return saveLocalBuffer(buffer, safeFolder, filename, mediaType);
 }
 
 /**
@@ -150,7 +170,7 @@ async function uploadBuffer(buffer, originalFilename = 'file.jpg', mimeType = 'i
  *
  * @param {string} dataUriOrBase64 - Base64 data URI or raw base64 string
  * @param {string} folder - Target subfolder
- * @returns {Promise<string>} Clean URL of the uploaded image
+ * @returns {Promise<string>} Clean URL of the uploaded image or video
  */
 async function uploadBase64(dataUriOrBase64, folder = 'listings') {
   if (!dataUriOrBase64 || typeof dataUriOrBase64 !== 'string') {
@@ -215,56 +235,53 @@ async function deleteFile(fileUrlOrKey) {
           publicId = afterUpload.substring(0, afterUpload.lastIndexOf('.')) || afterUpload;
         }
       }
-      await cloudinary.uploader.destroy(publicId);
+      const isVideo = Boolean(
+        fileUrlOrKey.match(/\.(mp4|webm|mov|m4v)(\?.*)?$/i) ||
+        fileUrlOrKey.includes('/video/upload/')
+      );
+      await cloudinary.uploader.destroy(publicId, { resource_type: isVideo ? 'video' : 'image' });
     } catch (err) {
       logger.warn(`Failed to delete object from Cloudinary: ${err.message}`);
     }
+    return;
   }
 
-  // Clean local file if present
+  // Delete local file if it exists
+  const localMatch = fileUrlOrKey.replace(/^\/uploads\//, '');
+  const localPath = path.join(uploadBase, localMatch);
   try {
-    let key = fileUrlOrKey;
-    if (fileUrlOrKey.startsWith('/uploads/')) {
-      key = fileUrlOrKey.replace(/^\/uploads\//, '');
-    }
-    const localPath = path.join(uploadBase, key);
     if (fs.existsSync(localPath)) {
       await fs.promises.unlink(localPath);
     }
   } catch (err) {
-    logger.warn(`Failed to delete local fallback file: ${err.message}`);
+    logger.warn(`Failed to delete local file: ${err.message}`);
   }
 }
 
 /**
- * Test connectivity to Cloudinary or local storage
+ * Diagnostic test for Cloudinary connection
  */
 async function testCloudinaryConnection() {
   if (!isCloudinaryConfigured()) {
     return {
-      ok: true,
-      configured: false,
       storage: 'local',
-      message: 'Local Storage active (/uploads). Cloudinary credentials not configured.'
+      connected: false,
+      message: 'Cloudinary credentials not configured; local storage active.'
     };
   }
-
   try {
-    const res = await cloudinary.api.ping();
+    const ping = await cloudinary.api.ping();
     return {
-      ok: true,
-      configured: true,
       storage: 'cloudinary',
+      connected: ping.status === 'ok',
       cloudName: config.cloudinary.cloudName,
-      message: `Cloudinary Object Storage active [Cloud: ${config.cloudinary.cloudName}, status: ${res.status || 'ok'}]`
+      message: 'Cloudinary storage connected and active.'
     };
   } catch (err) {
     return {
-      ok: false,
-      configured: true,
       storage: 'local',
-      cloudName: config.cloudinary.cloudName,
-      message: `Cloudinary ping warning: ${err.message}. Using local storage fallback (/uploads).`
+      connected: false,
+      message: `Cloudinary ping failed (${err.message}); local storage fallback active.`
     };
   }
 }
@@ -275,7 +292,6 @@ module.exports = {
   deleteFile,
   buildPublicUrl,
   isCloudinaryConfigured,
-  testCloudinaryConnection,
-  testR2Connection: testCloudinaryConnection, // Backward compatibility alias
-  isR2Configured: isCloudinaryConfigured // Backward compatibility alias
+  getMediaType,
+  testCloudinaryConnection
 };

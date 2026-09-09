@@ -38,7 +38,7 @@ module.exports = (io, socket) => {
   });
 
   /**
-   * Send a real-time message
+   * Send a real-time message (text and/or media)
    */
   socket.on('chat:message', async (data) => {
     try {
@@ -53,10 +53,21 @@ module.exports = (io, socket) => {
         return;
       }
 
-      const { conversationId, receiverId, content, isSystemMessage = false, swapOfferId } = data;
-      if (!conversationId || !content || !content.trim()) return;
+      const {
+        conversationId,
+        receiverId,
+        content,
+        isSystemMessage = false,
+        swapOfferId,
+        transactionId,
+        mediaUrl,
+        mediaType
+      } = data;
 
-      if (content.length > 2000) {
+      if (!conversationId) return;
+      if (!content && !mediaUrl) return;
+
+      if (content && content.length > 2000) {
         socket.emit('chat:error', { message: 'Message exceeds maximum length of 2000 characters.' });
         return;
       }
@@ -69,18 +80,23 @@ module.exports = (io, socket) => {
         receiverId,
         content,
         isSystemMessage,
-        swapOfferId
+        swapOfferId,
+        transactionId,
+        mediaUrl,
+        mediaType
       });
 
       // Emit to everyone in the conversation room
       io.to(`conv:${conversationId}`).emit('chat:message', messagePayload);
 
-      // Emit notification to receiver's personal user room
+      // Emit real-time notification alert to receiver's personal user room
       io.to(`user:${receiverId}`).emit('notification:new', {
         title: `Message from ${socket.user.name}`,
-        message: content.trim(),
+        message: messagePayload.content,
         type: 'message',
-        conversationId
+        conversationId,
+        mediaUrl: messagePayload.mediaUrl,
+        mediaType: messagePayload.mediaType
       });
     } catch (err) {
       logger.error('Error in chat:message handler:', err);
@@ -109,18 +125,9 @@ module.exports = (io, socket) => {
     try {
       if (!conversationId) return;
 
-      await db('conversation_read_status')
-        .insert({
-          conversation_id: conversationId,
-          user_id: userId,
-          unread_count: 0,
-          last_read_at: new Date()
-        })
-        .onConflict(['conversation_id', 'user_id'])
-        .merge({
-          unread_count: 0,
-          last_read_at: new Date()
-        });
+      await db('messages')
+        .where({ conversation_id: conversationId, receiver_id: userId, is_read: false })
+        .update({ is_read: true });
 
       socket.to(`conv:${conversationId}`).emit('chat:read', {
         conversationId,

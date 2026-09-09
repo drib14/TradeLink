@@ -18,7 +18,7 @@ import { MarketplacePage } from './pages/MarketplacePage';
 import { ItemDetailPage } from './pages/ItemDetailPage';
 import { CreateListingPage } from './pages/CreateListingPage';
 import { SwapsPage } from './pages/SwapsPage';
-import { MeetupsPage } from './pages/MeetupsPage';
+import { TransactionsPage } from './pages/TransactionsPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { WantedBoardPage } from './pages/WantedBoardPage';
 import { CampusMapPage } from './pages/CampusMapPage';
@@ -28,8 +28,6 @@ import { AboutPage } from './pages/AboutPage';
 import { FAQPage } from './pages/FAQPage';
 import { MaintenancePage } from './pages/MaintenancePage';
 import { NotFoundPage } from './pages/NotFoundPage';
-import { FavoritesPage } from './pages/FavoritesPage';
-import { TransactionHistoryPage } from './pages/TransactionHistoryPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { encodeHashedId, decodeHashedId } from './utils/security';
 
@@ -55,15 +53,14 @@ const pathToView = (path: string, search: string = window.location.search): { vi
   if (cleanLower === 'create-listing' || cleanLower === 'post' || cleanLower === 'sell') return { view: 'create-listing', params: {} };
   if (cleanLower === 'wanted' || cleanLower === 'requests' || cleanLower === 'pasabuy') return { view: 'wanted', params: {} };
   if (cleanLower === 'swaps' || cleanLower === 'barter') return { view: 'swaps', params: {} };
-  if (cleanLower === 'meetups' || cleanLower === 'handshake') return { view: 'meetups', params: {} };
+  if (cleanLower === 'meetups' || cleanLower === 'handshake' || cleanLower === 'transactions' || cleanLower === 'history') return { view: 'transactions', params: {} };
   if (cleanLower === 'campus-map' || cleanLower === 'landmarks' || cleanLower === 'map') return { view: 'campus-map', params: {} };
   if (cleanLower === 'about') return { view: 'about', params: {} };
   if (cleanLower === 'faq') return { view: 'faq', params: {} };
   if (cleanLower === 'help-safety' || cleanLower === 'safety' || cleanLower === 'help') return { view: 'help-safety', params: {} };
   if (cleanLower === 'terms' || cleanLower === 'guidelines' || cleanLower === 'privacy') return { view: 'terms', params: {} };
   if (cleanLower === 'maintenance') return { view: 'maintenance', params: {} };
-  if (cleanLower === 'favorites' || cleanLower === 'saved') return { view: 'favorites', params: {} };
-  if (cleanLower === 'transactions' || cleanLower === 'history') return { view: 'transactions', params: {} };
+  if (cleanLower === 'favorites' || cleanLower === 'saved') return { view: 'marketplace', params: {} };
   if (cleanLower === 'settings' || cleanLower === 'preferences') return { view: 'settings', params: {} };
   return { view: 'not-found', params: {} };
 };
@@ -173,10 +170,11 @@ export const MainApp: React.FC = () => {
                 />
               );
             case 'meetups':
+            case 'transactions':
               return (
-                <MeetupsPage
+                <TransactionsPage
                   onNavigate={handleNavigate}
-                  onOpenAuth={() => setIsAuthModalOpen(true)}
+                  onOpenChat={() => setIsChatOpen(true)}
                 />
               );
             case 'campus-map':
@@ -199,19 +197,7 @@ export const MainApp: React.FC = () => {
             case 'terms':
               return <TermsPrivacyPage onNavigate={handleNavigate} />;
             case 'favorites':
-              return (
-                <FavoritesPage
-                  onNavigate={handleNavigate}
-                  onOpenAuth={() => setIsAuthModalOpen(true)}
-                />
-              );
-            case 'transactions':
-              return (
-                <TransactionHistoryPage
-                  onNavigate={handleNavigate}
-                  onOpenAuth={() => setIsAuthModalOpen(true)}
-                />
-              );
+              return <MarketplacePage onNavigate={handleNavigate} />;
             case 'settings':
               return (
                 <SettingsPage

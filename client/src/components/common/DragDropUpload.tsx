@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Upload, X } from 'lucide-react';
+import { Upload, X, Video, Film } from 'lucide-react';
 import { useToast } from './Toast';
 
 interface DragDropUploadProps {
@@ -9,15 +9,17 @@ interface DragDropUploadProps {
   label?: string;
   helperText?: string;
   isMultiple?: boolean;
+  acceptVideos?: boolean;
 }
 
 export const DragDropUpload: React.FC<DragDropUploadProps> = ({
   images,
   onChange,
-  maxFiles = 6,
-  label = 'Photos',
-  helperText = 'Drag & drop photos here or browse',
-  isMultiple = true
+  maxFiles = 8,
+  label = 'Photos & Product Demonstration Videos',
+  helperText = 'Drag & drop photos or product sample videos here, or browse',
+  isMultiple = true,
+  acceptVideos = true
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -28,22 +30,27 @@ export const DragDropUpload: React.FC<DragDropUploadProps> = ({
 
     const remainingSlots = isMultiple ? maxFiles - images.length : 1;
     if (remainingSlots <= 0) {
-      showToast('Limit Reached', `Maximum ${maxFiles} images allowed.`, 'warning');
+      showToast('Limit Reached', `Maximum ${maxFiles} media items allowed.`, 'warning');
       return;
     }
 
-    const validFiles = Array.from(files).filter((file) => file.type.startsWith('image/'));
+    const validFiles = Array.from(files).filter((file) => {
+      const isImg = file.type.startsWith('image/');
+      const isVid = acceptVideos && (file.type.startsWith('video/') || /\.(mp4|webm|mov|m4v)$/i.test(file.name));
+      return isImg || isVid;
+    });
+
     if (validFiles.length === 0) {
-      showToast('Invalid File', 'Please upload valid image files (JPG, PNG, WEBP).', 'warning');
+      showToast('Invalid File', 'Please upload valid image or video files (JPG, PNG, WEBP, MP4, WEBM, MOV).', 'warning');
       return;
     }
 
     const filesToProcess = validFiles.slice(0, remainingSlots);
 
     filesToProcess.forEach((file) => {
-      // 5MB limit
-      if (file.size > 5 * 1024 * 1024) {
-        showToast('File Too Large', `${file.name} is larger than 5MB.`, 'warning');
+      // 50MB limit to allow product demonstration videos
+      if (file.size > 50 * 1024 * 1024) {
+        showToast('File Too Large', `${file.name} is larger than 50MB.`, 'warning');
         return;
       }
 
@@ -85,6 +92,14 @@ export const DragDropUpload: React.FC<DragDropUploadProps> = ({
     onChange(updated);
   };
 
+  const isVideoItem = (url: string) => {
+    return (
+      url.startsWith('data:video/') ||
+      /\.(mp4|webm|mov|m4v)(\?.*)?$/i.test(url) ||
+      url.includes('/video/upload/')
+    );
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
       {label && (
@@ -119,7 +134,7 @@ export const DragDropUpload: React.FC<DragDropUploadProps> = ({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept={acceptVideos ? 'image/*,video/*' : 'image/*'}
           multiple={isMultiple}
           onChange={(e) => handleFiles(e.target.files)}
           style={{ display: 'none' }}
@@ -131,7 +146,7 @@ export const DragDropUpload: React.FC<DragDropUploadProps> = ({
             height: '42px',
             borderRadius: '50%',
             backgroundColor: isDragging ? '#FFC72C' : '#EBF1FC',
-            color: isDragging ? '#002B7F' : '#002B7F',
+            color: '#002B7F',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -144,10 +159,10 @@ export const DragDropUpload: React.FC<DragDropUploadProps> = ({
 
         <div>
           <p style={{ fontSize: '0.84rem', fontWeight: 700, color: '#002B7F' }}>
-            {isDragging ? 'Drop images here' : helperText}
+            {isDragging ? 'Drop media files here' : helperText}
           </p>
           <p style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '2px' }}>
-            Supports JPG, PNG, WEBP up to 5MB
+            Supports JPG, PNG, WEBP & MP4, WEBM, MOV videos up to 50MB (Upload at least 5 media)
           </p>
         </div>
       </div>
@@ -155,68 +170,105 @@ export const DragDropUpload: React.FC<DragDropUploadProps> = ({
       {/* Preview Grid */}
       {images.length > 0 && (
         <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
-          {images.map((img, idx) => (
-            <div
-              key={idx}
-              style={{
-                width: '84px',
-                height: '84px',
-                borderRadius: '10px',
-                overflow: 'hidden',
-                position: 'relative',
-                border: idx === 0 ? '2px solid #002B7F' : '1px solid #CBD5E1',
-                boxShadow: '0 2px 5px rgba(0,0,0,0.06)'
-              }}
-            >
-              <img src={img} alt={`Preview ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          {images.map((item, idx) => {
+            const isVid = isVideoItem(item);
 
-              {/* Primary badge for first photo */}
-              {idx === 0 && isMultiple && (
-                <span
+            return (
+              <div
+                key={idx}
+                style={{
+                  width: '92px',
+                  height: '92px',
+                  borderRadius: '10px',
+                  overflow: 'hidden',
+                  position: 'relative',
+                  border: idx === 0 ? '2px solid #002B7F' : '1px solid #CBD5E1',
+                  boxShadow: '0 2px 5px rgba(0,0,0,0.06)',
+                  backgroundColor: '#000'
+                }}
+              >
+                {isVid ? (
+                  <video
+                    src={item}
+                    muted
+                    playsInline
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                ) : (
+                  <img src={item} alt={`Preview ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                )}
+
+                {/* Video Indicator Tag */}
+                {isVid && (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '4px',
+                      left: '4px',
+                      backgroundColor: 'rgba(0,0,0,0.7)',
+                      color: '#FFC72C',
+                      fontSize: '0.6rem',
+                      fontWeight: 800,
+                      padding: '2px 4px',
+                      borderRadius: '4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '2px'
+                    }}
+                  >
+                    <Film size={10} /> Video
+                  </span>
+                )}
+
+                {/* Primary badge for first item */}
+                {idx === 0 && isMultiple && (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      backgroundColor: '#002B7F',
+                      color: '#FFC72C',
+                      fontSize: '0.6rem',
+                      fontWeight: 800,
+                      textAlign: 'center',
+                      padding: '2px 0'
+                    }}
+                  >
+                    Cover {isVid ? 'Video' : 'Photo'}
+                  </span>
+                )}
+
+                {/* Remove button */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRemove(idx);
+                  }}
                   style={{
                     position: 'absolute',
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    backgroundColor: '#002B7F',
-                    color: '#FFC72C',
-                    fontSize: '0.6rem',
-                    fontWeight: 800,
-                    textAlign: 'center',
-                    padding: '1px 0'
+                    top: '3px',
+                    right: '3px',
+                    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+                    color: '#FFFFFF',
+                    borderRadius: '50%',
+                    width: '20px',
+                    height: '20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: 'none',
+                    cursor: 'pointer'
                   }}
+                  title="Remove media"
                 >
-                  Cover Photo
-                </span>
-              )}
-
-              {/* Remove button */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleRemove(idx);
-                }}
-                style={{
-                  position: 'absolute',
-                  top: '3px',
-                  right: '3px',
-                  backgroundColor: 'rgba(15, 23, 42, 0.75)',
-                  color: '#FFFFFF',
-                  borderRadius: '50%',
-                  width: '20px',
-                  height: '20px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer'
-                }}
-                title="Remove photo"
-              >
-                <X size={11} />
-              </button>
-            </div>
-          ))}
+                  <X size={11} />
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

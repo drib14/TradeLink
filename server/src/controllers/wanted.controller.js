@@ -138,16 +138,6 @@ const respondToWanted = asyncHandler(async (req, res, next) => {
 
   await db('wanted_requests').where({ id }).increment('offers_count', 1);
 
-  // Notify requester
-  await db('notifications').insert({
-    id: uuidv4(),
-    user_id: target.requester_id,
-    title: 'New Response on Wanted Board',
-    message: `${req.user.name} offered an item for your request "${target.item_name || target.item_title}".`,
-    type: 'wanted_response',
-    link_url: `/wanted`
-  });
-
   res.status(200).json({
     status: 'success',
     message: 'Response recorded. Student notified.'

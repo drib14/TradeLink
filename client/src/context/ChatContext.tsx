@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
-import { Conversation, Message, SwapOffer, MeetupTransaction, Listing, Campus, TradeMode } from '../types';
+import { Conversation, Message, SwapOffer, Transaction, Listing, Campus, TradeMode } from '../types';
 import { useAuth } from './AuthContext';
 import { chatService } from '../services/chat.service';
 
@@ -8,12 +8,21 @@ interface ChatContextType {
   activeConversation: Conversation | null;
   activeMessages: Message[];
   swaps: SwapOffer[];
-  meetups: MeetupTransaction[];
+  transactions: Transaction[];
+  meetups: Transaction[]; // Backward compatibility alias
   unreadTotal: number;
   isLoading: boolean;
   setActiveConversationId: (id: string | null) => void;
   openChatWithSeller: (listing: Listing) => void;
-  sendMessage: (text: string, isSystem?: boolean, swapOfferId?: string) => Promise<void>;
+  sendMessage: (
+    text: string,
+    isSystem?: boolean,
+    swapOfferId?: string,
+    transactionId?: string,
+    mediaUrl?: string | null,
+    mediaType?: 'image' | 'video' | null
+  ) => Promise<void>;
+  sendMediaMessage: (file: File, caption?: string) => Promise<void>;
   proposeSwap: (params: {
     targetListing: Listing;
     offeredListingId?: string;
@@ -21,25 +30,19 @@ interface ChatContextType {
     offeredListingImage?: string;
     offeredDescription: string;
     cashTopUp: number;
-    proposedMeetupSpot: string;
-    proposedDateTime: string;
   }) => Promise<SwapOffer>;
   respondToSwap: (swapId: string, status: 'accepted' | 'declined') => Promise<void>;
-  scheduleMeetup: (params: {
+  createDirectOrder: (params: {
     listing: Listing;
-    buyerId: string;
-    buyerName: string;
-    sellerId: string;
-    sellerName: string;
-    tradeMode: TradeMode;
-    finalPrice: number;
-    campus: Campus;
-    landmarkSpot: string;
-    scheduledDateTime: string;
+    paymentMethod?: 'cash' | 'gcash' | 'maya';
     notes?: string;
-  }) => Promise<MeetupTransaction>;
-  completeMeetupWithCode: (meetupId: string, code: string) => Promise<{ success: boolean; message: string }>;
-  updateMeetupStatus: (meetupId: string, status: MeetupTransaction['status']) => Promise<void>;
+  }) => Promise<Transaction>;
+  completeTransaction: (transactionId: string) => Promise<void>;
+  cancelTransaction: (transactionId: string, reason?: string) => Promise<void>;
+  // Legacy aliases for backward compatibility
+  scheduleMeetup?: (params: any) => Promise<any>;
+  completeMeetupWithCode?: (meetupId: string, code: string) => Promise<{ success: boolean; message: string }>;
+  updateMeetupStatus?: (meetupId: string, status: any) => Promise<void>;
   refreshAll: () => Promise<void>;
 }
 
@@ -50,7 +53,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [swaps, setSwaps] = useState<SwapOffer[]>([]);
-  const [meetups, setMeetups] = useState<MeetupTransaction[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -60,10 +63,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!isAuthenticated) return;
     setIsLoading(true);
     try {
-      const [serverConvs, serverSwaps, serverMeetups] = await Promise.allSettled([
+      const [serverConvs, serverSwaps, serverTxs] = await Promise.allSettled([
         chatService.getConversations(),
         chatService.getSwaps(),
-        chatService.getMeetups()
+        chatService.getTransactions()
       ]);
 
       if (serverConvs.status === 'fulfilled') {
@@ -72,8 +75,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (serverSwaps.status === 'fulfilled') {
         setSwaps(serverSwaps.value);
       }
-      if (serverMeetups.status === 'fulfilled') {
-        setMeetups(serverMeetups.value);
+      if (serverTxs.status === 'fulfilled') {
+        setTransactions(serverTxs.value);
       }
     } catch {
       // Backend error
@@ -139,16 +142,17 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       conversationId: newConvId,
       senderId: currentUser.id,
       receiverId: listing.sellerId,
-      content: `Hi ${listing.sellerName}! I am interested in your item: "${listing.title}". Is it still available for meetup?`,
+      content: `Hi ${listing.sellerName}! I am interested in your item: "${listing.title}". Where and when can we meet to transact?`,
       timestamp: 'Just now',
       isSystemMessage: false
     };
 
+    const firstImg = (listing.media && listing.media[0]?.url) || (listing.images && listing.images[0]) || '';
     const newConv: Conversation = {
       id: newConvId,
       listingId: listing.id,
       listingTitle: listing.title,
-      listingImage: listing.images[0] || '',
+      listingImage: firstImg,
       participantIds: [currentUser.id, listing.sellerId],
       otherParticipant: {
         id: listing.sellerId,
@@ -175,29 +179,41 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }).catch(() => {});
   };
 
-  const sendMessage = async (text: string, isSystem = false, swapOfferId?: string) => {
-    if (!activeConversation || !text.trim() || !currentUser) return;
+  const sendMessage = async (
+    text: string,
+    isSystem = false,
+    swapOfferId?: string,
+    transactionId?: string,
+    mediaUrl?: string | null,
+    mediaType?: 'image' | 'video' | null
+  ) => {
+    if (!activeConversation || (!text.trim() && !mediaUrl) || !currentUser) return;
 
     const receiverId =
       activeConversation.participantIds.find((id) => id !== currentUser.id) ||
       activeConversation.otherParticipant.id;
+
+    const summaryContent = text.trim() || (mediaType === 'video' ? '📹 Video attachment' : '📷 Image attachment');
 
     const newMsg: Message = {
       id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
       conversationId: activeConversation.id,
       senderId: currentUser.id,
       receiverId,
-      content: text.trim(),
+      content: summaryContent,
       timestamp: 'Just now',
       isSystemMessage: isSystem,
-      swapOfferId
+      swapOfferId,
+      transactionId,
+      mediaUrl,
+      mediaType
     };
 
     setMessages((prev) => [...prev, newMsg]);
     setConversations((prev) =>
       prev.map((c) =>
         c.id === activeConversation.id
-          ? { ...c, lastMessage: text.trim(), lastMessageTimestamp: 'Just now' }
+          ? { ...c, lastMessage: summaryContent, lastMessageTimestamp: 'Just now' }
           : c
       )
     );
@@ -205,10 +221,19 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await chatService.sendMessage({
       conversationId: activeConversation.id,
       receiverId,
-      content: text.trim(),
+      content: summaryContent,
       isSystemMessage: isSystem,
-      swapOfferId
+      swapOfferId,
+      transactionId,
+      mediaUrl,
+      mediaType
     });
+  };
+
+  const sendMediaMessage = async (file: File, caption?: string) => {
+    if (!activeConversation || !currentUser) return;
+    const uploaded = await chatService.uploadMedia(file);
+    await sendMessage(caption || '', false, undefined, undefined, uploaded.url, uploaded.mediaType);
   };
 
   const proposeSwap = async (params: {
@@ -218,8 +243,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     offeredListingImage?: string;
     offeredDescription: string;
     cashTopUp: number;
-    proposedMeetupSpot: string;
-    proposedDateTime: string;
   }): Promise<SwapOffer> => {
     if (!currentUser) {
       throw new Error('Authentication required to propose a swap offer.');
@@ -229,9 +252,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       targetListingId: params.targetListing.id,
       offeredListingId: params.offeredListingId,
       offeredDescription: params.offeredDescription,
-      cashTopUp: params.cashTopUp,
-      proposedMeetupSpot: params.proposedMeetupSpot,
-      proposedDateTime: params.proposedDateTime
+      cashTopUp: params.cashTopUp
     };
 
     const created = await chatService.proposeSwap(payload);
@@ -245,47 +266,51 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await chatService.respondToSwap(swapId, status === 'accepted' ? 'accept' : 'decline');
   };
 
-  const scheduleMeetup = async (params: {
+  const createDirectOrder = async (params: {
     listing: Listing;
-    buyerId: string;
-    buyerName: string;
-    sellerId: string;
-    sellerName: string;
-    tradeMode: TradeMode;
-    finalPrice: number;
-    campus: Campus;
-    landmarkSpot: string;
-    scheduledDateTime: string;
+    paymentMethod?: 'cash' | 'gcash' | 'maya';
     notes?: string;
-  }): Promise<MeetupTransaction> => {
-    const payload = {
-      listingId: params.listing.id,
-      buyerId: params.buyerId,
-      tradeMode: params.tradeMode,
-      finalPrice: params.finalPrice,
-      campus: params.campus,
-      landmarkSpot: params.landmarkSpot,
-      scheduledDateTime: params.scheduledDateTime,
-      notes: params.notes
-    };
+  }): Promise<Transaction> => {
+    if (!currentUser) {
+      throw new Error('Authentication required to transact.');
+    }
 
-    const created = await chatService.scheduleMeetup(payload);
-    setMeetups((prev) => [created, ...prev]);
+    const created = await chatService.createTransaction({
+      listingId: params.listing.id,
+      paymentMethod: params.paymentMethod || 'cash',
+      notes: params.notes
+    });
+
+    setTransactions((prev) => [created, ...prev]);
+
+    // Open chat and notify seller
     openChatWithSeller(params.listing);
+    setTimeout(() => {
+      sendMessage(
+        `🎉 I have confirmed an order for "${params.listing.title}" (Ref: ${created.referenceNo || 'Pending'}). Let's chat here to arrange where and when we can meet up on campus!`,
+        true,
+        undefined,
+        created.id
+      );
+    }, 400);
+
     return created;
   };
 
-  const completeMeetupWithCode = async (meetupId: string, enteredCode: string): Promise<{ success: boolean; message: string }> => {
-    const res = await chatService.verifyMeetupCode(meetupId, enteredCode);
-    setMeetups((prev) => prev.map((m) => (m.id === meetupId ? { ...m, status: 'completed' } : m)));
-    return { success: true, message: res.message || 'Transaction verified and completed!' };
+  const completeTransaction = async (transactionId: string) => {
+    await chatService.completeTransaction(transactionId);
+    setTransactions((prev) =>
+      prev.map((t) => (t.id === transactionId ? { ...t, status: 'completed' } : t))
+    );
+    refreshAll();
   };
 
-  const updateMeetupStatus = async (meetupId: string, status: MeetupTransaction['status']) => {
-    setMeetups((prev) => prev.map((m) => (m.id === meetupId ? { ...m, status } : m)));
-    if (status !== 'scheduled') {
-      await chatService.updateMeetupStatus(meetupId, status as any);
-    }
+  const cancelTransaction = async (transactionId: string, reason?: string) => {
+    await chatService.cancelTransaction(transactionId, reason);
+    setTransactions((prev) =>
+      prev.map((t) => (t.id === transactionId ? { ...t, status: 'cancelled' } : t))
+    );
+    refreshAll();
   };
 
   return (
@@ -295,17 +320,29 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         activeConversation,
         activeMessages,
         swaps,
-        meetups,
+        transactions,
+        meetups: transactions,
         unreadTotal,
         isLoading,
         setActiveConversationId,
         openChatWithSeller,
         sendMessage,
+        sendMediaMessage,
         proposeSwap,
         respondToSwap,
-        scheduleMeetup,
-        completeMeetupWithCode,
-        updateMeetupStatus,
+        createDirectOrder,
+        completeTransaction,
+        cancelTransaction,
+        // Legacy stubs
+        scheduleMeetup: async (p: any) => createDirectOrder({ listing: p.listing, notes: p.notes }),
+        completeMeetupWithCode: async (id: string) => {
+          await completeTransaction(id);
+          return { success: true, message: 'Transaction completed!' };
+        },
+        updateMeetupStatus: async (id: string, s: any) => {
+          if (s === 'completed') await completeTransaction(id);
+          else if (s === 'cancelled') await cancelTransaction(id);
+        },
         refreshAll
       }}
     >
