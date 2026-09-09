@@ -129,9 +129,16 @@ describe('Tier 1: Server API Smoke Tests', () => {
     });
   });
 
-  describe('7. Favorites Routes Smoke', () => {
-    it('GET /api/favorites should reject unauthenticated request with 401', async () => {
-      const res = await request(app).get('/api/favorites');
+  describe('7. Transactions Routes Smoke', () => {
+    it('GET /api/transactions should reject unauthenticated request with 401', async () => {
+      const res = await request(app).get('/api/transactions');
+      expect(res.status).toBe(401);
+    });
+
+    it('POST /api/transactions should reject unauthenticated request with 401', async () => {
+      const res = await request(app)
+        .post('/api/transactions')
+        .send({ listingId: 'list-123' });
       expect(res.status).toBe(401);
     });
   });
@@ -160,9 +167,9 @@ describe('Tier 1: Server API Smoke Tests', () => {
     });
   });
 
-  describe('10. Notifications Routes Smoke', () => {
-    it('GET /api/notifications should reject unauthenticated request with 401', async () => {
-      const res = await request(app).get('/api/notifications');
+  describe('10. Transactions Status Route Smoke', () => {
+    it('PATCH /api/transactions/:id/status should reject unauthenticated request with 401', async () => {
+      const res = await request(app).patch('/api/transactions/tx-123/status').send({ status: 'completed' });
       expect(res.status).toBe(401);
     });
   });

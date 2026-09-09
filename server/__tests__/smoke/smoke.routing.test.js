@@ -26,15 +26,14 @@ const pathToView = (path, search = '') => {
   if (cleanLower === 'create-listing' || cleanLower === 'post' || cleanLower === 'sell') return { view: 'create-listing', params: {} };
   if (cleanLower === 'wanted' || cleanLower === 'requests' || cleanLower === 'pasabuy') return { view: 'wanted', params: {} };
   if (cleanLower === 'swaps' || cleanLower === 'barter') return { view: 'swaps', params: {} };
-  if (cleanLower === 'meetups' || cleanLower === 'handshake') return { view: 'meetups', params: {} };
+  if (cleanLower === 'meetups' || cleanLower === 'handshake' || cleanLower === 'transactions' || cleanLower === 'history') return { view: 'transactions', params: {} };
   if (cleanLower === 'campus-map' || cleanLower === 'landmarks' || cleanLower === 'map') return { view: 'campus-map', params: {} };
   if (cleanLower === 'about') return { view: 'about', params: {} };
   if (cleanLower === 'faq') return { view: 'faq', params: {} };
   if (cleanLower === 'help-safety' || cleanLower === 'safety' || cleanLower === 'help') return { view: 'help-safety', params: {} };
   if (cleanLower === 'terms' || cleanLower === 'guidelines' || cleanLower === 'privacy') return { view: 'terms', params: {} };
   if (cleanLower === 'maintenance') return { view: 'maintenance', params: {} };
-  if (cleanLower === 'favorites' || cleanLower === 'saved') return { view: 'favorites', params: {} };
-  if (cleanLower === 'transactions' || cleanLower === 'history') return { view: 'transactions', params: {} };
+  if (cleanLower === 'favorites' || cleanLower === 'saved') return { view: 'marketplace', params: {} };
   if (cleanLower === 'settings' || cleanLower === 'preferences') return { view: 'settings', params: {} };
   return { view: 'not-found', params: {} };
 };
@@ -63,16 +62,16 @@ describe('Tier 4: Client SPA Routing Smoke Tests (pathToView)', () => {
       expect(pathToView('/swaps')).toEqual({ view: 'swaps', params: {} });
     });
 
-    it('should route /meetups to meetups view', () => {
-      expect(pathToView('/meetups')).toEqual({ view: 'meetups', params: {} });
+    it('should route /meetups to transactions view', () => {
+      expect(pathToView('/meetups')).toEqual({ view: 'transactions', params: {} });
     });
 
     it('should route /campus-map to campus-map view', () => {
       expect(pathToView('/campus-map')).toEqual({ view: 'campus-map', params: {} });
     });
 
-    it('should route /favorites to favorites view', () => {
-      expect(pathToView('/favorites')).toEqual({ view: 'favorites', params: {} });
+    it('should route /favorites to marketplace view', () => {
+      expect(pathToView('/favorites')).toEqual({ view: 'marketplace', params: {} });
     });
 
     it('should route /transactions to transactions view', () => {
@@ -145,8 +144,8 @@ describe('Tier 4: Client SPA Routing Smoke Tests (pathToView)', () => {
       expect(pathToView('/requests').view).toBe('wanted');
       expect(pathToView('/pasabuy').view).toBe('wanted');
       expect(pathToView('/barter').view).toBe('swaps');
-      expect(pathToView('/handshake').view).toBe('meetups');
-      expect(pathToView('/saved').view).toBe('favorites');
+      expect(pathToView('/handshake').view).toBe('transactions');
+      expect(pathToView('/saved').view).toBe('marketplace');
       expect(pathToView('/history').view).toBe('transactions');
       expect(pathToView('/map').view).toBe('campus-map');
     });
