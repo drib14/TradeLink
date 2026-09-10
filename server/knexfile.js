@@ -8,9 +8,9 @@ module.exports = {
       port: Number(process.env.DB_PORT) || 3306,
       user: process.env.DB_USER || 'root',
       password: process.env.DB_PASSWORD || '',
-      database: process.env.DB_NAME || 'tradelink_db',
+      database: process.env.DB_NAME || 'tradelink_db_test',
       charset: 'utf8mb4',
-      timezone: 'UTC'
+      timezone: '+00:00'
     },
     pool: {
       min: 2,
@@ -34,6 +34,7 @@ module.exports = {
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
       charset: 'utf8mb4',
+      timezone: '+00:00',
       ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
     },
     pool: {

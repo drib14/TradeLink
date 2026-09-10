@@ -25,7 +25,7 @@ source c:/Users/jhond/Documents/TradeLink/DB/seed.sql;
 
 ### Option 2: Using XAMPP / phpMyAdmin / MySQL Workbench
 1. Open MySQL Workbench or phpMyAdmin (`http://localhost/phpmyadmin`).
-2. Create a new database named `tradelink_db` with collation `utf8mb4_unicode_ci`.
+2. Create a new database named `tradelink_db_test` with collation `utf8mb4_unicode_ci`.
 3. Open `schema.sql` and execute the script.
 4. Open `seed.sql` and execute the script.
 
@@ -45,7 +45,7 @@ npx knex seed:run
 | Role | Email | Password | Campus | Notes |
 |---|---|---|---|---|
 | **SuperAdmin** | `superadmin@uc.edu.ph` | `superadmin123` | UC Main | Full administrative privileges & platform config |
-| **Admin** | `admin@uc.edu.ph` | `admin123` | UC Main | Moderation desk, dispute verdicts, verification reviews |
+| **Admin** | `uc.tradelink@gmail.com` | `TradeLink@2026` | UC Main | Moderation desk, dispute verdicts, verification reviews |
 | **Student** | `maria.nursing@uc.edu.ph` | `password123` | UC Banilad | Verified student, Pro Merchant badge |
 | **Student** | `ken.engg@uc.edu.ph` | `password123` | UC LM | Verified student (Engineering) |
 | **Student** | `alex.stem@uc.edu.ph` | `password123` | UC Main | Verified student (Senior High STEM) |

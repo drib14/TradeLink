@@ -9,7 +9,7 @@ const config = {
     port: parseInt(process.env.DB_PORT, 10) || 3306,
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'tradelink_db',
+    database: process.env.DB_NAME || 'tradelink_db_test',
     ssl: process.env.DB_SSL === 'true'
   },
 

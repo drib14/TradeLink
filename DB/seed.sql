@@ -2,42 +2,42 @@
 -- TradeLink MySQL 8.0 Seed Data Script
 -- Populates initial University of Cebu users, listings, swaps, meetups, etc.
 -- Default test passwords:
---   superadmin@uc.edu.ph -> superadmin123
---   admin@uc.edu.ph      -> admin123
---   student accounts     -> password123
+--   superadmin@uc.edu.ph   -> superadmin123
+--   uc.tradelink@gmail.com -> TradeLink@2026
+--   student accounts       -> password123
 -- ============================================================================
 
-USE `tradelink_db`;
+USE `tradelink_db_test`;
 
 SET FOREIGN_KEY_CHECKS = 0;
 
-TRUNCATE TABLE `review_badges`;
-TRUNCATE TABLE `reviews`;
-TRUNCATE TABLE `favorites`;
-TRUNCATE TABLE `notifications`;
-TRUNCATE TABLE `messages`;
-TRUNCATE TABLE `conversation_read_status`;
-TRUNCATE TABLE `conversations`;
-TRUNCATE TABLE `meetup_transactions`;
-TRUNCATE TABLE `swap_offers`;
-TRUNCATE TABLE `wanted_requests`;
-TRUNCATE TABLE `listing_tags`;
-TRUNCATE TABLE `listing_images`;
-TRUNCATE TABLE `listings`;
-TRUNCATE TABLE `verification_requests`;
-TRUNCATE TABLE `flagged_listings`;
-TRUNCATE TABLE `trade_disputes`;
-TRUNCATE TABLE `announcements`;
-TRUNCATE TABLE `admin_audit_logs`;
-TRUNCATE TABLE `prohibited_keywords`;
-TRUNCATE TABLE `feature_flags`;
-TRUNCATE TABLE `system_config`;
-TRUNCATE TABLE `users`;
+DELETE FROM `review_badges`;
+DELETE FROM `reviews`;
+DELETE FROM `favorites`;
+DELETE FROM `notifications`;
+DELETE FROM `messages`;
+DELETE FROM `conversation_read_status`;
+DELETE FROM `conversations`;
+DELETE FROM `meetup_transactions`;
+DELETE FROM `swap_offers`;
+DELETE FROM `wanted_requests`;
+DELETE FROM `listing_tags`;
+DELETE FROM `listing_images`;
+DELETE FROM `listings`;
+DELETE FROM `verification_requests`;
+DELETE FROM `flagged_listings`;
+DELETE FROM `trade_disputes`;
+DELETE FROM `announcements`;
+DELETE FROM `admin_audit_logs`;
+DELETE FROM `prohibited_keywords`;
+DELETE FROM `feature_flags`;
+DELETE FROM `system_config`;
+DELETE FROM `users`;
 
 -- ----------------------------------------------------------------------------
 -- 1. SEED USERS
 -- Bcrypt Hash for 'superadmin123': $2b$12$8v5uB3l/zJp.e9Hk0dY2vO7aU8lq0XWzWzGvE9wK7xKk9e0y1vV4S
--- Bcrypt Hash for 'admin123':      $2b$12$JbZtUo6hG6Uq3aMv0cK7tOf8xQ6wF7vE0kK1tY7aW2yV5sR8qN6mW
+-- Bcrypt Hash for 'TradeLink@2026': $2a$12$KADFhGwb/5dyBNiV8oheIeQyQLw4nWhSo0CA36EovSX0g0.CW9bly
 -- Bcrypt Hash for 'password123':   $2b$12$Z.vS8/1a7UvL4zO2n4wZcOFg7T8gW3lI2k8nE1m5p0aV2sQ9yK1tG
 -- ----------------------------------------------------------------------------
 
@@ -47,7 +47,7 @@ INSERT INTO `users` (
   `completed_trades`, `punctuality_rate`, `bio`, `is_pro_merchant`, `is_banned`
 ) VALUES
 ('user-superadmin', 'UC Super Administrator', 'superadmin@uc.edu.ph', 'UC-SA-2024', '$2b$12$8v5uB3l/zJp.e9Hk0dY2vO7aU8lq0XWzWzGvE9wK7xKk9e0y1vV4S', 'superadmin', 'UC Main', 'CCS', 'System Administrator', 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=300&q=80', 1, 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80', 100, 5.0, 0, 0, 100, 'TradeLink Platform Super Administrator. Full system access across all UC campuses.', 0, 0),
-('user-admin', 'UC Admin Moderator', 'admin@uc.edu.ph', 'UC-ADM-2024', '$2b$12$JbZtUo6hG6Uq3aMv0cK7tOf8xQ6wF7vE0kK1tY7aW2yV5sR8qN6mW', 'admin', 'UC Main', 'CCS', 'Faculty / Staff', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80', 1, 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80', 100, 5.0, 88, 120, 100, 'Official TradeLink Campus Moderation & Safety Desk. Verified student marketplace.', 0, 0),
+('user-admin', 'UC Admin Moderator', 'uc.tradelink@gmail.com', 'UC-ADM-2024', '$2a$12$KADFhGwb/5dyBNiV8oheIeQyQLw4nWhSo0CA36EovSX0g0.CW9bly', 'admin', 'UC Main', 'CCS', 'Faculty / Staff', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80', 1, 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80', 100, 5.0, 88, 120, 100, 'Official TradeLink Campus Moderation & Safety Desk. Verified student marketplace.', 0, 0),
 ('user-maria', 'Maria Santos', 'maria.nursing@uc.edu.ph', '202104982', '$2b$12$Z.vS8/1a7UvL4zO2n4wZcOFg7T8gW3lI2k8nE1m5p0aV2sQ9yK1tG', 'student', 'UC Banilad', 'Nursing', '4th Year (Senior)', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80', 1, 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80', 98, 4.9, 24, 32, 96, 'Senior BSN student at Banilad. Selling gadgets, textbooks, scrubs, and study gear.', 1, 0),
 ('user-ken', 'Kenzo Lim', 'ken.engg@uc.edu.ph', '202211045', '$2b$12$Z.vS8/1a7UvL4zO2n4wZcOFg7T8gW3lI2k8nE1m5p0aV2sQ9yK1tG', 'student', 'UC LM', 'Engineering', '3rd Year', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80', 1, 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80', 94, 4.8, 18, 22, 95, 'Mechanical Engineering student at Lapu-Lapu Mandaue. Drafting tools & calculators.', 0, 0),
 ('user-alex', 'Alex Rivera', 'alex.stem@uc.edu.ph', '202300189', '$2b$12$Z.vS8/1a7UvL4zO2n4wZcOFg7T8gW3lI2k8nE1m5p0aV2sQ9yK1tG', 'student', 'UC Main', 'Senior High (STEM)', 'Grade 12', 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=300&q=80', 1, 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80', 90, 4.7, 9, 14, 92, 'STEM 12 student at UC Main. Textbook recycler & calculator bartering.', 0, 0),

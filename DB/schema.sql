@@ -3,14 +3,38 @@
 -- Platform: University of Cebu Student-to-Student Marketplace & Barter System
 -- ============================================================================
 
-CREATE DATABASE IF NOT EXISTS `tradelink_db` 
+CREATE DATABASE IF NOT EXISTS `tradelink_db_test` 
 CHARACTER SET utf8mb4 
 COLLATE utf8mb4_unicode_ci;
 
-USE `tradelink_db`;
+USE `tradelink_db_test`;
 
 -- Disable foreign key checks for table creation/resets
 SET FOREIGN_KEY_CHECKS = 0;
+
+-- Drop tables in reverse dependency order
+DROP TABLE IF EXISTS `review_badges`;
+DROP TABLE IF EXISTS `reviews`;
+DROP TABLE IF EXISTS `favorites`;
+DROP TABLE IF EXISTS `notifications`;
+DROP TABLE IF EXISTS `messages`;
+DROP TABLE IF EXISTS `conversation_read_status`;
+DROP TABLE IF EXISTS `conversations`;
+DROP TABLE IF EXISTS `meetup_transactions`;
+DROP TABLE IF EXISTS `swap_offers`;
+DROP TABLE IF EXISTS `wanted_requests`;
+DROP TABLE IF EXISTS `listing_tags`;
+DROP TABLE IF EXISTS `listing_images`;
+DROP TABLE IF EXISTS `listings`;
+DROP TABLE IF EXISTS `verification_requests`;
+DROP TABLE IF EXISTS `flagged_listings`;
+DROP TABLE IF EXISTS `trade_disputes`;
+DROP TABLE IF EXISTS `announcements`;
+DROP TABLE IF EXISTS `admin_audit_logs`;
+DROP TABLE IF EXISTS `prohibited_keywords`;
+DROP TABLE IF EXISTS `feature_flags`;
+DROP TABLE IF EXISTS `system_config`;
+DROP TABLE IF EXISTS `users`;
 
 -- ----------------------------------------------------------------------------
 -- 1. USERS TABLE

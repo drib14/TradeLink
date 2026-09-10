@@ -17,13 +17,13 @@ exports.seed = async function(knex) {
 
   await knex.raw('SET FOREIGN_KEY_CHECKS = 0');
   for (const table of tables) {
-    await knex(table).truncate();
+    await knex(table).del();
   }
   await knex.raw('SET FOREIGN_KEY_CHECKS = 1');
 
   // Password hashes
   const superadminHash = await bcrypt.hash('superadmin123', 12);
-  const adminHash = await bcrypt.hash('admin123', 12);
+  const adminHash = await bcrypt.hash('TradeLink@2026', 12);
   const studentHash = await bcrypt.hash('password123', 12);
 
   // 1. Seed Users
@@ -53,7 +53,7 @@ exports.seed = async function(knex) {
     {
       id: 'user-admin',
       name: 'UC Admin Moderator',
-      email: 'admin@uc.edu.ph',
+      email: 'uc.tradelink@gmail.com',
       student_id: 'UC-ADM-2024',
       password_hash: adminHash,
       role: 'admin',

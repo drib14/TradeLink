@@ -50,7 +50,7 @@ server/
 Make sure your MySQL 8.0 server is running (via XAMPP, Docker, or native service).
 Create the database:
 ```sql
-CREATE DATABASE tradelink_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE tradelink_db_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 Or import `../DB/schema.sql` and `../DB/seed.sql`.
 
@@ -62,7 +62,7 @@ DB_HOST=localhost
 DB_PORT=3306
 DB_USER=root
 DB_PASSWORD=your_mysql_password
-DB_NAME=tradelink_db
+DB_NAME=tradelink_db_test
 
 JWT_ACCESS_SECRET=your_super_secret_access_key
 JWT_REFRESH_SECRET=your_super_secret_refresh_key
