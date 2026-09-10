@@ -264,6 +264,7 @@ async function deleteFile(fileUrlOrKey) {
 async function testCloudinaryConnection() {
   if (!isCloudinaryConfigured()) {
     return {
+      ok: false,
       storage: 'local',
       connected: false,
       message: 'Cloudinary credentials not configured; local storage active.'
@@ -271,14 +272,17 @@ async function testCloudinaryConnection() {
   }
   try {
     const ping = await cloudinary.api.ping();
+    const isOk = ping.status === 'ok';
     return {
-      storage: 'cloudinary',
-      connected: ping.status === 'ok',
+      ok: isOk,
+      storage: isOk ? 'cloudinary' : 'local',
+      connected: isOk,
       cloudName: config.cloudinary.cloudName,
-      message: 'Cloudinary storage connected and active.'
+      message: isOk ? 'Cloudinary storage connected and active.' : 'Cloudinary ping returned non-ok status.'
     };
   } catch (err) {
     return {
+      ok: false,
       storage: 'local',
       connected: false,
       message: `Cloudinary ping failed (${err.message}); local storage fallback active.`

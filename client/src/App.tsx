@@ -222,6 +222,7 @@ export const MainApp: React.FC = () => {
         isOpen={isChatOpen}
         onClose={() => setIsChatOpen(false)}
         onNavigateToItem={(id) => handleNavigate('item-detail', { id })}
+        onNavigateToProfile={(userId) => handleNavigate('profile', { userId })}
       />
 
       {/* 5. Authentication Modal */}

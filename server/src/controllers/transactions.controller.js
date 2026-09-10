@@ -18,6 +18,91 @@ function generateReferenceNo() {
 }
 
 /**
+ * Post a transaction update or card into the conversation thread
+ */
+async function syncTransactionToChat({
+  listingId,
+  buyerId,
+  sellerId,
+  transactionId,
+  referenceNo,
+  content,
+  isSystem = false,
+  io = null
+}) {
+  try {
+    const userA = buyerId < sellerId ? buyerId : sellerId;
+    const userB = buyerId < sellerId ? sellerId : buyerId;
+
+    let conv = await db('conversations')
+      .where({ user_one_id: userA, user_two_id: userB, listing_id: listingId })
+      .first();
+
+    if (!conv) {
+      const convId = uuidv4();
+      conv = {
+        id: convId,
+        listing_id: listingId,
+        user_one_id: userA,
+        user_two_id: userB,
+        last_message: content,
+        last_message_at: new Date()
+      };
+      await db('conversations').insert(conv);
+    } else {
+      await db('conversations').where({ id: conv.id }).update({
+        last_message: content,
+        last_message_at: new Date()
+      });
+    }
+
+    const msgId = uuidv4();
+    const newMsg = {
+      id: msgId,
+      conversation_id: conv.id,
+      sender_id: buyerId,
+      receiver_id: sellerId,
+      content,
+      is_read: false,
+      is_system_message: Boolean(isSystem),
+      transaction_id: transactionId,
+      created_at: new Date()
+    };
+    await db('messages').insert(newMsg);
+
+    if (io) {
+      const tx = await db('transactions').where({ id: transactionId }).first();
+      io.to(`conv:${conv.id}`).emit('chat:message', {
+        id: msgId,
+        conversationId: conv.id,
+        senderId: newMsg.sender_id,
+        receiverId: newMsg.receiver_id,
+        content,
+        isRead: false,
+        isSystemMessage: newMsg.is_system_message,
+        transactionId,
+        transaction: tx ? {
+          id: tx.id,
+          referenceNo: tx.reference_no,
+          amount: parseFloat(tx.amount || 0),
+          paymentMethod: tx.payment_method,
+          status: tx.status
+        } : null,
+        timestamp: newMsg.created_at.toISOString()
+      });
+
+      io.to(`conv:${conv.id}`).emit('chat:deal_updated', {
+        transactionId,
+        referenceNo,
+        status: tx ? tx.status : 'updated'
+      });
+    }
+  } catch (err) {
+    console.error('Failed to sync transaction to chat:', err);
+  }
+}
+
+/**
  * Get all transactions for current user (as buyer or seller)
  */
 const getTransactions = asyncHandler(async (req, res) => {
@@ -137,7 +222,9 @@ const createTransaction = asyncHandler(async (req, res, next) => {
     return next(new AppError('Listing not found.', 404));
   }
 
-  if (targetBuyerId === targetSellerId) {
+  const actualSellerId = targetSellerId || listing.seller_id;
+
+  if (targetBuyerId === actualSellerId) {
     return next(new AppError('You cannot create a transaction with yourself.', 400));
   }
 
@@ -164,7 +251,7 @@ const createTransaction = asyncHandler(async (req, res, next) => {
     id: txId,
     reference_no: referenceNo,
     listing_id: targetListingId,
-    seller_id: targetSellerId,
+    seller_id: actualSellerId,
     buyer_id: targetBuyerId,
     swap_offer_id: swapOfferId || null,
     trade_mode: tradeMode || listing.trade_mode || 'buy_sell',
@@ -181,6 +268,20 @@ const createTransaction = asyncHandler(async (req, res, next) => {
     await trx('listings').where({ id: targetListingId }).update({ status: 'reserved' });
   });
 
+  // Sync to chat conversation
+  const io = req.app.get('io');
+  const dealMessageContent = `🎉 Confirmed Order Deal: Reference ${referenceNo} for ₱${targetAmount.toLocaleString()} (${paymentMethod.toUpperCase()}). Let's coordinate meetup location and time right here!`;
+  await syncTransactionToChat({
+    listingId: targetListingId,
+    buyerId: targetBuyerId,
+    sellerId: actualSellerId,
+    transactionId: txId,
+    referenceNo,
+    content: dealMessageContent,
+    isSystem: false,
+    io
+  });
+
   const media = await db('listing_media').where({ listing_id: targetListingId }).first();
   const serialized = serializeTransaction(newTx, media?.media_url || '');
 
@@ -189,7 +290,7 @@ const createTransaction = asyncHandler(async (req, res, next) => {
     message: `Transaction ${referenceNo} created successfully. Coordinate meeting details with the student directly in chat!`,
     data: {
       transaction: serialized,
-      meetup: serialized // Compatibility alias
+      meetup: serialized
     }
   });
 });
@@ -228,6 +329,19 @@ const completeTransaction = asyncHandler(async (req, res, next) => {
   await recalculateUserStats(tx.seller_id);
   await recalculateUserStats(tx.buyer_id);
 
+  // Sync completion system event to chat
+  const io = req.app.get('io');
+  await syncTransactionToChat({
+    listingId: tx.listing_id,
+    buyerId: tx.buyer_id,
+    sellerId: tx.seller_id,
+    transactionId: tx.id,
+    referenceNo: tx.reference_no,
+    content: `✅ Deal ${tx.reference_no} is officially COMPLETED! Thank you for trading safely on campus. Both students can now rate and review each other.`,
+    isSystem: true,
+    io
+  });
+
   res.status(200).json({
     status: 'success',
     message: 'Transaction marked as completed! Thank you for trading safely on TradeLink.',
@@ -242,7 +356,7 @@ const completeTransaction = asyncHandler(async (req, res, next) => {
  */
 const cancelTransaction = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
-  const { reason = 'Cancelled by user' } = req.body;
+  const { reason = 'Cancelled by mutual agreement' } = req.body;
 
   const tx = await db('transactions').where({ id }).first();
   if (!tx) {
@@ -265,6 +379,19 @@ const cancelTransaction = asyncHandler(async (req, res, next) => {
     if (listing && listing.status === 'reserved') {
       await trx('listings').where({ id: tx.listing_id }).update({ status: 'active' });
     }
+  });
+
+  // Sync cancellation system event to chat
+  const io = req.app.get('io');
+  await syncTransactionToChat({
+    listingId: tx.listing_id,
+    buyerId: tx.buyer_id,
+    sellerId: tx.seller_id,
+    transactionId: tx.id,
+    referenceNo: tx.reference_no,
+    content: `❌ Order ${tx.reference_no} was CANCELLED (${reason.trim()}). The item has been re-listed on the campus catalog.`,
+    isSystem: true,
+    io
   });
 
   res.status(200).json({

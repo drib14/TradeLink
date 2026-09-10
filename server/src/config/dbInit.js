@@ -108,6 +108,61 @@ async function autoInitDatabase() {
       }
     }
 
+    // 2b. Ensure Default Student Accounts Exist for Testing
+    const student1 = await db('users').where({ student_id: '20240001' }).first();
+    if (!student1) {
+      await db('users').insert({
+        id: 'user-student-1',
+        name: 'Juan Dela Cruz',
+        email: 'juan.delacruz@uc.edu.ph',
+        student_id: '20240001',
+        password_hash: adminPasswordHash,
+        role: 'student',
+        campus: 'UC Main',
+        college: 'CCS',
+        year_level: '3rd Year',
+        avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=300&q=80',
+        is_verified: true,
+        id_photo_url: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80',
+        trust_score: 85,
+        rating: 5.0,
+        total_reviews: 4,
+        completed_trades: 3,
+        punctuality_rate: 100,
+        bio: 'BSIT 3rd Year student at UC Main. Regular campus trader.',
+        is_pro_merchant: false,
+        is_banned: false
+      });
+      logger.info('[DB Init] Created default verified student: 20240001 (Juan Dela Cruz)');
+    }
+
+    const student2 = await db('users').where({ student_id: '20240002' }).first();
+    if (!student2) {
+      await db('users').insert({
+        id: 'user-student-2',
+        name: 'Maria Santos',
+        email: 'maria.santos@uc.edu.ph',
+        student_id: '20240002',
+        password_hash: adminPasswordHash,
+        role: 'student',
+        campus: 'UC Banilad',
+        college: 'CBA',
+        year_level: '2nd Year',
+        avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80',
+        is_verified: false,
+        id_photo_url: null,
+        trust_score: 60,
+        rating: 5.0,
+        total_reviews: 0,
+        completed_trades: 0,
+        punctuality_rate: 100,
+        bio: 'BSBA 2nd Year student at UC Banilad.',
+        is_pro_merchant: false,
+        is_banned: false
+      });
+      logger.info('[DB Init] Created default unverified student: 20240002 (Maria Santos)');
+    }
+
     // 3. Ensure Default System Configuration Exists
     const hasConfigTable = await db.schema.hasTable('system_config');
     if (hasConfigTable) {

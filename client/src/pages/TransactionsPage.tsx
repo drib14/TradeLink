@@ -27,7 +27,7 @@ interface TransactionsPageProps {
 }
 
 export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, onOpenChat }) => {
-  const { transactions, completeTransaction, cancelTransaction, openChatWithSeller } = useChat();
+  const { transactions, completeTransaction, cancelTransaction, openChatWithSeller, openChatForTransaction } = useChat();
   const { currentUser, isAuthenticated } = useAuth();
   const { showToast } = useToast();
 
@@ -114,16 +114,8 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
     }
   };
 
-  const handleOpenChat = (tx: Transaction) => {
-    openChatWithSeller({
-      id: tx.listingId,
-      title: tx.listingTitle,
-      sellerId: tx.sellerId,
-      sellerName: tx.sellerName,
-      price: tx.amount,
-      images: tx.listingImage ? [tx.listingImage] : [],
-      tradeMode: tx.tradeMode
-    } as any);
+  const handleOpenChat = async (tx: Transaction) => {
+    await openChatForTransaction(tx);
     onOpenChat();
   };
 

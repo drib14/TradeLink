@@ -17,7 +17,46 @@ export const chatService = {
     };
   },
 
-  // Conversations
+  // Get or create conversation with a student
+  async getOrCreateConversation(params: {
+    targetUserId: string;
+    listingId?: string | null;
+    wantedId?: string | null;
+    initialMessage?: string | null;
+  }): Promise<Conversation> {
+    const res = await api.post<{ conversation: any }>('/chat/conversations', params);
+    const c = res.data?.conversation || res.data;
+    return {
+      id: c.id,
+      participantIds: c.participantIds || c.participant_ids || [],
+      otherParticipant: {
+        id: c.otherParticipant?.id || '',
+        name: c.otherParticipant?.name || 'Student Peer',
+        avatar: c.otherParticipant?.avatar || '',
+        campus: c.otherParticipant?.campus || 'UC Main',
+        college: c.otherParticipant?.college,
+        isVerified: Boolean(c.otherParticipant?.isVerified),
+        trustScore: c.otherParticipant?.trustScore,
+        rating: c.otherParticipant?.rating
+      },
+      listingId: c.listingId || '',
+      listingTitle: c.listingTitle || 'Campus Item',
+      listingImage: c.listingImage || '',
+      listingPrice: c.listingPrice,
+      listingTradeMode: c.listingTradeMode,
+      listingStatus: c.listingStatus,
+      listingSellerId: c.listingSellerId,
+      wantedId: c.wantedId,
+      wantedRequest: c.wantedRequest,
+      activeTransaction: c.activeTransaction,
+      activeSwap: c.activeSwap,
+      lastMessage: c.lastMessage || '',
+      lastMessageTimestamp: c.lastMessageTimestamp || new Date().toISOString(),
+      unreadCount: c.unreadCount ?? 0
+    };
+  },
+
+  // Conversations list
   async getConversations(): Promise<Conversation[]> {
     const res = await api.get<{ conversations: any[] }>('/chat/conversations');
     const list = res.data?.conversations || res.data || [];
@@ -27,14 +66,25 @@ export const chatService = {
         participantIds: c.participantIds || c.participant_ids || [],
         otherParticipant: {
           id: c.otherParticipant?.id || c.other_participant_id || '',
-          name: c.otherParticipant?.name || c.other_participant_name || '',
+          name: c.otherParticipant?.name || c.other_participant_name || 'Student Peer',
           avatar: c.otherParticipant?.avatar || c.other_participant_avatar || '',
           campus: c.otherParticipant?.campus || c.other_participant_campus || 'UC Main',
-          isVerified: Boolean(c.otherParticipant?.isVerified ?? c.other_participant_verified)
+          college: c.otherParticipant?.college,
+          isVerified: Boolean(c.otherParticipant?.isVerified ?? c.other_participant_verified),
+          trustScore: c.otherParticipant?.trustScore ?? c.other_participant_trust,
+          rating: c.otherParticipant?.rating ?? c.other_participant_rating
         },
         listingId: c.listingId || c.listing_id || '',
-        listingTitle: c.listingTitle || c.listing_title || '',
+        listingTitle: c.listingTitle || c.listing_title || 'Campus Item',
         listingImage: c.listingImage || c.listing_image || '',
+        listingPrice: c.listingPrice ?? c.listing_price,
+        listingTradeMode: c.listingTradeMode ?? c.listing_trade_mode,
+        listingStatus: c.listingStatus ?? c.listing_status,
+        listingSellerId: c.listingSellerId ?? c.listing_seller_id,
+        wantedId: c.wantedId ?? c.wanted_id,
+        wantedRequest: c.wantedRequest,
+        activeTransaction: c.activeTransaction,
+        activeSwap: c.activeSwap,
         lastMessage: c.lastMessage || c.last_message || '',
         lastMessageTimestamp: c.lastMessageTimestamp || c.last_message_timestamp || new Date().toISOString(),
         unreadCount: c.unreadCount ?? c.unread_count ?? 0
@@ -58,21 +108,29 @@ export const chatService = {
         isSystemMessage: Boolean(m.isSystemMessage ?? m.is_system_message),
         swapOfferId: m.swapOfferId || m.swap_offer_id,
         transactionId: m.transactionId || m.transaction_id,
+        wantedRequestId: m.wantedRequestId || m.wanted_request_id,
         mediaUrl: m.mediaUrl || m.media_url || null,
-        mediaType: m.mediaType || m.media_type || null
+        mediaType: m.mediaType || m.media_type || null,
+        swapOffer: m.swapOffer,
+        transaction: m.transaction,
+        wantedRequest: m.wantedRequest
       }));
     }
     return [];
   },
 
+  async markConversationAsRead(conversationId: string): Promise<void> {
+    await api.patch(`/chat/conversations/${conversationId}/read`);
+  },
+
   async sendMessage(params: {
-    conversationId?: string;
+    conversationId: string;
     receiverId: string;
-    listingId?: string;
     content: string;
     isSystemMessage?: boolean;
     swapOfferId?: string;
     transactionId?: string;
+    wantedRequestId?: string;
     mediaUrl?: string | null;
     mediaType?: 'image' | 'video' | null;
   }): Promise<Message> {
@@ -80,7 +138,7 @@ export const chatService = {
     const m = res.data?.message || res.data;
     return {
       id: m.id,
-      conversationId: m.conversationId || m.conversation_id || params.conversationId || '',
+      conversationId: m.conversationId || m.conversation_id || params.conversationId,
       senderId: m.senderId || m.sender_id || '',
       receiverId: m.receiverId || m.receiver_id || params.receiverId,
       content: m.content || params.content,
@@ -89,8 +147,12 @@ export const chatService = {
       isSystemMessage: Boolean(m.isSystemMessage ?? m.is_system_message),
       swapOfferId: m.swapOfferId || m.swap_offer_id || params.swapOfferId,
       transactionId: m.transactionId || m.transaction_id || params.transactionId,
+      wantedRequestId: m.wantedRequestId || m.wanted_request_id || params.wantedRequestId,
       mediaUrl: m.mediaUrl || m.media_url || params.mediaUrl || null,
-      mediaType: m.mediaType || m.media_type || params.mediaType || null
+      mediaType: m.mediaType || m.media_type || params.mediaType || null,
+      swapOffer: m.swapOffer,
+      transaction: m.transaction,
+      wantedRequest: m.wantedRequest
     };
   },
 
@@ -128,7 +190,7 @@ export const chatService = {
   },
 
   async respondToSwap(id: string, action: 'accept' | 'decline'): Promise<void> {
-    await api.patch(`/swaps/${id}/respond`, { action });
+    await api.patch(`/swaps/${id}/respond`, { status: action === 'accept' ? 'accepted' : 'declined' });
   },
 
   // Transactions
@@ -163,6 +225,8 @@ export const chatService = {
 
   async createTransaction(data: {
     listingId: string;
+    sellerId?: string;
+    amount?: number;
     paymentMethod?: string;
     notes?: string;
     swapOfferId?: string;
@@ -179,20 +243,18 @@ export const chatService = {
     await api.patch(`/transactions/${id}/cancel`, { reason });
   },
 
-  // Aliases for backward compatibility
-  async getMeetups(): Promise<Transaction[]> {
-    return this.getTransactions();
-  },
-
-  async scheduleMeetup(data: any): Promise<Transaction> {
-    return this.createTransaction(data);
-  },
-
-  async updateMeetupStatus(id: string, status: string): Promise<void> {
-    if (status === 'completed') {
-      await this.completeTransaction(id);
-    } else if (status === 'cancelled') {
-      await this.cancelTransaction(id);
-    }
+  // Submit Review after completed trade
+  async submitReview(data: {
+    transactionId: string;
+    targetUserId: string;
+    rating: number;
+    comment?: string;
+    itemTitle?: string;
+    tradeType?: string;
+    wasPunctual?: boolean;
+    traitBadges?: string[];
+  }): Promise<any> {
+    const res = await api.post('/reviews', data);
+    return res.data;
   }
 };

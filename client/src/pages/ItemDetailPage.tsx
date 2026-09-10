@@ -6,6 +6,7 @@ import { VerifiedBadge } from '../components/common/VerifiedBadge';
 import { UserAvatar } from '../components/common/UserAvatar';
 import { SwapProposalModal } from '../components/marketplace/SwapProposalModal';
 import { BuyNowModal } from '../components/marketplace/BuyNowModal';
+import { ManageListingModal } from '../components/marketplace/ManageListingModal';
 import { ListingCard } from '../components/marketplace/ListingCard';
 import { Modal } from '../components/common/Modal';
 import { useToast } from '../components/common/Toast';
@@ -26,6 +27,9 @@ import {
   Film,
   Maximize2,
   ShoppingBag,
+  Sliders,
+  RotateCcw,
+  CheckCircle2,
   X
 } from 'lucide-react';
 
@@ -68,7 +72,7 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
   onOpenAuth,
   onOpenVerification
 }) => {
-  const { listings, favorites, toggleFavorite } = useMarket();
+  const { listings, favorites, toggleFavorite, markAsSold } = useMarket();
   const { currentUser, isAuthenticated } = useAuth();
   const { openChatWithSeller } = useChat();
   const { showToast } = useToast();
@@ -79,6 +83,7 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
   const [activeImageIdx, setActiveImageIdx] = useState(0);
   const [isSwapModalOpen, setIsSwapModalOpen] = useState(false);
   const [isBuyModalOpen, setIsBuyModalOpen] = useState(false);
+  const [isManageModalOpen, setIsManageModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
@@ -165,13 +170,13 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
     setIsSwapModalOpen(true);
   };
 
-  const handleContactSeller = () => {
+  const handleContactSeller = async () => {
     if (!isAuthenticated) {
       showToast('Log In Required', 'Please log in with your UC account to chat with the seller.', 'warning');
       if (onOpenAuth) onOpenAuth();
       return;
     }
-    openChatWithSeller(listing);
+    await openChatWithSeller(listing);
     onOpenChat();
   };
 
@@ -692,8 +697,107 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
                 )}
               </>
             ) : (
-              <div style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', backgroundColor: 'var(--bg-subtle)', textAlign: 'center', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-muted)' }}>
-                You posted this listing.
+              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                <div
+                  style={{
+                    padding: '0.75rem 1rem',
+                    borderRadius: '10px',
+                    backgroundColor: 'rgba(0, 43, 127, 0.05)',
+                    border: '1.5px solid var(--uc-blue-border, #BCD1F7)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '0.5rem'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                    <Sliders size={16} color="var(--uc-blue)" />
+                    <div>
+                      <span style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--uc-blue)' }}>
+                        You Are The Seller of This Item
+                      </span>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                        Status: <strong>{isSoldOut ? 'Sold / Inactive' : 'Active in Marketplace'}</strong> • {listing.views || 0} total views
+                      </div>
+                    </div>
+                  </div>
+
+                  <span
+                    style={{
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      padding: '0.2rem 0.55rem',
+                      borderRadius: '6px',
+                      backgroundColor: isSoldOut ? '#FEE2E2' : '#ECFDF5',
+                      color: isSoldOut ? '#991B1B' : '#047857'
+                    }}
+                  >
+                    {isSoldOut ? 'Sold Out' : 'Available'}
+                  </span>
+                </div>
+
+                {/* Seller Action Buttons */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '0.5rem' }}>
+                  <button
+                    onClick={() => setIsManageModalOpen(true)}
+                    className="btn-primary"
+                    style={{
+                      padding: '0.75rem 1.25rem',
+                      fontSize: '0.88rem',
+                      fontWeight: 800,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.45rem',
+                      backgroundColor: 'var(--uc-blue, #002B7F)'
+                    }}
+                  >
+                    <Sliders size={16} />
+                    <span>Manage & Edit Listing</span>
+                  </button>
+
+                  <button
+                    onClick={async () => {
+                      try {
+                        const nextSold = !isSoldOut;
+                        await markAsSold(listing.id, nextSold);
+                        showToast(
+                          nextSold ? 'Item Marked as Sold' : 'Item Relisted',
+                          nextSold ? `"${listing.title}" marked as sold.` : `"${listing.title}" is now active.`,
+                          'success'
+                        );
+                      } catch (err: any) {
+                        showToast('Failed', err?.message || 'Unable to update status', 'error');
+                      }
+                    }}
+                    style={{
+                      padding: '0.75rem 1.15rem',
+                      fontSize: '0.84rem',
+                      fontWeight: 800,
+                      borderRadius: '8px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      cursor: 'pointer',
+                      border: isSoldOut ? '1px solid var(--accent-green, #10B981)' : '1px solid var(--border-subtle, #CBD5E1)',
+                      backgroundColor: isSoldOut ? 'var(--accent-green-subtle, #ECFDF5)' : 'var(--bg-subtle, #F8FAFC)',
+                      color: isSoldOut ? 'var(--accent-green, #047857)' : 'var(--text-secondary, #475569)'
+                    }}
+                  >
+                    {isSoldOut ? (
+                      <>
+                        <RotateCcw size={15} />
+                        <span>Relist Item</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 size={15} color="var(--accent-green, #10B981)" />
+                        <span>Mark as Sold</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -800,6 +904,16 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
           isOpen={isSwapModalOpen}
           onClose={() => setIsSwapModalOpen(false)}
           targetListing={listing}
+        />
+      )}
+
+      {/* Seller Manage Listing Modal */}
+      {isManageModalOpen && (
+        <ManageListingModal
+          isOpen={isManageModalOpen}
+          onClose={() => setIsManageModalOpen(false)}
+          listing={listing}
+          onNavigate={onNavigate}
         />
       )}
 

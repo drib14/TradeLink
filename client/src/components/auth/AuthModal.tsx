@@ -314,11 +314,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </label>
                 <input
                   type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={loginIdentifier}
-                  onChange={(e) => setLoginIdentifier(e.target.value)}
-                  placeholder="ID Number"
+                  onChange={(e) => setLoginIdentifier(e.target.value.replace(/\D/g, ''))}
+                  placeholder="ID Number (digits only)"
                   className="clean-input"
                   style={{ fontWeight: 500 }}
+                  maxLength={20}
                   required
                   autoFocus
                   disabled={isSubmitting}
@@ -465,11 +468,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   </label>
                   <input
                     type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     value={regStudentId}
                     onChange={(e) => setRegStudentId(e.target.value.replace(/\D/g, ''))}
-                    placeholder="ID Number"
+                    placeholder="ID Number (digits only)"
                     className="clean-input"
-                    maxLength={15}
+                    maxLength={20}
                     required
                     disabled={isSubmitting}
                   />

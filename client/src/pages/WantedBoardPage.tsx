@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useWanted } from '../context/WantedContext';
 import { useAuth } from '../context/AuthContext';
+import { useChat } from '../context/ChatContext';
 import { useToast } from '../components/common/Toast';
 import { CreateWantedModal } from '../components/marketplace/CreateWantedModal';
 import { VerifiedBadge } from '../components/common/VerifiedBadge';
@@ -83,7 +84,9 @@ export const WantedBoardPage: React.FC<WantedBoardPageProps> = ({ onNavigate, on
     setIsCreateModalOpen(true);
   };
 
-  const handleRespond = (req: WantedRequest) => {
+  const { openChatForWanted } = useChat();
+
+  const handleRespond = async (req: WantedRequest) => {
     if (!isAuthenticated || !currentUser) {
       showToast('Log In Required', 'Please log in to respond with an item offer.', 'warning');
       if (onOpenAuth) onOpenAuth();
@@ -94,10 +97,16 @@ export const WantedBoardPage: React.FC<WantedBoardPageProps> = ({ onNavigate, on
       setIsVerificationModalOpen(true);
       return;
     }
+    await openChatForWanted({
+      id: req.id,
+      requesterId: req.requesterId,
+      itemName: req.itemTitle,
+      targetBudget: req.targetBudget
+    });
     respondToRequest(req.id);
     showToast(
-      'Offer Sent!',
-      `You notified ${req.requesterName} that you have this item for ₱${req.targetBudget}.`,
+      'Offer Chat Opened!',
+      `Connected with ${req.requesterName} to fulfill their request for "${req.itemTitle}".`,
       'success'
     );
     onOpenChat();

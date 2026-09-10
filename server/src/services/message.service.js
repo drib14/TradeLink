@@ -13,6 +13,7 @@ async function createMessage({
   isSystemMessage = false,
   swapOfferId = null,
   transactionId = null,
+  wantedRequestId = null,
   mediaUrl = null,
   mediaType = null
 }) {
@@ -45,6 +46,7 @@ async function createMessage({
     media_type: mediaType || null,
     swap_offer_id: swapOfferId || null,
     transaction_id: transactionId || null,
+    wanted_request_id: wantedRequestId || null,
     created_at: new Date()
   };
 
@@ -55,6 +57,22 @@ async function createMessage({
       last_message_at: new Date()
     });
   });
+
+  // Fetch optional enriched card data
+  let swapOffer = null;
+  if (swapOfferId) {
+    swapOffer = await db('swap_offers').where({ id: swapOfferId }).first();
+  }
+
+  let transaction = null;
+  if (transactionId) {
+    transaction = await db('transactions').where({ id: transactionId }).first();
+  }
+
+  let wantedRequest = null;
+  if (wantedRequestId) {
+    wantedRequest = await db('wanted_requests').where({ id: wantedRequestId }).first();
+  }
 
   return {
     id: msgId,
@@ -68,7 +86,11 @@ async function createMessage({
     timestamp: newMsg.created_at.toISOString(),
     isSystemMessage: Boolean(isSystemMessage),
     swapOfferId: swapOfferId || null,
-    transactionId: transactionId || null
+    transactionId: transactionId || null,
+    wantedRequestId: wantedRequestId || null,
+    swapOffer,
+    transaction,
+    wantedRequest
   };
 }
 
