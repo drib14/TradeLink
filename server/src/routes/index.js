@@ -4,59 +4,68 @@ const db = require('../config/db');
 const { authenticate } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 const AppError = require('../utils/AppError');
+const storageService = require('../services/storage.service');
+const asyncHandler = require('../utils/asyncHandler');
 
 // Sub-routers
 const authRoutes = require('./auth.routes');
 const usersRoutes = require('./users.routes');
 const listingsRoutes = require('./listings.routes');
-const favoritesRoutes = require('./favorites.routes');
 const swapsRoutes = require('./swaps.routes');
-const meetupsRoutes = require('./meetups.routes');
+const transactionsRoutes = require('./transactions.routes');
 const chatRoutes = require('./chat.routes');
 const wantedRoutes = require('./wanted.routes');
 const reviewsRoutes = require('./reviews.routes');
-const notificationsRoutes = require('./notifications.routes');
 const adminRoutes = require('./admin.routes');
+const adminAuthRoutes = require('./adminAuth.routes');
 
 // System Health Check
 router.get('/health', async (req, res) => {
   const dbHealth = await db.testConnection();
   res.status(dbHealth.ok ? 200 : 503).json({
-    status: dbHealth.ok ? 'success' : 'error',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    database: dbHealth
+    status: dbHealth.ok ? 'ok' : 'degraded'
   });
 });
 
-// File Upload endpoint (single image)
-router.post('/upload', authenticate, upload.single('image'), (req, res, next) => {
-  if (!req.file) {
+// File / Media Upload endpoint (supports images and videos, streams to Cloudinary)
+router.post('/upload', authenticate, upload.any(), asyncHandler(async (req, res, next) => {
+  const file = (req.files && req.files[0]) || req.file;
+  if (!file) {
     return next(new AppError('No file uploaded.', 400));
   }
 
-  const relativeUrl = `/uploads/${req.file.destination.split(/[\\/]/).pop()}/${req.file.filename}`;
+  const folder = req.body.folder || req.query.folder || 'listings';
+  const result = await storageService.uploadBuffer(
+    file.buffer,
+    file.originalname,
+    file.mimetype,
+    folder
+  );
+
   res.status(201).json({
     status: 'success',
     data: {
-      url: relativeUrl,
-      filename: req.file.filename,
-      size: req.file.size
+      url: result.url,
+      key: result.key,
+      filename: result.filename,
+      mediaType: result.mediaType || 'image',
+      size: result.size,
+      storage: result.storage
     }
   });
-});
+}));
 
 // Mount domain routes
 router.use('/auth', authRoutes);
 router.use('/users', usersRoutes);
 router.use('/listings', listingsRoutes);
-router.use('/favorites', favoritesRoutes);
 router.use('/swaps', swapsRoutes);
-router.use('/meetups', meetupsRoutes);
+router.use('/transactions', transactionsRoutes);
+router.use('/meetups', transactionsRoutes); // Compatibility alias
 router.use('/chat', chatRoutes);
 router.use('/wanted', wantedRoutes);
 router.use('/reviews', reviewsRoutes);
-router.use('/notifications', notificationsRoutes);
 router.use('/admin', adminRoutes);
+router.use('/admin-auth', adminAuthRoutes);
 
 module.exports = router;

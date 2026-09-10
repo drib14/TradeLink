@@ -11,23 +11,16 @@ import { ListingCard } from '../components/marketplace/ListingCard';
 import { Modal } from '../components/common/Modal';
 import { reviewsService } from '../services/reviews.service';
 import { usersService } from '../services/users.service';
-import { DragDropUpload } from '../components/common/DragDropUpload';
-import { User, Listing, Review, WantedRequest, TradeMode, College } from '../types';
+import { User, Listing, Review, WantedRequest, College } from '../types';
 import {
   ShieldCheck,
   Star,
   Clock,
-  ArrowLeftRight,
-  Upload,
-  AlertCircle,
-  FileCheck,
   Edit3,
   MessageSquare,
   Flame,
   Search,
   ShoppingBag,
-  Gift,
-  Calendar,
   CheckCircle2,
   Eye,
   X,
@@ -37,24 +30,31 @@ import {
   Bookmark,
   Receipt,
   Settings,
-  UserCheck,
   Save,
   MapPin,
   ShieldAlert,
-  Link2,
+  AlertCircle,
   Copy,
-  Camera
+  Camera,
+  User as UserIcon
 } from 'lucide-react';
 import { StudentVerificationModal } from '../components/verification/StudentVerificationModal';
-import { encodeHashedId, maskStudentId } from '../utils/security';
+import { maskStudentId } from '../utils/security';
 
 interface ProfilePageProps {
   userId?: string;
   onNavigate: (view: string, param?: any) => void;
+  onOpenAuth?: () => void;
+  onOpenVerification?: () => void;
 }
 
-export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate }) => {
-  const { currentUser, allUsers, updateProfile, submitIdVerification } = useAuth();
+export const ProfilePage: React.FC<ProfilePageProps> = ({
+  userId,
+  onNavigate,
+  onOpenAuth,
+  onOpenVerification
+}) => {
+  const { currentUser, allUsers, updateProfile } = useAuth();
   const { listings, favorites } = useMarket();
   const { requests: wantedRequests } = useWanted();
   const { openChatWithSeller, meetups } = useChat();
@@ -71,7 +71,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate }) 
     }
   }, [userId, currentUser]);
 
-  const targetUser: User | null = (userId && currentUser?.id === userId ? currentUser : (fetchedUser || (userId ? allUsers.find((u: User) => u.id === userId) : null) || currentUser || allUsers[0] || null));
+  const targetUser: User | null = (userId && currentUser?.id === userId ? currentUser : (fetchedUser || (userId ? allUsers.find((u: User) => u.id === userId) : null) || currentUser || null));
   const isSelf = !!currentUser && !!targetUser && currentUser.id === targetUser.id;
 
   const [activeTab, setActiveTab] = useState<'listings' | 'sold' | 'saved' | 'transactions' | 'reviews' | 'wanted'>('listings');
@@ -92,7 +92,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate }) 
   const [isPendingInfoModalOpen, setIsPendingInfoModalOpen] = useState(false);
   const [userReviews, setUserReviews] = useState<Review[]>([]);
 
-  const isPendingVerification = !targetUser?.isVerified && (targetUser?.verificationStatus === 'pending' || !!targetUser?.idPhotoUrl);
+  const isRejectedVerification = !targetUser?.isVerified && (targetUser?.verificationStatus === 'rejected' || !!(targetUser as any)?.verificationRejectionReason);
+  const isPendingVerification = !targetUser?.isVerified && !isRejectedVerification && (targetUser?.verificationStatus === 'pending' || !!targetUser?.idPhotoUrl);
 
   React.useEffect(() => {
     if (targetUser?.id) {
@@ -123,6 +124,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate }) 
 
   const handleSaveFullProfile = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!targetUser) return;
     updateProfile({
       name: editName.trim(),
       bio: editBio.trim(),
@@ -137,8 +139,10 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate }) 
   const handleStartChatWithUser = () => {
     if (!currentUser) {
       showToast('Sign In Required', 'Please log in to chat with students.', 'warning');
+      if (onOpenAuth) onOpenAuth();
       return;
     }
+    if (!targetUser) return;
     if (userActiveListings.length > 0) {
       openChatWithSeller(userActiveListings[0]);
       showToast('Chat Opened', `Opened chat with ${targetUser.name}.`, 'info');
@@ -148,6 +152,45 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate }) 
   };
 
   if (!targetUser) {
+    if (!currentUser && !userId) {
+      return (
+        <div className="container page-enter" style={{ padding: '5rem 1.5rem', textAlign: 'center', maxWidth: '520px' }}>
+          <div className="clean-card" style={{ padding: '3rem 2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
+            <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', color: 'var(--uc-blue, #002B7F)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <UserIcon size={28} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary, #0F172A)' }}>
+                Sign In to View Your Profile
+              </h2>
+              <p style={{ fontSize: '0.86rem', color: 'var(--text-muted, #64748B)', marginTop: '0.35rem', lineHeight: 1.5 }}>
+                Log in with your University of Cebu account to manage your listings, view your student verification status, and monitor campus reviews.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
+              <button
+                onClick={() => {
+                  if (onOpenAuth) onOpenAuth();
+                  else onNavigate('home');
+                }}
+                className="btn-gold"
+                style={{ padding: '0.75rem 1.5rem', fontSize: '0.88rem', fontWeight: 800 }}
+              >
+                Sign In to TradeLink
+              </button>
+              <button
+                onClick={() => onNavigate('marketplace')}
+                className="btn-secondary"
+                style={{ padding: '0.75rem 1.25rem', fontSize: '0.88rem', fontWeight: 700 }}
+              >
+                Explore Marketplace
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="container page-enter" style={{ padding: '5rem 1.5rem', textAlign: 'center', maxWidth: '500px' }}>
         <div className="clean-card" style={{ padding: '3rem 2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
@@ -278,6 +321,22 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate }) 
                     title="Account Settings"
                   >
                     <Settings size={16} />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (navigator.clipboard) {
+                        navigator.clipboard.writeText(window.location.href);
+                        setIsCopiedLink(true);
+                        showToast('Link Copied', 'Profile link copied to clipboard.', 'success');
+                        setTimeout(() => setIsCopiedLink(false), 2500);
+                      }
+                    }}
+                    className="btn-ghost"
+                    style={{ padding: '0.55rem 0.85rem', fontSize: '0.82rem' }}
+                    title="Share Profile"
+                  >
+                    {isCopiedLink ? <Check size={16} color="var(--accent-green)" /> : <Copy size={16} />}
                   </button>
                 </>
               )}
@@ -477,7 +536,40 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate }) 
 
       {/* Dynamic Verification Banner */}
       {isSelf && !targetUser.isVerified && (
-        isPendingVerification ? (
+        isRejectedVerification ? (
+          <div
+            style={{
+              backgroundColor: 'rgba(239, 68, 68, 0.08)',
+              border: '1.5px solid rgba(239, 68, 68, 0.3)',
+              borderRadius: 'var(--radius-lg)',
+              padding: '1.25rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '1rem'
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <ShieldAlert size={18} color="#DC2626" />
+                <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: '#DC2626' }}>
+                  Verification Resubmission Needed
+                </h3>
+              </div>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem', margin: 0 }}>
+                Moderator Note: <strong>{(targetUser as any)?.verificationRejectionReason || 'Uploaded ID document or selfie was unreadable.'}</strong>
+              </p>
+            </div>
+            <button
+              onClick={() => setIsVerificationModalOpen(true)}
+              className="btn-primary"
+              style={{ padding: '0.55rem 1.15rem', fontSize: '0.82rem', fontWeight: 800, backgroundColor: '#DC2626', borderColor: '#DC2626' }}
+            >
+              Fix & Resubmit ID
+            </button>
+          </div>
+        ) : isPendingVerification ? (
           <div
             style={{
               backgroundColor: 'rgba(0, 43, 127, 0.06)',
@@ -736,7 +828,13 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate }) 
                   style={{ display: 'flex', gap: '1rem', alignItems: 'center', padding: '1rem' }}
                   onClick={() => onNavigate('item-detail', { id: m.listingId })}
                 >
-                  <img src={m.listingImage} alt={m.listingTitle} style={{ width: '56px', height: '56px', borderRadius: '8px', objectFit: 'cover' }} />
+                  {m.listingImage && m.listingImage.trim() !== '' ? (
+                    <img src={m.listingImage} alt={m.listingTitle} style={{ width: '56px', height: '56px', borderRadius: '8px', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ width: '56px', height: '56px', borderRadius: '8px', backgroundColor: 'var(--bg-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+                      <ShoppingBag size={22} />
+                    </div>
+                  )}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)' }}>{m.listingTitle}</div>
                     <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: '2px' }}>

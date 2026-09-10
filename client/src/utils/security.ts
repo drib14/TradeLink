@@ -4,19 +4,33 @@
  * and privacy masking for sensitive student details.
  */
 
-// Simple URL-safe prefix for TradeLink obfuscation
-const OBFUSCATION_PREFIX = 'usr_';
+// URL-safe prefixes for TradeLink entity obfuscation
+export const HASH_PREFIXES = {
+  user: 'usr_',
+  listing: 'itm_',
+  meetup: 'mtp_',
+  swap: 'swp_',
+  verification: 'vfy_',
+  dispute: 'dsp_',
+  generic: 'tl_'
+} as const;
+
+export type EntityIdType = keyof typeof HASH_PREFIXES;
+
+const ALL_HASH_PREFIXES = Object.values(HASH_PREFIXES);
 const SALT_PRIME = 0x5a;
 
 /**
- * Encodes an internal ID (e.g., 'user-1', 'usr-1740700000', UUIDs) into a URL-safe hashed slug.
- * Example: 'user-1' -> 'usr_N2YwNmQ...'
+ * Encodes an internal ID into a URL-safe hashed slug with an entity prefix.
+ * Example: encodeHashedId('list-1', 'listing') -> 'itm_N2YwNmQ...'
  */
-export function encodeHashedId(rawId: string | null | undefined): string {
+export function encodeHashedId(rawId: string | null | undefined, type: EntityIdType = 'user'): string {
   if (!rawId) return '';
-  
-  // If already encoded with our prefix, return as is
-  if (rawId.startsWith(OBFUSCATION_PREFIX)) {
+
+  const prefix = HASH_PREFIXES[type] || HASH_PREFIXES.generic;
+
+  // If already encoded with any valid TradeLink prefix, return as is
+  if (ALL_HASH_PREFIXES.some((p) => rawId.startsWith(p))) {
     return rawId;
   }
 
@@ -27,7 +41,7 @@ export function encodeHashedId(rawId: string | null | undefined): string {
     for (let i = 0; i < utf8Bytes.length; i++) {
       scrambled[i] = utf8Bytes[i] ^ ((SALT_PRIME + i) % 256);
     }
-    
+
     // Base64URL encoding (RFC 4648 §5)
     let binary = '';
     for (let i = 0; i < scrambled.length; i++) {
@@ -38,27 +52,26 @@ export function encodeHashedId(rawId: string | null | undefined): string {
       .replace(/\//g, '_')
       .replace(/=+$/, '');
 
-    return `${OBFUSCATION_PREFIX}${base64}`;
-  } catch (err) {
-    // Fallback if encoding fails
-    return `${OBFUSCATION_PREFIX}${encodeURIComponent(rawId)}`;
+    return `${prefix}${base64}`;
+  } catch {
+    return `${prefix}${encodeURIComponent(rawId)}`;
   }
 }
 
 /**
  * Decodes a hashed slug back into the original ID.
- * Safely handles both hashed slugs (e.g., 'usr_N2Yw...') and unhashed legacy IDs (e.g., 'user-1').
+ * Safely handles hashed slugs across any prefix ('usr_...', 'itm_...', 'mtp_...') and raw legacy IDs.
  */
 export function decodeHashedId(token: string | null | undefined): string {
   if (!token) return '';
 
-  // If not prefixed with our obfuscation token, return as legacy raw ID
-  if (!token.startsWith(OBFUSCATION_PREFIX)) {
-    return token;
+  const matchedPrefix = ALL_HASH_PREFIXES.find((p) => token.startsWith(p));
+  if (!matchedPrefix) {
+    return token; // Legacy raw ID
   }
 
-  const base64 = token.slice(OBFUSCATION_PREFIX.length);
-  if (!base64) return '';
+  const base64 = token.slice(matchedPrefix.length);
+  if (!base64) return token;
 
   try {
     // Base64URL decode
@@ -79,8 +92,7 @@ export function decodeHashedId(token: string | null | undefined): string {
       return decoded;
     }
     return token;
-  } catch (err) {
-    // If decoding fails, check URL decode fallback or return token as-is
+  } catch {
     try {
       return decodeURIComponent(base64);
     } catch {

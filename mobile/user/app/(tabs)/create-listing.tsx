@@ -17,30 +17,12 @@ import { useRouter } from 'expo-router';
 import { useMarket } from '../../context/MarketContext';
 import { useAuth } from '../../context/AuthContext';
 import { Campus, College, ConditionGrade, TradeMode } from '../../types';
-import { CATEGORIES } from '../../data/seedData';
-
-const CONDITIONS: ConditionGrade[] = [
-  'Brand New',
-  'Like New',
-  'Gently Used',
-  'Fair / Academic Usable',
-];
-
-const CAMPUSES: Campus[] = [
-  'UC Main',
-  'UC Banilad',
-  'UC LM',
-  'UC METC',
-  'UC PRI',
-  'UC South Campus',
-  'UC Pardo-Talisay',
-  'UC Medical Center',
-];
+import { CATEGORIES, CONDITIONS, CAMPUSES } from '../../constants';
 
 export default function CreateListingScreen() {
   const router = useRouter();
   const { addListing } = useMarket();
-  const { currentUser } = useAuth();
+  const { currentUser, openAuthModal } = useAuth();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -95,62 +77,81 @@ export default function CreateListingScreen() {
     setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = () => {
-    if (!title.trim()) {
-      Alert.alert('Missing Title', 'Please enter a title for your listing.');
+  const handleSubmit = async () => {
+    if (!currentUser) {
+      Alert.alert('Sign In Required', 'You must be signed in with your verified UC account to post listings.', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Sign In', onPress: openAuthModal },
+      ]);
       return;
     }
-    if (tradeMode !== 'free_donation' && (!price || isNaN(Number(price)))) {
-      Alert.alert('Invalid Price', 'Please enter a valid price in Philippine Pesos.');
+    if (images.length === 0) {
+      Alert.alert('Photo Required', 'Please add at least 1 clear photo of your item.');
       return;
+    }
+    if (title.trim().length < 5) {
+      Alert.alert('Title Too Short', 'Please enter a title of at least 5 characters.');
+      return;
+    }
+    if (description.trim().length < 10) {
+      Alert.alert('Description Too Short', 'Please enter at least 10 characters describing the condition or reason for selling.');
+      return;
+    }
+    if (tradeMode !== 'free_donation') {
+      const numericPrice = Number(price);
+      if (!price || isNaN(numericPrice) || numericPrice < 0) {
+        Alert.alert('Invalid Price', 'Please enter a valid non-negative price in Philippine Pesos.');
+        return;
+      }
     }
 
     setIsSubmitting(true);
+    try {
+      const newListing = await addListing({
+        title: title.trim(),
+        description: description.trim(),
+        price: tradeMode === 'free_donation' ? 0 : Number(price),
+        originalSrp: originalSrp ? Number(originalSrp) : undefined,
+        tradeMode,
+        swapPreference: tradeMode === 'swap' ? swapPreference.trim() : undefined,
+        category,
+        condition,
+        images,
+        sellerId: currentUser.id,
+        sellerName: currentUser.name,
+        sellerAvatar: currentUser.avatar,
+        sellerCampus: campus,
+        sellerCollege: currentUser.college || ('CCS' as College),
+        sellerIsVerified: currentUser.isVerified,
+        sellerTrustScore: currentUser.trustScore || 100,
+        preferredMeetupSpots: meetupSpot.trim() ? [meetupSpot.trim()] : ['Main Campus Entrance / Guard Desk'],
+        customMeetupSpot: meetupSpot.trim() || undefined,
+        isBoosted: false,
+      });
 
-    const defaultImages = [
-      'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80',
-    ];
+      if (newListing) {
+        Alert.alert('Success!', 'Your listing has been posted to TradeLink.', [
+          {
+            text: 'View Item',
+            onPress: () => router.push(`/item/${newListing.id}` as any),
+          },
+        ]);
 
-    const newListing = addListing({
-      title: title.trim(),
-      description: description.trim() || 'Listed on TradeLink mobile.',
-      price: tradeMode === 'free_donation' ? 0 : Number(price),
-      originalSrp: originalSrp ? Number(originalSrp) : Number(price) * 1.2,
-      tradeMode,
-      swapPreference: tradeMode === 'swap' ? swapPreference : undefined,
-      category,
-      condition,
-      images: images.length > 0 ? images : defaultImages,
-      sellerId: currentUser?.id || 'user-maria',
-      sellerName: currentUser?.name || 'Maria Santos',
-      sellerAvatar:
-        currentUser?.avatar ||
-        'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80',
-      sellerCampus: campus,
-      sellerCollege: currentUser?.college || ('Nursing' as College),
-      sellerIsVerified: currentUser?.isVerified ?? true,
-      sellerTrustScore: currentUser?.trustScore || 98,
-      preferredMeetupSpots: meetupSpot ? [meetupSpot] : ['Main Campus Entrance / Guard Desk'],
-      customMeetupSpot: meetupSpot,
-      isBoosted: false,
-    });
-
-    setIsSubmitting(false);
-
-    Alert.alert('Success!', 'Your listing has been posted to TradeLink.', [
-      {
-        text: 'View Item',
-        onPress: () => router.push(`/item/${newListing.id}` as any),
-      },
-    ]);
-
-    // Reset Form
-    setTitle('');
-    setDescription('');
-    setPrice('');
-    setOriginalSrp('');
-    setImages([]);
-    setMeetupSpot('');
+        // Reset Form
+        setTitle('');
+        setDescription('');
+        setPrice('');
+        setOriginalSrp('');
+        setImages([]);
+        setMeetupSpot('');
+      } else {
+        Alert.alert('Submission Error', 'Failed to publish listing. Please check your network connection.');
+      }
+    } catch (err: any) {
+      Alert.alert('Listing Error', err?.message || 'Failed to submit listing.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -170,7 +171,12 @@ export default function CreateListingScreen() {
       >
         {/* 1. Photo Upload Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Photos (Up to 5)</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <Text style={styles.sectionLabel}>Item Photos *</Text>
+            <Text style={{ fontSize: 11, fontWeight: '700', color: images.length > 0 ? '#002B7F' : '#DC2626' }}>
+              {images.length}/5 Photos
+            </Text>
+          </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imageRow}>
             {images.map((uri, idx) => (
               <View key={idx} style={styles.imagePreviewContainer}>
@@ -235,22 +241,34 @@ export default function CreateListingScreen() {
 
         {/* 3. Title & Description */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Item Title *</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <Text style={styles.sectionLabel}>Item Title *</Text>
+            <Text style={{ fontSize: 11, color: title.length < 5 ? '#DC2626' : '#64748B' }}>
+              {title.length}/200 (min 5)
+            </Text>
+          </View>
           <TextInput
             style={styles.input}
             placeholder="e.g. Casio fx-991ES Plus PRC Calculator"
             placeholderTextColor="#94A3B8"
+            maxLength={200}
             value={title}
             onChangeText={setTitle}
           />
 
-          <Text style={[styles.sectionLabel, { marginTop: 12 }]}>Description</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, marginBottom: 8 }}>
+            <Text style={styles.sectionLabel}>Description *</Text>
+            <Text style={{ fontSize: 11, color: description.length < 10 ? '#DC2626' : '#64748B' }}>
+              {description.length}/5000 (min 10)
+            </Text>
+          </View>
           <TextInput
             style={[styles.input, styles.textArea]}
             placeholder="Describe the condition, semester used, inclusions..."
             placeholderTextColor="#94A3B8"
             multiline
             numberOfLines={4}
+            maxLength={5000}
             value={description}
             onChangeText={setDescription}
           />
@@ -283,6 +301,11 @@ export default function CreateListingScreen() {
                 />
               </View>
             </View>
+            {originalSrp && Number(price) > Number(originalSrp) && (
+              <Text style={{ fontSize: 11, color: '#D97706', fontWeight: '600', marginTop: 6 }}>
+                ⚠️ Notice: Asking price is higher than the original retail SRP.
+              </Text>
+            )}
           </View>
         )}
 

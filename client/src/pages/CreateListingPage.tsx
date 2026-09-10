@@ -1,31 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useMarket } from '../context/MarketContext';
 import { useToast } from '../components/common/Toast';
 import { DragDropUpload } from '../components/common/DragDropUpload';
 import { StudentVerificationModal } from '../components/verification/StudentVerificationModal';
 import { TradeMode, ConditionGrade } from '../types';
-import { CAMPUS_MEETUP_SPOTS } from '../data/campusLocations';
 import {
   Plus,
-  Upload,
   ChevronLeft,
   X,
-  MapPin,
+  Film,
+  MessageSquare,
   Tag,
   ShoppingBag,
   ArrowLeftRight,
   Gift,
   ShieldAlert,
-  ShieldCheck,
-  Clock
+  Clock,
+  AlertTriangle,
+  Loader2
 } from 'lucide-react';
 
 interface CreateListingPageProps {
   onNavigate: (view: string, param?: any) => void;
+  onOpenAuth?: () => void;
 }
 
-export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate }) => {
+export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate, onOpenAuth }) => {
   const { currentUser, isAuthenticated } = useAuth();
   const { addListing } = useMarket();
   const { showToast } = useToast();
@@ -39,34 +40,71 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
   const [price, setPrice] = useState<number>(0);
   const [originalSrp, setOriginalSrp] = useState<number>(0);
   const [condition, setCondition] = useState<ConditionGrade>('Gently Used');
+  const [quantity, setQuantity] = useState<number>(1);
   const [swapPreference, setSwapPreference] = useState('');
   const [isBoosted] = useState(false);
   const [images, setImages] = useState<string[]>([]);
-  const [spotSelection, setSpotSelection] = useState<string>('');
-  const [customLocationText, setCustomLocationText] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
 
+  const isDirty = Boolean(title.trim() || description.trim() || images.length > 0 || customTagInput.trim());
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty && !isSubmitting) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty, isSubmitting]);
+
+  const handleCancel = () => {
+    if (isDirty) {
+      if (window.confirm('You have unsaved changes on this listing. Discard them?')) {
+        onNavigate('marketplace');
+      }
+    } else {
+      onNavigate('marketplace');
+    }
+  };
+
   if (!isAuthenticated || !currentUser) {
     return (
-      <div className="container" style={{ padding: '5rem 1.5rem', textAlign: 'center', maxWidth: '560px' }}>
-        <div className="clean-card" style={{ padding: '2.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ width: '60px', height: '60px', borderRadius: '50%', backgroundColor: 'var(--uc-blue-subtle)', color: 'var(--uc-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Plus size={30} />
+      <div className="container page-enter" style={{ padding: '5rem 1.5rem', textAlign: 'center', maxWidth: '560px' }}>
+        <div className="clean-card" style={{ padding: '2.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
+          <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'var(--uc-blue-subtle)', color: 'var(--uc-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Plus size={32} />
           </div>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-            Sign In Required to Post Items
-          </h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-            To keep our University of Cebu marketplace safe and verified, students must log in before listing items for sale or barter.
-          </p>
-          <button
-            onClick={() => onNavigate('home')}
-            className="btn-gold"
-            style={{ padding: '0.65rem 1.5rem', fontSize: '0.88rem', fontWeight: 800, marginTop: '0.5rem' }}
-          >
-            Explore Catalog or Log In
-          </button>
+          <div>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+              Sign In Required to Post Items
+            </h2>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.55, marginTop: '0.45rem' }}>
+              To keep our University of Cebu marketplace safe and verified, students must log in before listing items for sale or barter.
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center', width: '100%', marginTop: '0.5rem' }}>
+            <button
+              onClick={() => {
+                if (onOpenAuth) onOpenAuth();
+                else onNavigate('home');
+              }}
+              className="btn-gold"
+              style={{ padding: '0.75rem 1.75rem', fontSize: '0.88rem', fontWeight: 800 }}
+            >
+              Log In to TradeLink
+            </button>
+            <button
+              onClick={() => onNavigate('marketplace')}
+              className="btn-secondary"
+              style={{ padding: '0.75rem 1.25rem', fontSize: '0.88rem', fontWeight: 700 }}
+            >
+              Browse Marketplace
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -167,13 +205,22 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
     'General Campus Item'
   ];
 
-  const campusSpots = CAMPUS_MEETUP_SPOTS.filter(s => s.campus === currentUser.campus);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
 
-    if (!title.trim()) {
-      showToast('Title Required', 'Please enter a title for your item.', 'warning');
+    if (!title.trim() || title.trim().length < 5) {
+      showToast('Title Too Short', 'Item title must be at least 5 characters long.', 'warning');
+      return;
+    }
+
+    if (description.trim().length < 10) {
+      showToast('Description Too Short', 'Please provide at least 10 characters describing the item condition and inclusions.', 'warning');
+      return;
+    }
+
+    if (images.length === 0) {
+      showToast('Media Required', 'Please add at least 1 photo or video of your item.', 'warning');
       return;
     }
 
@@ -182,22 +229,25 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
       return;
     }
 
-    const finalMeetupSpot = (spotSelection === 'custom' && customLocationText.trim())
-      ? customLocationText.trim()
-      : (spotSelection || campusSpots[0]?.name || `${currentUser.campus} Main Guard Station`);
-
+    setIsSubmitting(true);
     try {
       const newListing = await addListing({
         title: title.trim(),
         category: category.trim(),
-        description: description.trim() || `Clean and well-kept ${title} available for campus pickup at ${currentUser.campus}.`,
+        description: description.trim(),
         price: tradeMode === 'free_donation' ? 0 : price,
-        originalSrp: tradeMode === 'free_donation' ? 0 : price,
+        originalSrp: originalSrp > 0 ? originalSrp : (tradeMode === 'free_donation' ? 0 : price),
         condition,
+        quantity: Math.max(1, quantity),
         tradeMode,
         swapPreference: tradeMode === 'swap' ? swapPreference.trim() : undefined,
         images,
-        tags: [category.split(' ')[0] || 'Campus'],
+        media: images.map((url, idx) => ({
+          url,
+          mediaType: (url.match(/\.(mp4|webm|mov|mkv)$/i) || url.includes('/video/upload/')) ? 'video' : 'image',
+          isPrimary: idx === 0
+        })),
+        tags: tags.length > 0 ? tags.slice(0, 10) : [category.split(' ')[0] || 'Campus'],
         sellerId: currentUser.id,
         sellerName: currentUser.name,
         sellerAvatar: currentUser.avatar,
@@ -205,9 +255,7 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
         sellerCollege: currentUser.college,
         sellerIsVerified: currentUser.isVerified,
         sellerTrustScore: currentUser.trustScore,
-        preferredMeetupSpots: [finalMeetupSpot],
-        customMeetupSpot: finalMeetupSpot,
-        isBoosted: false
+        isBoosted
       });
 
       showToast('Item Posted!', `"${newListing.title}" is now active in the campus marketplace!`, 'success');
@@ -220,6 +268,8 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
       } else {
         showToast('Posting Failed', msg, 'error');
       }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -228,7 +278,7 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
       {/* Header */}
       <div style={{ marginBottom: '1.25rem' }}>
         <button
-          onClick={() => onNavigate('marketplace')}
+          onClick={handleCancel}
           className="btn-ghost"
           style={{
             padding: '0.3rem 0.6rem',
@@ -258,12 +308,18 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-              Item Title *
-            </label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+              <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                Item Title *
+              </label>
+              <span style={{ fontSize: '0.72rem', color: title.length > 190 ? '#DC2626' : title.length > 0 && title.length < 5 ? '#EA580C' : 'var(--text-muted)' }}>
+                {title.length}/200 {title.length > 0 && title.length < 5 ? '(min 5)' : ''}
+              </span>
+            </div>
             <input
               type="text"
               value={title}
+              maxLength={200}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Casio FX-991EX Calculator, BSN Nursing Scrub (M), Accounting 101 Book"
               className="clean-input"
@@ -321,6 +377,79 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
             </div>
           </div>
 
+          {/* Quantity / Units Available */}
+          <div>
+            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+              Quantity Available *
+            </label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', border: '1px solid var(--border-subtle, #CBD5E1)', borderRadius: '8px', overflow: 'hidden', backgroundColor: 'var(--bg-surface, #FFFFFF)' }}>
+                <button
+                  type="button"
+                  onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
+                  style={{
+                    width: '36px',
+                    height: '38px',
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    color: 'var(--text-primary, #0F172A)',
+                    fontSize: '1.1rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                  aria-label="Decrease quantity"
+                >
+                  −
+                </button>
+                <input
+                  type="number"
+                  min="1"
+                  max="999"
+                  value={quantity}
+                  onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                  style={{
+                    width: '54px',
+                    height: '38px',
+                    border: 'none',
+                    borderLeft: '1px solid var(--border-subtle, #E2E8F0)',
+                    borderRight: '1px solid var(--border-subtle, #E2E8F0)',
+                    textAlign: 'center',
+                    fontWeight: 800,
+                    fontSize: '0.92rem',
+                    color: 'var(--uc-blue, #002B7F)',
+                    backgroundColor: 'transparent'
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setQuantity((prev) => prev + 1)}
+                  style={{
+                    width: '36px',
+                    height: '38px',
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    color: 'var(--text-primary, #0F172A)',
+                    fontSize: '1.1rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                  aria-label="Increase quantity"
+                >
+                  +
+                </button>
+              </div>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted, #64748B)' }}>
+                {quantity === 1 ? '1 unit listed (will mark Sold Out when traded)' : `${quantity} units available`}
+              </span>
+            </div>
+          </div>
+
           {/* Trade Mode Selector */}
           <div>
             <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
@@ -364,39 +493,58 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
           {/* Pricing or Swap Preferences */}
           {tradeMode === 'buy_sell' && (
             <div>
-              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-                Price (PHP) *
-              </label>
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                <div style={{ position: 'relative', width: '160px' }}>
-                  <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, color: 'var(--text-muted)' }}>
-                    ₱
-                  </span>
-                  <input
-                    type="number"
-                    value={price}
-                    onChange={(e) => setPrice(Number(e.target.value))}
-                    className="clean-input"
-                    style={{ paddingLeft: '1.75rem', fontWeight: 800, fontSize: '0.95rem', color: 'var(--uc-blue)' }}
-                    placeholder="0"
-                    min="1"
-                    required
-                  />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+                    Selling Price (PHP) *
+                  </label>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <div style={{ position: 'relative', width: '100%' }}>
+                      <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, color: 'var(--text-muted)' }}>
+                        ₱
+                      </span>
+                      <input
+                        type="number"
+                        value={price}
+                        onChange={(e) => setPrice(Number(e.target.value))}
+                        className="clean-input"
+                        style={{ paddingLeft: '1.75rem', fontWeight: 800, fontSize: '0.95rem', color: 'var(--uc-blue)' }}
+                        placeholder="0"
+                        min="1"
+                        required
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
-                  {[50, 100, 250, 500].map((preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      onClick={() => setPrice(preset)}
-                      className="btn-ghost"
-                      style={{ padding: '0.3rem 0.55rem', fontSize: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
-                    >
-                      ₱{preset}
-                    </button>
-                  ))}
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+                    Original SRP / Store Price (Optional)
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, color: 'var(--text-muted)' }}>
+                      ₱
+                    </span>
+                    <input
+                      type="number"
+                      value={originalSrp || ''}
+                      onChange={(e) => setOriginalSrp(Number(e.target.value))}
+                      className="clean-input"
+                      style={{ paddingLeft: '1.75rem', fontSize: '0.95rem' }}
+                      placeholder="e.g. 1200"
+                      min="0"
+                    />
+                  </div>
                 </div>
               </div>
+
+              {/* Price vs SRP Warning */}
+              {originalSrp > 0 && price > originalSrp && (
+                <div style={{ marginTop: '0.5rem', padding: '0.45rem 0.75rem', borderRadius: '6px', backgroundColor: 'rgba(234, 88, 12, 0.08)', border: '1px solid rgba(234, 88, 12, 0.25)', color: '#C2410C', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <AlertTriangle size={14} style={{ flexShrink: 0 }} />
+                  <span>Notice: Selling price (₱{price.toLocaleString()}) exceeds the original SRP (₱{originalSrp.toLocaleString()}).</span>
+                </div>
+              )}
             </div>
           )}
 
@@ -422,78 +570,134 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
             </div>
           )}
 
+          {/* Tags */}
           <div>
             <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-              Description (Optional)
+              Item Tags (Max 10)
             </label>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: tags.length > 0 ? '0.45rem' : '0' }}>
+              <input
+                type="text"
+                value={customTagInput}
+                onChange={(e) => setCustomTagInput(e.target.value)}
+                disabled={tags.length >= 10}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (customTagInput.trim() && !tags.includes(customTagInput.trim()) && tags.length < 10) {
+                      setTags([...tags, customTagInput.trim()]);
+                      setCustomTagInput('');
+                    }
+                  }
+                }}
+                placeholder={tags.length >= 10 ? 'Maximum 10 tags reached' : 'Type tag (e.g. 2nd-year, nursing, calc) and press Enter'}
+                className="clean-input"
+                style={{ fontSize: '0.84rem' }}
+              />
+              <button
+                type="button"
+                disabled={tags.length >= 10 || !customTagInput.trim()}
+                onClick={() => {
+                  if (customTagInput.trim() && !tags.includes(customTagInput.trim()) && tags.length < 10) {
+                    setTags([...tags, customTagInput.trim()]);
+                    setCustomTagInput('');
+                  }
+                }}
+                className="btn-secondary"
+                style={{ padding: '0.45rem 0.85rem', fontSize: '0.8rem', fontWeight: 700, flexShrink: 0 }}
+              >
+                Add Tag
+              </button>
+            </div>
+            {tags.length > 0 && (
+              <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                {tags.map((t) => (
+                  <span
+                    key={t}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.3rem',
+                      padding: '0.2rem 0.6rem',
+                      borderRadius: '9999px',
+                      backgroundColor: 'var(--uc-blue-subtle)',
+                      color: 'var(--uc-blue)',
+                      fontSize: '0.74rem',
+                      fontWeight: 700
+                    }}
+                  >
+                    #{t}
+                    <button
+                      type="button"
+                      onClick={() => setTags(tags.filter((tag) => tag !== t))}
+                      style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+              <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                Description *
+              </label>
+              <span style={{ fontSize: '0.72rem', color: description.length > 4900 ? '#DC2626' : description.length > 0 && description.length < 10 ? '#EA580C' : 'var(--text-muted)' }}>
+                {description.length}/5000 {description.length > 0 && description.length < 10 ? '(min 10 chars)' : ''}
+              </span>
+            </div>
             <textarea
-              rows={2}
+              rows={3}
               value={description}
+              maxLength={5000}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Inclusions, edition, or notes about the item..."
               className="clean-input"
               style={{ fontSize: '0.84rem' }}
+              required
             />
           </div>
         </div>
 
-        {/* Section 2: Photos & Meetup Hub */}
+        {/* Section 2: Photos & Product Video Demos */}
         <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', borderBottom: '1px solid var(--border-subtle, #F1F5F9)', paddingBottom: '0.75rem' }}>
-            <MapPin size={18} color="var(--uc-blue)" />
-            <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-primary)' }}>2. Photos & Campus Meetup</h3>
+            <Film size={18} color="var(--uc-blue)" />
+            <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-primary)' }}>2. Product Media & Sample Videos</h3>
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-              Item Photos (Up to 4)
-            </label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+              <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                Product Photos & Actual Video Sample *
+              </label>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: images.length === 0 ? '#EA580C' : 'var(--accent-green, #059669)' }}>
+                {images.length}/8 items {images.length === 0 ? '(at least 1 required, max 8)' : 'added'}
+              </span>
+            </div>
             <DragDropUpload
               images={images}
               onChange={setImages}
-              maxFiles={4}
+              maxFiles={8}
+              acceptVideos={true}
               label=""
-              helperText="Click or drop photos here (PNG, JPG, WEBP)"
+              helperText="Upload photos or product sample videos (MP4, WEBM, PNG, JPG, WEBP up to 50MB)"
               isMultiple={true}
             />
           </div>
 
-          <div>
-            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-              Campus Meeting Place *
-            </label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <select
-                value={spotSelection || (campusSpots[0]?.name || '')}
-                onChange={(e) => setSpotSelection(e.target.value)}
-                className="clean-input"
-              >
-                <optgroup label={`Designated Meeting Spots (${currentUser.campus})`}>
-                  {campusSpots.map((spot) => (
-                    <option key={spot.id} value={spot.name}>
-                      {spot.name}
-                    </option>
-                  ))}
-                </optgroup>
-                <option value="custom">+ Enter My Own Custom Meeting Location</option>
-              </select>
-
-              {spotSelection === 'custom' && (
-                <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
-                  <input
-                    type="text"
-                    value={customLocationText}
-                    onChange={(e) => setCustomLocationText(e.target.value)}
-                    placeholder="e.g. 2nd Floor Canteen Table 4, Main Library Study Area, Engineering Hallway"
-                    className="clean-input"
-                    style={{ fontSize: '0.84rem' }}
-                    required
-                  />
-                  <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                    Specify any landmark or spot where you prefer to meet your buyer or barter partner.
-                  </p>
-                </div>
-              )}
+          <div style={{ backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', border: '1px solid rgba(0, 43, 127, 0.15)', borderRadius: '8px', padding: '0.85rem 1rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+            <MessageSquare size={20} color="var(--uc-blue)" style={{ flexShrink: 0, marginTop: '2px' }} />
+            <div>
+              <h4 style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--uc-blue)', marginBottom: '0.2rem' }}>
+                Direct Campus Chat Coordination
+              </h4>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.45, margin: 0 }}>
+                No rigid meetup spots needed! Once an order is placed, you and the buyer coordinate directly in Campus Chat to agree on the ideal campus spot and meeting time that fits your class schedules.
+              </p>
             </div>
           </div>
         </div>
@@ -502,7 +706,7 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.25rem' }}>
           <button
             type="button"
-            onClick={() => onNavigate('marketplace')}
+            onClick={handleCancel}
             className="btn-secondary"
             style={{ padding: '0.65rem 1.25rem', fontSize: '0.84rem', fontWeight: 700 }}
           >
@@ -510,11 +714,30 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
           </button>
           <button
             type="submit"
+            disabled={isSubmitting}
             className="btn-gold"
-            style={{ padding: '0.65rem 1.75rem', fontSize: '0.88rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+            style={{
+              padding: '0.65rem 1.75rem',
+              fontSize: '0.88rem',
+              fontWeight: 800,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              opacity: isSubmitting ? 0.7 : 1,
+              cursor: isSubmitting ? 'not-allowed' : 'pointer'
+            }}
           >
-            <Tag size={16} />
-            <span>Publish Listing Now</span>
+            {isSubmitting ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                <span>Publishing Listing...</span>
+              </>
+            ) : (
+              <>
+                <Tag size={16} />
+                <span>Publish Listing Now</span>
+              </>
+            )}
           </button>
         </div>
       </form>

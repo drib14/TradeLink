@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, ShoppingBag, Plus, Flame, MessageSquare } from 'lucide-react';
+import { Home, ShoppingBag, Plus, Receipt, MessageSquare } from 'lucide-react';
 import { useChat } from '../../context/ChatContext';
 import { useAuth } from '../../context/AuthContext';
 
@@ -16,14 +16,16 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   onOpenChat,
   onOpenAuth
 }) => {
-  const { unreadTotal } = useChat();
-  const { isAuthenticated } = useAuth();
+  const { unreadTotal, transactions } = useChat();
+  const { currentUser, isAuthenticated } = useAuth();
+
+  const pendingTransactionsCount = currentUser
+    ? transactions.filter(
+        (t) => (t.sellerId === currentUser.id || t.buyerId === currentUser.id) && t.status === 'pending'
+      ).length
+    : 0;
 
   const handleSellClick = () => {
-    if (!isAuthenticated) {
-      onOpenAuth();
-      return;
-    }
     onNavigate('create-listing');
   };
 
@@ -69,21 +71,45 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
         </button>
       </div>
 
-      {/* 4. Wanted Board */}
+      {/* 4. Campus Orders / Transactions */}
       <button
-        onClick={() => onNavigate('wanted')}
-        className={`mobile-nav-item ${currentView === 'wanted' ? 'active' : ''}`}
-        aria-label="Wanted Board"
+        onClick={() => onNavigate('transactions')}
+        className={`mobile-nav-item ${currentView === 'transactions' ? 'active' : ''}`}
+        aria-label="Campus Transactions"
       >
-        <Flame size={19} style={{ flexShrink: 0 }} />
-        <span style={{ fontSize: '0.68rem', fontWeight: currentView === 'wanted' ? 800 : 600, marginTop: '2px', lineHeight: 1 }}>Wanted</span>
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Receipt size={19} style={{ flexShrink: 0 }} />
+          {pendingTransactionsCount > 0 && (
+            <span
+              style={{
+                position: 'absolute',
+                top: '-4px',
+                right: '-6px',
+                backgroundColor: '#059669',
+                color: '#FFFFFF',
+                fontSize: '0.55rem',
+                fontWeight: 800,
+                width: '15px',
+                height: '15px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                lineHeight: 1
+              }}
+            >
+              {pendingTransactionsCount}
+            </span>
+          )}
+        </div>
+        <span style={{ fontSize: '0.68rem', fontWeight: currentView === 'transactions' ? 800 : 600, marginTop: '2px', lineHeight: 1 }}>Orders</span>
       </button>
 
-      {/* 5. Chat / Messages */}
+      {/* 5. Chat / Messages / Sign In */}
       <button
         onClick={handleChatClick}
         className="mobile-nav-item"
-        aria-label="Student Messages"
+        aria-label={isAuthenticated ? "Student Messages" : "Sign In"}
       >
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <MessageSquare size={19} style={{ flexShrink: 0 }} />
@@ -110,7 +136,9 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
             </span>
           )}
         </div>
-        <span style={{ fontSize: '0.68rem', fontWeight: 600, marginTop: '2px', lineHeight: 1 }}>Messages</span>
+        <span style={{ fontSize: '0.68rem', fontWeight: 600, marginTop: '2px', lineHeight: 1 }}>
+          {isAuthenticated ? 'Messages' : 'Sign In'}
+        </span>
       </button>
     </nav>
   );

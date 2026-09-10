@@ -9,14 +9,9 @@ import {
   Clock,
   Navigation,
   Phone,
-  Building2,
   ChevronLeft,
   Store,
-  Mail,
-  Flame,
-  Sparkles,
-  TrendingUp,
-  ShieldCheck
+  Mail
 } from 'lucide-react';
 
 interface CampusMapPageProps {

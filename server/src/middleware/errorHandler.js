@@ -7,15 +7,16 @@ const errorHandler = (err, req, res, next) => {
   let status = err.status || 'error';
 
   // Handle MySQL errors
+  // Handle MySQL duplicate errors securely without exposing column internals
   if (err.code === 'ER_DUP_ENTRY') {
     statusCode = 409;
     status = 'fail';
     if (err.sqlMessage && err.sqlMessage.includes('email')) {
       message = 'An account with this email address already exists.';
     } else if (err.sqlMessage && err.sqlMessage.includes('student_id')) {
-      message = 'An account with this Student ID is already registered.';
+      message = 'An account with this ID number is already registered.';
     } else {
-      message = 'Duplicate record found.';
+      message = 'A record with this information already exists.';
     }
   }
 
@@ -39,19 +40,27 @@ const errorHandler = (err, req, res, next) => {
     }
   }
 
-  // Log error stack for 500 or unexpected exceptions
+  // Log error stack securely for server-side debugging
   if (statusCode === 500) {
-    logger.error(`[Unhandled Error] ${req.method} ${req.originalUrl}: %s`, err.stack);
+    logger.error(`[Unhandled Error] ${req.method} ${req.originalUrl}: %s`, err.stack || err.message);
+    if (env.env === 'production') {
+      message = 'An unexpected server error occurred. Please try again later.';
+    }
   } else {
     logger.warn(`[Client Error ${statusCode}] ${req.method} ${req.originalUrl}: ${message}`);
   }
 
-  res.status(statusCode).json({
+  const responseBody = {
     status,
-    message,
-    ...(err.errors && { errors: err.errors }),
-    ...(env.env === 'development' && { stack: err.stack })
-  });
+    message
+  };
+
+  // Only expose detailed validation schema errors in non-production
+  if (err.errors && env.env !== 'production') {
+    responseBody.errors = err.errors;
+  }
+
+  res.status(statusCode).json(responseBody);
 };
 
 module.exports = errorHandler;

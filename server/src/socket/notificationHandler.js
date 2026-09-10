@@ -10,8 +10,8 @@ module.exports = (io, socket) => {
   }
   socket.join('campus:All');
 
-  // If user is admin/superadmin, join admin moderation room
-  if (['admin', 'superadmin'].includes(socket.user.role)) {
+  // If user is admin, join admin moderation room
+  if (socket.user.role === 'admin') {
     socket.join('admin:moderation');
   }
 };

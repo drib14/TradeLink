@@ -16,18 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMarket } from '../../context/MarketContext';
 import { useAuth } from '../../context/AuthContext';
 import { WantedRequest, Campus } from '../../types';
-import { CATEGORIES } from '../../data/seedData';
-
-const CAMPUSES: Campus[] = [
-  'UC Main',
-  'UC Banilad',
-  'UC LM',
-  'UC METC',
-  'UC PRI',
-  'UC South Campus',
-  'UC Pardo-Talisay',
-  'UC Medical Center',
-];
+import { CATEGORIES, CAMPUSES } from '../../constants';
 
 export default function WantedBoardScreen() {
   const { wantedRequests, addWantedRequest } = useMarket();

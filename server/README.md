@@ -99,8 +99,7 @@ Server will start on `http://localhost:3001` with base API route at `http://loca
    - Refresh Token: 7-day token stored in an `HttpOnly`, `SameSite=Strict`, `Secure` cookie and hashed in MySQL for instant revocation.
 3. **Role-Based Access Control (RBAC)**:
    - `student`: Buy, sell, swap, chat, submit reviews, manage own listings
-   - `admin`: Moderation desk, dispute resolutions, ID verification reviews, campus bulletin
-   - `superadmin`: Role promotion/demotion, system config, feature flags, permanent account deletion
+   - `admin`: Moderation desk, dispute resolutions, ID verification reviews, campus bulletin, system config, feature flags, user moderation
 4. **Anti-Brute Force Rate Limiting**:
    - `/api/auth/login`: max 10 requests per 15 mins per IP
    - `/api/auth/forgot-password`: max 5 requests per hour
@@ -186,10 +185,9 @@ Server will start on `http://localhost:3001` with base API route at `http://loca
 - `GET /api/admin/users` — Student directory with warning and ban tools
 - `PATCH /api/admin/users/:id/ban` — Suspend account
 - `PATCH /api/admin/users/:id/unban` — Restore account
-- `PATCH /api/admin/users/:id/warn` — Issue official strike
-- `DELETE /api/admin/users/:id` — Delete account (SuperAdmin)
-- `PATCH /api/admin/users/:id/promote` — Promote to Admin (SuperAdmin)
-- `GET /api/admin/config` — SuperAdmin platform parameters
+-`PATCH /api/admin/users/:id/warn` — Issue official strike
+- `DELETE /api/admin/users/:id` — Delete account (Admin)
+- `GET /api/admin/config` — System platform parameters
 - `PATCH /api/admin/config` — Update system rules & price ceilings
 - `PATCH /api/admin/feature-flags/:id/toggle` — Toggle live feature flags
 

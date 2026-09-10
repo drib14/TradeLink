@@ -1,8 +1,22 @@
-// Chat, Swaps, Meetups, and Notifications service
+// Chat, Swaps, and Transactions service
 import { api } from './api';
-import type { Conversation, Message, SwapOffer, MeetupTransaction, AppNotification } from '../types';
+import type { Conversation, Message, SwapOffer, Transaction } from '../types';
 
 export const chatService = {
+  // Upload media (image or video) for chat attachments
+  async uploadMedia(file: File): Promise<{ url: string; mediaType: 'image' | 'video' }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('folder', 'chat');
+
+    const res: any = await api.post('/upload', formData);
+    const data = res?.data || res;
+    return {
+      url: data?.url || '',
+      mediaType: data?.mediaType || (file.type.startsWith('video/') ? 'video' : 'image')
+    };
+  },
+
   // Conversations
   async getConversations(): Promise<Conversation[]> {
     const res = await api.get<{ conversations: any[] }>('/chat/conversations');
@@ -39,9 +53,13 @@ export const chatService = {
         senderId: m.senderId || m.sender_id || '',
         receiverId: m.receiverId || m.receiver_id || '',
         content: m.content || '',
+        isRead: Boolean(m.isRead ?? m.is_read),
         timestamp: m.timestamp || m.created_at || new Date().toISOString(),
         isSystemMessage: Boolean(m.isSystemMessage ?? m.is_system_message),
-        swapOfferId: m.swapOfferId || m.swap_offer_id
+        swapOfferId: m.swapOfferId || m.swap_offer_id,
+        transactionId: m.transactionId || m.transaction_id,
+        mediaUrl: m.mediaUrl || m.media_url || null,
+        mediaType: m.mediaType || m.media_type || null
       }));
     }
     return [];
@@ -54,6 +72,9 @@ export const chatService = {
     content: string;
     isSystemMessage?: boolean;
     swapOfferId?: string;
+    transactionId?: string;
+    mediaUrl?: string | null;
+    mediaType?: 'image' | 'video' | null;
   }): Promise<Message> {
     const res = await api.post<{ message: any }>('/chat/messages', params);
     const m = res.data?.message || res.data;
@@ -63,9 +84,13 @@ export const chatService = {
       senderId: m.senderId || m.sender_id || '',
       receiverId: m.receiverId || m.receiver_id || params.receiverId,
       content: m.content || params.content,
+      isRead: false,
       timestamp: m.timestamp || m.created_at || new Date().toISOString(),
       isSystemMessage: Boolean(m.isSystemMessage ?? m.is_system_message),
-      swapOfferId: m.swapOfferId || m.swap_offer_id || params.swapOfferId
+      swapOfferId: m.swapOfferId || m.swap_offer_id || params.swapOfferId,
+      transactionId: m.transactionId || m.transaction_id || params.transactionId,
+      mediaUrl: m.mediaUrl || m.media_url || params.mediaUrl || null,
+      mediaType: m.mediaType || m.media_type || params.mediaType || null
     };
   },
 
@@ -91,8 +116,6 @@ export const chatService = {
         offeredDescription: s.offeredDescription || s.offered_description || '',
         cashTopUp: parseFloat(s.cashTopUp ?? s.cash_top_up) || 0,
         status: s.status || 'pending',
-        proposedMeetupSpot: s.proposedMeetupSpot || s.proposed_meetup_spot || '',
-        proposedDateTime: s.proposedDateTime || s.proposed_date_time || '',
         createdAt: s.createdAt || s.created_at || new Date().toISOString()
       }));
     }
@@ -108,74 +131,68 @@ export const chatService = {
     await api.patch(`/swaps/${id}/respond`, { action });
   },
 
-  // Meetups
-  async getMeetups(): Promise<MeetupTransaction[]> {
-    const res = await api.get<{ meetups: any[] }>('/meetups');
-    const list = res.data?.meetups || res.data || [];
+  // Transactions
+  async getTransactions(): Promise<Transaction[]> {
+    const res = await api.get<{ transactions: any[] }>('/transactions');
+    const list = res.data?.transactions || res.data || [];
     if (Array.isArray(list)) {
-      return list.map((m) => ({
-        id: m.id,
-        listingId: m.listingId || m.listing_id || '',
-        listingTitle: m.listingTitle || m.listing_title || '',
-        listingImage: m.listingImage || m.listing_image || '',
-        sellerId: m.sellerId || m.seller_id || '',
-        sellerName: m.sellerName || m.seller_name || '',
-        buyerId: m.buyerId || m.buyer_id || '',
-        buyerName: m.buyerName || m.buyer_name || '',
-        tradeMode: m.tradeMode || m.trade_mode || 'buy_sell',
-        finalPrice: parseFloat(m.finalPrice ?? m.final_price) || 0,
-        swapSummary: m.swapSummary || m.swap_summary,
-        campus: m.campus || 'UC Main',
-        landmarkSpot: m.landmarkSpot || m.landmark_spot || '',
-        scheduledDateTime: m.scheduledDateTime || m.scheduled_date_time || '',
-        verificationCode: m.verificationCode || m.verification_code || '',
-        status: m.status || 'scheduled',
-        notes: m.notes,
-        createdAt: m.createdAt || m.created_at || new Date().toISOString()
+      return list.map((t) => ({
+        id: t.id,
+        referenceNo: t.referenceNo || t.reference_no || `TL-TX-${t.id.slice(0, 6)}`,
+        listingId: t.listingId || t.listing_id || '',
+        listingTitle: t.listingTitle || t.listing_title || '',
+        listingImage: t.listingImage || t.listing_image || '',
+        sellerId: t.sellerId || t.seller_id || '',
+        sellerName: t.sellerName || t.seller_name || '',
+        buyerId: t.buyerId || t.buyer_id || '',
+        buyerName: t.buyerName || t.buyer_name || '',
+        tradeMode: t.tradeMode || t.trade_mode || 'buy_sell',
+        amount: parseFloat(t.amount || t.finalPrice || 0),
+        paymentMethod: t.paymentMethod || t.payment_method || 'cash',
+        paymentStatus: t.paymentStatus || t.payment_status || 'unpaid',
+        status: t.status || 'pending',
+        notes: t.notes || '',
+        completedAt: t.completedAt || t.completed_at,
+        cancelledAt: t.cancelledAt || t.cancelled_at,
+        cancellationReason: t.cancellationReason || t.cancellation_reason,
+        createdAt: t.createdAt || t.created_at || new Date().toISOString()
       }));
     }
     return [];
   },
 
-  async scheduleMeetup(data: any): Promise<MeetupTransaction> {
-    const res = await api.post<{ meetup: any }>('/meetups', data);
-    return res.data?.meetup || res.data;
+  async createTransaction(data: {
+    listingId: string;
+    paymentMethod?: string;
+    notes?: string;
+    swapOfferId?: string;
+  }): Promise<Transaction> {
+    const res = await api.post<{ transaction: any }>('/transactions', data);
+    return res.data?.transaction || res.data;
   },
 
-  async verifyMeetupCode(id: string, code: string): Promise<{ success: boolean; message: string }> {
-    const res = await api.post<{ success: boolean; message: string }>(`/meetups/${id}/verify`, { code });
-    return res.data || { success: true, message: 'Handshake complete!' };
+  async completeTransaction(id: string): Promise<void> {
+    await api.patch(`/transactions/${id}/complete`);
   },
 
-  async updateMeetupStatus(id: string, status: 'on_the_way' | 'completed' | 'cancelled'): Promise<void> {
-    await api.patch(`/meetups/${id}/status`, { status });
+  async cancelTransaction(id: string, reason?: string): Promise<void> {
+    await api.patch(`/transactions/${id}/cancel`, { reason });
   },
 
-  // Notifications
-  async getNotifications(): Promise<AppNotification[]> {
-    const res = await api.get<{ notifications: any[] }>('/notifications');
-    const list = res.data?.notifications || res.data || [];
-    if (Array.isArray(list)) {
-      return list.map((n) => ({
-        id: n.id,
-        userId: n.userId || n.user_id || '',
-        title: n.title || '',
-        message: n.message || '',
-        type: n.type || 'system',
-        isRead: Boolean(n.isRead ?? n.is_read),
-        linkView: n.linkView || n.link_view,
-        linkParams: n.linkParams || n.link_params,
-        createdAt: n.createdAt || n.created_at || new Date().toISOString()
-      }));
+  // Aliases for backward compatibility
+  async getMeetups(): Promise<Transaction[]> {
+    return this.getTransactions();
+  },
+
+  async scheduleMeetup(data: any): Promise<Transaction> {
+    return this.createTransaction(data);
+  },
+
+  async updateMeetupStatus(id: string, status: string): Promise<void> {
+    if (status === 'completed') {
+      await this.completeTransaction(id);
+    } else if (status === 'cancelled') {
+      await this.cancelTransaction(id);
     }
-    return [];
-  },
-
-  async markNotificationAsRead(id: string): Promise<void> {
-    await api.patch(`/notifications/${id}/read`);
-  },
-
-  async markAllNotificationsAsRead(): Promise<void> {
-    await api.patch('/notifications/read-all');
   }
 };

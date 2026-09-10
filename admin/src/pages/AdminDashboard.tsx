@@ -1,15 +1,11 @@
 import React, { useState } from 'react';
 import { useAdmin } from '../context/AdminContext';
-import { useAuth } from '../context/AuthContext';
-import { useMarket } from '../context/MarketContext';
-import { useWanted } from '../context/WantedContext';
-import { useChat } from '../context/ChatContext';
+import { useAdminAuth } from '../context/AdminAuthContext';
 import { useToast } from '../components/common/Toast';
 import { VerificationRequest, User, Listing, Campus, TradeDispute } from '../types';
 import { CAMPUS_MEETUP_SPOTS } from '../data/campusLocations';
 import {
   ShieldAlert,
-  ShieldCheck,
   UserX,
   UserCheck,
   AlertTriangle,
@@ -35,10 +31,28 @@ import {
   Award,
   DollarSign,
   AlertCircle,
-  Shield
+  Shield,
+  Heart,
+  ExternalLink,
+  Filter,
+  Receipt
 } from 'lucide-react';
 import { VerifiedBadge } from '../components/common/VerifiedBadge';
 import { CampusBadge } from '../components/common/CampusBadge';
+
+function formatRelativeTime(dateStr?: string) {
+  if (!dateStr) return '';
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return 'Yesterday';
+  if (days < 30) return `${days}d ago`;
+  return new Date(dateStr).toLocaleDateString();
+}
 
 interface AdminDashboardProps {
   onNavigate: (view: string, param?: any) => void;
@@ -59,7 +73,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     rejectVerification,
     resolveFlag,
     removeListingByAdmin,
-    boostListingByAdmin,
     banUserByAdmin,
     unbanUserByAdmin,
     warnUserByAdmin,
@@ -68,19 +81,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     createAnnouncement,
     deleteAnnouncement,
     toggleAnnouncement,
-    removeWantedByAdmin,
-    cancelMeetupByAdmin,
-    completeMeetupByAdmin,
     addProhibitedKeyword,
     removeProhibitedKeyword,
     resolveDispute,
-    adjustUserTrustScore
+    adjustUserTrustScore,
+    allUsers,
+    listings,
+    wantedRequests,
+    transactions = [],
+    meetups,
+    boostListingByAdmin,
+    removeWantedByAdmin,
+    deleteWantedRequest,
+    completeTransactionByAdmin,
+    cancelTransactionByAdmin,
+    completeMeetupByAdmin,
+    cancelMeetupByAdmin
   } = useAdmin();
 
-  const { allUsers, currentUser, login, logout, isAdmin } = useAuth();
-  const { listings } = useMarket();
-  const { requests: wantedRequests, deleteRequest: deleteWantedRequest } = useWanted();
-  const { meetups } = useChat();
+  const { adminUser: currentUser, isAdminAuthenticated: isAdmin, login, logout, forgotPassword, resetPassword } = useAdminAuth();
   const { showToast } = useToast();
 
   const [activeTab, setActiveTab] = useState<
@@ -92,6 +111,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     | 'disputes'
     | 'reputation'
     | 'wanted'
+    | 'transactions'
     | 'meetups'
     | 'landmarks'
     | 'priceAdvisor'
@@ -145,17 +165,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   const [newAnnCampus, setNewAnnCampus] = useState<Campus | 'All'>('All');
   const [newAnnType, setNewAnnType] = useState<'info' | 'alert' | 'event'>('info');
 
+  // Listings Manager States
+  const [listingSearch, setListingSearch] = useState('');
+  const [listingStatusFilter, setListingStatusFilter] = useState<'all' | 'active' | 'sold'>('all');
+  const [listingCampusFilter, setListingCampusFilter] = useState<string>('All');
+  const [listingCategoryFilter, setListingCategoryFilter] = useState<string>('All');
+  const [listingDeleteModal, setListingDeleteModal] = useState<{ flagId?: string; listingId: string; title: string } | null>(null);
+  const [visibleListingsCount, setVisibleListingsCount] = useState(25);
+
   const pendingRequests = verificationRequests.filter((r) => r.status === 'pending');
   const pendingFlags = flaggedListings.filter((f) => f.status === 'pending');
   const bannedUsers = allUsers.filter((u) => u.isBanned);
 
-  const handleAdminGateSubmit = (e: React.FormEvent) => {
+  const handleAdminGateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!adminEmailInput.trim() || !adminPasswordInput.trim()) {
       showToast('Input Required', 'Please enter your administrator ID/email and password.', 'warning');
       return;
     }
-    const res = login(adminEmailInput, adminPasswordInput);
+    const res = await login(adminEmailInput, adminPasswordInput);
     if (res.success) {
       showToast('Admin Authorized', res.message, 'success');
     } else {
@@ -212,46 +240,43 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
           </div>
 
           {/* Standard Secure Login Form */}
-          <form onSubmit={handleAdminGateSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <form onSubmit={handleAdminGateSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
-                Administrator ID or Email
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#334155', marginBottom: '0.35rem' }}>
+                ID Number
               </label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type="text"
-                  value={adminEmailInput}
-                  onChange={(e) => setAdminEmailInput(e.target.value)}
-                  placeholder="e.g. admin@uc.edu.ph"
-                  className="clean-input"
-                  required
-                />
-              </div>
+              <input
+                type="text"
+                value={adminEmailInput}
+                onChange={(e) => setAdminEmailInput(e.target.value)}
+                placeholder="ID Number"
+                className="clean-input"
+                autoFocus
+                required
+              />
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#334155', marginBottom: '0.35rem' }}>
                 Password
               </label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type="password"
-                  value={adminPasswordInput}
-                  onChange={(e) => setAdminPasswordInput(e.target.value)}
-                  placeholder="Enter administrator password"
-                  className="clean-input"
-                  required
-                />
-              </div>
+              <input
+                type="password"
+                value={adminPasswordInput}
+                onChange={(e) => setAdminPasswordInput(e.target.value)}
+                placeholder="Password"
+                className="clean-input"
+                required
+              />
             </div>
 
             <button
               type="submit"
               className="btn-primary"
-              style={{ padding: '0.75rem', width: '100%', fontWeight: 800, fontSize: '0.88rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem', marginTop: '0.25rem' }}
+              style={{ padding: '0.75rem', width: '100%', fontWeight: 600, fontSize: '0.88rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem', marginTop: '0.25rem', borderRadius: '8px' }}
             >
               <LogIn size={16} style={{ flexShrink: 0 }} />
-              <span>Authenticate as Administrator</span>
+              <span>Sign In</span>
             </button>
           </form>
 
@@ -334,10 +359,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   };
 
   const handleRemoveListing = (flagId: string, listingId: string, title: string) => {
-    if (window.confirm(`Permanently take down and remove "${title}"?`)) {
-      removeListingByAdmin(flagId, listingId, 'Removed by campus moderation team');
-      showToast('Item Taken Down', `"${title}" has been deleted from the marketplace.`, 'info');
-    }
+    setListingDeleteModal({ flagId, listingId, title });
   };
 
   const handleBoostListing = (listing: Listing) => {
@@ -365,7 +387,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   // Scan Listings for Prohibited Keywords
   const scannedViolations = listings
     .map((item) => {
-      const textToSearch = `${item.title} ${item.description} ${item.category} ${(item.tags || []).join(' ')}`.toLowerCase();
+      const textToSearch = `${item.title} ${item.description} ${item.category}`.toLowerCase();
       const matched = prohibitedKeywords.filter((kw) => textToSearch.includes(kw.toLowerCase()));
       return {
         listing: item,
@@ -454,6 +476,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     return matchesType && matchesSearch;
   });
 
+  // Filtered Listings for Admin Management
+  const listingCategories = Array.from(new Set(listings.map((l) => l.category).filter(Boolean)));
+  const filteredAdminListings = listings.filter((l) => {
+    const q = listingSearch.toLowerCase().trim();
+    const matchesSearch =
+      !q ||
+      l.title.toLowerCase().includes(q) ||
+      (l.sellerName && l.sellerName.toLowerCase().includes(q)) ||
+      (l.description && l.description.toLowerCase().includes(q));
+    const matchesCampus = listingCampusFilter === 'All' || l.sellerCampus === listingCampusFilter;
+    const matchesCategory = listingCategoryFilter === 'All' || l.category === listingCategoryFilter;
+    const isItemSold = l.status === 'sold' || l.isSold;
+    const matchesStatus =
+      listingStatusFilter === 'all' ||
+      (listingStatusFilter === 'sold' ? isItemSold : !isItemSold);
+    return matchesSearch && matchesCampus && matchesCategory && matchesStatus;
+  });
+
   return (
     <div className="container" style={{ padding: '2rem 1.5rem 6rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
       {/* Top Header */}
@@ -523,14 +563,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
       >
         {[
           { id: 'overview', label: 'Overview', icon: <TrendingUp size={14} /> },
-          { id: 'verifications', label: `ID Verifications (${pendingRequests.length})`, icon: <BadgeCheck size={14} /> },
+          { id: 'verifications', label: `ID Verifications (${pendingVerificationsCount})`, icon: <BadgeCheck size={14} /> },
           { id: 'users', label: `Users & Moderation (${allUsers.length})`, icon: <UserCheck size={14} /> },
-          { id: 'listings', label: `Listings & Flags (${pendingFlags.length})`, icon: <ShieldAlert size={14} /> },
+          { id: 'listings', label: `Listings & Flags (${pendingFlagsCount})`, icon: <ShieldAlert size={14} /> },
           { id: 'scanner', label: `Prohibited Scanner (${scannedViolations.length})`, icon: <Shield size={14} /> },
           { id: 'disputes', label: `Trade Disputes (${pendingDisputesCount})`, icon: <Scale size={14} /> },
           { id: 'reputation', label: 'Trust & Reputation', icon: <Award size={14} /> },
           { id: 'wanted', label: `Wanted Board (${wantedRequests.length})`, icon: <Flame size={14} /> },
-          { id: 'meetups', label: `Meetup Escrows (${meetups.length})`, icon: <MapPin size={14} /> },
+          { id: 'transactions', label: `Transactions (${transactions.length})`, icon: <Receipt size={14} /> },
           { id: 'landmarks', label: 'Guarded Hubs', icon: <Building2 size={14} /> },
           { id: 'priceAdvisor', label: 'Price Compliance', icon: <DollarSign size={14} /> },
           { id: 'announcements', label: `Broadcasts (${announcements.length})`, icon: <Megaphone size={14} /> },
@@ -584,11 +624,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
             <div className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Active Listings</span>
               <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#002B7F', fontFamily: 'var(--font-display)' }}>
-                {listings.length}
+                {listings.filter((l) => l.status !== 'sold' && !l.isSold).length}
               </div>
               <span style={{ fontSize: '0.75rem', color: '#D97706', fontWeight: 700 }}>
-                {listings.filter((l) => l.tradeMode === 'swap').length} Swaps Available
+                {listings.filter((l) => l.tradeMode === 'swap').length} Swaps • {listings.filter((l) => l.tradeMode === 'free_donation').length} Free
               </span>
+            </div>
+
+            <div className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Completed Trades</span>
+              <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#059669', fontFamily: 'var(--font-display)' }}>
+                {listings.filter((l) => l.status === 'sold' || l.isSold).length}
+              </div>
+              <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 700 }}>Successfully transacted</span>
             </div>
 
             <div className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
@@ -736,38 +784,75 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     </span>
                   </div>
 
-                  {/* ID Photo Preview */}
-                  {req.idCardImageUrl && (
-                    <div
-                      onClick={() => setInspectedImage(req.idCardImageUrl)}
-                      style={{
-                        width: '100%',
-                        height: '140px',
-                        borderRadius: '8px',
-                        overflow: 'hidden',
-                        backgroundColor: '#0F172A',
-                        position: 'relative',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <img src={req.idCardImageUrl} alt="Student ID" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  {/* Side-by-Side ID & Biometric Selfie Preview */}
+                  <div style={{ display: 'grid', gridTemplateColumns: req.selfiePhotoUrl ? '1fr 1fr' : '1fr', gap: '0.5rem' }}>
+                    {req.idCardImageUrl && (
                       <div
+                        onClick={() => setInspectedImage(req.idCardImageUrl)}
                         style={{
-                          position: 'absolute',
-                          bottom: '6px',
-                          right: '6px',
-                          backgroundColor: 'rgba(0,0,0,0.7)',
-                          color: '#FFFFFF',
-                          padding: '0.2rem 0.5rem',
-                          borderRadius: '4px',
-                          fontSize: '0.68rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.25rem'
+                          height: '130px',
+                          borderRadius: '8px',
+                          overflow: 'hidden',
+                          backgroundColor: '#0F172A',
+                          position: 'relative',
+                          cursor: 'pointer'
                         }}
                       >
-                        <Eye size={12} /> Inspect Photo
+                        <img src={req.idCardImageUrl} alt="Student ID" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <div
+                          style={{
+                            position: 'absolute',
+                            bottom: '4px',
+                            left: '4px',
+                            backgroundColor: 'rgba(0,0,0,0.75)',
+                            color: '#FFFFFF',
+                            padding: '0.15rem 0.4rem',
+                            borderRadius: '4px',
+                            fontSize: '0.62rem',
+                            fontWeight: 700
+                          }}
+                        >
+                          ID Card
+                        </div>
                       </div>
+                    )}
+
+                    {req.selfiePhotoUrl && (
+                      <div
+                        onClick={() => setInspectedImage(req.selfiePhotoUrl)}
+                        style={{
+                          height: '130px',
+                          borderRadius: '8px',
+                          overflow: 'hidden',
+                          backgroundColor: '#0F172A',
+                          position: 'relative',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <img src={req.selfiePhotoUrl} alt="Live Biometric Selfie" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <div
+                          style={{
+                            position: 'absolute',
+                            bottom: '4px',
+                            left: '4px',
+                            backgroundColor: 'rgba(5, 150, 105, 0.85)',
+                            color: '#FFFFFF',
+                            padding: '0.15rem 0.4rem',
+                            borderRadius: '4px',
+                            fontSize: '0.62rem',
+                            fontWeight: 700
+                          }}
+                        >
+                          Live Selfie
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Rejection reason if already rejected */}
+                  {req.status === 'rejected' && (req as any).rejectionReason && (
+                    <div style={{ fontSize: '0.72rem', color: '#DC2626', backgroundColor: '#FEF2F2', padding: '0.35rem 0.5rem', borderRadius: '6px', border: '1px solid #FECACA' }}>
+                      <strong>Reason:</strong> {(req as any).rejectionReason}
                     </div>
                   )}
 
@@ -985,13 +1070,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {/* Flagged Queue */}
           <div className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#DC2626', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <ShieldAlert size={18} /> Reported Items Queue ({pendingFlags.length})
-            </h3>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#DC2626', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <ShieldAlert size={18} /> Reported Items Queue ({pendingFlags.length})
+              </h3>
+              <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
+                Community-submitted listing moderation flags
+              </span>
+            </div>
 
             {pendingFlags.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '2rem', color: '#64748B', fontSize: '0.85rem' }}>
                 <Check size={28} color="#059669" style={{ margin: '0 auto 0.5rem' }} />
+                <span style={{ fontWeight: 700, color: '#059669', display: 'block' }}>All Clean!</span>
                 <span>All reported listings have been reviewed and resolved.</span>
               </div>
             ) : (
@@ -999,28 +1090,40 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 {pendingFlags.map((flag) => (
                   <div key={flag.id} style={{ border: '1.5px solid #FECACA', borderRadius: '10px', padding: '1rem', backgroundColor: '#FFF5F5', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     <div style={{ display: 'flex', gap: '0.75rem' }}>
-                      <img src={flag.listingImage} alt={flag.listingTitle} style={{ width: '60px', height: '60px', borderRadius: '8px', objectFit: 'cover' }} />
+                      <img
+                        src={flag.listingImage || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=120&auto=format&fit=crop&q=80'}
+                        alt={flag.listingTitle}
+                        style={{ width: '60px', height: '60px', borderRadius: '8px', objectFit: 'cover' }}
+                      />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <h4 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {flag.listingTitle}
                         </h4>
-                        <div style={{ fontSize: '0.75rem', color: '#64748B' }}>Seller: {flag.sellerName} ({flag.campus})</div>
-                        <div style={{ fontSize: '0.72rem', color: '#DC2626', fontWeight: 700, marginTop: '0.2rem' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.15rem' }}>
+                          <span>Seller: {flag.sellerName}</span>
+                          {flag.campus && <CampusBadge campus={flag.campus as Campus} size="sm" />}
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: '#DC2626', fontWeight: 700, marginTop: '0.25rem' }}>
                           Reason: {flag.reason}
                         </div>
+                        {flag.reporterName && (
+                          <div style={{ fontSize: '0.68rem', color: '#64748B', marginTop: '0.2rem' }}>
+                            Reported by <strong>{flag.reporterName}</strong> {flag.reportedAt ? `• ${formatRelativeTime(flag.reportedAt)}` : ''}
+                          </div>
+                        )}
                       </div>
                     </div>
 
                     <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto' }}>
                       <button
                         onClick={() => handleResolveFlag(flag.id)}
-                        style={{ flex: 1, padding: '0.45rem', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 800, backgroundColor: '#059669', color: '#FFFFFF' }}
+                        style={{ flex: 1, padding: '0.45rem', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 800, backgroundColor: '#059669', color: '#FFFFFF', border: 'none', cursor: 'pointer' }}
                       >
-                        Mark Safe
+                        Dismiss / Mark Safe
                       </button>
                       <button
                         onClick={() => handleRemoveListing(flag.id, flag.listingId, flag.listingTitle)}
-                        style={{ flex: 1, padding: '0.45rem', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 800, backgroundColor: '#DC2626', color: '#FFFFFF' }}
+                        style={{ flex: 1, padding: '0.45rem', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 800, backgroundColor: '#DC2626', color: '#FFFFFF', border: 'none', cursor: 'pointer' }}
                       >
                         Take Down
                       </button>
@@ -1031,69 +1134,249 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
             )}
           </div>
 
-          {/* All Listings Manager */}
+          {/* All Listings Manager with Filtering & Search */}
           <div className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A' }}>All Active Marketplace Items ({listings.length})</h3>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
-                <thead>
-                  <tr style={{ borderBottom: '2px solid #E2E8F0', color: '#64748B' }}>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>Listing</th>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>Campus</th>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>Price / Mode</th>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>Seller</th>
-                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {listings.map((l) => (
-                    <tr key={l.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                      <td style={{ padding: '0.75rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <img src={l.images[0]} alt={l.title} style={{ width: '38px', height: '38px', borderRadius: '6px', objectFit: 'cover' }} />
-                          <div>
-                            <div style={{ fontWeight: 700, color: '#0F172A' }}>{l.title}</div>
-                            <div style={{ fontSize: '0.7rem', color: '#64748B' }}>{l.condition}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td style={{ padding: '0.75rem' }}>
-                        <CampusBadge campus={l.sellerCampus} size="sm" />
-                      </td>
-                      <td style={{ padding: '0.75rem', fontWeight: 800, color: '#002B7F' }}>
-                        {l.tradeMode === 'free_donation' ? 'FREE' : `₱${l.price.toLocaleString()}`}
-                      </td>
-                      <td style={{ padding: '0.75rem', color: '#334155' }}>{l.sellerName}</td>
-                      <td style={{ padding: '0.75rem', textAlign: 'right' }}>
-                        <div style={{ display: 'inline-flex', gap: '0.35rem' }}>
-                          <button
-                            onClick={() => handleBoostListing(l)}
-                            title={l.isBoosted ? 'Remove Boost' : 'Boost to Hero Carousel'}
-                            style={{
-                              padding: '0.35rem 0.6rem',
-                              borderRadius: '6px',
-                              fontSize: '0.72rem',
-                              fontWeight: 800,
-                              backgroundColor: l.isBoosted ? '#FFC72C' : '#F1F5F9',
-                              color: '#002B7F'
-                            }}
-                          >
-                            <Zap size={12} fill={l.isBoosted ? '#002B7F' : 'none'} /> {l.isBoosted ? 'Boosted' : 'Boost'}
-                          </button>
-                          <button
-                            onClick={() => handleRemoveListing('direct', l.id, l.title)}
-                            title="Delete Listing"
-                            style={{ padding: '0.35rem 0.55rem', borderRadius: '6px', color: '#DC2626', backgroundColor: '#FEF2F2', border: '1px solid #FECACA' }}
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A' }}>
+                  Marketplace Directory ({filteredAdminListings.length} / {listings.length} items)
+                </h3>
+                <p style={{ fontSize: '0.78rem', color: '#64748B', marginTop: '0.15rem' }}>
+                  Search and manage listings across all 8 UC campuses, toggle hero carousel boosts, or take down non-compliant items.
+                </p>
+              </div>
             </div>
+
+            {/* Filter Controls Bar */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.65rem', alignItems: 'center', backgroundColor: '#F8FAFC', padding: '0.75rem', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
+              {/* Search Bar */}
+              <div style={{ position: 'relative', flex: '1 1 220px', minWidth: '200px' }}>
+                <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                <input
+                  type="text"
+                  placeholder="Search item, seller, or description..."
+                  value={listingSearch}
+                  onChange={(e) => {
+                    setListingSearch(e.target.value);
+                    setVisibleListingsCount(25);
+                  }}
+                  className="clean-input"
+                  style={{ paddingLeft: '2rem', fontSize: '0.82rem', height: '36px' }}
+                />
+              </div>
+
+              {/* Status Filter */}
+              <select
+                value={listingStatusFilter}
+                onChange={(e: any) => {
+                  setListingStatusFilter(e.target.value);
+                  setVisibleListingsCount(25);
+                }}
+                style={{ padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.8rem', height: '36px', backgroundColor: '#FFFFFF', color: '#334155' }}
+              >
+                <option value="all">All Statuses</option>
+                <option value="active">Active Only</option>
+                <option value="sold">Sold / Completed</option>
+              </select>
+
+              {/* Campus Filter */}
+              <select
+                value={listingCampusFilter}
+                onChange={(e) => {
+                  setListingCampusFilter(e.target.value);
+                  setVisibleListingsCount(25);
+                }}
+                style={{ padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.8rem', height: '36px', backgroundColor: '#FFFFFF', color: '#334155' }}
+              >
+                <option value="All">All Campuses</option>
+                <option value="UC Main">UC Main</option>
+                <option value="UC Banilad">UC Banilad</option>
+                <option value="UC LM">UC LM</option>
+                <option value="UC METC">UC METC</option>
+                <option value="UC PRI">UC PRI</option>
+                <option value="UC Pardo-Talisay">UC Pardo-Talisay</option>
+                <option value="UC South Campus">UC South Campus</option>
+                <option value="UC Medical Center">UC Medical Center</option>
+              </select>
+
+              {/* Category Filter */}
+              {listingCategories.length > 0 && (
+                <select
+                  value={listingCategoryFilter}
+                  onChange={(e) => {
+                    setListingCategoryFilter(e.target.value);
+                    setVisibleListingsCount(25);
+                  }}
+                  style={{ padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.8rem', height: '36px', backgroundColor: '#FFFFFF', color: '#334155' }}
+                >
+                  <option value="All">All Categories</option>
+                  {listingCategories.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              )}
+
+              {/* Reset Filters button */}
+              {(listingSearch || listingStatusFilter !== 'all' || listingCampusFilter !== 'All' || listingCategoryFilter !== 'All') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setListingSearch('');
+                    setListingStatusFilter('all');
+                    setListingCampusFilter('All');
+                    setListingCategoryFilter('All');
+                    setVisibleListingsCount(25);
+                  }}
+                  style={{ padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.78rem', fontWeight: 600, color: '#64748B', backgroundColor: '#FFFFFF', cursor: 'pointer' }}
+                >
+                  Reset
+                </button>
+              )}
+            </div>
+
+            {/* Listings Table */}
+            {filteredAdminListings.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '3rem 1.5rem', color: '#64748B' }}>
+                <Search size={32} color="#94A3B8" style={{ margin: '0 auto 0.5rem' }} />
+                <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#334155' }}>No listings matched the filter criteria</div>
+                <p style={{ fontSize: '0.78rem', marginTop: '0.25rem' }}>Try clearing the search query or adjusting campus/status filters.</p>
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid #E2E8F0', color: '#64748B' }}>
+                      <th style={{ padding: '0.65rem 0.75rem' }}>Item</th>
+                      <th style={{ padding: '0.65rem 0.75rem' }}>Campus</th>
+                      <th style={{ padding: '0.65rem 0.75rem' }}>Status</th>
+                      <th style={{ padding: '0.65rem 0.75rem' }}>Price / Mode</th>
+                      <th style={{ padding: '0.65rem 0.75rem' }}>Engagement</th>
+                      <th style={{ padding: '0.65rem 0.75rem' }}>Seller</th>
+                      <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredAdminListings.slice(0, visibleListingsCount).map((l) => {
+                      const isSold = l.status === 'sold' || l.isSold;
+                      return (
+                        <tr key={l.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                          <td style={{ padding: '0.75rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                              <img
+                                src={l.images[0] || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=120&auto=format&fit=crop&q=80'}
+                                alt={l.title}
+                                style={{ width: '42px', height: '42px', borderRadius: '6px', objectFit: 'cover', flexShrink: 0 }}
+                              />
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '240px' }}>
+                                  {l.title}
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.15rem' }}>
+                                  <span style={{ fontSize: '0.68rem', fontWeight: 600, color: '#002B7F', backgroundColor: '#EBF1FC', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
+                                    {l.category}
+                                  </span>
+                                  <span style={{ fontSize: '0.7rem', color: '#64748B' }}>{l.condition}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td style={{ padding: '0.75rem' }}>
+                            <CampusBadge campus={l.sellerCampus} size="sm" />
+                          </td>
+                          <td style={{ padding: '0.75rem' }}>
+                            <span
+                              style={{
+                                padding: '0.2rem 0.5rem',
+                                borderRadius: '6px',
+                                fontSize: '0.72rem',
+                                fontWeight: 800,
+                                textTransform: 'uppercase',
+                                backgroundColor: isSold ? '#F1F5F9' : '#ECFDF5',
+                                color: isSold ? '#64748B' : '#059669'
+                              }}
+                            >
+                              {isSold ? 'Sold' : 'Active'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '0.75rem' }}>
+                            {l.tradeMode === 'free_donation' ? (
+                              <span style={{ fontWeight: 800, color: '#059669', backgroundColor: '#ECFDF5', padding: '0.2rem 0.45rem', borderRadius: '4px', fontSize: '0.75rem' }}>
+                                FREE
+                              </span>
+                            ) : l.tradeMode === 'swap' ? (
+                              <span style={{ fontWeight: 800, color: '#D97706', backgroundColor: '#FFFBEB', padding: '0.2rem 0.45rem', borderRadius: '4px', fontSize: '0.75rem' }}>
+                                SWAP
+                              </span>
+                            ) : (
+                              <span style={{ fontWeight: 800, color: '#002B7F' }}>
+                                ₱{l.price.toLocaleString()}
+                              </span>
+                            )}
+                          </td>
+                          <td style={{ padding: '0.75rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', fontSize: '0.75rem', color: '#64748B' }}>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }} title="Total Views">
+                                <Eye size={13} /> {l.views || 0}
+                              </span>
+                            </div>
+                          </td>
+                          <td style={{ padding: '0.75rem', color: '#334155' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                              <span style={{ fontWeight: 600 }}>{l.sellerName}</span>
+                              {l.sellerIsVerified && <VerifiedBadge size="sm" />}
+                            </div>
+                          </td>
+                          <td style={{ padding: '0.75rem', textAlign: 'right' }}>
+                            <div style={{ display: 'inline-flex', gap: '0.35rem', alignItems: 'center' }}>
+                              <button
+                                onClick={() => handleBoostListing(l)}
+                                title={l.isBoosted ? 'Remove Boost' : 'Boost to Hero Carousel'}
+                                style={{
+                                  padding: '0.35rem 0.6rem',
+                                  borderRadius: '6px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 800,
+                                  backgroundColor: l.isBoosted ? '#FFC72C' : '#F1F5F9',
+                                  color: '#002B7F',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.25rem'
+                                }}
+                              >
+                                <Zap size={12} fill={l.isBoosted ? '#002B7F' : 'none'} /> {l.isBoosted ? 'Boosted' : 'Boost'}
+                              </button>
+                              <button
+                                onClick={() => handleRemoveListing('direct', l.id, l.title)}
+                                title="Take Down Listing"
+                                style={{ padding: '0.35rem 0.55rem', borderRadius: '6px', color: '#DC2626', backgroundColor: '#FEF2F2', border: '1px solid #FECACA', cursor: 'pointer' }}
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Pagination / Load More */}
+            {filteredAdminListings.length > visibleListingsCount && (
+              <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '0.75rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setVisibleListingsCount((prev) => prev + 25)}
+                  className="btn-outline"
+                  style={{ padding: '0.55rem 1.25rem', fontSize: '0.82rem', fontWeight: 700 }}
+                >
+                  Load More Listings ({filteredAdminListings.length - visibleListingsCount} remaining)
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1510,80 +1793,121 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
       )}
 
       {/* =========================================================================
-          TAB 9: SAFE MEETUP ESCROWS & LANDMARK HANDSHAKES
+          TAB 9: CAMPUS TRANSACTIONS MONITOR
           ========================================================================= */}
-      {activeTab === 'meetups' && (
+      {(activeTab === 'transactions' || activeTab === 'meetups') && (
         <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A' }}>Campus Safe Meetup Escrow Monitor ({meetups.length})</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A' }}>
+                Campus Transactions Monitor ({transactions.length})
+              </h3>
+              <p style={{ fontSize: '0.78rem', color: '#64748B', margin: 0 }}>
+                Live ledger of direct student purchases, barter swaps, and order settlements across UC campuses.
+              </p>
+            </div>
+          </div>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid #E2E8F0', color: '#64748B' }}>
-                  <th style={{ padding: '0.65rem 0.75rem' }}>Item & Code</th>
-                  <th style={{ padding: '0.65rem 0.75rem' }}>Guarded Meetup Spot</th>
-                  <th style={{ padding: '0.65rem 0.75rem' }}>Buyer & Seller</th>
-                  <th style={{ padding: '0.65rem 0.75rem' }}>Status</th>
+                  <th style={{ padding: '0.65rem 0.75rem' }}>Reference & Date</th>
+                  <th style={{ padding: '0.65rem 0.75rem' }}>Item & Mode</th>
+                  <th style={{ padding: '0.65rem 0.75rem' }}>Buyer ↔ Seller</th>
+                  <th style={{ padding: '0.65rem 0.75rem' }}>Payment</th>
+                  <th style={{ padding: '0.65rem 0.75rem' }}>Order Status</th>
                   <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>Admin Overrides</th>
                 </tr>
               </thead>
               <tbody>
-                {meetups.map((m) => (
-                  <tr key={m.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                    <td style={{ padding: '0.75rem' }}>
-                      <div style={{ fontWeight: 800, color: '#0F172A' }}>{m.listingTitle}</div>
-                      <div style={{ fontSize: '0.72rem', color: '#002B7F', fontFamily: 'monospace', fontWeight: 800 }}>
-                        Code: {m.verificationCode}
-                      </div>
-                    </td>
-                    <td style={{ padding: '0.75rem' }}>
-                      <div style={{ fontWeight: 700, color: '#002B7F' }}>{m.landmarkSpot}</div>
-                      <div style={{ fontSize: '0.72rem', color: '#64748B' }}>{m.campus} • {m.scheduledDateTime}</div>
-                    </td>
-                    <td style={{ padding: '0.75rem' }}>
-                      <div style={{ fontSize: '0.78rem', color: '#334155' }}>
-                        <strong>{m.buyerName}</strong> ↔ <strong>{m.sellerName}</strong>
-                      </div>
-                    </td>
-                    <td style={{ padding: '0.75rem' }}>
-                      <span
-                        style={{
-                          padding: '0.2rem 0.5rem',
-                          borderRadius: '4px',
-                          fontSize: '0.7rem',
-                          fontWeight: 800,
-                          backgroundColor: m.status === 'completed' ? '#ECFDF5' : m.status === 'cancelled' ? '#FEF2F2' : '#FFFBEB',
-                          color: m.status === 'completed' ? '#059669' : m.status === 'cancelled' ? '#DC2626' : '#D97706'
-                        }}
-                      >
-                        {m.status.toUpperCase()}
-                      </span>
-                    </td>
-                    <td style={{ padding: '0.75rem', textAlign: 'right' }}>
-                      {m.status === 'scheduled' && (
-                        <div style={{ display: 'inline-flex', gap: '0.35rem' }}>
-                          <button
-                            onClick={() => {
-                              completeMeetupByAdmin(m.id);
-                              showToast('Completed', 'Handshake marked as completed.', 'success');
-                            }}
-                            style={{ padding: '0.35rem 0.6rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 800, backgroundColor: '#059669', color: '#FFFFFF' }}
-                          >
-                            Verify
-                          </button>
-                          <button
-                            onClick={() => {
-                              cancelMeetupByAdmin(m.id, 'Cancelled by admin safety desk');
-                              showToast('Cancelled', 'Meetup cancelled and flagged.', 'info');
-                            }}
-                            style={{ padding: '0.35rem 0.6rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 800, backgroundColor: '#DC2626', color: '#FFFFFF' }}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      )}
+                {transactions.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} style={{ padding: '2rem', textAlign: 'center', color: '#64748B' }}>
+                      No transactions recorded yet. When students place orders or swaps, they will appear here in real time.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  transactions.map((tx: any) => {
+                    const refCode = tx.referenceNo || tx.reference_no || `TL-TX-${tx.id?.slice(0, 6)}`;
+                    const amount = Number(tx.amount || tx.finalPrice || 0);
+                    const payMethod = (tx.paymentMethod || tx.payment_method || 'cash').toUpperCase();
+                    const payStatus = tx.paymentStatus || tx.payment_status || 'unpaid';
+                    const txStatus = tx.status || 'pending';
+
+                    return (
+                      <tr key={tx.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                        <td style={{ padding: '0.75rem' }}>
+                          <div style={{ fontWeight: 800, color: '#002B7F', fontFamily: 'monospace' }}>
+                            {refCode}
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
+                            {new Date(tx.createdAt || tx.created_at || Date.now()).toLocaleDateString()}
+                          </div>
+                        </td>
+                        <td style={{ padding: '0.75rem' }}>
+                          <div style={{ fontWeight: 700, color: '#0F172A' }}>{tx.listingTitle || 'Campus Marketplace Item'}</div>
+                          <div style={{ fontSize: '0.72rem', color: '#64748B', textTransform: 'capitalize' }}>
+                            {(tx.tradeMode || tx.trade_mode || 'buy_sell').replace('_', '/')}
+                          </div>
+                        </td>
+                        <td style={{ padding: '0.75rem' }}>
+                          <div style={{ fontSize: '0.78rem', color: '#334155' }}>
+                            <span style={{ color: '#002B7F', fontWeight: 600 }}>Buyer:</span> {tx.buyerName || 'Student Buyer'}
+                          </div>
+                          <div style={{ fontSize: '0.78rem', color: '#334155' }}>
+                            <span style={{ color: '#059669', fontWeight: 600 }}>Seller:</span> {tx.sellerName || 'Student Seller'}
+                          </div>
+                        </td>
+                        <td style={{ padding: '0.75rem' }}>
+                          <div style={{ fontWeight: 800, color: '#0F172A' }}>
+                            {amount > 0 ? `₱${amount.toLocaleString()}` : 'Free / Barter'}
+                          </div>
+                          <div style={{ fontSize: '0.7rem', color: '#64748B' }}>
+                            {payMethod} • <span style={{ color: payStatus === 'paid' ? '#059669' : '#D97706', fontWeight: 600 }}>{payStatus}</span>
+                          </div>
+                        </td>
+                        <td style={{ padding: '0.75rem' }}>
+                          <span
+                            style={{
+                              padding: '0.25rem 0.55rem',
+                              borderRadius: '9999px',
+                              fontSize: '0.7rem',
+                              fontWeight: 800,
+                              backgroundColor: txStatus === 'completed' ? '#ECFDF5' : txStatus === 'cancelled' ? '#FEF2F2' : '#FFFBEB',
+                              color: txStatus === 'completed' ? '#059669' : txStatus === 'cancelled' ? '#DC2626' : '#D97706'
+                            }}
+                          >
+                            {txStatus.toUpperCase()}
+                          </span>
+                        </td>
+                        <td style={{ padding: '0.75rem', textAlign: 'right' }}>
+                          {txStatus === 'pending' && (
+                            <div style={{ display: 'inline-flex', gap: '0.35rem' }}>
+                              <button
+                                onClick={() => {
+                                  completeTransactionByAdmin(tx.id);
+                                  showToast('Completed', 'Transaction marked as completed.', 'success');
+                                }}
+                                style={{ padding: '0.35rem 0.65rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 800, backgroundColor: '#059669', color: '#FFFFFF', border: 'none', cursor: 'pointer' }}
+                              >
+                                Complete
+                              </button>
+                              <button
+                                onClick={() => {
+                                  cancelTransactionByAdmin(tx.id, 'Cancelled by admin moderation desk');
+                                  showToast('Cancelled', 'Transaction cancelled.', 'info');
+                                }}
+                                style={{ padding: '0.35rem 0.65rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 800, backgroundColor: '#DC2626', color: '#FFFFFF', border: 'none', cursor: 'pointer' }}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
@@ -1821,7 +2145,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
               </p>
             </div>
 
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              <input
+                type="text"
+                value={auditSearch}
+                onChange={(e) => setAuditSearch(e.target.value)}
+                placeholder="Search audit trail..."
+                className="clean-input"
+                style={{ padding: '0.45rem 0.75rem', fontSize: '0.8rem', minWidth: '180px' }}
+              />
               <select
                 value={auditTypeFilter}
                 onChange={(e) => setAuditTypeFilter(e.target.value)}
@@ -2031,6 +2363,37 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
               Specify the reason for declining <strong>{rejectReqModal.userName}</strong>'s verification request:
             </p>
 
+            {/* Preset Rejection Reasons */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B' }}>Quick Presets:</span>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                {[
+                  'Incomplete or blurry student ID photo',
+                  'Face in live selfie does not match student ID photo',
+                  'Student ID number does not match card details',
+                  'ID card appears expired or unreadable'
+                ].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => setRejectReasonInput(preset)}
+                    style={{
+                      fontSize: '0.68rem',
+                      padding: '0.2rem 0.5rem',
+                      borderRadius: '4px',
+                      backgroundColor: rejectReasonInput === preset ? '#FEF2F2' : '#F8FAFC',
+                      color: rejectReasonInput === preset ? '#DC2626' : '#475569',
+                      border: `1px solid ${rejectReasonInput === preset ? '#FECACA' : '#E2E8F0'}`,
+                      cursor: 'pointer',
+                      textAlign: 'left'
+                    }}
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <textarea
               rows={3}
               value={rejectReasonInput}
@@ -2162,6 +2525,56 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODALS: LISTING DELETION CONFIRMATION
+          ========================================================================= */}
+      {listingDeleteModal && (
+        <div
+          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(6px)', zIndex: 3500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
+          onClick={() => setListingDeleteModal(null)}
+        >
+          <div
+            style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', border: '1px solid #CBD5E1', width: '100%', maxWidth: '440px', padding: '1.75rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '12px', backgroundColor: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#DC2626', flexShrink: 0 }}>
+                <Trash2 size={24} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0F172A', fontFamily: 'var(--font-display)' }}>
+                  Take Down Listing?
+                </h3>
+                <p style={{ fontSize: '0.82rem', color: '#64748B', marginTop: '0.35rem', lineHeight: 1.45 }}>
+                  Are you sure you want to permanently remove <strong style={{ color: '#0F172A' }}>"{listingDeleteModal.title}"</strong>? This will delete associated images, tags, favorites, and pending flags.
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.65rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+              <button
+                type="button"
+                onClick={() => setListingDeleteModal(null)}
+                style={{ padding: '0.6rem 1rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, backgroundColor: '#F1F5F9', color: '#475569', border: '1px solid #E2E8F0', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  removeListingByAdmin(listingDeleteModal.listingId, listingDeleteModal.flagId);
+                  showToast('Listing Removed', `"${listingDeleteModal.title}" has been taken down.`, 'info');
+                  setListingDeleteModal(null);
+                }}
+                style={{ padding: '0.6rem 1.25rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 800, backgroundColor: '#DC2626', color: '#FFFFFF', border: 'none', cursor: 'pointer' }}
+              >
+                Confirm Take Down
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { User, RegisterData } from '../types';
 import { authService } from '../services/auth.service';
-import { adminService } from '../services/admin.service';
+import { usersService } from '../services/users.service';
 import { api, getAccessToken } from '../services/api';
 
 interface AuthContextType {
@@ -9,35 +9,47 @@ interface AuthContextType {
   allUsers: User[];
   isAuthenticated: boolean;
   isAdmin: boolean;
-  isSuperAdmin: boolean;
   isOffline: boolean;
   isLoading: boolean;
-  login: (emailOrStudentId: string, password?: string) => Promise<{ success: boolean; message: string }>;
+  login: (idNumber: string, password?: string) => Promise<{ success: boolean; message: string }>;
   register: (data: RegisterData) => Promise<{ success: boolean; message: string }>;
   forgotPassword: (email: string) => Promise<{ success: boolean; resetCode?: string; message: string }>;
   resetPassword: (email: string, code: string, newPassword: string) => Promise<{ success: boolean; message: string }>;
   logout: () => void;
   updateProfile: (data: Partial<User>) => void;
-  submitIdVerification: (studentIdNumber: string, idPhotoUrl: string, selfiePhotoUrl?: string) => void;
-  banUser: (userId: string, reason: string) => void;
-  unbanUser: (userId: string) => void;
-  warnUser: (userId: string, note?: string) => void;
-  toggleVerifyUser: (userId: string) => void;
-  deleteUser: (userId: string) => void;
+  submitIdVerification: (studentIdNumber: string, idPhotoUrl: string, selfiePhotoUrl?: string, sessionToken?: string) => Promise<void>;
+  refreshCurrentUser: () => Promise<void>;
+  getVerificationSession: () => Promise<{ sessionToken: string; challengeAction: { id: string; instruction: string }; flashColor: string; expiresAt: number }>;
+  getVerificationStatus: () => Promise<any>;
   resetAllData: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [users, setUsers] = useState<User[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
   const [isOffline, setIsOffline] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const isAuthenticated = !!currentUser;
-  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'superadmin';
-  const isSuperAdmin = currentUser?.role === 'superadmin';
+  const isAdmin = currentUser?.role === 'admin';
+
+  const refreshCurrentUser = useCallback(async () => {
+    const token = getAccessToken();
+    if (!token) return;
+    try {
+      const user = await authService.getMe();
+      if (user) {
+        setCurrentUser(user);
+        setIsOffline(false);
+      }
+    } catch (err: any) {
+      if (err?.statusCode === 0) {
+        setIsOffline(true);
+      }
+    }
+  }, []);
 
   // Restore session on mount
   useEffect(() => {
@@ -66,21 +78,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     restoreSession();
   }, []);
 
-  // Fetch all users if admin/superadmin
-  useEffect(() => {
-    if (isAdmin) {
-      adminService.getUsers().then((res) => {
-        if (Array.isArray(res)) {
-          setUsers(res);
-        }
-      }).catch(() => {});
-    }
-  }, [isAdmin]);
+  const login = useCallback(async (idNumber: string, password?: string): Promise<{ success: boolean; message: string }> => {
+    const cleanId = idNumber.trim();
 
-  const login = useCallback(async (emailOrStudentId: string, password?: string): Promise<{ success: boolean; message: string }> => {
-    const cleanQuery = emailOrStudentId.trim().toLowerCase();
-
-    if (!cleanQuery) {
+    if (!cleanId) {
       return { success: false, message: 'Please enter your Student ID or Email.' };
     }
     if (!password) {
@@ -88,7 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      const result = await authService.login(cleanQuery, password);
+      const result = await authService.login(cleanId, password);
       setCurrentUser(result.user);
       setIsOffline(false);
       return { success: true, message: result.message };
@@ -98,9 +99,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const register = useCallback(async (data: RegisterData): Promise<{ success: boolean; message: string }> => {
-    const cleanDigits = data.studentId.replace(/\D/g, '');
-    if (cleanDigits.length < 6 || /\D/.test(data.studentId)) {
-      return { success: false, message: 'Invalid Student ID. Only numbers (0-9) are allowed without hyphens.' };
+    const cleanDigits = data.studentId.replace(/[^a-zA-Z0-9]/g, '');
+    if (cleanDigits.length < 6) {
+      return { success: false, message: 'Invalid Student ID. Must contain at least 6 characters.' };
     }
 
     try {
@@ -164,81 +165,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [currentUser]);
 
-  const submitIdVerification = useCallback((studentIdNumber: string, idPhotoUrl: string, selfiePhotoUrl?: string) => {
-    if (!currentUser) return;
-    const cleanId = studentIdNumber.replace(/\D/g, '');
-    const updated: User = {
-      ...currentUser,
-      studentId: cleanId,
-      idPhotoUrl,
-      isVerified: false,
-      verificationStatus: 'pending'
-    };
-    setCurrentUser(updated);
-    setUsers((prev) => prev.map((u) => (u.id === currentUser.id ? updated : u)));
+  const submitIdVerification = useCallback(async (studentIdNumber: string, idPhotoUrl: string, selfiePhotoUrl?: string, sessionToken?: string) => {
+    const cleanId = studentIdNumber.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    await usersService.submitIdVerification(cleanId, idPhotoUrl, selfiePhotoUrl, sessionToken);
 
-    if (getAccessToken()) {
-      api.post('/users/me/verify-id', { studentIdNumber: cleanId, idCardImageUrl: idPhotoUrl, selfiePhotoUrl }).catch(() => {});
+    if (currentUser) {
+      const updated: User = {
+        ...currentUser,
+        studentId: cleanId,
+        idPhotoUrl,
+        isVerified: false,
+        verificationStatus: 'pending'
+      };
+      setCurrentUser(updated);
+      setUsers((prev) => prev.map((u) => (u.id === currentUser.id ? updated : u)));
     }
-  }, [currentUser]);
 
-  const banUser = useCallback((userId: string, reason: string) => {
-    setUsers((prev) =>
-      prev.map((u) => (u.id === userId ? { ...u, isBanned: true, banReason: reason, bannedAt: new Date().toISOString() } : u))
-    );
-    if (currentUser?.id === userId) {
-      setCurrentUser(null);
-    }
-    if (getAccessToken()) {
-      api.patch(`/admin/users/${userId}/ban`, { reason }).catch(() => {});
-    }
-  }, [currentUser]);
+    await refreshCurrentUser();
+  }, [currentUser, refreshCurrentUser]);
 
-  const unbanUser = useCallback((userId: string) => {
-    setUsers((prev) =>
-      prev.map((u) => (u.id === userId ? { ...u, isBanned: false, banReason: undefined, bannedAt: undefined } : u))
-    );
-    if (getAccessToken()) {
-      api.patch(`/admin/users/${userId}/unban`).catch(() => {});
-    }
+  const getVerificationSession = useCallback(async () => {
+    return usersService.getVerificationSession();
   }, []);
 
-  const warnUser = useCallback((userId: string, note?: string) => {
-    setUsers((prev) =>
-      prev.map((u) => (u.id === userId ? { ...u, warningsCount: (u.warningsCount || 0) + 1, trustScore: Math.max(10, (u.trustScore || 80) - 15) } : u))
-    );
-    if (getAccessToken()) {
-      api.patch(`/admin/users/${userId}/warn`, { note }).catch(() => {});
-    }
+  const getVerificationStatus = useCallback(async () => {
+    return usersService.getVerificationStatus();
   }, []);
-
-  const toggleVerifyUser = useCallback((userId: string) => {
-    setUsers((prev) =>
-      prev.map((u) => {
-        if (u.id !== userId) return u;
-        const newVerified = !u.isVerified;
-        return {
-          ...u,
-          isVerified: newVerified,
-          verificationStatus: newVerified ? 'verified' : 'unverified',
-          trustScore: newVerified ? Math.min(100, (u.trustScore || 60) + 25) : Math.max(50, (u.trustScore || 80) - 25)
-        };
-      })
-    );
-    if (getAccessToken()) {
-      api.patch(`/admin/users/${userId}/toggle-verify`).catch(() => {});
-    }
-  }, []);
-
-  const deleteUser = useCallback((userId: string) => {
-    setUsers((prev) => prev.filter((u) => u.id !== userId));
-    if (currentUser?.id === userId) {
-      setCurrentUser(null);
-    }
-    if (getAccessToken()) {
-      api.delete(`/admin/users/${userId}`).catch(() => {});
-    }
-  }, [currentUser]);
 
   const resetAllData = useCallback(() => {
     authService.logout();
@@ -252,7 +204,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         allUsers: users,
         isAuthenticated,
         isAdmin,
-        isSuperAdmin,
         isOffline,
         isLoading,
         login,
@@ -262,11 +213,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logout,
         updateProfile,
         submitIdVerification,
-        banUser,
-        unbanUser,
-        warnUser,
-        toggleVerifyUser,
-        deleteUser,
+        refreshCurrentUser,
+        getVerificationSession,
+        getVerificationStatus,
         resetAllData
       }}
     >

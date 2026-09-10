@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { HelpCircle, ChevronDown, ChevronUp, ChevronLeft, ShieldCheck, Zap, ArrowLeftRight, QrCode } from 'lucide-react';
+import { HelpCircle, ChevronDown, ChevronUp, ChevronLeft } from 'lucide-react';
 
 interface FAQPageProps {
   onNavigate: (view: string, param?: any) => void;

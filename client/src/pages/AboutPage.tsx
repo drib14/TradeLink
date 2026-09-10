@@ -1,6 +1,6 @@
 import React from 'react';
 import { Logo } from '../components/common/Logo';
-import { ShieldCheck, Heart, Building2, Users, ArrowRight, ChevronLeft, BadgePercent, MapPin } from 'lucide-react';
+import { ShieldCheck, Building2, Users, ChevronLeft, BadgePercent, MapPin } from 'lucide-react';
 import { CAMPUS_DETAILS } from '../data/campusLocations';
 import { Campus } from '../types';
 

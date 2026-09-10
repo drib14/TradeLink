@@ -1,6 +1,6 @@
 import React from 'react';
 import { Campus } from '../../types';
-import { MapPin, Building2, Anchor, Cpu, HeartPulse, GraduationCap } from 'lucide-react';
+import { Building2, Anchor, Cpu, HeartPulse, GraduationCap } from 'lucide-react';
 import { CAMPUS_DETAILS } from '../../data/campusLocations';
 
 interface CampusBadgeProps {

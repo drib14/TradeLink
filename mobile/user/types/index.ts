@@ -69,7 +69,7 @@ export interface User {
   name: string;
   email: string;
   studentId: string;
-  role?: 'student' | 'admin' | 'superadmin';
+  role?: 'student' | 'admin';
   campus: Campus;
   college: College;
   yearLevel?: string;
@@ -128,6 +128,8 @@ export interface Listing {
   customMeetupSpot?: string;
   isBoosted?: boolean;
   isSold?: boolean;
+  status?: 'active' | 'sold' | string;
+  quantity?: number;
   courseCode?: string;
   createdAt: string;
   views: number;

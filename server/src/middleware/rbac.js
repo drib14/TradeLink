@@ -1,8 +1,9 @@
 const AppError = require('../utils/AppError');
+const { ROLES } = require('../config/constants');
 
 /**
  * Role-Based Access Control Middleware factory
- * @param  {...string} allowedRoles ('student', 'admin', 'superadmin')
+ * @param  {...string} allowedRoles ('student', 'admin')
  */
 const requireRole = (...allowedRoles) => {
   return (req, res, next) => {
@@ -28,8 +29,8 @@ const requireVerified = (req, res, next) => {
     return next(new AppError('Authentication required.', 401));
   }
 
-  // Admins and Superadmins bypass student verification requirement
-  if (['admin', 'superadmin'].includes(req.user.role)) {
+  // Admins bypass student verification requirement
+  if (req.user.role === 'admin') {
     return next();
   }
 
@@ -49,3 +50,4 @@ module.exports = {
   requireRole,
   requireVerified
 };
+

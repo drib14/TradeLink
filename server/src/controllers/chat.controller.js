@@ -1,6 +1,7 @@
 const db = require('../config/db');
 const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
+const { createMessage } = require('../services/message.service');
 
 /**
  * Get all conversations for current user
@@ -9,15 +10,11 @@ const getConversations = asyncHandler(async (req, res) => {
   const userId = req.user.id;
 
   const convs = await db('conversations')
-    .where('participant_a', userId)
-    .orWhere('participant_b', userId)
-    .join('listings', 'conversations.listing_id', 'listings.id')
-    .join('users as userA', 'conversations.participant_a', 'userA.id')
-    .join('users as userB', 'conversations.participant_b', 'userB.id')
-    .leftJoin('conversation_read_status as readStatus', function() {
-      this.on('conversations.id', '=', 'readStatus.conversation_id')
-        .andOn('readStatus.user_id', '=', db.raw('?', [userId]));
-    })
+    .where('user_one_id', userId)
+    .orWhere('user_two_id', userId)
+    .leftJoin('listings', 'conversations.listing_id', 'listings.id')
+    .join('users as userA', 'conversations.user_one_id', 'userA.id')
+    .join('users as userB', 'conversations.user_two_id', 'userB.id')
     .select(
       'conversations.*',
       'listings.title as listing_title',
@@ -30,19 +27,33 @@ const getConversations = asyncHandler(async (req, res) => {
       'userB.name as user_b_name',
       'userB.avatar_url as user_b_avatar',
       'userB.campus as user_b_campus',
-      'userB.is_verified as user_b_verified',
-      'readStatus.unread_count'
+      'userB.is_verified as user_b_verified'
     )
     .orderBy('conversations.last_message_at', 'desc');
 
-  // Fetch listing images
-  const listingIds = convs.map((c) => c.listing_id);
-  const images = listingIds.length > 0
-    ? await db('listing_images').whereIn('listing_id', listingIds).where('sort_order', 0)
+  const convIds = convs.map((c) => c.id);
+  const listingIds = [...new Set(convs.map((c) => c.listing_id).filter(Boolean))];
+
+  // Fetch listing media
+  const mediaRows = listingIds.length > 0
+    ? await db('listing_media').whereIn('listing_id', listingIds).orderBy('display_order', 'asc')
     : [];
 
+  // Fetch unread count directly from messages
+  const unreadRows = convIds.length > 0
+    ? await db('messages')
+        .whereIn('conversation_id', convIds)
+        .andWhere({ receiver_id: userId, is_read: false })
+        .groupBy('conversation_id')
+        .select('conversation_id')
+        .count('id as unread_count')
+    : [];
+
+  const unreadMap = new Map();
+  unreadRows.forEach((r) => unreadMap.set(r.conversation_id, Number(r.unread_count || 0)));
+
   const formatted = convs.map((c) => {
-    const isUserA = c.participant_a === userId;
+    const isUserA = c.user_one_id === userId;
     const otherUser = isUserA
       ? {
           id: c.user_b_id,
@@ -59,16 +70,18 @@ const getConversations = asyncHandler(async (req, res) => {
           isVerified: Boolean(c.user_a_verified)
         };
 
+    const firstMedia = mediaRows.find((m) => m.listing_id === c.listing_id);
+
     return {
       id: c.id,
-      participantIds: [c.participant_a, c.participant_b],
+      participantIds: [c.user_one_id, c.user_two_id],
       otherParticipant: otherUser,
-      listingId: c.listing_id,
-      listingTitle: c.listing_title,
-      listingImage: images.find((i) => i.listing_id === c.listing_id)?.image_url || '',
-      lastMessage: c.last_message,
-      lastMessageTimestamp: c.last_message_at,
-      unreadCount: c.unread_count || 0
+      listingId: c.listing_id || '',
+      listingTitle: c.listing_title || 'Campus Item',
+      listingImage: firstMedia ? firstMedia.media_url : '',
+      lastMessage: c.last_message || '',
+      lastMessageTimestamp: c.last_message_at || c.created_at,
+      unreadCount: unreadMap.get(c.id) || 0
     };
   });
 
@@ -92,7 +105,7 @@ const getMessages = asyncHandler(async (req, res, next) => {
     return next(new AppError('Conversation not found.', 404));
   }
 
-  if (conv.participant_a !== userId && conv.participant_b !== userId) {
+  if (conv.user_one_id !== userId && conv.user_two_id !== userId && req.user.role !== 'admin') {
     return next(new AppError('Unauthorized access to this conversation.', 403));
   }
 
@@ -100,19 +113,10 @@ const getMessages = asyncHandler(async (req, res, next) => {
     .where({ conversation_id: id })
     .orderBy('created_at', 'asc');
 
-  // Mark unread count as 0
-  await db('conversation_read_status')
-    .insert({
-      conversation_id: id,
-      user_id: userId,
-      unread_count: 0,
-      last_read_at: new Date()
-    })
-    .onConflict(['conversation_id', 'user_id'])
-    .merge({
-      unread_count: 0,
-      last_read_at: new Date()
-    });
+  // Mark unread messages as read directly
+  await db('messages')
+    .where({ conversation_id: id, receiver_id: userId, is_read: false })
+    .update({ is_read: true });
 
   const formatted = messages.map((m) => ({
     id: m.id,
@@ -120,9 +124,13 @@ const getMessages = asyncHandler(async (req, res, next) => {
     senderId: m.sender_id,
     receiverId: m.receiver_id,
     content: m.content,
+    isRead: Boolean(m.is_read),
+    mediaUrl: m.media_url || null,
+    mediaType: m.media_type || null,
     timestamp: m.created_at,
     isSystemMessage: Boolean(m.is_system_message),
-    swapOfferId: m.swap_offer_id
+    swapOfferId: m.swap_offer_id,
+    transactionId: m.transaction_id
   }));
 
   res.status(200).json({
@@ -134,55 +142,35 @@ const getMessages = asyncHandler(async (req, res, next) => {
 });
 
 /**
- * Send a message via REST (fallback if WebSocket is not active)
+ * Send a message via REST
  */
 const sendMessage = asyncHandler(async (req, res, next) => {
-  const { conversationId, receiverId, content, isSystemMessage = false, swapOfferId } = req.body;
+  const {
+    conversationId,
+    receiverId,
+    content,
+    isSystemMessage = false,
+    swapOfferId,
+    transactionId,
+    mediaUrl,
+    mediaType
+  } = req.body;
 
-  if (!content || !content.trim()) {
-    return next(new AppError('Message content cannot be empty.', 400));
-  }
-
-  const msgId = `msg-${Date.now()}`;
-  const newMsg = {
-    id: msgId,
-    conversation_id: conversationId,
-    sender_id: req.user.id,
-    receiver_id: receiverId,
-    content: content.trim(),
-    is_system_message: isSystemMessage,
-    swap_offer_id: swapOfferId || null
-  };
-
-  await db.transaction(async (trx) => {
-    await trx('messages').insert(newMsg);
-    await trx('conversations').where({ id: conversationId }).update({
-      last_message: content.trim(),
-      last_message_at: new Date()
-    });
-    // Increment recipient unread count
-    await trx.raw(
-      `INSERT INTO conversation_read_status (conversation_id, user_id, unread_count)
-       VALUES (?, ?, 1)
-       ON DUPLICATE KEY UPDATE unread_count = unread_count + 1`,
-      [conversationId, receiverId]
-    );
+  const message = await createMessage({
+    conversationId,
+    senderId: req.user.id,
+    receiverId,
+    content,
+    isSystemMessage,
+    swapOfferId,
+    transactionId,
+    mediaUrl,
+    mediaType
   });
 
   res.status(201).json({
     status: 'success',
-    data: {
-      message: {
-        id: msgId,
-        conversationId,
-        senderId: req.user.id,
-        receiverId,
-        content: content.trim(),
-        timestamp: new Date(),
-        isSystemMessage,
-        swapOfferId
-      }
-    }
+    data: { message }
   });
 });
 

@@ -1,40 +1,81 @@
 import React, { useState } from 'react';
-import { Listing, Campus } from '../../types';
+import { Listing } from '../../types';
 import { Modal } from '../common/Modal';
 import { useAuth } from '../../context/AuthContext';
 import { useMarket } from '../../context/MarketContext';
 import { useChat } from '../../context/ChatContext';
 import { useToast } from '../common/Toast';
-import { ArrowLeftRight, Plus, MapPin, Calendar, CheckCircle2, Coins } from 'lucide-react';
-import { CAMPUS_MEETUP_SPOTS } from '../../data/campusLocations';
+import { ArrowLeftRight, MessageSquare } from 'lucide-react';
 
 interface SwapProposalModalProps {
   isOpen: boolean;
   onClose: () => void;
   targetListing: Listing;
+  onOpenVerification?: () => void;
 }
 
 export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
   isOpen,
   onClose,
-  targetListing
+  targetListing,
+  onOpenVerification
 }) => {
-  const { currentUser } = useAuth();
+  const { currentUser, isAuthenticated } = useAuth();
   const { listings } = useMarket();
   const { proposeSwap } = useChat();
   const { showToast } = useToast();
 
   // User's own active listings
-  const myListings = listings.filter((l) => l.sellerId === currentUser.id && !l.isSold);
+  const myListings = currentUser ? listings.filter((l) => l.sellerId === currentUser.id && !l.isSold) : [];
 
   const [selectedMyListingId, setSelectedMyListingId] = useState<string>(myListings[0]?.id || '');
   const [customDescription, setCustomDescription] = useState('');
   const [cashTopUp, setCashTopUp] = useState<number>(0);
-  const [selectedSpot, setSelectedSpot] = useState<string>(
-    CAMPUS_MEETUP_SPOTS.find((s) => s.campus === targetListing.sellerCampus)?.name ||
-      CAMPUS_MEETUP_SPOTS[0].name
-  );
-  const [scheduledDate, setScheduledDate] = useState('Tomorrow at 2:00 PM');
+
+  if (!isOpen) return null;
+
+  if (!isAuthenticated || !currentUser) {
+    return (
+      <div className="modal-backdrop-custom" onClick={onClose}>
+        <div className="modal-card-custom" style={{ maxWidth: '440px', textAlign: 'center', padding: '2rem' }} onClick={(e) => e.stopPropagation()}>
+          <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--uc-blue)' }}>Sign In Required</h3>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0.75rem 0 1.25rem 0' }}>
+            Please log in with your University of Cebu student account to propose a swap.
+          </p>
+          <button onClick={onClose} className="btn-gold" style={{ width: '100%' }}>Close</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentUser.isVerified) {
+    return (
+      <div className="modal-backdrop-custom" onClick={onClose}>
+        <div className="modal-card-custom" style={{ maxWidth: '460px', textAlign: 'center', padding: '2rem' }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ width: '54px', height: '54px', borderRadius: '50%', backgroundColor: 'rgba(255, 199, 44, 0.2)', color: '#B45309', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem auto' }}>
+            <ArrowLeftRight size={28} />
+          </div>
+          <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--uc-blue)' }}>Student ID Verification Required</h3>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0.75rem 0 1.25rem 0', lineHeight: 1.5 }}>
+            To ensure trust and physical security across campus barter transactions, proposing item swaps requires student verification.
+          </p>
+          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+            <button onClick={onClose} className="btn-secondary" style={{ flex: 1 }}>Cancel</button>
+            <button
+              onClick={() => {
+                onClose();
+                if (onOpenVerification) onOpenVerification();
+              }}
+              className="btn-gold"
+              style={{ flex: 1.3 }}
+            >
+              Verify Student ID
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const selectedMyListing = myListings.find((l) => l.id === selectedMyListingId);
 
@@ -56,9 +97,7 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
       offeredListingTitle: selectedMyListing?.title,
       offeredListingImage: selectedMyListing?.images[0],
       offeredDescription: offeredDesc,
-      cashTopUp,
-      proposedMeetupSpot: selectedSpot,
-      proposedDateTime: scheduledDate
+      cashTopUp
     });
 
     showToast(
@@ -90,11 +129,17 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
             gap: '0.75rem'
           }}
         >
-          <img
-            src={targetListing.images[0]}
-            alt={targetListing.title}
-            style={{ width: '46px', height: '46px', borderRadius: '8px', objectFit: 'cover' }}
-          />
+          {targetListing.images && targetListing.images.length > 0 && targetListing.images[0] && targetListing.images[0].trim() !== '' ? (
+            <img
+              src={targetListing.images[0]}
+              alt={targetListing.title}
+              style={{ width: '46px', height: '46px', borderRadius: '8px', objectFit: 'cover' }}
+            />
+          ) : (
+            <div style={{ width: '46px', height: '46px', borderRadius: '8px', backgroundColor: 'var(--bg-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+              <ArrowLeftRight size={20} />
+            </div>
+          )}
           <div style={{ flex: 1 }}>
             <h5 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>{targetListing.title}</h5>
             <p style={{ fontSize: '0.74rem', color: 'var(--uc-blue)', marginTop: '2px' }}>
@@ -147,71 +192,32 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
           )}
         </div>
 
-        {/* Section 2: Cash Top-up & Meetup Spot (2 Column) */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: '0.75rem' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-              Cash Top-Up (Optional)
-            </label>
-            <div style={{ position: 'relative' }}>
-              <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, color: 'var(--text-muted)' }}>
-                ₱
-              </span>
-              <input
-                type="number"
-                value={cashTopUp || ''}
-                onChange={(e) => setCashTopUp(Number(e.target.value))}
-                placeholder="0"
-                className="clean-input"
-                style={{ paddingLeft: '1.75rem', fontWeight: 700 }}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-              Campus Meetup Zone
-            </label>
-            <select
-              value={selectedSpot}
-              onChange={(e) => setSelectedSpot(e.target.value)}
+        {/* Section 2: Cash Top-up (Optional) */}
+        <div>
+          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+            Cash Top-Up (Optional)
+          </label>
+          <div style={{ position: 'relative' }}>
+            <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, color: 'var(--text-muted)' }}>
+              ₱
+            </span>
+            <input
+              type="number"
+              value={cashTopUp || ''}
+              onChange={(e) => setCashTopUp(Number(e.target.value))}
+              placeholder="0 (e.g. 150 to balance the trade value)"
               className="clean-input"
-            >
-              {CAMPUS_MEETUP_SPOTS.filter(s => s.campus === targetListing.sellerCampus || s.campus === currentUser.campus).map((spot) => (
-                <option key={spot.id} value={spot.name}>
-                  [{spot.campus}] {spot.name}
-                </option>
-              ))}
-            </select>
+              style={{ paddingLeft: '1.75rem', fontWeight: 700 }}
+            />
           </div>
         </div>
 
-        {/* Section 3: Meetup Time with Quick Presets */}
-        <div>
-          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-            Preferred Meetup Time
-          </label>
-          <div style={{ display: 'flex', gap: '0.35rem', marginBottom: '0.4rem', flexWrap: 'wrap' }}>
-            {['Tomorrow at Lunch', 'Tomorrow 4:30 PM (After Class)', 'This Friday 2:00 PM'].map((preset) => (
-              <button
-                key={preset}
-                type="button"
-                onClick={() => setScheduledDate(preset)}
-                className="btn-ghost"
-                style={{ padding: '0.25rem 0.55rem', fontSize: '0.74rem', borderRadius: '6px', border: scheduledDate === preset ? '1.5px solid var(--uc-blue)' : '1px solid var(--border-subtle)', backgroundColor: scheduledDate === preset ? 'var(--uc-blue-subtle)' : 'transparent', color: scheduledDate === preset ? 'var(--uc-blue)' : 'var(--text-secondary)' }}
-              >
-                {preset}
-              </button>
-            ))}
+        {/* Section 3: Campus Chat Coordination Note */}
+        <div style={{ backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', border: '1px solid rgba(0, 43, 127, 0.15)', borderRadius: '8px', padding: '0.75rem 0.95rem', display: 'flex', gap: '0.65rem', alignItems: 'flex-start' }}>
+          <MessageSquare size={18} color="var(--uc-blue)" style={{ flexShrink: 0, marginTop: '2px' }} />
+          <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
+            <strong style={{ color: 'var(--uc-blue)' }}>Direct Chat Coordination:</strong> Once the seller reviews and accepts your swap proposal, you can agree on the exact meeting spot and time on campus directly in Campus Chat.
           </div>
-          <input
-            type="text"
-            value={scheduledDate}
-            onChange={(e) => setScheduledDate(e.target.value)}
-            placeholder="e.g. Tomorrow at 2:00 PM"
-            className="clean-input"
-            style={{ fontSize: '0.82rem' }}
-          />
         </div>
 
         {/* Submit Actions */}

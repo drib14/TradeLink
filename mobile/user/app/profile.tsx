@@ -47,7 +47,7 @@ export default function ProfileScreen() {
           </View>
           <Text style={styles.guestTitle}>Welcome to TradeLink!</Text>
           <Text style={styles.guestSubtitle}>
-            Log in with your University of Cebu email or create an account to post listings, save favorite items, and chat directly with verified campus peers.
+            Log in with your UC Student ID Number or create an account to post listings, save favorite items, and chat directly with verified campus peers.
           </Text>
 
           <TouchableOpacity style={styles.loginButton} onPress={openAuthModal} activeOpacity={0.85}>

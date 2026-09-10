@@ -5,38 +5,9 @@ const db = require('../config/db');
 const env = require('../config/env');
 const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
-const { sanitizeUser } = require('../utils/sanitize');
-const { generate4DigitCode, hashCode, verifyCode } = require('../utils/generateCode');
-const { sendPasswordResetEmail } = require('../services/email.service');
-
-// Helper to generate access & refresh tokens
-function generateTokens(userId, role, campus) {
-  const accessToken = jwt.sign(
-    { userId, role, campus },
-    env.jwt.accessSecret,
-    { expiresIn: env.jwt.accessExpiresIn }
-  );
-
-  const refreshToken = jwt.sign(
-    { userId, role, campus },
-    env.jwt.refreshSecret,
-    { expiresIn: env.jwt.refreshExpiresIn }
-  );
-
-  return { accessToken, refreshToken };
-}
-
-// Set refresh token in HttpOnly secure cookie
-function setRefreshTokenCookie(res, refreshToken) {
-  const isProd = env.env === 'production';
-  res.cookie('refreshToken', refreshToken, {
-    httpOnly: true,
-    secure: isProd,
-    sameSite: isProd ? 'strict' : 'lax',
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    path: '/api/auth'
-  });
-}
+const { serializeUser } = require('../serializers/userSerializer');
+const { hashCode, verifyCode } = require('../utils/generateCode');
+const { generateTokens, setRefreshTokenCookie } = require('../utils/authHelpers');
 
 /**
  * Register a new student account
@@ -44,8 +15,8 @@ function setRefreshTokenCookie(res, refreshToken) {
 const register = asyncHandler(async (req, res, next) => {
   const {
     name,
-    studentId,
     email,
+    studentId,
     password,
     campus,
     college,
@@ -54,20 +25,24 @@ const register = asyncHandler(async (req, res, next) => {
     idPhotoUrl
   } = req.body;
 
-  // Check duplicate email
-  const existingEmail = await db('users').whereRaw('LOWER(email) = ?', [email.toLowerCase()]).first();
+  // Check if email already registered
+  const existingEmail = await db('users')
+    .whereRaw('LOWER(email) = ?', [email.toLowerCase().trim()])
+    .first();
   if (existingEmail) {
-    return next(new AppError('A student account with this email is already registered.', 409));
+    return next(new AppError('Email address is already in use.', 409));
   }
 
-  // Check duplicate student ID
-  const existingStudentId = await db('users').where({ student_id: studentId }).first();
+  // Check if student ID already registered
+  const existingStudentId = await db('users')
+    .where({ student_id: studentId.trim() })
+    .first();
   if (existingStudentId) {
-    return next(new AppError('A student account with this Student ID is already registered.', 409));
+    return next(new AppError('Student ID is already registered.', 409));
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
-  const userId = `user-${Date.now()}`;
+  const userId = uuidv4();
   const isVerified = false;
   const trustScore = 60;
 
@@ -82,37 +57,32 @@ const register = asyncHandler(async (req, res, next) => {
     college: college.trim(),
     year_level: yearLevel.trim(),
     avatar_url: avatar || null,
-    is_verified: false,
+    is_verified: isVerified,
     id_photo_url: idPhotoUrl || null,
     trust_score: trustScore,
     rating: 5.0,
     total_reviews: 0,
     completed_trades: 0,
     punctuality_rate: 100,
-    bio: `Student at ${campus} - ${college}.`,
+    bio: `Student at ${campus} - ${college.trim()}.`,
     is_pro_merchant: false,
     is_banned: false
   };
 
   await db('users').insert(newUser);
 
-  // If ID was uploaded, create pending verification request
+  // If ID was uploaded during registration, create pending verification request
   if (idPhotoUrl) {
     await db('verification_requests').insert({
-      id: `verif-${Date.now()}`,
+      id: uuidv4(),
       user_id: userId,
-      student_id_number: studentId,
-      campus,
-      college,
-      id_card_image_url: idPhotoUrl,
-      status: 'approved', // Auto-approved in mock initial register
-      reviewed_at: new Date()
+      student_id_number: studentId.trim(),
+      id_photo_url: idPhotoUrl,
+      status: 'pending'
     });
   }
 
   const { accessToken, refreshToken } = generateTokens(newUser.id, newUser.role, newUser.campus);
-  
-  // Store hashed refresh token in DB for rotation & revocation
   const refreshTokenHash = await hashCode(refreshToken);
   await db('users').where({ id: userId }).update({ refresh_token_hash: refreshTokenHash });
 
@@ -120,33 +90,44 @@ const register = asyncHandler(async (req, res, next) => {
 
   res.status(201).json({
     status: 'success',
-    message: `Account created for ${newUser.name}! Welcome to TradeLink.`,
+    message: 'Account created successfully. Welcome to TradeLink.',
     data: {
-      user: sanitizeUser(newUser),
+      user: serializeUser(newUser, { isSelf: true }),
       accessToken
     }
   });
 });
 
 /**
- * Login user
+ * Login student user (blocks administrator accounts from student portal)
  */
 const login = asyncHandler(async (req, res, next) => {
-  const { emailOrStudentId, password } = req.body;
-  const cleanQuery = emailOrStudentId.toLowerCase().trim();
+  const { studentId, idNumber, emailOrStudentId, identifier, email, password } = req.body;
+  const cleanQuery = (studentId || idNumber || emailOrStudentId || identifier || email || '').trim();
 
   const user = await db('users')
-    .whereRaw('LOWER(email) = ? OR student_id = ?', [cleanQuery, cleanQuery])
+    .where({ student_id: cleanQuery })
+    .orWhereRaw('LOWER(email) = ?', [cleanQuery.toLowerCase()])
     .first();
 
   if (!user) {
-    return next(new AppError('No account found with this Student ID or email address.', 401));
+    return next(new AppError('Invalid credentials.', 401));
+  }
+
+  // Guard: Administrator accounts must use the dedicated Admin Portal
+  if (user.role === 'admin') {
+    return next(
+      new AppError(
+        'Administrator accounts must log in via the dedicated TradeLink Administration Portal.',
+        403
+      )
+    );
   }
 
   if (user.is_banned) {
     return next(
       new AppError(
-        `Account suspended by campus administration. Reason: ${user.ban_reason || 'Violation of safety guidelines'}`,
+        'This account has been suspended. Contact campus administration for details.',
         403
       )
     );
@@ -154,7 +135,7 @@ const login = asyncHandler(async (req, res, next) => {
 
   const isMatch = await bcrypt.compare(password, user.password_hash);
   if (!isMatch) {
-    return next(new AppError('Incorrect password entered. Please check your credentials.', 401));
+    return next(new AppError('Invalid credentials.', 401));
   }
 
   const { accessToken, refreshToken } = generateTokens(user.id, user.role, user.campus);
@@ -165,9 +146,9 @@ const login = asyncHandler(async (req, res, next) => {
 
   res.status(200).json({
     status: 'success',
-    message: `Welcome back, ${user.name}!`,
+    message: 'Login successful.',
     data: {
-      user: sanitizeUser(user),
+      user: serializeUser(user, { isSelf: true, isAdmin: false }),
       accessToken
     }
   });
@@ -212,7 +193,7 @@ const refreshToken = asyncHandler(async (req, res, next) => {
     status: 'success',
     data: {
       accessToken: newTokens.accessToken,
-      user: sanitizeUser(user)
+      user: serializeUser(user, { isSelf: true, isAdmin: user.role === 'admin' })
     }
   });
 });
@@ -225,7 +206,7 @@ const logout = asyncHandler(async (req, res) => {
     await db('users').where({ id: req.user.id }).update({ refresh_token_hash: null });
   }
 
-  res.clearCookie('refreshToken', { path: '/api/auth' });
+  res.clearCookie('refreshToken', { path: '/api' });
   res.status(200).json({
     status: 'success',
     message: 'Logged out successfully.'
@@ -233,36 +214,67 @@ const logout = asyncHandler(async (req, res) => {
 });
 
 /**
- * Request password reset code
+ * Request password reset (Student flow: registered for campus administrator review)
  */
 const forgotPassword = asyncHandler(async (req, res, next) => {
   const { email } = req.body;
-  const user = await db('users').whereRaw('LOWER(email) = ?', [email.toLowerCase().trim()]).first();
-
-  if (!user) {
-    return next(new AppError('No registered UC account found with that email address.', 404));
+  if (!email) {
+    return next(new AppError('Email is required.', 400));
   }
 
-  const code = generate4DigitCode();
-  const codeHash = await hashCode(code);
-  const expiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+  const cleanEmail = email.toLowerCase().trim();
+  const user = await db('users').whereRaw('LOWER(email) = ?', [cleanEmail]).first();
 
-  await db('users').where({ id: user.id }).update({
-    reset_code_hash: codeHash,
-    reset_code_exp: expiry
+  if (!user) {
+    return next(new AppError('No registered account found with that email address. Please check your email or register.', 404));
+  }
+
+  // Guard: Administrator accounts must use the admin portal forgot password flow
+  if (user.role === 'admin') {
+    return next(
+      new AppError(
+        'Administrator accounts must request password reset via the TradeLink Administration Portal.',
+        403
+      )
+    );
+  }
+
+  // Check if a reset request is already pending admin review
+  const existingPending = await db('password_reset_requests')
+    .where({ user_id: user.id, status: 'pending' })
+    .first();
+
+  if (existingPending) {
+    return res.status(200).json({
+      status: 'success',
+      message: 'A password reset request for this account is already pending administrator confirmation. Please wait for an administrator to review it.',
+      data: {
+        requestId: existingPending.id,
+        status: 'pending'
+      }
+    });
+  }
+
+  const requestId = uuidv4();
+  await db('password_reset_requests').insert({
+    id: requestId,
+    user_id: user.id,
+    email: user.email,
+    status: 'pending'
   });
-
-  await sendPasswordResetEmail(user.email, code, user.name);
 
   res.status(200).json({
     status: 'success',
-    message: `Verification code sent to ${user.email}. (Dev Code: ${code})`,
-    resetCode: env.env === 'development' ? code : undefined
+    message: 'Password reset request submitted successfully. It has been sent to campus administration for approval. Once approved, your verification code will be sent to your registered email.',
+    data: {
+      requestId,
+      status: 'pending'
+    }
   });
 });
 
 /**
- * Reset password with 4-digit verification code
+ * Reset password with admin-approved verification code
  */
 const resetPassword = asyncHandler(async (req, res, next) => {
   const { email, code, newPassword } = req.body;
@@ -273,24 +285,30 @@ const resetPassword = asyncHandler(async (req, res, next) => {
   }
 
   if (!user.reset_code_hash || !user.reset_code_exp || new Date() > new Date(user.reset_code_exp)) {
-    return next(new AppError('Verification code has expired. Please request a new one.', 400));
+    return next(new AppError('Verification code has expired or has not been approved by administration. Please request a new one.', 400));
   }
 
   const isMatch = await verifyCode(code, user.reset_code_hash);
   if (!isMatch) {
-    return next(new AppError('Invalid 4-digit verification code.', 400));
+    return next(new AppError('Invalid verification code.', 400));
   }
 
   const passwordHash = await bcrypt.hash(newPassword, 12);
   await db('users').where({ id: user.id }).update({
     password_hash: passwordHash,
     reset_code_hash: null,
-    reset_code_exp: null
+    reset_code_exp: null,
+    refresh_token_hash: null // Invalidate existing sessions for security
   });
+
+  // Mark latest approved request as completed
+  await db('password_reset_requests')
+    .where({ user_id: user.id, status: 'approved' })
+    .update({ status: 'completed' });
 
   res.status(200).json({
     status: 'success',
-    message: 'Password reset successfully. You may now login.'
+    message: 'Password reset successfully. You may now login with your new password.'
   });
 });
 
@@ -301,7 +319,7 @@ const getMe = asyncHandler(async (req, res) => {
   res.status(200).json({
     status: 'success',
     data: {
-      user: sanitizeUser(req.user)
+      user: serializeUser(req.user, { isSelf: true, isAdmin: req.user.role === 'admin' })
     }
   });
 });

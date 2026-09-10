@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, BookOpen, Scale, AlertTriangle, CheckCircle2, ChevronLeft } from 'lucide-react';
+import { ShieldCheck, BookOpen, Scale, AlertTriangle, ChevronLeft } from 'lucide-react';
 
 interface TermsPrivacyPageProps {
   onNavigate: (view: string, param?: any) => void;

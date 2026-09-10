@@ -24,7 +24,7 @@ async function recalculateUserStats(userId) {
   const punctualityRate = totalReviews > 0 ? Math.round((punctualCount / totalReviews) * 100) : 100;
 
   // 2. Completed trades
-  const tradeStats = await db('meetup_transactions')
+  const tradeStats = await db('transactions')
     .where((builder) => {
       builder.where('seller_id', userId).orWhere('buyer_id', userId);
     })

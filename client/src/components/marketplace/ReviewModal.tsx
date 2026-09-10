@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { MeetupTransaction, Campus } from '../../types';
+import { MeetupTransaction } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../common/Toast';
+import { reviewsService } from '../../services/reviews.service';
 import {
   X,
   Star,
@@ -12,10 +13,10 @@ import {
   Gem,
   Users,
   MessageSquare,
-  Sparkles,
   Award,
   AlertTriangle,
-  Smile
+  Smile,
+  Loader2
 } from 'lucide-react';
 
 interface ReviewModalProps {
@@ -37,10 +38,12 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
   const [selectedBadges, setSelectedBadges] = useState<string[]>(['Super Punctual', 'Mint Condition']);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
 
   const targetUserName = currentUser?.id === meetup.sellerId ? meetup.buyerName : meetup.sellerName;
+  const targetUserId = currentUser?.id === meetup.sellerId ? meetup.buyerId : meetup.sellerId;
 
   const availableBadges = [
     { id: 'Super Punctual', label: 'Super Punctual', icon: Zap },
@@ -56,17 +59,45 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
     );
   };
 
-  const handleSubmitReview = (e: React.FormEvent) => {
+  const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    showToast(
-      'Review Submitted!',
-      `Thank you! You awarded ${rating} stars and ${selectedBadges.length} trait badges to ${targetUserName}.`,
-      'success'
-    );
+    if (!currentUser) {
+      showToast('Log In Required', 'Please log in to submit a student review.', 'warning');
+      return;
+    }
 
-    if (onSuccess) onSuccess();
-    onClose();
+    if (!targetUserId) {
+      showToast('Error', 'Counterpart student information missing.', 'error');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await reviewsService.createReview({
+        transactionId: meetup.id,
+        targetUserId,
+        rating,
+        comment: comment.trim(),
+        itemTitle: meetup.listingTitle,
+        tradeType: meetup.tradeMode,
+        wasPunctual: selectedBadges.includes('Super Punctual'),
+        traitBadges: selectedBadges
+      });
+
+      showToast(
+        'Review Submitted!',
+        `Thank you! You awarded ${rating} stars and ${selectedBadges.length} trait badges to ${targetUserName}.`,
+        'success'
+      );
+
+      if (onSuccess) onSuccess();
+      onClose();
+    } catch (err: any) {
+      showToast('Review Failed', err?.message || 'Failed to submit review. Please try again.', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const getRatingFeedback = () => {
@@ -201,10 +232,21 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
 
           <button
             type="submit"
+            disabled={isSubmitting}
             className="btn-gold"
-            style={{ padding: '0.75rem', width: '100%', fontSize: '0.9rem', fontWeight: 800 }}
+            style={{ padding: '0.75rem', width: '100%', fontSize: '0.9rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', opacity: isSubmitting ? 0.75 : 1, cursor: isSubmitting ? 'not-allowed' : 'pointer' }}
           >
-            <CheckCircle2 size={16} /> Submit Verified Student Review
+            {isSubmitting ? (
+              <>
+                <Loader2 size={16} className="spin-animation" />
+                <span>Submitting Review...</span>
+              </>
+            ) : (
+              <>
+                <CheckCircle2 size={16} />
+                <span>Submit Verified Student Review</span>
+              </>
+            )}
           </button>
         </form>
       </div>

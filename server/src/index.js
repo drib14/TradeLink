@@ -5,7 +5,6 @@ const helmet = require('helmet');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const hpp = require('hpp');
-const xss = require('xss-clean');
 
 const env = require('./config/env');
 const corsOptions = require('./config/cors');
@@ -13,19 +12,37 @@ const db = require('./config/db');
 const logger = require('./utils/logger');
 const AppError = require('./utils/AppError');
 const requestLogger = require('./middleware/requestLogger');
+const sanitizeInput = require('./middleware/sanitizeInput');
 const { apiLimiter } = require('./middleware/rateLimiter');
 const errorHandler = require('./middleware/errorHandler');
 const apiRoutes = require('./routes');
 const initializeSocket = require('./socket');
+const storageService = require('./services/storage.service');
+const { autoInitDatabase } = require('./config/dbInit');
 
 const app = express();
 const server = http.createServer(app);
+
+// Enable trust proxy for IP detection across network interfaces, LAN, and proxies
+app.set('trust proxy', true);
 
 // 1. Security Headers (Helmet)
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
-    contentSecurityPolicy: false // Disable CSP for API backend or customize as needed
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["*"],
+        fontSrc: ["'self'", "https:", "data:"],
+        objectSrc: ["'none'"],
+        upgradeInsecureRequests: []
+      }
+    }
   })
 );
 
@@ -41,7 +58,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
 // 5. Data Sanitization & HTTP Parameter Pollution Protection
-app.use(xss());
+app.use(sanitizeInput);
 app.use(hpp());
 
 // 6. General API Rate Limiting
@@ -50,19 +67,9 @@ app.use('/api', apiLimiter);
 // 7. Static Uploads Folder
 app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')));
 
-// 8. Root Welcome & Health Check Route
+// 8. Root Health Check Route
 app.get('/', (req, res) => {
-  res.status(200).json({
-    name: 'TradeLink Backend API',
-    version: '1.0.0',
-    university: 'University of Cebu',
-    campuses: [
-      'UC Main', 'UC Banilad', 'UC LM', 'UC METC',
-      'UC Pardo-Talisay', 'UC South Campus', 'UC Medical Center', 'UC PRI'
-    ],
-    documentation: '/api/health',
-    status: 'online'
-  });
+  res.status(200).json({ status: 'ok' });
 });
 
 // 9. Mount Main API Routes
@@ -80,37 +87,50 @@ app.use(errorHandler);
 const io = initializeSocket(server);
 app.set('io', io);
 
-// 13. Start HTTP + Socket Server
+// 13. Start HTTP + Socket Server (Only when run directly, not when required by tests)
+const HOST = env.host || '0.0.0.0';
 const PORT = env.port;
-server.listen(PORT, async () => {
-  logger.info('=======================================================');
-  logger.info(`TradeLink Server listening on port ${PORT} [${env.env}]`);
-  logger.info(`Base API URL: http://localhost:${PORT}/api`);
-  logger.info(`CORS Allowed: ${env.clientUrl}`);
-  logger.info('=======================================================');
+if (require.main === module) {
+  server.listen(PORT, HOST, async () => {
+    logger.info('=======================================================');
+    logger.info(`TradeLink Server listening on ${HOST}:${PORT} [${env.env}]`);
+    logger.info(`Base API URL: http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}/api`);
+    logger.info('IP Whitelist: 0.0.0.0 (All incoming IPs and origins allowed)');
+    logger.info('=======================================================');
 
-  // Test database connection at startup
-  const dbHealth = await db.testConnection();
-  if (dbHealth.ok) {
-    logger.info(`MySQL Database connected successfully [${env.db.database}]`);
-  } else {
-    logger.warn(`MySQL Database connection warning: ${dbHealth.error}`);
-    logger.warn(`Make sure MySQL server is running on ${env.db.host}:${env.db.port}`);
-  }
-});
+    // Test database connection at startup and auto-initialize schema & seed
+    const dbHealth = await db.testConnection();
+    if (dbHealth.ok) {
+      logger.info(`MySQL Database connected successfully [${env.db.database}]`);
+      await autoInitDatabase();
+    } else {
+      logger.warn(`MySQL Database connection warning: ${dbHealth.error}`);
+      logger.warn(`Make sure MySQL server is running on ${env.db.host}:${env.db.port}`);
+    }
 
-// Graceful Shutdown
-const shutdown = () => {
-  logger.info('Shutting down TradeLink server gracefully...');
-  server.close(async () => {
-    logger.info('HTTP server closed.');
-    await db.destroy();
-    logger.info('Database connections closed.');
-    process.exit(0);
+    // Check media storage status (Cloudinary / secure fallback)
+    const storageHealth = await storageService.testCloudinaryConnection();
+    if (storageHealth.ok && storageHealth.storage === 'cloudinary') {
+      logger.info(`Cloudinary Object Storage active [Cloud: ${storageHealth.cloudName}]`);
+    } else {
+      logger.info(`Media Storage: ${storageHealth.message}`);
+    }
   });
-};
 
-process.on('SIGTERM', shutdown);
-process.on('SIGINT', shutdown);
+  // Graceful Shutdown
+  const shutdown = () => {
+    logger.info('Shutting down TradeLink server gracefully...');
+    server.close(async () => {
+      logger.info('HTTP server closed.');
+      await db.destroy();
+      logger.info('Database connections closed.');
+      process.exit(0);
+    });
+  };
 
-module.exports = { app, server };
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
+}
+
+module.exports = { app, server, io };
+

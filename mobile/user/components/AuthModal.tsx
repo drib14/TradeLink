@@ -50,6 +50,7 @@ export const AuthModal: React.FC = () => {
   // Form State
   const [name, setName] = useState('');
   const [studentId, setStudentId] = useState('');
+  const [loginId, setLoginId] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [campus, setCampus] = useState<Campus>('UC Main');
@@ -62,6 +63,7 @@ export const AuthModal: React.FC = () => {
   const resetForm = () => {
     setName('');
     setStudentId('');
+    setLoginId('');
     setEmail('');
     setPassword('');
     setCampus('UC Main');
@@ -80,7 +82,7 @@ export const AuthModal: React.FC = () => {
     setSuccessMessage(null);
     setLoading(true);
 
-    const res = await login(email, password);
+    const res = await login(loginId, password);
     setLoading(false);
 
     if (res.success) {
@@ -193,17 +195,16 @@ export const AuthModal: React.FC = () => {
             {tab === 'login' ? (
               /* LOGIN FORM */
               <View style={styles.formBody}>
-                <Text style={styles.fieldLabel}>UC Student Email</Text>
+                <Text style={styles.fieldLabel}>ID Number</Text>
                 <View style={styles.inputContainer}>
-                  <Ionicons name="mail-outline" size={18} color="#94A3B8" style={styles.inputIcon} />
+                  <Ionicons name="card-outline" size={18} color="#94A3B8" style={styles.inputIcon} />
                   <TextInput
                     style={styles.textInput}
-                    placeholder="student.id@uc.edu.ph"
+                    placeholder="ID Number"
                     placeholderTextColor="#94A3B8"
-                    value={email}
-                    onChangeText={setEmail}
+                    value={loginId}
+                    onChangeText={setLoginId}
                     autoCapitalize="none"
-                    keyboardType="email-address"
                   />
                 </View>
 
@@ -212,7 +213,7 @@ export const AuthModal: React.FC = () => {
                   <Ionicons name="lock-closed-outline" size={18} color="#94A3B8" style={styles.inputIcon} />
                   <TextInput
                     style={styles.textInput}
-                    placeholder="Enter your password"
+                    placeholder="Password"
                     placeholderTextColor="#94A3B8"
                     value={password}
                     onChangeText={setPassword}
@@ -246,12 +247,12 @@ export const AuthModal: React.FC = () => {
             ) : (
               /* REGISTER FORM */
               <View style={styles.formBody}>
-                <Text style={styles.fieldLabel}>Full Student Name</Text>
+                <Text style={styles.fieldLabel}>Full Legal Name</Text>
                 <View style={styles.inputContainer}>
                   <Ionicons name="person-outline" size={18} color="#94A3B8" style={styles.inputIcon} />
                   <TextInput
                     style={styles.textInput}
-                    placeholder="e.g. Juan Dela Cruz"
+                    placeholder="Full Name"
                     placeholderTextColor="#94A3B8"
                     value={name}
                     onChangeText={setName}
@@ -263,19 +264,19 @@ export const AuthModal: React.FC = () => {
                   <Ionicons name="card-outline" size={18} color="#94A3B8" style={styles.inputIcon} />
                   <TextInput
                     style={styles.textInput}
-                    placeholder="e.g. 2024-12345"
+                    placeholder="ID Number"
                     placeholderTextColor="#94A3B8"
                     value={studentId}
                     onChangeText={setStudentId}
                   />
                 </View>
 
-                <Text style={styles.fieldLabel}>UC Email Address</Text>
+                <Text style={styles.fieldLabel}>Personal Email Address</Text>
                 <View style={styles.inputContainer}>
                   <Ionicons name="mail-outline" size={18} color="#94A3B8" style={styles.inputIcon} />
                   <TextInput
                     style={styles.textInput}
-                    placeholder="juan.delacruz@uc.edu.ph"
+                    placeholder="Email Address"
                     placeholderTextColor="#94A3B8"
                     value={email}
                     onChangeText={setEmail}
@@ -316,12 +317,12 @@ export const AuthModal: React.FC = () => {
                   ))}
                 </ScrollView>
 
-                <Text style={styles.fieldLabel}>Create Password</Text>
+                <Text style={styles.fieldLabel}>Password</Text>
                 <View style={styles.inputContainer}>
                   <Ionicons name="lock-closed-outline" size={18} color="#94A3B8" style={styles.inputIcon} />
                   <TextInput
                     style={styles.textInput}
-                    placeholder="At least 6 characters"
+                    placeholder="Password"
                     placeholderTextColor="#94A3B8"
                     value={password}
                     onChangeText={setPassword}

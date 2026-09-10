@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { Listing, Campus, TradeMode, ConditionGrade } from '../types';
 import { listingsService } from '../services/listings.service';
+import { getAccessToken } from '../services/api';
 
 interface MarketContextType {
   listings: Listing[];
@@ -22,7 +23,7 @@ interface MarketContextType {
   setSortBy: (sort: 'recent' | 'price_low' | 'price_high' | 'trust_high' | 'views_high') => void;
   setPriceRange: (range: [number, number]) => void;
   filteredListings: Listing[];
-  addListing: (listingData: Omit<Listing, 'id' | 'createdAt' | 'views' | 'favoritesCount' | 'isSold'>) => Promise<Listing>;
+  addListing: (listingData: any) => Promise<Listing>;
   updateListing: (id: string, updates: Partial<Listing>) => Promise<void>;
   deleteListing: (id: string) => Promise<void>;
   toggleFavorite: (id: string) => void;
@@ -159,20 +160,12 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     await listingsService.deleteListing(id);
   };
 
-  const toggleFavorite = (id: string) => {
+  const toggleFavorite = async (id: string) => {
+    let wasFavorited = false;
+
     setFavorites((prev) => {
-      const exists = prev.includes(id);
-      const updated = exists ? prev.filter((favId) => favId !== id) : [...prev, id];
-
-      setListings((prevListings) =>
-        prevListings.map((l) =>
-          l.id === id
-            ? { ...l, favoritesCount: Math.max(0, l.favoritesCount + (exists ? -1 : 1)) }
-            : l
-        )
-      );
-
-      return updated;
+      wasFavorited = prev.includes(id);
+      return wasFavorited ? prev.filter((favId) => favId !== id) : [...prev, id];
     });
   };
 

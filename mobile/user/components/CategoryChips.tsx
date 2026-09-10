@@ -1,6 +1,6 @@
 import React from 'react';
 import { ScrollView, TouchableOpacity, Text, StyleSheet } from 'react-native';
-import { CATEGORIES } from '../data/seedData';
+import { CATEGORIES } from '../constants';
 import { useMarket } from '../context/MarketContext';
 
 interface CategoryChipsProps {

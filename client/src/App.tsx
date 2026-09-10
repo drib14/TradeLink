@@ -4,7 +4,6 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { MarketProvider } from './context/MarketContext';
 import { ChatProvider } from './context/ChatContext';
 import { WantedProvider } from './context/WantedContext';
-import { AdminProvider } from './context/AdminContext';
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
 import { MobileBottomNav } from './components/layout/MobileBottomNav';
@@ -19,7 +18,7 @@ import { MarketplacePage } from './pages/MarketplacePage';
 import { ItemDetailPage } from './pages/ItemDetailPage';
 import { CreateListingPage } from './pages/CreateListingPage';
 import { SwapsPage } from './pages/SwapsPage';
-import { MeetupsPage } from './pages/MeetupsPage';
+import { TransactionsPage } from './pages/TransactionsPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { WantedBoardPage } from './pages/WantedBoardPage';
 import { CampusMapPage } from './pages/CampusMapPage';
@@ -29,11 +28,7 @@ import { AboutPage } from './pages/AboutPage';
 import { FAQPage } from './pages/FAQPage';
 import { MaintenancePage } from './pages/MaintenancePage';
 import { NotFoundPage } from './pages/NotFoundPage';
-import { FavoritesPage } from './pages/FavoritesPage';
-import { TransactionHistoryPage } from './pages/TransactionHistoryPage';
 import { SettingsPage } from './pages/SettingsPage';
-import { AdminDashboard } from './pages/AdminDashboard';
-import { SuperAdminDashboard } from './pages/SuperAdminDashboard';
 import { encodeHashedId, decodeHashedId } from './utils/security';
 
 const pathToView = (path: string, search: string = window.location.search): { view: string; params: any } => {
@@ -46,8 +41,9 @@ const pathToView = (path: string, search: string = window.location.search): { vi
     const userId = rawUserId ? decodeHashedId(rawUserId) : undefined;
     return { view: 'profile', params: { userId } };
   }
-  if (cleanPath.startsWith('item/')) {
-    const id = cleanPath.split('/')[1] || searchParams.get('id') || undefined;
+  if (cleanPath.startsWith('item/') || cleanPath === 'item') {
+    const rawId = cleanPath.split('/')[1] || searchParams.get('id') || undefined;
+    const id = rawId ? decodeHashedId(rawId) : undefined;
     return { view: 'item-detail', params: { id } };
   }
 
@@ -57,22 +53,20 @@ const pathToView = (path: string, search: string = window.location.search): { vi
   if (cleanLower === 'create-listing' || cleanLower === 'post' || cleanLower === 'sell') return { view: 'create-listing', params: {} };
   if (cleanLower === 'wanted' || cleanLower === 'requests' || cleanLower === 'pasabuy') return { view: 'wanted', params: {} };
   if (cleanLower === 'swaps' || cleanLower === 'barter') return { view: 'swaps', params: {} };
-  if (cleanLower === 'meetups' || cleanLower === 'handshake') return { view: 'meetups', params: {} };
+  if (cleanLower === 'meetups' || cleanLower === 'handshake' || cleanLower === 'transactions' || cleanLower === 'history') return { view: 'transactions', params: {} };
   if (cleanLower === 'campus-map' || cleanLower === 'landmarks' || cleanLower === 'map') return { view: 'campus-map', params: {} };
   if (cleanLower === 'about') return { view: 'about', params: {} };
   if (cleanLower === 'faq') return { view: 'faq', params: {} };
   if (cleanLower === 'help-safety' || cleanLower === 'safety' || cleanLower === 'help') return { view: 'help-safety', params: {} };
   if (cleanLower === 'terms' || cleanLower === 'guidelines' || cleanLower === 'privacy') return { view: 'terms', params: {} };
   if (cleanLower === 'maintenance') return { view: 'maintenance', params: {} };
-  if (cleanLower === 'favorites' || cleanLower === 'saved') return { view: 'favorites', params: {} };
-  if (cleanLower === 'transactions' || cleanLower === 'history') return { view: 'transactions', params: {} };
+  if (cleanLower === 'favorites' || cleanLower === 'saved') return { view: 'marketplace', params: {} };
   if (cleanLower === 'settings' || cleanLower === 'preferences') return { view: 'settings', params: {} };
-  if (cleanLower === 'admin' || cleanLower === 'moderation') return { view: 'admin', params: {} };
-  if (cleanLower === 'superadmin' || cleanLower === 'super-admin') return { view: 'superadmin', params: {} };
   return { view: 'not-found', params: {} };
 };
 
 export const MainApp: React.FC = () => {
+  const { currentUser } = useAuth();
   const [currentView, setCurrentView] = useState<string>('home');
   const [viewParams, setViewParams] = useState<any>({});
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -92,74 +86,35 @@ export const MainApp: React.FC = () => {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
+  const PUBLIC_VIEWS = [
+    'home',
+    'marketplace',
+    'item-detail',
+    'campus-map',
+    'wanted',
+    'profile',
+    'create-listing',
+    'about',
+    'faq',
+    'help-safety',
+    'terms',
+    'maintenance',
+    'not-found'
+  ];
+
+
+
   const handleNavigate = (view: string, params: any = {}) => {
     setCurrentView(view);
     setViewParams(params);
 
     let path = `/${view}`;
     if (view === 'home') path = '/';
-    if (view === 'item-detail' && params.id) path = `/item/${params.id}`;
-    if (view === 'profile' && params.userId) path = `/profile/${encodeHashedId(params.userId)}`;
+    if (view === 'item-detail' && params.id) path = `/item/${encodeHashedId(params.id, 'listing')}`;
+    if (view === 'profile' && params.userId) path = `/profile/${encodeHashedId(params.userId, 'user')}`;
 
     window.history.pushState({}, '', path);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const renderCurrentPage = () => {
-    switch (currentView) {
-      case 'home':
-        return <HomePage onNavigate={handleNavigate} onOpenChat={() => setIsChatOpen(true)} />;
-      case 'marketplace':
-        return <MarketplacePage onNavigate={handleNavigate} />;
-      case 'item-detail':
-        return (
-          <ItemDetailPage
-            listingId={viewParams.id}
-            onNavigate={handleNavigate}
-            onOpenChat={() => setIsChatOpen(true)}
-          />
-        );
-      case 'create-listing':
-        return <CreateListingPage onNavigate={handleNavigate} />;
-      case 'wanted':
-        return <WantedBoardPage onNavigate={handleNavigate} onOpenChat={() => setIsChatOpen(true)} />;
-      case 'swaps':
-        return <SwapsPage onNavigate={handleNavigate} onOpenChat={() => setIsChatOpen(true)} />;
-      case 'meetups':
-        return <MeetupsPage onNavigate={handleNavigate} />;
-      case 'campus-map':
-        return <CampusMapPage onNavigate={handleNavigate} />;
-      case 'profile':
-        return (
-          <ProfilePage
-            userId={viewParams.userId}
-            onNavigate={handleNavigate}
-          />
-        );
-      case 'about':
-        return <AboutPage onNavigate={handleNavigate} />;
-      case 'faq':
-        return <FAQPage onNavigate={handleNavigate} />;
-      case 'help-safety':
-        return <HelpSafetyPage onNavigate={handleNavigate} />;
-      case 'terms':
-        return <TermsPrivacyPage onNavigate={handleNavigate} />;
-      case 'favorites':
-        return <FavoritesPage onNavigate={handleNavigate} />;
-      case 'transactions':
-        return <TransactionHistoryPage onNavigate={handleNavigate} />;
-      case 'settings':
-        return <SettingsPage onNavigate={handleNavigate} />;
-      case 'admin':
-        return <AdminDashboard onNavigate={handleNavigate} />;
-      case 'superadmin':
-        return <SuperAdminDashboard onNavigate={handleNavigate} />;
-      case 'maintenance':
-        return <MaintenancePage onNavigate={handleNavigate} />;
-      case 'not-found':
-      default:
-        return <NotFoundPage onNavigate={handleNavigate} />;
-    }
   };
 
   return (
@@ -173,8 +128,91 @@ export const MainApp: React.FC = () => {
         onOpenVerification={() => setIsVerificationModalOpen(true)}
       />
 
-      {/* 2. Main Page Content View */}
-      <main style={{ flex: 1, width: '100%', maxWidth: '100vw', overflowX: 'hidden' }}>{renderCurrentPage()}</main>
+      <main style={{ flex: 1, width: '100%', maxWidth: '100vw', overflowX: 'hidden' }}>
+        {(() => {
+          switch (currentView) {
+            case 'home':
+              return <HomePage onNavigate={handleNavigate} onOpenChat={() => setIsChatOpen(true)} />;
+            case 'marketplace':
+              return <MarketplacePage onNavigate={handleNavigate} />;
+            case 'item-detail':
+              return (
+                <ItemDetailPage
+                  listingId={viewParams.id}
+                  onNavigate={handleNavigate}
+                  onOpenChat={() => setIsChatOpen(true)}
+                  onOpenAuth={() => setIsAuthModalOpen(true)}
+                  onOpenVerification={() => setIsVerificationModalOpen(true)}
+                />
+              );
+            case 'create-listing':
+              return (
+                <CreateListingPage
+                  onNavigate={handleNavigate}
+                  onOpenAuth={() => setIsAuthModalOpen(true)}
+                />
+              );
+            case 'wanted':
+              return (
+                <WantedBoardPage
+                  onNavigate={handleNavigate}
+                  onOpenChat={() => setIsChatOpen(true)}
+                  onOpenAuth={() => setIsAuthModalOpen(true)}
+                />
+              );
+            case 'swaps':
+              return (
+                <SwapsPage
+                  onNavigate={handleNavigate}
+                  onOpenChat={() => setIsChatOpen(true)}
+                  onOpenAuth={() => setIsAuthModalOpen(true)}
+                  onOpenVerification={() => setIsVerificationModalOpen(true)}
+                />
+              );
+            case 'meetups':
+            case 'transactions':
+              return (
+                <TransactionsPage
+                  onNavigate={handleNavigate}
+                  onOpenChat={() => setIsChatOpen(true)}
+                />
+              );
+            case 'campus-map':
+              return <CampusMapPage onNavigate={handleNavigate} />;
+            case 'profile':
+              return (
+                <ProfilePage
+                  userId={viewParams.userId}
+                  onNavigate={handleNavigate}
+                  onOpenAuth={() => setIsAuthModalOpen(true)}
+                  onOpenVerification={() => setIsVerificationModalOpen(true)}
+                />
+              );
+            case 'about':
+              return <AboutPage onNavigate={handleNavigate} />;
+            case 'faq':
+              return <FAQPage onNavigate={handleNavigate} />;
+            case 'help-safety':
+              return <HelpSafetyPage onNavigate={handleNavigate} />;
+            case 'terms':
+              return <TermsPrivacyPage onNavigate={handleNavigate} />;
+            case 'favorites':
+              return <MarketplacePage onNavigate={handleNavigate} />;
+            case 'settings':
+              return (
+                <SettingsPage
+                  onNavigate={handleNavigate}
+                  onOpenAuth={() => setIsAuthModalOpen(true)}
+                />
+              );
+            case 'maintenance':
+              return <MaintenancePage onNavigate={handleNavigate} />;
+            case 'not-found':
+            default:
+              return <NotFoundPage onNavigate={handleNavigate} />;
+          }
+        })()}
+      </main>
 
       {/* 3. Campus Footer */}
       <Footer onNavigate={handleNavigate} />
@@ -227,15 +265,13 @@ export default function App() {
   return (
     <ToastProvider>
       <AuthProvider>
-        <AdminProvider>
-          <MarketProvider>
-            <ChatProvider>
-              <WantedProvider>
-                <MainApp />
-              </WantedProvider>
-            </ChatProvider>
-          </MarketProvider>
-        </AdminProvider>
+        <MarketProvider>
+          <ChatProvider>
+            <WantedProvider>
+              <MainApp />
+            </WantedProvider>
+          </ChatProvider>
+        </MarketProvider>
       </AuthProvider>
     </ToastProvider>
   );

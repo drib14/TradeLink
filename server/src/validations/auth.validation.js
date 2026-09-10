@@ -1,15 +1,5 @@
 const Joi = require('joi');
-
-const CAMPUSES = [
-  'UC Main',
-  'UC Banilad',
-  'UC LM',
-  'UC METC',
-  'UC Pardo-Talisay',
-  'UC South Campus',
-  'UC Medical Center',
-  'UC PRI'
-];
+const { CAMPUSES } = require('../config/constants');
 
 const registerSchema = Joi.object({
   name: Joi.string().trim().min(2).max(100).required().messages({
@@ -42,12 +32,16 @@ const registerSchema = Joi.object({
 });
 
 const loginSchema = Joi.object({
-  emailOrStudentId: Joi.string().trim().required().messages({
-    'string.empty': 'Please enter your Student ID or Email.'
-  }),
+  studentId: Joi.string().trim(),
+  idNumber: Joi.string().trim(),
+  emailOrStudentId: Joi.string().trim(),
+  identifier: Joi.string().trim(),
+  email: Joi.string().trim(),
   password: Joi.string().required().messages({
     'string.empty': 'Please enter your password.'
   })
+}).or('studentId', 'idNumber', 'emailOrStudentId', 'identifier', 'email').messages({
+  'object.missing': 'Please enter your Student ID or Email.'
 });
 
 const forgotPasswordSchema = Joi.object({

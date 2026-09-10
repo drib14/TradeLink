@@ -6,6 +6,11 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
+    "test": "cross-env NODE_ENV=test jest --runInBand",
+    "test:security": "cross-env NODE_ENV=test jest security --runInBand",
+    "test:unit": "cross-env NODE_ENV=test jest unit --runInBand",
+    "test:integration": "cross-env NODE_ENV=test jest integration --runInBand",
+    "test:perf": "cross-env NODE_ENV=test jest efficiency scalability --runInBand",
     "migrate:latest": "knex migrate:latest",
     "migrate:rollback": "knex migrate:rollback",
     "seed:run": "knex seed:run"
@@ -24,6 +29,7 @@
   "license": "ISC",
   "dependencies": {
     "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.11.0",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
@@ -44,6 +50,9 @@
     "xss-clean": "^0.1.4"
   },
   "devDependencies": {
-    "nodemon": "^3.1.4"
+    "cross-env": "^10.1.0",
+    "jest": "^30.5.0",
+    "nodemon": "^3.1.4",
+    "supertest": "^7.2.2"
   }
 }

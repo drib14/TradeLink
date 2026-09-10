@@ -37,7 +37,7 @@ const authenticate = asyncHandler(async (req, res, next) => {
   }
 
   if (user.is_banned) {
-    return next(new AppError(`Account suspended: ${user.ban_reason || 'Community safety violation.'}`, 403));
+    return next(new AppError('This account has been suspended. Contact campus administration.', 403));
   }
 
   req.user = user;

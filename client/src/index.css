@@ -1593,6 +1593,26 @@ input, select, textarea {
     height: 100dvh !important;
     border-radius: 0 !important;
   }
+
+  .mobile-detail-sticky-bar {
+    display: flex !important;
+    position: fixed;
+    bottom: 58px;
+    left: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border-subtle, #E2E8F0);
+    padding: 0.65rem 1rem;
+    z-index: 80;
+    align-items: center;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+  }
+}
+
+.mobile-detail-sticky-bar {
+  display: none;
 }
 
 /* =========================================================================
@@ -1896,5 +1916,72 @@ textarea:focus,
   animation: cameraFlashAnim 0.35s ease-out forwards;
   pointer-events: none;
 }
+
+/* Biometric Radar Pulse */
+@keyframes radarSweep {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+.radar-sweep-cone {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, rgba(255, 199, 44, 0.25) 0deg, transparent 60deg);
+  transform-origin: center center;
+  animation: radarSweep 4s linear infinite;
+  pointer-events: none;
+  z-index: 8;
+}
+
+/* Quality Diagnostics Badge */
+.quality-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  transition: all 0.2s ease;
+}
+
+.quality-pill-pass {
+  background-color: rgba(16, 185, 129, 0.15);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.quality-pill-warn {
+  background-color: rgba(245, 158, 11, 0.15);
+  color: #D97706;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+/* Shutter Ring Pulse */
+@keyframes shutterRingPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 199, 44, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 16px rgba(255, 199, 44, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 199, 44, 0);
+  }
+}
+
+.shutter-btn-pulse {
+  animation: shutterRingPulse 2s infinite;
+}
+
 
 

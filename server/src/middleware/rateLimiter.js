@@ -48,9 +48,36 @@ const createListingLimiter = rateLimit({
   legacyHeaders: false
 });
 
+// Listing report rate limiter (prevent report spam / harassment)
+const reportListingLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10, // max 10 reports per hour
+  message: {
+    status: 'fail',
+    message: 'Too many reports submitted. Please wait before reporting again.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// Favorite toggle rate limiter
+const favoriteToggleLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 60, // max 60 toggles per minute
+  message: {
+    status: 'fail',
+    message: 'Too many favorite actions. Please slow down.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
 module.exports = {
   authLimiter,
   passwordResetLimiter,
   apiLimiter,
-  createListingLimiter
+  createListingLimiter,
+  reportListingLimiter,
+  favoriteToggleLimiter
 };
+
