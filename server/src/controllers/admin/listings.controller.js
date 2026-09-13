@@ -316,40 +316,6 @@ const updateListingAdmin = asyncHandler(async (req, res, next) => {
 });
 
 /**
- * Admin toggle boost listing
- */
-const toggleBoostListingAdmin = asyncHandler(async (req, res, next) => {
-  const { id } = req.params;
-  const listing = await db('listings').where({ id }).first();
-
-  if (!listing) {
-    return next(new AppError('Listing not found.', 404));
-  }
-
-  const newFeatured = !listing.is_featured;
-  await db('listings').where({ id }).update({
-    is_featured: newFeatured,
-    updated_at: new Date()
-  });
-
-  await logAdminAction(
-    req.user,
-    newFeatured ? 'Boosted Listing' : 'Unboosted Listing',
-    'listing',
-    id,
-    `Admin ${newFeatured ? 'featured' : 'unfeatured'} listing "${listing.title}"`,
-    req
-  );
-
-  res.status(200).json({
-    status: 'success',
-    data: {
-      isFeatured: newFeatured
-    }
-  });
-});
-
-/**
  * Admin delete listing
  */
 const deleteListingAdmin = asyncHandler(async (req, res, next) => {
@@ -379,6 +345,5 @@ module.exports = {
   getAllListingsAdmin,
   createListingAdmin,
   updateListingAdmin,
-  toggleBoostListingAdmin,
   deleteListingAdmin
 };

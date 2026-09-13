@@ -26,9 +26,6 @@ export const mobileListingsService = {
     await mobileApi.delete(`/listings/${id}`);
   },
 
-  async boostListing(id: string): Promise<void> {
-    await mobileApi.post(`/listings/${id}/boost`);
-  },
 
   async markAsSold(id: string, isSold: boolean): Promise<void> {
     await mobileApi.patch(`/listings/${id}/sold`, { isSold });

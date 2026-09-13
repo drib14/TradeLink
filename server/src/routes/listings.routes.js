@@ -30,7 +30,6 @@ router.post(
 
 router.patch('/:id', validateUUID('id'), authenticate, requireVerified, validate(updateListingSchema), listingsController.updateListing);
 router.delete('/:id', validateUUID('id'), authenticate, requireVerified, listingsController.deleteListing);
-router.post('/:id/boost', validateUUID('id'), authenticate, requireVerified, listingsController.boostListing);
 router.patch('/:id/sold', validateUUID('id'), authenticate, requireVerified, listingsController.markAsSold);
 router.post('/:id/view', validateUUID('id'), listingsController.viewListing);
 router.post(

@@ -167,7 +167,7 @@ export interface Listing {
   sellerTrustScore: number;
   sellerStudentId?: string;
   sellerEmail?: string;
-  isBoosted: boolean;
+  isBoosted?: boolean;
   isSold: boolean;
   quantity: number;
   status?: string;

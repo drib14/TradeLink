@@ -75,7 +75,6 @@ function mapListingFromApi(raw: any): Listing {
     sellerCollege: raw.sellerCollege || raw.seller_college || 'General Student',
     sellerIsVerified: Boolean(raw.sellerIsVerified ?? raw.seller_is_verified),
     sellerTrustScore: Number(raw.sellerTrustScore ?? raw.seller_trust_score ?? 0),
-    isBoosted: Boolean(raw.isBoosted ?? raw.is_boosted),
     quantity: raw.quantity !== undefined && raw.quantity !== null ? Math.max(0, parseInt(raw.quantity, 10) || 0) : 1,
     isSold: Boolean((raw.isSold ?? raw.is_sold) || (raw.quantity !== undefined && Number(raw.quantity) === 0)),
     createdAt: raw.createdAt || raw.created_at || new Date().toISOString(),
@@ -130,10 +129,6 @@ export const listingsService = {
 
   async deleteListing(id: string): Promise<void> {
     await api.delete(`/listings/${id}`);
-  },
-
-  async boostListing(id: string): Promise<void> {
-    await api.post(`/listings/${id}/boost`);
   },
 
   async markAsSold(id: string, isSold: boolean): Promise<void> {

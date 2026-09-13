@@ -30,7 +30,6 @@ interface MarketContextType {
   deleteListing: (id: string) => Promise<void>;
   toggleFavorite: (id: string) => Promise<void>;
   isFavorite: (id: string) => boolean;
-  boostListing: (id: string) => Promise<void>;
   markAsSold: (id: string, isSold: boolean) => Promise<void>;
   incrementViews: (id: string) => void;
   addFlashRequest: (data: Partial<FlashRequest>) => Promise<FlashRequest | null>;
@@ -190,15 +189,6 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return favorites.includes(id);
   };
 
-  const boostListing = async (id: string) => {
-    try {
-      await mobileListingsService.boostListing(id);
-      setListings((prev) => prev.map((l) => (l.id === id ? { ...l, isBoosted: true } : l)));
-    } catch (err) {
-      console.warn('Failed to boost listing:', err);
-    }
-  };
-
   const markAsSold = async (id: string, isSold: boolean) => {
     try {
       await mobileListingsService.markAsSold(id, isSold);
@@ -208,13 +198,15 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  const incrementViews = (_id: string) => {
-    // Handled automatically on detail fetch by backend
+  const incrementViews = (id: string) => {
+    setListings((prev) =>
+      prev.map((l) => (l.id === id ? { ...l, views: (l.views || 0) + 1 } : l))
+    );
   };
 
   const addFlashRequest = async (data: Partial<FlashRequest>): Promise<FlashRequest | null> => {
     try {
-      const created = await mobileFlashMarketService.createFlashRequest(data);
+      const created = await mobileWantedService.createRequest(data);
       if (created) {
         setFlashRequests((prev) => [created, ...prev]);
         return created;
@@ -227,14 +219,28 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const addWantedRequest = async (data: Partial<WantedRequest>): Promise<WantedRequest | null> => {
-    return addFlashRequest(data);
+    try {
+      const created = await mobileWantedService.createRequest(data);
+      if (created) {
+        setFlashRequests((prev) => [created, ...prev]);
+        return created;
+      }
+      return null;
+    } catch (err) {
+      console.warn('Failed to create wanted request:', err);
+      return null;
+    }
   };
 
   const addMessageToConversation = (convId: string, message: string) => {
     setConversations((prev) =>
       prev.map((c) =>
         c.id === convId
-          ? { ...c, lastMessage: message, lastMessageTimestamp: new Date().toISOString() }
+          ? {
+              ...c,
+              lastMessage: message,
+              lastMessageTimestamp: 'Just now',
+            }
           : c
       )
     );
@@ -248,7 +254,6 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         flashRequests,
         wantedRequests: flashRequests,
         conversations,
-        isLoading,
         selectedCampus,
         selectedCategory,
         selectedTradeMode,
@@ -256,6 +261,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         searchQuery,
         sortBy,
         priceRange,
+        isLoading,
         setSelectedCampus,
         setSelectedCategory,
         setSelectedTradeMode,
@@ -269,7 +275,6 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         deleteListing,
         toggleFavorite,
         isFavorite,
-        boostListing,
         markAsSold,
         incrementViews,
         addFlashRequest,

@@ -25,7 +25,7 @@ import { HelpSafetyPage } from './pages/HelpSafetyPage';
 import { TermsPrivacyPage } from './pages/TermsPrivacyPage';
 import { AboutPage } from './pages/AboutPage';
 import { FAQPage } from './pages/FAQPage';
-import { ResourcesPage } from './pages/ResourcesPage';
+import { DevelopersPage } from './pages/DevelopersPage';
 import { MaintenancePage } from './pages/MaintenancePage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -55,7 +55,7 @@ const pathToView = (path: string, search: string = window.location.search): { vi
   if (cleanLower === 'swaps' || cleanLower === 'barter') return { view: 'swaps', params: {} };
   if (cleanLower === 'meetups' || cleanLower === 'handshake' || cleanLower === 'transactions' || cleanLower === 'history') return { view: 'transactions', params: {} };
   if (cleanLower === 'about') return { view: 'about', params: {} };
-  if (cleanLower === 'resources' || cleanLower === 'team' || cleanLower === 'developers' || cleanLower === 'hierarchy') return { view: 'resources', params: {} };
+  if (cleanLower === 'developers' || cleanLower === 'team' || cleanLower === 'devs' || cleanLower === 'resources') return { view: 'developers', params: {} };
   if (cleanLower === 'faq') return { view: 'faq', params: {} };
   if (cleanLower === 'help-safety' || cleanLower === 'safety' || cleanLower === 'help') return { view: 'help-safety', params: {} };
   if (cleanLower === 'terms' || cleanLower === 'guidelines') return { view: 'terms', params: { tab: 'honor-code' } };
@@ -172,8 +172,8 @@ export const MainApp: React.FC = () => {
               );
             case 'about':
               return <AboutPage onNavigate={handleNavigate} />;
-            case 'resources':
-              return <ResourcesPage onNavigate={handleNavigate} initialTab={viewParams?.tab} />;
+            case 'developers':
+              return <DevelopersPage onNavigate={handleNavigate} />;
             case 'faq':
               return <FAQPage onNavigate={handleNavigate} />;
             case 'help-safety':

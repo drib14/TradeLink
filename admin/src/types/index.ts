@@ -162,7 +162,7 @@ export interface Listing {
   sellerCollege: College;
   sellerIsVerified: boolean;
   sellerTrustScore: number;
-  isBoosted: boolean;
+  isBoosted?: boolean;
   is_featured?: boolean;
   isSold: boolean;
   status?: 'active' | 'sold' | string;

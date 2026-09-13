@@ -4,7 +4,6 @@ import {
   ShieldCheck,
   Mail,
   CheckCircle2,
-  Users,
   Info
 } from 'lucide-react';
 
@@ -71,7 +70,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             </div>
           </div>
 
-          {/* Col 2: Safety & Campus Policies (Unique Links, Mentioned Only Once) */}
+          {/* Col 2: Support & Policies */}
           <div>
             <h5
               style={{
@@ -86,16 +85,14 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                 gap: '0.45rem'
               }}
             >
-              <ShieldCheck size={15} style={{ flexShrink: 0 }} /> <span>Safety & Policies</span>
+              <ShieldCheck size={15} style={{ flexShrink: 0 }} /> <span>Support & Policies</span>
             </h5>
-            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.84rem', padding: 0, margin: 0 }}>
+            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.85rem', padding: 0, margin: 0 }}>
               {[
-                { label: 'Safe Meetup Checkpoints', view: 'help-safety', params: {} },
-                { label: '8 Campuses Guard Directory & Hotlines', view: 'help-safety', params: {} },
-                { label: 'Student ID & Live Selfie Verification', view: 'help-safety', params: {} },
-                { label: 'Campus Honor Code & Rules', view: 'terms', params: { tab: 'honor-code' } },
-                { label: 'Data Privacy Policy (RA 10173)', view: 'terms', params: { tab: 'privacy' } },
-                { label: 'Frequently Asked Questions (FAQ)', view: 'faq', params: {} }
+                { label: 'Help & Safety', view: 'help-safety', params: {} },
+                { label: 'FAQ', view: 'faq', params: {} },
+                { label: 'Terms of Service', view: 'terms', params: { tab: 'honor-code' } },
+                { label: 'Privacy Policy', view: 'terms', params: { tab: 'privacy' } }
               ].map((link) => (
                 <li key={link.label}>
                   <button
@@ -120,7 +117,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             </ul>
           </div>
 
-          {/* Col 3: About & Platform (Single Resources Link, Mentioned Only Once) */}
+          {/* Col 3: About TradeLink */}
           <div>
             <h5
               style={{
@@ -135,56 +132,33 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                 gap: '0.45rem'
               }}
             >
-              <Info size={15} style={{ flexShrink: 0 }} /> <span>About & Platform</span>
+              <Info size={15} style={{ flexShrink: 0 }} /> <span>About TradeLink</span>
             </h5>
-            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.85rem', fontSize: '0.84rem', padding: 0, margin: 0 }}>
-              <li>
-                <button
-                  onClick={() => onNavigate('about')}
-                  style={{
-                    color: '#CBD5E1',
-                    textAlign: 'left',
-                    fontWeight: 500,
-                    transition: 'color 0.15s ease',
-                    cursor: 'pointer',
-                    background: 'none',
-                    border: 'none',
-                    padding: 0
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = '#FFC72C')}
-                  onMouseLeave={(e) => (e.currentTarget.style.color = '#CBD5E1')}
-                >
-                  About TradeLink & Campus Mission
-                </button>
-              </li>
-
-              {/* Single Non-Redundant Resources Link */}
-              <li>
-                <button
-                  onClick={() => onNavigate('resources')}
-                  style={{
-                    color: '#FFC72C',
-                    textAlign: 'left',
-                    fontWeight: 700,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
-                    transition: 'color 0.15s ease',
-                    cursor: 'pointer',
-                    background: 'none',
-                    border: 'none',
-                    padding: 0
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = '#FFFFFF')}
-                  onMouseLeave={(e) => (e.currentTarget.style.color = '#FFC72C')}
-                >
-                  <Users size={15} />
-                  <span>Platform Resources & Team</span>
-                </button>
-                <div style={{ fontSize: '0.74rem', color: '#94A3B8', marginTop: '0.2rem' }}>
-                  Meet the 8 creators, developers, hierarchy & platform guides.
-                </div>
-              </li>
+            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.85rem', padding: 0, margin: 0 }}>
+              {[
+                { label: 'About Us', view: 'about', params: {} },
+                { label: 'Developers', view: 'developers', params: {} }
+              ].map((link) => (
+                <li key={link.label}>
+                  <button
+                    onClick={() => onNavigate(link.view, link.params)}
+                    style={{
+                      color: '#CBD5E1',
+                      textAlign: 'left',
+                      fontWeight: 500,
+                      transition: 'color 0.15s ease',
+                      cursor: 'pointer',
+                      background: 'none',
+                      border: 'none',
+                      padding: 0
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = '#FFC72C')}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = '#CBD5E1')}
+                  >
+                    {link.label}
+                  </button>
+                </li>
+              ))}
             </ul>
           </div>
         </div>

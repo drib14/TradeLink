@@ -32,7 +32,6 @@ router.get('/stats', adminController.getStats);
 router.get('/listings', adminController.getAllListingsAdmin);
 router.post('/listings', adminController.createListingAdmin);
 router.put('/listings/:id', validateUUID('id'), adminController.updateListingAdmin);
-router.patch('/listings/:id/boost', validateUUID('id'), adminController.toggleBoostListingAdmin);
 router.delete('/listings/:id', validateUUID('id'), adminController.deleteListingAdmin);
 
 // Student Verifications

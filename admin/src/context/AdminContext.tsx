@@ -41,7 +41,6 @@ interface AdminContextType {
   updateListingByAdmin: (id: string, updates: any) => Promise<void>;
   deleteListingByAdmin: (id: string) => Promise<void>;
   removeListingByAdmin: (flagId: string, listingId: string, reason?: string) => Promise<void>;
-  boostListingByAdmin: (listingId: string) => Promise<void>;
   deleteFlashRequest: (requestId: string, reason?: string) => Promise<void>;
   removeWantedByAdmin: (wantedId: string, reason?: string) => Promise<void>;
   deleteWantedRequest: (wantedId: string, reason?: string) => Promise<void>;
@@ -195,14 +194,6 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     fetchAdminData();
   };
 
-  const boostListingByAdmin = async (listingId: string) => {
-    setListings((prev) =>
-      prev.map((l) => (l.id === listingId ? { ...l, isBoosted: true, is_featured: true } : l))
-    );
-    await adminService.boostListing(listingId);
-    fetchAdminData();
-  };
-
   const deleteFlashRequest = async (requestId: string, reason?: string) => {
     await adminService.deleteFlashRequest(requestId, reason);
     fetchAdminData();
@@ -331,7 +322,6 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         updateListingByAdmin,
         deleteListingByAdmin,
         removeListingByAdmin,
-        boostListingByAdmin,
         deleteFlashRequest,
         removeWantedByAdmin,
         deleteWantedRequest,

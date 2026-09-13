@@ -290,30 +290,8 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick, layo
             </div>
           ) : null}
 
-          {/* Boosted or New Indicator */}
-          {listing.isBoosted && !isSoldOut ? (
-            <div
-              style={{
-                position: 'absolute',
-                top: '10px',
-                left: '10px',
-                background: 'linear-gradient(135deg, #FFC72C 0%, #E5A800 100%)',
-                color: '#002B7F',
-                padding: '0.2rem 0.55rem',
-                borderRadius: '6px',
-                fontSize: '0.65rem',
-                fontWeight: 900,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.25rem',
-                boxShadow: '0 2px 6px rgba(229, 168, 0, 0.35)',
-                lineHeight: 1,
-                zIndex: 4
-              }}
-            >
-              <Zap size={11} fill="#002B7F" style={{ flexShrink: 0 }} /> <span>FEATURED</span>
-            </div>
-          ) : isNew && !isSoldOut ? (
+          {/* New Listing Indicator */}
+          {isNew && !isSoldOut ? (
             <div
               style={{
                 position: 'absolute',

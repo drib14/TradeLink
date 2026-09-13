@@ -320,7 +320,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   pattern="[0-9]*"
                   value={loginIdentifier}
                   onChange={(e) => setLoginIdentifier(e.target.value.replace(/\D/g, ''))}
-                  placeholder="ID Number (digits only)"
+                  placeholder="ID Number"
                   className="clean-input"
                   style={{ fontWeight: 500 }}
                   maxLength={20}
@@ -442,7 +442,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-                    Student ID Number *
+                    Student ID Number
                   </label>
                   <input
                     type="text"
@@ -450,7 +450,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     pattern="[0-9]*"
                     value={regStudentId}
                     onChange={(e) => setRegStudentId(e.target.value.replace(/\D/g, ''))}
-                    placeholder="ID Number (digits only)"
+                    placeholder="ID Number"
                     className="clean-input"
                     maxLength={20}
                     required

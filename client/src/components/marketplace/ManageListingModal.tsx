@@ -8,7 +8,6 @@ import {
   Sliders,
   CheckCircle2,
   RotateCcw,
-  Zap,
   Trash2,
   Save,
   ExternalLink,
@@ -33,17 +32,15 @@ export const ManageListingModal: React.FC<ManageListingModalProps> = ({
   onNavigate,
   onDeleted
 }) => {
-  const { updateListing, markAsSold, boostListing, deleteListing } = useMarket();
+  const { updateListing, markAsSold, deleteListing } = useMarket();
   const { showToast } = useToast();
 
   const [price, setPrice] = useState<number>(listing.price);
   const [quantity, setQuantity] = useState<number>(listing.quantity ?? 1);
   const [description, setDescription] = useState<string>(listing.description || '');
   const [isSold, setIsSold] = useState<boolean>(Boolean(listing.isSold));
-  const [isBoosted, setIsBoosted] = useState<boolean>(Boolean(listing.isBoosted));
   const [isSaving, setIsSaving] = useState(false);
   const [isTogglingSold, setIsTogglingSold] = useState(false);
-  const [isBoosting, setIsBoosting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -66,20 +63,6 @@ export const ManageListingModal: React.FC<ManageListingModalProps> = ({
       showToast('Error', err?.message || 'Failed to update listing status.', 'error');
     } finally {
       setIsTogglingSold(false);
-    }
-  };
-
-  const handleBoost = async () => {
-    if (isBoosted) return;
-    setIsBoosting(true);
-    try {
-      await boostListing(listing.id);
-      setIsBoosted(true);
-      showToast('Listing Boosted!', `"${listing.title}" has received top campus visibility ranking.`, 'success');
-    } catch (err: any) {
-      showToast('Boost Failed', err?.message || 'Unable to boost listing.', 'error');
-    } finally {
-      setIsBoosting(false);
     }
   };
 
@@ -178,24 +161,6 @@ export const ManageListingModal: React.FC<ManageListingModalProps> = ({
               >
                 {isSold ? 'Sold / Out of Stock' : 'Active Listing'}
               </span>
-              {isBoosted && (
-                <span
-                  style={{
-                    fontSize: '0.7rem',
-                    fontWeight: 800,
-                    padding: '0.15rem 0.45rem',
-                    borderRadius: '4px',
-                    backgroundColor: 'rgba(255, 199, 44, 0.2)',
-                    color: '#B45309',
-                    border: '1px solid rgba(229, 168, 0, 0.4)',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.2rem'
-                  }}
-                >
-                  <Zap size={11} fill="#B45309" /> Boosted
-                </span>
-              )}
             </div>
             <h4
               style={{
@@ -220,14 +185,15 @@ export const ManageListingModal: React.FC<ManageListingModalProps> = ({
           </div>
         </div>
 
-        {/* Quick Status & Boost Bar */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
+        {/* Quick Status Bar */}
+        <div>
           {/* Status Toggle Button */}
           <button
             type="button"
             onClick={handleToggleSold}
             disabled={isTogglingSold}
             style={{
+              width: '100%',
               padding: '0.65rem 0.85rem',
               borderRadius: '8px',
               fontSize: '0.82rem',
@@ -254,37 +220,6 @@ export const ManageListingModal: React.FC<ManageListingModalProps> = ({
               <>
                 <CheckCircle2 size={15} />
                 <span>Mark as Sold</span>
-              </>
-            )}
-          </button>
-
-          {/* Boost Button */}
-          <button
-            type="button"
-            onClick={handleBoost}
-            disabled={isBoosted || isBoosting}
-            style={{
-              padding: '0.65rem 0.85rem',
-              borderRadius: '8px',
-              fontSize: '0.82rem',
-              fontWeight: 800,
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.4rem',
-              cursor: isBoosted ? 'default' : 'pointer',
-              border: '1.5px solid var(--uc-gold-border, #FDE68A)',
-              backgroundColor: isBoosted ? 'var(--uc-gold-light, #FFFBEB)' : 'var(--uc-gold, #FFC72C)',
-              color: '#78350F',
-              opacity: isBoosted ? 0.9 : 1
-            }}
-          >
-            {isBoosting ? (
-              <Loader2 size={15} className="spin-animation" />
-            ) : (
-              <>
-                <Zap size={15} fill={isBoosted ? '#B45309' : '#78350F'} />
-                <span>{isBoosted ? 'Priority Boosted' : 'Boost Reach'}</span>
               </>
             )}
           </button>

@@ -27,7 +27,6 @@ interface MarketContextType {
   updateListing: (id: string, updates: Partial<Listing>) => Promise<void>;
   deleteListing: (id: string) => Promise<void>;
   toggleFavorite: (id: string) => void;
-  boostListing: (id: string) => Promise<void>;
   markAsSold: (id: string, isSold: boolean) => Promise<void>;
   updateListingQuantity: (id: string, quantity: number) => Promise<void>;
   incrementViews: (id: string) => void;
@@ -122,8 +121,6 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       })
       .sort((a, b) => {
         if (sortBy === 'recent') {
-          if (a.isBoosted && !b.isBoosted) return -1;
-          if (!a.isBoosted && b.isBoosted) return 1;
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         }
         if (sortBy === 'price_low') {
@@ -167,11 +164,6 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       wasFavorited = prev.includes(id);
       return wasFavorited ? prev.filter((favId) => favId !== id) : [...prev, id];
     });
-  };
-
-  const boostListing = async (id: string) => {
-    setListings((prev) => prev.map((l) => (l.id === id ? { ...l, isBoosted: true } : l)));
-    await listingsService.boostListing(id);
   };
 
   const markAsSold = async (id: string, isSold: boolean) => {
@@ -221,7 +213,6 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         updateListing,
         deleteListing,
         toggleFavorite,
-        boostListing,
         markAsSold,
         updateListingQuantity,
         incrementViews,

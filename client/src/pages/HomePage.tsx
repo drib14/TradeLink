@@ -20,7 +20,7 @@ interface HomePageProps {
 
 export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenChat: _onOpenChat }) => {
   const { listings, isLoading, setSelectedCampus, favorites } = useMarket();
-  const [activeFeedTab, setActiveFeedTab] = useState<'all' | 'featured' | 'swaps' | 'free'>('all');
+  const [activeFeedTab, setActiveFeedTab] = useState<'all' | 'swaps' | 'free'>('all');
 
   const handleCampusSelect = (campus: Campus | 'ALL') => {
     setSelectedCampus(campus === 'ALL' ? 'All' : campus);
@@ -30,7 +30,6 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenChat: _onO
   // Filter listings based on active tab
   const displayedListings = listings.filter((l: Listing) => {
     if (l.isSold) return false;
-    if (activeFeedTab === 'featured') return l.isBoosted;
     if (activeFeedTab === 'swaps') return l.tradeMode === 'swap';
     if (activeFeedTab === 'free') return l.tradeMode === 'free_donation';
     return true;
@@ -122,7 +121,6 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenChat: _onO
           >
             {[
               { id: 'all', label: 'All Items' },
-              { id: 'featured', label: 'Featured Deals' },
               { id: 'swaps', label: 'Swaps' },
               { id: 'free', label: 'Free Items' }
             ].map((tab) => (

@@ -126,7 +126,6 @@ export default function CreateListingScreen() {
         sellerTrustScore: currentUser.trustScore || 100,
         preferredMeetupSpots: meetupSpot.trim() ? [meetupSpot.trim()] : ['Main Campus Entrance / Guard Desk'],
         customMeetupSpot: meetupSpot.trim() || undefined,
-        isBoosted: false,
       });
 
       if (newListing) {

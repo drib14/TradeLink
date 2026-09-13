@@ -30,8 +30,8 @@ const createListingSchema = Joi.object({
   condition: Joi.string().valid(...CONDITIONS).required(),
   quantity: Joi.number().integer().min(1).max(999).default(1),
   tags: Joi.array().items(Joi.string().trim().max(50)).max(10).default([]),
-  media: Joi.array().items(mediaItemSchema).max(10).optional(),
-  images: Joi.array().items(Joi.string()).max(10).optional(),
+  media: Joi.array().items(mediaItemSchema).min(1).max(10).optional(),
+  images: Joi.array().items(Joi.string()).min(1).max(10).optional(),
   preferredMeetupSpots: Joi.array().items(Joi.string().trim().max(200)).default([]),
   customMeetupSpot: Joi.string().trim().max(200).allow('', null),
   campus: Joi.string().trim().allow('', null),
@@ -57,9 +57,7 @@ const updateListingSchema = Joi.object({
   preferredMeetupSpots: Joi.array().items(Joi.string().trim().max(200)),
   customMeetupSpot: Joi.string().trim().max(200).allow('', null),
   status: Joi.string().valid('active', 'sold'),
-  isSold: Joi.boolean(),
-  isFeatured: Joi.boolean(),
-  isBoosted: Joi.boolean()
+  isSold: Joi.boolean()
 });
 
 const queryListingsSchema = Joi.object({

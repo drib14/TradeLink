@@ -324,11 +324,6 @@ const updateListing = asyncHandler(async (req, res, next) => {
   }
   if (req.body.isSold) updates.status = 'sold';
 
-  // Only admins can modify is_featured / isBoosted via update
-  if (req.user.role === 'admin' && (req.body.isFeatured !== undefined || req.body.isBoosted !== undefined)) {
-    updates.is_featured = Boolean(req.body.isFeatured ?? req.body.isBoosted);
-  }
-
   await db.transaction(async (trx) => {
     if (Object.keys(updates).length > 0) {
       await trx('listings').where({ id }).update(updates);
@@ -401,29 +396,6 @@ const deleteListing = asyncHandler(async (req, res, next) => {
   res.status(200).json({
     status: 'success',
     message: 'Listing deleted.'
-  });
-});
-
-/**
- * Boost a listing
- */
-const boostListing = asyncHandler(async (req, res, next) => {
-  const { id } = req.params;
-  const listing = await db('listings').where({ id }).first();
-
-  if (!listing) {
-    return next(new AppError('Listing not found.', 404));
-  }
-
-  if (listing.seller_id !== req.user.id && req.user.role !== 'admin') {
-    return next(new AppError('You are not authorized to boost this listing.', 403));
-  }
-
-  await db('listings').where({ id }).update({ is_featured: true });
-
-  res.status(200).json({
-    status: 'success',
-    message: 'Listing boosted successfully.'
   });
 });
 
@@ -515,7 +487,6 @@ module.exports = {
   createListing,
   updateListing,
   deleteListing,
-  boostListing,
   markAsSold,
   reportListing,
   viewListing

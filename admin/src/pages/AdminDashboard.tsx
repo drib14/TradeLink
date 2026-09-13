@@ -94,7 +94,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     wantedRequests = [],
     transactions = [],
     meetups,
-    boostListingByAdmin,
     createListingByAdmin,
     updateListingByAdmin,
     deleteFlashRequest,
@@ -186,7 +185,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     quantity: 1,
     campus: 'UC Main',
     status: 'active' as 'active' | 'sold',
-    isBoosted: false,
     description: '',
     imageUrl: ''
   });
@@ -202,7 +200,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
       quantity: 1,
       campus: 'UC Main',
       status: 'active',
-      isBoosted: false,
       description: '',
       imageUrl: ''
     });
@@ -221,7 +218,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
       quantity: listing.quantity !== undefined ? listing.quantity : 1,
       campus: listing.sellerCampus || 'UC Main',
       status: listing.status === 'sold' || listing.isSold ? 'sold' : 'active',
-      isBoosted: Boolean(listing.isBoosted || listing.is_featured),
       description: listing.description || '',
       imageUrl: listing.images?.[0] || ''
     });
@@ -265,7 +261,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
         condition: adminListingForm.condition,
         quantity: Number(adminListingForm.quantity) || 0,
         status: adminListingForm.status,
-        isFeatured: adminListingForm.isBoosted,
         description: adminListingForm.description.trim(),
         images: adminListingForm.imageUrl.trim() ? [adminListingForm.imageUrl.trim()] : editingAdminListing.images
       });
@@ -480,11 +475,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
 
   const handleRemoveListing = (flagId: string, listingId: string, title: string) => {
     setListingDeleteModal({ flagId, listingId, title });
-  };
-
-  const handleBoostListing = (listing: Listing) => {
-    boostListingByAdmin(listing.id);
-    showToast('Boost Updated', `Hero carousel boost toggled for "${listing.title}".`, 'success');
   };
 
   // Scanner Tool Actions
@@ -1260,7 +1250,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                   Marketplace Directory ({filteredAdminListings.length} / {listings.length} items)
                 </h3>
                 <p style={{ fontSize: '0.78rem', color: '#64748B', marginTop: '0.15rem' }}>
-                  Search and manage listings across all 8 UC campuses, toggle hero carousel boosts, or take down non-compliant items.
+                  Search and manage listings across all 8 UC campuses or take down non-compliant items.
                 </p>
               </div>
 
@@ -1472,25 +1462,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                 }}
                               >
                                 <Edit3 size={12} /> Edit
-                              </button>
-                              <button
-                                onClick={() => handleBoostListing(l)}
-                                title={l.isBoosted ? 'Remove Boost' : 'Boost to Hero Carousel'}
-                                style={{
-                                  padding: '0.35rem 0.6rem',
-                                  borderRadius: '6px',
-                                  fontSize: '0.72rem',
-                                  fontWeight: 800,
-                                  backgroundColor: l.isBoosted ? '#FFC72C' : '#F1F5F9',
-                                  color: '#002B7F',
-                                  border: 'none',
-                                  cursor: 'pointer',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '0.25rem'
-                                }}
-                              >
-                                <Zap size={12} fill={l.isBoosted ? '#002B7F' : 'none'} /> {l.isBoosted ? 'Boosted' : 'Boost'}
                               </button>
                               <button
                                 onClick={() => handleRemoveListing('direct', l.id, l.title)}
@@ -2959,18 +2930,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0' }}>
-                <input
-                  type="checkbox"
-                  id="adminBoostCheckbox"
-                  checked={adminListingForm.isBoosted}
-                  onChange={(e) => setAdminListingForm({ ...adminListingForm, isBoosted: e.target.checked })}
-                  style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                />
-                <label htmlFor="adminBoostCheckbox" style={{ fontSize: '0.82rem', fontWeight: 700, color: '#002B7F', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <Zap size={14} color="#FFC72C" /> Boost to Hero Carousel Banner
-                </label>
-              </div>
+
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>

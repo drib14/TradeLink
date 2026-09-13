@@ -63,7 +63,6 @@ function serializeListing(row, mediaItems = []) {
     sellerCollege: row.seller_college || row.sellerCollege || row.department || '',
     sellerIsVerified: Boolean(row.seller_is_verified ?? row.sellerIsVerified ?? false),
     sellerTrustScore: Number(row.seller_trust_score ?? row.sellerTrustScore ?? 0),
-    isBoosted: Boolean(row.is_boosted ?? row.is_featured ?? row.isBoosted),
     isSold: isSoldExplicit || isOutOfStock,
     status: row.status || (isSoldExplicit ? 'sold' : 'active'),
     preferredMeetupSpots: row.preferred_meetup_spots

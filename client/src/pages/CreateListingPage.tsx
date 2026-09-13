@@ -165,8 +165,7 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
         sellerCampus: currentUser?.campus,
         sellerCollege: currentUser?.college,
         sellerIsVerified: currentUser?.isVerified,
-        sellerTrustScore: currentUser?.trustScore,
-        isBoosted: false
+        sellerTrustScore: currentUser?.trustScore
       });
 
       showToast('Listing Published!', `"${newListing.title}" is now active in the campus catalog.`, 'success');

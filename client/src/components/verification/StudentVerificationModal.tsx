@@ -273,7 +273,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
     videoRef.current = element;
     if (element && streamRef.current) {
       element.srcObject = streamRef.current;
-      element.play().catch(() => {});
+      element.play().catch(() => { });
     }
   }, []);
 
@@ -549,7 +549,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
               {/* Student ID Input */}
               <div>
                 <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-                  1. University of Cebu Student ID Number *
+                  1. University of Cebu Student ID Number
                 </label>
                 <input
                   type="text"

@@ -171,11 +171,6 @@ export const adminService = {
     return res.data?.listing;
   },
 
-  async boostListing(id: string) {
-    const res = await api.patch(`/admin/listings/${id}/boost`);
-    return res.data;
-  },
-
   async markListingAsSold(id: string) {
     const res = await api.put(`/admin/listings/${id}`, { status: 'sold', quantity: 0 });
     return res.data?.listing;

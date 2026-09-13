@@ -135,7 +135,6 @@ Server will start on `http://localhost:3001` with base API route at `http://loca
 - `POST /api/listings` — Create listing (requires student ID verification)
 - `PATCH /api/listings/:id` — Update listing details
 - `DELETE /api/listings/:id` — Delete listing
-- `POST /api/listings/:id/boost` — Top-of-feed visibility boost
 - `PATCH /api/listings/:id/sold` — Mark as sold or available
 - `POST /api/listings/:id/report` — Flag suspicious item for admin moderation
 
