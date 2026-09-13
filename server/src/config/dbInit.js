@@ -62,21 +62,25 @@ async function autoInitDatabase() {
       logger.info('[DB Init] Created password_reset_requests table.');
     }
 
-    // 2. Ensure Default Administrator Account Exists (uc.tradelink@gmail.com / TradeLink@2026)
-    const adminEmail = 'uc.tradelink@gmail.com';
+    // 2. Ensure Default Administrator Account Exists (admin@uc.edu.ph / uc.tradelink@gmail.com / TradeLink@2026)
     const adminPassword = 'TradeLink@2026';
     const adminPasswordHash = await bcrypt.hash(adminPassword, 10);
 
-    const existingAdmin = await db('users').where({ email: adminEmail }).first();
+    const existingAdminById = await db('users').where({ id: 'user-admin' }).first();
 
-    if (!existingAdmin) {
-      // Remove any previous legacy user-admin ID if email differed
-      await db('users').where({ id: 'user-admin' }).del().catch(() => {});
-
+    if (existingAdminById) {
+      await db('users').where({ id: 'user-admin' }).update({
+        password_hash: adminPasswordHash,
+        role: 'admin',
+        is_banned: false,
+        is_verified: true
+      });
+      logger.info(`[DB Init] Synchronized credentials for admin account [${existingAdminById.email}]`);
+    } else {
       await db('users').insert({
         id: 'user-admin',
         name: 'UC Administrator',
-        email: adminEmail,
+        email: 'admin@uc.edu.ph',
         student_id: 'ADMIN001',
         password_hash: adminPasswordHash,
         role: 'admin',
@@ -95,17 +99,42 @@ async function autoInitDatabase() {
         is_pro_merchant: false,
         is_banned: false
       });
-      logger.info(`[DB Init] Created default administrator: ${adminEmail}`);
+      logger.info('[DB Init] Created default administrator: admin@uc.edu.ph');
+    }
+
+    // Also ensure uc.tradelink@gmail.com exists as an active admin
+    const existingGmailAdmin = await db('users').where({ email: 'uc.tradelink@gmail.com' }).first();
+    if (!existingGmailAdmin) {
+      await db('users').insert({
+        id: 'user-admin-gmail',
+        name: 'TradeLink Support Admin',
+        email: 'uc.tradelink@gmail.com',
+        student_id: 'ADMIN002',
+        password_hash: adminPasswordHash,
+        role: 'admin',
+        campus: 'UC Main',
+        college: 'CCS',
+        year_level: 'Faculty / Staff',
+        avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
+        is_verified: true,
+        id_photo_url: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80',
+        trust_score: 100,
+        rating: 5.0,
+        total_reviews: 0,
+        completed_trades: 0,
+        punctuality_rate: 100,
+        bio: 'Official TradeLink Campus Moderation & Safety Desk. Verified student marketplace.',
+        is_pro_merchant: false,
+        is_banned: false
+      }).catch(() => {});
+      logger.info('[DB Init] Created alternate administrator: uc.tradelink@gmail.com');
     } else {
-      // Ensure password_hash is valid bcrypt for TradeLink@2026
-      const isMatch = await bcrypt.compare(adminPassword, existingAdmin.password_hash);
-      if (!isMatch) {
-        await db('users').where({ id: existingAdmin.id }).update({
-          password_hash: adminPasswordHash,
-          role: 'admin'
-        });
-        logger.info(`[DB Init] Synchronized admin credentials for ${adminEmail}`);
-      }
+      await db('users').where({ id: existingGmailAdmin.id }).update({
+        password_hash: adminPasswordHash,
+        role: 'admin',
+        is_banned: false,
+        is_verified: true
+      });
     }
 
     // 3. Ensure Default System Configuration Exists

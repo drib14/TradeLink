@@ -125,8 +125,53 @@ const AdminAuthGate: React.FC = () => {
               University of Cebu Admin
             </h1>
             <p style={{ fontSize: '0.82rem', color: '#64748B', marginTop: '0.25rem', margin: '0.25rem 0 0 0' }}>
-              Sign in with your official administrator email to access KYC queues, student moderation, and campus safety desks.
+              Sign in with your official administrator email or ID to access KYC queues, student moderation, and campus safety desks.
             </p>
+          </div>
+
+          {/* Quick Demo Credentials Card */}
+          <div
+            style={{
+              backgroundColor: '#F8FAFC',
+              border: '1px solid #E2E8F0',
+              borderRadius: '12px',
+              padding: '0.85rem 1rem',
+              width: '100%',
+              textAlign: 'left',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.4rem',
+              fontSize: '0.78rem'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontWeight: 800, color: '#002B7F', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Default Admin Credentials
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmailInput('admin@uc.edu.ph');
+                  setPasswordInput('TradeLink@2026');
+                }}
+                style={{
+                  background: '#002B7F',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '0.25rem 0.6rem',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Auto Fill
+              </button>
+            </div>
+            <div style={{ color: '#475569', display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+              <div>Email / ID: <code style={{ backgroundColor: '#E2E8F0', padding: '0.1rem 0.35rem', borderRadius: '4px', color: '#0F172A', fontWeight: 600 }}>admin@uc.edu.ph</code> or <code style={{ backgroundColor: '#E2E8F0', padding: '0.1rem 0.35rem', borderRadius: '4px', color: '#0F172A', fontWeight: 600 }}>ADMIN001</code></div>
+              <div>Password: <code style={{ backgroundColor: '#E2E8F0', padding: '0.1rem 0.35rem', borderRadius: '4px', color: '#0F172A', fontWeight: 600 }}>TradeLink@2026</code> or <code style={{ backgroundColor: '#E2E8F0', padding: '0.1rem 0.35rem', borderRadius: '4px', color: '#0F172A', fontWeight: 600 }}>AdminUC</code></div>
+            </div>
           </div>
         </div>
 
@@ -134,13 +179,13 @@ const AdminAuthGate: React.FC = () => {
         <form onSubmit={handleLoginSubmit} autoComplete="off" style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 800, color: '#334155', marginBottom: '0.35rem' }}>
-              Administrator Email
+              Administrator Email or Student ID
             </label>
             <input
-              type="email"
+              type="text"
               value={emailInput}
               onChange={(e) => setEmailInput(e.target.value)}
-              placeholder="Enter administrator email"
+              placeholder="admin@uc.edu.ph or ADMIN001"
               autoComplete="off"
               autoCorrect="off"
               autoCapitalize="off"
