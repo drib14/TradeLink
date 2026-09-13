@@ -25,7 +25,7 @@ exports.seed = async function(knex) {
 
   const adminHash = await bcrypt.hash('TradeLink@2026', 10);
 
-  // 1. Seed Default Administrator Account
+  // 1. Seed Default Administrator Account & Student Test Accounts
   await knex('users').insert([
     {
       id: 'user-admin',
@@ -46,6 +46,50 @@ exports.seed = async function(knex) {
       completed_trades: 0,
       punctuality_rate: 100,
       bio: 'Official TradeLink Campus Moderation & Safety Desk. Verified student marketplace.',
+      is_pro_merchant: false,
+      is_banned: false
+    },
+    {
+      id: 'user-student-1',
+      name: 'Juan Dela Cruz',
+      email: 'juan.delacruz@uc.edu.ph',
+      student_id: '20240001',
+      password_hash: adminHash,
+      role: 'student',
+      campus: 'UC Main',
+      college: 'CCS',
+      year_level: '3rd Year',
+      avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=300&q=80',
+      is_verified: true,
+      id_photo_url: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80',
+      trust_score: 85,
+      rating: 5.0,
+      total_reviews: 4,
+      completed_trades: 3,
+      punctuality_rate: 100,
+      bio: 'BSIT 3rd Year student at UC Main. Regular campus trader.',
+      is_pro_merchant: false,
+      is_banned: false
+    },
+    {
+      id: 'user-student-2',
+      name: 'Maria Santos',
+      email: 'maria.santos@uc.edu.ph',
+      student_id: '20240002',
+      password_hash: adminHash,
+      role: 'student',
+      campus: 'UC Banilad',
+      college: 'CBA',
+      year_level: '2nd Year',
+      avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80',
+      is_verified: false,
+      id_photo_url: null,
+      trust_score: 60,
+      rating: 5.0,
+      total_reviews: 0,
+      completed_trades: 0,
+      punctuality_rate: 100,
+      bio: 'BSBA 2nd Year student at UC Banilad.',
       is_pro_merchant: false,
       is_banned: false
     }

@@ -2,7 +2,105 @@ const { v4: uuidv4 } = require('uuid');
 const db = require('../config/db');
 const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
-const { serializeSwap } = require('../serializers');
+const { serializeSwap, serializeTransaction } = require('../serializers');
+
+/**
+ * Generates reference code for auto-created swap transactions
+ */
+function generateReferenceNo() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let rand = '';
+  for (let i = 0; i < 4; i++) {
+    rand += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return `TL-SWAP-${rand}`;
+}
+
+/**
+ * Post swap proposal or status update into chat thread
+ */
+async function syncSwapToChat({
+  listingId,
+  proposerId,
+  sellerId,
+  swapOfferId,
+  content,
+  isSystem = false,
+  io = null
+}) {
+  try {
+    const userA = proposerId < sellerId ? proposerId : sellerId;
+    const userB = proposerId < sellerId ? sellerId : proposerId;
+
+    let conv = await db('conversations')
+      .where({ user_one_id: userA, user_two_id: userB, listing_id: listingId })
+      .first();
+
+    if (!conv) {
+      const convId = uuidv4();
+      conv = {
+        id: convId,
+        listing_id: listingId,
+        user_one_id: userA,
+        user_two_id: userB,
+        last_message: content,
+        last_message_at: new Date()
+      };
+      await db('conversations').insert(conv);
+    } else {
+      await db('conversations').where({ id: conv.id }).update({
+        last_message: content,
+        last_message_at: new Date()
+      });
+    }
+
+    const msgId = uuidv4();
+    const newMsg = {
+      id: msgId,
+      conversation_id: conv.id,
+      sender_id: proposerId,
+      receiver_id: sellerId,
+      content,
+      is_read: false,
+      is_system_message: Boolean(isSystem),
+      swap_offer_id: swapOfferId,
+      created_at: new Date()
+    };
+    await db('messages').insert(newMsg);
+
+    if (io) {
+      const swap = await db('swap_offers').where({ id: swapOfferId }).first();
+      io.to(`conv:${conv.id}`).emit('chat:message', {
+        id: msgId,
+        conversationId: conv.id,
+        senderId: newMsg.sender_id,
+        receiverId: newMsg.receiver_id,
+        content,
+        isRead: false,
+        isSystemMessage: newMsg.is_system_message,
+        swapOfferId,
+        swapOffer: swap ? {
+          id: swap.id,
+          targetListingId: swap.listing_id,
+          proposerId: swap.proposer_id,
+          offeredItemTitle: swap.offered_item_title,
+          offeredItemDescription: swap.offered_item_description,
+          offeredItemImage: swap.offered_item_image,
+          cashAdjustment: parseFloat(swap.cash_adjustment || 0),
+          status: swap.status
+        } : null,
+        timestamp: newMsg.created_at.toISOString()
+      });
+
+      io.to(`conv:${conv.id}`).emit('chat:deal_updated', {
+        swapOfferId,
+        status: swap ? swap.status : 'updated'
+      });
+    }
+  } catch (err) {
+    console.error('Failed to sync swap to chat:', err);
+  }
+}
 
 /**
  * Get all swap offers involving current user (as offerer or target seller)
@@ -116,6 +214,20 @@ const proposeSwap = asyncHandler(async (req, res, next) => {
 
   await db('swap_offers').insert(newSwap);
 
+  // Sync to chat conversation thread
+  const io = req.app.get('io');
+  const chatContent = `🔄 Item Barter Proposal: Offered "${finalOfferedTitle}" ${newSwap.cash_adjustment > 0 ? `with +₱${newSwap.cash_adjustment} cash adjustment` : ''} in exchange for "${targetListing.title}". Review and accept or decline below!`;
+
+  await syncSwapToChat({
+    listingId: targetListingId,
+    proposerId: req.user.id,
+    sellerId: targetListing.seller_id,
+    swapOfferId: swapId,
+    content: chatContent,
+    isSystem: false,
+    io
+  });
+
   res.status(201).json({
     status: 'success',
     message: 'Swap proposal sent to seller!',
@@ -145,7 +257,7 @@ const respondToSwap = asyncHandler(async (req, res, next) => {
   const swap = await db('swap_offers')
     .join('listings as target', 'swap_offers.listing_id', 'target.id')
     .where('swap_offers.id', id)
-    .select('swap_offers.*', 'target.seller_id as target_seller_id')
+    .select('swap_offers.*', 'target.seller_id as target_seller_id', 'target.title as target_title')
     .first();
 
   if (!swap) {
@@ -157,7 +269,57 @@ const respondToSwap = asyncHandler(async (req, res, next) => {
   }
 
   const mappedStatus = status === 'declined' ? 'rejected' : status;
-  await db('swap_offers').where({ id }).update({ status: mappedStatus });
+  const io = req.app.get('io');
+
+  if (mappedStatus === 'accepted') {
+    await db.transaction(async (trx) => {
+      // 1. Update swap status
+      await trx('swap_offers').where({ id }).update({ status: 'accepted' });
+
+      // 2. Mark listing as reserved
+      await trx('listings').where({ id: swap.listing_id }).update({ status: 'reserved' });
+
+      // 3. Auto-generate transaction for this barter deal
+      const txId = uuidv4();
+      const refNo = generateReferenceNo();
+      await trx('transactions').insert({
+        id: txId,
+        reference_no: refNo,
+        listing_id: swap.listing_id,
+        seller_id: swap.target_seller_id,
+        buyer_id: swap.proposer_id,
+        swap_offer_id: swap.id,
+        trade_mode: 'swap',
+        amount: parseFloat(swap.cash_adjustment || 0),
+        payment_method: 'barter',
+        payment_status: 'paid',
+        status: 'pending',
+        notes: `Barter trade: ${swap.offered_item_title} for ${swap.target_title}`
+      });
+    });
+
+    await syncSwapToChat({
+      listingId: swap.listing_id,
+      proposerId: swap.target_seller_id, // sender of message is seller
+      sellerId: swap.proposer_id,
+      swapOfferId: swap.id,
+      content: `🎉 Swap Offer ACCEPTED! Order deal created. Let's arrange a convenient campus meetup spot to swap items!`,
+      isSystem: true,
+      io
+    });
+  } else {
+    await db('swap_offers').where({ id }).update({ status: mappedStatus });
+
+    await syncSwapToChat({
+      listingId: swap.listing_id,
+      proposerId: swap.target_seller_id,
+      sellerId: swap.proposer_id,
+      swapOfferId: swap.id,
+      content: `❌ Swap proposal was declined. You may inquire again or propose an alternative item.`,
+      isSystem: true,
+      io
+    });
+  }
 
   res.status(200).json({
     status: 'success',

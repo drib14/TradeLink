@@ -65,6 +65,9 @@ export interface User {
   banReason?: string;
   bannedAt?: string;
   warningsCount?: number;
+  preferredMeetupSpots?: string;
+  tradingHours?: string;
+  paymentMethods?: string;
 }
 
 export interface CampusAnnouncement {
@@ -159,6 +162,8 @@ export interface Listing {
   sellerCollege: College;
   sellerIsVerified: boolean;
   sellerTrustScore: number;
+  sellerStudentId?: string;
+  sellerEmail?: string;
   isBoosted: boolean;
   isSold: boolean;
   quantity: number;
@@ -232,8 +237,12 @@ export interface Message {
   isSystemMessage?: boolean;
   swapOfferId?: string;
   transactionId?: string;
+  wantedRequestId?: string;
   mediaUrl?: string | null;
   mediaType?: 'image' | 'video' | null;
+  swapOffer?: any;
+  transaction?: any;
+  wantedRequest?: any;
 }
 
 export interface Conversation {
@@ -246,10 +255,29 @@ export interface Conversation {
     campus: Campus;
     college?: College;
     isVerified: boolean;
+    trustScore?: number;
+    rating?: number;
   };
   listingId: string;
   listingTitle: string;
   listingImage: string;
+  listingPrice?: number | null;
+  listingTradeMode?: TradeMode | 'wanted';
+  listingStatus?: string;
+  listingSellerId?: string;
+  wantedId?: string | null;
+  wantedRequest?: any;
+  activeTransaction?: {
+    id: string;
+    referenceNo: string;
+    amount: number;
+    status: string;
+  } | null;
+  activeSwap?: {
+    id: string;
+    offeredTitle: string;
+    status: string;
+  } | null;
   lastMessage: string;
   lastMessageTimestamp: string;
   unreadCount: number;

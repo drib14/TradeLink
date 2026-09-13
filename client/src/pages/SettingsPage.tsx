@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/common/Toast';
 import { UserAvatar } from '../components/common/UserAvatar';
@@ -27,6 +27,36 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate, onOpenAu
 
   const [activeSection, setActiveSection] = useState<'account' | 'notifications' | 'privacy' | 'data'>('account');
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  // Account settings
+  const [nameInput, setNameInput] = useState(currentUser?.name || '');
+  const [bioInput, setBioInput] = useState(currentUser?.bio || '');
+  const [avatarInput, setAvatarInput] = useState(currentUser?.avatar || '');
+  const [collegeInput, setCollegeInput] = useState<College>(currentUser?.college || 'CCS');
+  const [yearLevelInput, setYearLevelInput] = useState(currentUser?.yearLevel || '2nd Year College');
+
+  // Notification prefs
+  const [notifSwaps, setNotifSwaps] = useState(true);
+  const [notifMeetups, setNotifMeetups] = useState(true);
+  const [notifPriceDrops, setNotifPriceDrops] = useState(true);
+  const [notifWanted, setNotifWanted] = useState(true);
+  const [notifSystem, setNotifSystem] = useState(true);
+
+  // Privacy settings
+  const [showCampus, setShowCampus] = useState(true);
+  const [showOnline, setShowOnline] = useState(true);
+  const [profilePublic, setProfilePublic] = useState(true);
+
+  // Keep input fields synchronized whenever currentUser updates
+  useEffect(() => {
+    if (currentUser) {
+      setNameInput(currentUser.name || '');
+      setBioInput(currentUser.bio || '');
+      setAvatarInput(currentUser.avatar || '');
+      setCollegeInput(currentUser.college || 'CCS');
+      setYearLevelInput(currentUser.yearLevel || '2nd Year College');
+    }
+  }, [currentUser]);
 
   if (!currentUser) {
     return (
@@ -66,25 +96,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate, onOpenAu
       </div>
     );
   }
-
-  // Account settings
-  const [nameInput, setNameInput] = useState(currentUser?.name || '');
-  const [bioInput, setBioInput] = useState(currentUser?.bio || '');
-  const [avatarInput, setAvatarInput] = useState(currentUser?.avatar || '');
-  const [collegeInput, setCollegeInput] = useState<College>(currentUser?.college || 'CCS');
-  const [yearLevelInput, setYearLevelInput] = useState(currentUser?.yearLevel || '2nd Year College');
-
-  // Notification prefs
-  const [notifSwaps, setNotifSwaps] = useState(true);
-  const [notifMeetups, setNotifMeetups] = useState(true);
-  const [notifPriceDrops, setNotifPriceDrops] = useState(true);
-  const [notifWanted, setNotifWanted] = useState(true);
-  const [notifSystem, setNotifSystem] = useState(true);
-
-  // Privacy settings
-  const [showCampus, setShowCampus] = useState(true);
-  const [showOnline, setShowOnline] = useState(true);
-  const [profilePublic, setProfilePublic] = useState(true);
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();

@@ -13,6 +13,30 @@ USE `tradelink_db_test`;
 -- Disable foreign key checks for table creation/resets
 SET FOREIGN_KEY_CHECKS = 0;
 
+-- Drop tables in reverse dependency order
+DROP TABLE IF EXISTS `review_badges`;
+DROP TABLE IF EXISTS `reviews`;
+DROP TABLE IF EXISTS `favorites`;
+DROP TABLE IF EXISTS `notifications`;
+DROP TABLE IF EXISTS `messages`;
+DROP TABLE IF EXISTS `conversation_read_status`;
+DROP TABLE IF EXISTS `conversations`;
+DROP TABLE IF EXISTS `meetup_transactions`;
+DROP TABLE IF EXISTS `swap_offers`;
+DROP TABLE IF EXISTS `wanted_requests`;
+DROP TABLE IF EXISTS `listing_tags`;
+DROP TABLE IF EXISTS `listing_images`;
+DROP TABLE IF EXISTS `listings`;
+DROP TABLE IF EXISTS `verification_requests`;
+DROP TABLE IF EXISTS `flagged_listings`;
+DROP TABLE IF EXISTS `trade_disputes`;
+DROP TABLE IF EXISTS `announcements`;
+DROP TABLE IF EXISTS `admin_audit_logs`;
+DROP TABLE IF EXISTS `prohibited_keywords`;
+DROP TABLE IF EXISTS `feature_flags`;
+DROP TABLE IF EXISTS `system_config`;
+DROP TABLE IF EXISTS `users`;
+
 -- ----------------------------------------------------------------------------
 -- 1. USERS TABLE
 -- ----------------------------------------------------------------------------
@@ -247,6 +271,7 @@ DROP TABLE IF EXISTS `conversations`;
 CREATE TABLE `conversations` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
   `listing_id` VARCHAR(36) DEFAULT NULL,
+  `wanted_id` VARCHAR(36) DEFAULT NULL,
   `user_one_id` VARCHAR(36) NOT NULL,
   `user_two_id` VARCHAR(36) NOT NULL,
   `last_message` TEXT DEFAULT NULL,
@@ -255,11 +280,14 @@ CREATE TABLE `conversations` (
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
   FOREIGN KEY (`listing_id`) REFERENCES `listings` (`id`) ON DELETE SET NULL,
+  FOREIGN KEY (`wanted_id`) REFERENCES `wanted_requests` (`id`) ON DELETE SET NULL,
   FOREIGN KEY (`user_one_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   FOREIGN KEY (`user_two_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   UNIQUE KEY `uk_conv_participants` (`user_one_id`, `user_two_id`, `listing_id`),
   INDEX `idx_conv_user_one` (`user_one_id`),
   INDEX `idx_conv_user_two` (`user_two_id`),
+  INDEX `idx_conv_listing` (`listing_id`),
+  INDEX `idx_conv_wanted` (`wanted_id`),
   INDEX `idx_conv_last_message_at` (`last_message_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -279,6 +307,7 @@ CREATE TABLE `messages` (
   `media_type` ENUM('image', 'video') DEFAULT NULL,
   `swap_offer_id` VARCHAR(36) DEFAULT NULL,
   `transaction_id` VARCHAR(36) DEFAULT NULL,
+  `wanted_request_id` VARCHAR(36) DEFAULT NULL,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
   FOREIGN KEY (`conversation_id`) REFERENCES `conversations` (`id`) ON DELETE CASCADE,
@@ -286,9 +315,13 @@ CREATE TABLE `messages` (
   FOREIGN KEY (`receiver_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   FOREIGN KEY (`swap_offer_id`) REFERENCES `swap_offers` (`id`) ON DELETE SET NULL,
   FOREIGN KEY (`transaction_id`) REFERENCES `transactions` (`id`) ON DELETE SET NULL,
+  FOREIGN KEY (`wanted_request_id`) REFERENCES `wanted_requests` (`id`) ON DELETE SET NULL,
   INDEX `idx_messages_conversation` (`conversation_id`),
   INDEX `idx_messages_receiver_read` (`receiver_id`, `is_read`),
   INDEX `idx_messages_sender` (`sender_id`),
+  INDEX `idx_messages_swap` (`swap_offer_id`),
+  INDEX `idx_messages_transaction` (`transaction_id`),
+  INDEX `idx_messages_wanted` (`wanted_request_id`),
   INDEX `idx_messages_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

@@ -37,7 +37,9 @@ INSERT INTO `users` (
   `avatar_url`, `is_verified`, `id_photo_url`, `trust_score`, `rating`, `total_reviews`,
   `completed_trades`, `punctuality_rate`, `bio`, `is_pro_merchant`, `is_banned`
 ) VALUES
-('user-admin', 'UC Administrator', 'uc.tradelink@gmail.com', 'ADMIN001', '$2a$12$iNnuagaBhzg1dkp1nGKto..HcjqhXJRgztMJ8dcfJPzNrhN9Ps4SG', 'admin', 'UC Main', 'CCS', 'Faculty / Staff', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80', 1, 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80', 100, 5.0, 0, 0, 100, 'Official TradeLink Campus Moderation & Safety Desk. Verified student marketplace.', 0, 0);
+('user-admin', 'UC Administrator', 'uc.tradelink@gmail.com', 'ADMIN001', '$2a$12$iNnuagaBhzg1dkp1nGKto..HcjqhXJRgztMJ8dcfJPzNrhN9Ps4SG', 'admin', 'UC Main', 'CCS', 'Faculty / Staff', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80', 1, 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80', 100, 5.0, 0, 0, 100, 'Official TradeLink Campus Moderation & Safety Desk. Verified student marketplace.', 0, 0),
+('user-student-1', 'Juan Dela Cruz', 'juan.delacruz@uc.edu.ph', '20240001', '$2a$12$iNnuagaBhzg1dkp1nGKto..HcjqhXJRgztMJ8dcfJPzNrhN9Ps4SG', 'student', 'UC Main', 'CCS', '3rd Year', 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=300&q=80', 1, 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80', 85, 5.0, 4, 3, 100, 'BSIT 3rd Year student at UC Main. Regular campus trader.', 0, 0),
+('user-student-2', 'Maria Santos', 'maria.santos@uc.edu.ph', '20240002', '$2a$12$iNnuagaBhzg1dkp1nGKto..HcjqhXJRgztMJ8dcfJPzNrhN9Ps4SG', 'student', 'UC Banilad', 'CBA', '2nd Year', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80', 0, NULL, 60, 5.0, 0, 0, 100, 'BSBA 2nd Year student at UC Banilad.', 0, 0);
 
 -- ----------------------------------------------------------------------------
 -- 2. SEED CAMPUS ANNOUNCEMENTS

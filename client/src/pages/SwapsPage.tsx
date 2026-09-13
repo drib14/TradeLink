@@ -34,7 +34,7 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({
 }) => {
   const { listings } = useMarket();
   const { currentUser, isAuthenticated } = useAuth();
-  const { swaps, respondToSwap } = useChat();
+  const { swaps, respondToSwap, openChatForSwap } = useChat();
   const { showToast } = useToast();
 
   const [activeTab, setActiveTab] = useState<'catalog' | 'proposals'>('catalog');
@@ -340,8 +340,11 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({
                         <span>Decline</span>
                       </button>
                       <button
-                        onClick={onOpenChat}
-                        style={{ marginLeft: 'auto', fontSize: '0.8rem', color: '#002B7F', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.35rem', cursor: 'pointer' }}
+                        onClick={async () => {
+                          await openChatForSwap(swap);
+                          onOpenChat();
+                        }}
+                        style={{ marginLeft: 'auto', fontSize: '0.8rem', color: '#002B7F', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.35rem', cursor: 'pointer', background: 'none', border: 'none' }}
                       >
                         <MessageSquare size={14} style={{ flexShrink: 0 }} />
                         <span>Open Chat</span>
@@ -354,14 +357,27 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({
                       <div style={{ fontSize: '0.8rem', color: 'var(--accent-green, #059669)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
                         <CheckCircle size={15} /> Swap terms accepted! Schedule a campus meeting spot.
                       </div>
-                      <button
-                        onClick={() => onNavigate('meetups')}
-                        className="btn-primary"
-                        style={{ padding: '0.45rem 1rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-                      >
-                        <MapPin size={14} />
-                        <span>Go to Meetup Coordinator</span>
-                      </button>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button
+                          onClick={async () => {
+                            await openChatForSwap(swap);
+                            onOpenChat();
+                          }}
+                          className="btn-primary"
+                          style={{ padding: '0.45rem 1rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                        >
+                          <MessageSquare size={14} />
+                          <span>Coordinate in Chat</span>
+                        </button>
+                        <button
+                          onClick={() => onNavigate('meetups')}
+                          className="btn-secondary"
+                          style={{ padding: '0.45rem 1rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                        >
+                          <MapPin size={14} />
+                          <span>Orders</span>
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>

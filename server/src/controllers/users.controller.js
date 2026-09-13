@@ -162,10 +162,10 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
     }
   }
 
-  // Validate Student ID Format: must contain between 6 and 15 alphanumeric characters
-  const cleanId = studentIdNumber.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-  if (cleanId.length < 6 || cleanId.length > 15) {
-    return next(new AppError('Student ID must contain between 6 and 15 valid characters.', 400));
+  // Validate Student ID Format: must contain between 6 and 20 numeric digits
+  const cleanId = studentIdNumber.replace(/\D/g, '');
+  if (cleanId.length < 6 || cleanId.length > 20) {
+    return next(new AppError('Student ID must contain between 6 and 20 digits with no hyphens or letters.', 400));
   }
 
   // Check rate limiting: max 5 verification submissions per 24 hours

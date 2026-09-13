@@ -3,10 +3,12 @@ import { Listing } from '../../types';
 import { VerifiedBadge } from '../common/VerifiedBadge';
 import { UserAvatar } from '../common/UserAvatar';
 import { useAuth } from '../../context/AuthContext';
+import { useMarket } from '../../context/MarketContext';
 import { useToast } from '../common/Toast';
 import { BuyNowModal } from './BuyNowModal';
 import { SwapProposalModal } from './SwapProposalModal';
-import { ArrowLeftRight, Gift, ShoppingBag, Zap, Sparkles, Film, Eye } from 'lucide-react';
+import { ManageListingModal } from './ManageListingModal';
+import { ArrowLeftRight, Gift, ShoppingBag, Zap, Sparkles, Film, Eye, Sliders, RotateCcw, CheckCircle2 } from 'lucide-react';
 
 interface ListingCardProps {
   listing: Listing;
@@ -14,13 +16,22 @@ interface ListingCardProps {
 }
 
 export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) => {
-  const { isAuthenticated } = useAuth();
+  const { currentUser, isAuthenticated } = useAuth();
+  const { markAsSold } = useMarket();
   const { showToast } = useToast();
 
   const [isBuyModalOpen, setIsBuyModalOpen] = useState(false);
   const [isSwapModalOpen, setIsSwapModalOpen] = useState(false);
+  const [isManageModalOpen, setIsManageModalOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
+
+  const isOwner = Boolean(
+    currentUser &&
+    (currentUser.id === listing.sellerId ||
+     (listing.sellerStudentId && currentUser.studentId === listing.sellerStudentId) ||
+     (listing.sellerEmail && currentUser.email === listing.sellerEmail))
+  );
 
   const hasVideo = Boolean(
     listing.hasVideo ||
@@ -76,7 +87,32 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
           opacity: isSoldOut ? 0.85 : 1
         }}
       >
-        {/* Bookmark Favorite Button */}
+        {/* Your Listing Seller Badge */}
+        {isOwner && (
+          <div
+            style={{
+              position: 'absolute',
+              top: '10px',
+              left: '10px',
+              backgroundColor: 'var(--uc-blue, #002B7F)',
+              color: '#FFFFFF',
+              padding: '0.24rem 0.6rem',
+              borderRadius: '6px',
+              fontSize: '0.68rem',
+              fontWeight: 800,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.3rem',
+              zIndex: 6,
+              boxShadow: '0 2px 8px rgba(0, 43, 127, 0.35)',
+              letterSpacing: '0.03em'
+            }}
+          >
+            <Sparkles size={12} color="#FFC72C" />
+            <span>YOUR LISTING</span>
+          </div>
+        )}
+
         {/* Video Sample Badge */}
         {hasVideo && (
           <div
@@ -368,7 +404,82 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
 
           {/* Direct Action Button */}
           <div style={{ paddingTop: '0.45rem', marginTop: '0.25rem' }}>
-            {isSoldOut ? (
+            {isOwner ? (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '0.35rem' }}>
+                {/* 1. Primary Seller Action: Manage / Edit */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsManageModalOpen(true);
+                  }}
+                  className="btn-primary"
+                  style={{
+                    padding: '0.5rem 0.65rem',
+                    fontSize: '0.8rem',
+                    fontWeight: 800,
+                    borderRadius: '8px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.35rem',
+                    backgroundColor: 'var(--uc-blue, #002B7F)',
+                    color: '#FFFFFF'
+                  }}
+                  title="Edit price, quantity, or manage listing"
+                >
+                  <Sliders size={13} style={{ flexShrink: 0 }} />
+                  <span>Manage Listing</span>
+                </button>
+
+                {/* 2. Quick Sold / Relist Toggle */}
+                <button
+                  type="button"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    try {
+                      const nextSold = !isSoldOut;
+                      await markAsSold(listing.id, nextSold);
+                      showToast(
+                        nextSold ? 'Marked as Sold' : 'Listing Relisted',
+                        nextSold ? `"${listing.title}" marked as sold.` : `"${listing.title}" is now active in marketplace.`,
+                        'success'
+                      );
+                    } catch (err: any) {
+                      showToast('Action Failed', err?.message || 'Unable to update status', 'error');
+                    }
+                  }}
+                  style={{
+                    padding: '0.5rem 0.65rem',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    borderRadius: '8px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.3rem',
+                    cursor: 'pointer',
+                    border: isSoldOut ? '1px solid var(--accent-green, #10B981)' : '1px solid var(--border-subtle, #CBD5E1)',
+                    backgroundColor: isSoldOut ? 'var(--accent-green-subtle, #ECFDF5)' : 'var(--bg-subtle, #F8FAFC)',
+                    color: isSoldOut ? 'var(--accent-green, #047857)' : 'var(--text-secondary, #475569)',
+                    transition: 'all 0.15s ease'
+                  }}
+                  title={isSoldOut ? 'Reactivate listing' : 'Quickly mark as sold'}
+                >
+                  {isSoldOut ? (
+                    <>
+                      <RotateCcw size={12} />
+                      <span>Relist</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 size={12} color="var(--accent-green, #10B981)" />
+                      <span>Sold</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            ) : isSoldOut ? (
               <button
                 disabled
                 style={{
@@ -436,17 +547,24 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
               marginTop: '0.25rem'
             }}
           >
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
-              <UserAvatar
-                src={listing.sellerAvatar}
-                name={listing.sellerName}
-                size={20}
-              />
-              <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary, #475569)', fontWeight: 600 }}>
-                {listing.sellerName.split(' ')[0]}
-              </span>
-              {listing.sellerIsVerified && <VerifiedBadge size="xs" variant="green" showTooltip={false} />}
-            </div>
+            {isOwner ? (
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: 'var(--uc-blue, #002B7F)', fontSize: '0.74rem', fontWeight: 800 }}>
+                <Sliders size={12} />
+                <span>{isSoldOut ? 'Sold Out' : 'Active in Marketplace'}</span>
+              </div>
+            ) : (
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                <UserAvatar
+                  src={listing.sellerAvatar}
+                  name={listing.sellerName}
+                  size={20}
+                />
+                <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary, #475569)', fontWeight: 600 }}>
+                  {listing.sellerName.split(' ')[0]}
+                </span>
+                {listing.sellerIsVerified && <VerifiedBadge size="xs" variant="green" showTooltip={false} />}
+              </div>
+            )}
 
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.7rem', color: 'var(--text-muted, #94A3B8)' }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }} title={`${listing.views || 0} views`}>
@@ -471,6 +589,15 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
           isOpen={isSwapModalOpen}
           onClose={() => setIsSwapModalOpen(false)}
           targetListing={listing}
+        />
+      )}
+
+      {/* Seller Quick Manage Modal */}
+      {isManageModalOpen && (
+        <ManageListingModal
+          isOpen={isManageModalOpen}
+          onClose={() => setIsManageModalOpen(false)}
+          listing={listing}
         />
       )}
     </>

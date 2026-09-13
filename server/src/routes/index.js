@@ -27,30 +27,48 @@ router.get('/health', async (req, res) => {
   });
 });
 
-// File / Media Upload endpoint (supports images and videos, streams to Cloudinary)
+// Media Upload status check
+router.get('/upload/status', authenticate, asyncHandler(async (req, res) => {
+  const status = await storageService.testCloudinaryConnection();
+  res.status(200).json({
+    status: 'success',
+    data: status
+  });
+}));
+
+// File / Media Upload endpoint (supports images and videos, streams directly to Cloudinary)
 router.post('/upload', authenticate, upload.any(), asyncHandler(async (req, res, next) => {
-  const file = (req.files && req.files[0]) || req.file;
-  if (!file) {
+  const uploadedFiles = req.files && req.files.length > 0 ? req.files : (req.file ? [req.file] : []);
+  if (uploadedFiles.length === 0) {
     return next(new AppError('No file uploaded.', 400));
   }
 
   const folder = req.body.folder || req.query.folder || 'listings';
-  const result = await storageService.uploadBuffer(
-    file.buffer,
-    file.originalname,
-    file.mimetype,
-    folder
+  const uploadResults = await Promise.all(
+    uploadedFiles.map((f) =>
+      storageService.uploadBuffer(f.buffer, f.originalname, f.mimetype, folder)
+    )
   );
+
+  const primary = uploadResults[0];
 
   res.status(201).json({
     status: 'success',
     data: {
-      url: result.url,
-      key: result.key,
-      filename: result.filename,
-      mediaType: result.mediaType || 'image',
-      size: result.size,
-      storage: result.storage
+      url: primary.url,
+      key: primary.key,
+      filename: primary.filename,
+      mediaType: primary.mediaType || 'image',
+      size: primary.size,
+      storage: primary.storage,
+      files: uploadResults.map((r) => ({
+        url: r.url,
+        key: r.key,
+        filename: r.filename,
+        mediaType: r.mediaType || 'image',
+        size: r.size,
+        storage: r.storage
+      }))
     }
   });
 }));

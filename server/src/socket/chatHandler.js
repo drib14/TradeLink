@@ -5,6 +5,9 @@ const { createMessage } = require('../services/message.service');
 module.exports = (io, socket) => {
   const userId = socket.user.id;
 
+  // Join personal user room immediately on connection
+  socket.join(`user:${userId}`);
+
   // Socket rate limiting state (30 messages per minute)
   const messageTimestamps = [];
   const MAX_MESSAGES_PER_MINUTE = 30;
@@ -38,7 +41,7 @@ module.exports = (io, socket) => {
   });
 
   /**
-   * Send a real-time message (text and/or media)
+   * Send a real-time message (text, media, deal card, swap proposal, or wanted inquiry)
    */
   socket.on('chat:message', async (data) => {
     try {
@@ -60,6 +63,7 @@ module.exports = (io, socket) => {
         isSystemMessage = false,
         swapOfferId,
         transactionId,
+        wantedRequestId,
         mediaUrl,
         mediaType
       } = data;
@@ -67,8 +71,8 @@ module.exports = (io, socket) => {
       if (!conversationId) return;
       if (!content && !mediaUrl) return;
 
-      if (content && content.length > 2000) {
-        socket.emit('chat:error', { message: 'Message exceeds maximum length of 2000 characters.' });
+      if (content && content.length > 3000) {
+        socket.emit('chat:error', { message: 'Message exceeds maximum length of 3000 characters.' });
         return;
       }
 
@@ -82,6 +86,7 @@ module.exports = (io, socket) => {
         isSystemMessage,
         swapOfferId,
         transactionId,
+        wantedRequestId,
         mediaUrl,
         mediaType
       });
@@ -95,6 +100,8 @@ module.exports = (io, socket) => {
         message: messagePayload.content,
         type: 'message',
         conversationId,
+        senderId: userId,
+        senderName: socket.user.name,
         mediaUrl: messagePayload.mediaUrl,
         mediaType: messagePayload.mediaType
       });

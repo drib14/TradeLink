@@ -103,12 +103,20 @@ const register = asyncHandler(async (req, res, next) => {
  */
 const login = asyncHandler(async (req, res, next) => {
   const { studentId, idNumber, emailOrStudentId, identifier, email, password } = req.body;
-  const cleanQuery = (studentId || idNumber || emailOrStudentId || identifier || email || '').trim();
+  const rawQuery = (studentId || idNumber || emailOrStudentId || identifier || email || '').trim();
+  const cleanDigits = rawQuery.replace(/\D/g, '');
 
-  const user = await db('users')
-    .where({ student_id: cleanQuery })
-    .orWhereRaw('LOWER(email) = ?', [cleanQuery.toLowerCase()])
+  let user = await db('users')
+    .where({ student_id: rawQuery })
+    .orWhereRaw('LOWER(email) = ?', [rawQuery.toLowerCase()])
     .first();
+
+  if (!user && cleanDigits.length >= 6) {
+    user = await db('users')
+      .where({ student_id: cleanDigits })
+      .orWhereRaw("REPLACE(REPLACE(student_id, '-', ''), ' ', '') = ?", [cleanDigits])
+      .first();
+  }
 
   if (!user) {
     return next(new AppError('Invalid credentials.', 401));

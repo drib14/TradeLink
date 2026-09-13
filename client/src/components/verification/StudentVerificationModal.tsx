@@ -375,7 +375,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
       showToast('ID Photo Required', 'Please upload a clear photo of your student ID card.', 'warning');
       return;
     }
-    const cleanId = studentIdInput.replace(/[^a-zA-Z0-9]/g, '');
+    const cleanId = studentIdInput.replace(/\D/g, '');
     if (cleanId.length < 6) {
       showToast('Invalid Student ID', 'Please enter a valid Student ID with at least 6 digits.', 'warning');
       return;
@@ -554,11 +554,13 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
                 <input
                   type="text"
                   id="student-id-number-input"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={studentIdInput}
-                  onChange={(e) => setStudentIdInput(e.target.value.replace(/[^a-zA-Z0-9-]/g, ''))}
-                  placeholder="e.g. 21-1234-567 or 100234"
+                  onChange={(e) => setStudentIdInput(e.target.value.replace(/\D/g, ''))}
+                  placeholder="e.g. 20240001"
                   className="clean-input"
-                  maxLength={18}
+                  maxLength={20}
                   required
                 />
                 <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.2rem', display: 'block' }}>
