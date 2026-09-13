@@ -1,49 +1,91 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap');
 
 :root {
-  /* Official University of Cebu Brand Colors */
-  --uc-blue: #002B7F;
-  --uc-blue-dark: #001D59;
-  --uc-blue-deep: #00123D;
-  --uc-blue-light: #0A3EA8;
-  --uc-blue-subtle: #EBF1FC;
-  --uc-blue-border: #BCD1F7;
+  /* =========================================================================
+     4-ROLE COLOR SYSTEM:
+     1. Primary: UC Blue (Brand foundation, active states, key CTAs)
+     2. Secondary: UC Gold (Accents, highlights, badges, auxiliary actions)
+     3. Neutral: Slate scale (Surfaces, typography, dividers, borders)
+     4. Danger: Crimson Red (Destructive actions, alerts, danger buttons)
+     ========================================================================= */
 
-  --uc-gold: #FFC72C;
-  --uc-gold-dark: #E5A800;
-  --uc-gold-deep: #C78F00;
-  --uc-gold-light: #FFF2CC;
-  --uc-gold-subtle: #FFFBEB;
-  --uc-gold-border: #FFE082;
+  /* 1. Primary — UC Blue */
+  --color-primary: #002B7F;
+  --color-primary-dark: #001D59;
+  --color-primary-deep: #00123D;
+  --color-primary-light: #0A3EA8;
+  --color-primary-subtle: #EBF1FC;
+  --color-primary-border: #BCD1F7;
+
+  /* 2. Secondary — UC Gold */
+  --color-secondary: #FFC72C;
+  --color-secondary-dark: #E5A800;
+  --color-secondary-deep: #C78F00;
+  --color-secondary-light: #FFF2CC;
+  --color-secondary-subtle: #FFFBEB;
+  --color-secondary-border: #FFE082;
+
+  /* 3. Neutral — Slate Scale */
+  --color-neutral-50: #F8FAFC;
+  --color-neutral-100: #F1F5F9;
+  --color-neutral-200: #E2E8F0;
+  --color-neutral-300: #CBD5E1;
+  --color-neutral-400: #94A3B8;
+  --color-neutral-500: #64748B;
+  --color-neutral-600: #475569;
+  --color-neutral-700: #334155;
+  --color-neutral-800: #1E293B;
+  --color-neutral-900: #0F172A;
+
+  /* 4. Danger — Crimson Red */
+  --color-danger: #DC2626;
+  --color-danger-dark: #B91C1C;
+  --color-danger-subtle: #FEF2F2;
+  --color-danger-border: #FECACA;
+
+  /* Brand Aliases mapping to 4-Role System */
+  --uc-blue: var(--color-primary);
+  --uc-blue-dark: var(--color-primary-dark);
+  --uc-blue-deep: var(--color-primary-deep);
+  --uc-blue-light: var(--color-primary-light);
+  --uc-blue-subtle: var(--color-primary-subtle);
+  --uc-blue-border: var(--color-primary-border);
+
+  --uc-gold: var(--color-secondary);
+  --uc-gold-dark: var(--color-secondary-dark);
+  --uc-gold-deep: var(--color-secondary-deep);
+  --uc-gold-light: var(--color-secondary-light);
+  --uc-gold-subtle: var(--color-secondary-subtle);
+  --uc-gold-border: var(--color-secondary-border);
 
   --accent-green: #059669;
   --accent-green-dark: #047857;
   --accent-green-subtle: #ECFDF5;
   --accent-green-border: #A7F3D0;
 
-  --accent-red: #DC2626;
-  --accent-red-subtle: #FEF2F2;
-  --accent-red-border: #FECACA;
+  --accent-red: var(--color-danger);
+  --accent-red-subtle: var(--color-danger-subtle);
+  --accent-red-border: var(--color-danger-border);
 
-  /* App Surfaces & Backgrounds */
-  --bg-app: #F8FAFC;
+  /* App Surfaces & Backgrounds (Neutral mappings) */
+  --bg-app: var(--color-neutral-50);
   --bg-surface: #FFFFFF;
-  --bg-subtle: #F1F5F9;
-  --bg-hover: #E2E8F0;
-  --bg-dark: #0F172A;
+  --bg-subtle: var(--color-neutral-100);
+  --bg-hover: var(--color-neutral-200);
+  --bg-dark: var(--color-neutral-900);
   --bg-navy-dark: #001744;
 
-  /* Text Colors */
-  --text-primary: #0F172A;
-  --text-secondary: #334155;
-  --text-muted: #64748B;
-  --text-subtle: #94A3B8;
+  /* Text Colors (Neutral mappings) */
+  --text-primary: var(--color-neutral-900);
+  --text-secondary: var(--color-neutral-700);
+  --text-muted: var(--color-neutral-500);
+  --text-subtle: var(--color-neutral-400);
   --text-inverse: #FFFFFF;
 
-  /* Borders */
-  --border-subtle: #E2E8F0;
-  --border-strong: #CBD5E1;
-  --border-focus: #002B7F;
+  /* Borders (Neutral & Focus) */
+  --border-subtle: var(--color-neutral-200);
+  --border-strong: var(--color-neutral-300);
+  --border-focus: var(--color-primary);
 
   /* Typography */
   --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -409,6 +451,51 @@ input, select, textarea {
 .btn-secondary:hover {
   background-color: var(--bg-subtle);
   border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  background-color: var(--color-danger, #DC2626);
+  color: #FFFFFF;
+  padding: 0.65rem 1.35rem;
+  border-radius: var(--radius-md);
+  font-size: 0.86rem;
+  font-weight: 700;
+  border: none;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.25);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.btn-danger:hover {
+  background-color: var(--color-danger-dark, #B91C1C);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(220, 38, 38, 0.35);
+}
+
+.btn-danger-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  background-color: var(--color-danger-subtle, #FEF2F2);
+  color: var(--color-danger, #DC2626);
+  border: 1.5px solid var(--color-danger-border, #FECACA);
+  padding: 0.65rem 1.35rem;
+  border-radius: var(--radius-md);
+  font-size: 0.86rem;
+  font-weight: 600;
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.btn-danger-outline:hover {
+  background-color: #FEE2E2;
+  border-color: var(--color-danger, #DC2626);
   transform: translateY(-1px);
 }
 

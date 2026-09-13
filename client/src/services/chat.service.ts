@@ -22,9 +22,15 @@ export const chatService = {
     targetUserId: string;
     listingId?: string | null;
     wantedId?: string | null;
+    flashRequestId?: string | null;
     initialMessage?: string | null;
   }): Promise<Conversation> {
-    const res = await api.post<{ conversation: any }>('/chat/conversations', params);
+    const payload = {
+      ...params,
+      flashRequestId: params.flashRequestId ?? params.wantedId,
+      wantedId: params.wantedId ?? params.flashRequestId
+    };
+    const res = await api.post<{ conversation: any }>('/chat/conversations', payload);
     const c = res.data?.conversation || res.data;
     return {
       id: c.id,
@@ -46,8 +52,8 @@ export const chatService = {
       listingTradeMode: c.listingTradeMode,
       listingStatus: c.listingStatus,
       listingSellerId: c.listingSellerId,
-      wantedId: c.wantedId,
-      wantedRequest: c.wantedRequest,
+      wantedId: c.flashRequestId ?? c.flash_request_id ?? c.wantedId ?? c.wanted_id,
+      wantedRequest: c.flashRequest ?? c.flash_request ?? c.wantedRequest,
       activeTransaction: c.activeTransaction,
       activeSwap: c.activeSwap,
       lastMessage: c.lastMessage || '',
@@ -81,8 +87,8 @@ export const chatService = {
         listingTradeMode: c.listingTradeMode ?? c.listing_trade_mode,
         listingStatus: c.listingStatus ?? c.listing_status,
         listingSellerId: c.listingSellerId ?? c.listing_seller_id,
-        wantedId: c.wantedId ?? c.wanted_id,
-        wantedRequest: c.wantedRequest,
+        wantedId: c.flashRequestId ?? c.flash_request_id ?? c.wantedId ?? c.wanted_id,
+        wantedRequest: c.flashRequest ?? c.flash_request ?? c.wantedRequest,
         activeTransaction: c.activeTransaction,
         activeSwap: c.activeSwap,
         lastMessage: c.lastMessage || c.last_message || '',
@@ -108,12 +114,12 @@ export const chatService = {
         isSystemMessage: Boolean(m.isSystemMessage ?? m.is_system_message),
         swapOfferId: m.swapOfferId || m.swap_offer_id,
         transactionId: m.transactionId || m.transaction_id,
-        wantedRequestId: m.wantedRequestId || m.wanted_request_id,
+        wantedRequestId: m.flashRequestId || m.flash_request_id || m.wantedRequestId || m.wanted_request_id,
         mediaUrl: m.mediaUrl || m.media_url || null,
         mediaType: m.mediaType || m.media_type || null,
         swapOffer: m.swapOffer,
         transaction: m.transaction,
-        wantedRequest: m.wantedRequest
+        wantedRequest: m.flashRequest || m.flash_request || m.wantedRequest
       }));
     }
     return [];
@@ -131,10 +137,16 @@ export const chatService = {
     swapOfferId?: string;
     transactionId?: string;
     wantedRequestId?: string;
+    flashRequestId?: string;
     mediaUrl?: string | null;
     mediaType?: 'image' | 'video' | null;
   }): Promise<Message> {
-    const res = await api.post<{ message: any }>('/chat/messages', params);
+    const payload = {
+      ...params,
+      flashRequestId: params.flashRequestId ?? params.wantedRequestId,
+      wantedRequestId: params.wantedRequestId ?? params.flashRequestId
+    };
+    const res = await api.post<{ message: any }>('/chat/messages', payload);
     const m = res.data?.message || res.data;
     return {
       id: m.id,
@@ -147,12 +159,12 @@ export const chatService = {
       isSystemMessage: Boolean(m.isSystemMessage ?? m.is_system_message),
       swapOfferId: m.swapOfferId || m.swap_offer_id || params.swapOfferId,
       transactionId: m.transactionId || m.transaction_id || params.transactionId,
-      wantedRequestId: m.wantedRequestId || m.wanted_request_id || params.wantedRequestId,
+      wantedRequestId: m.flashRequestId || m.flash_request_id || m.wantedRequestId || m.wanted_request_id || params.flashRequestId || params.wantedRequestId,
       mediaUrl: m.mediaUrl || m.media_url || params.mediaUrl || null,
       mediaType: m.mediaType || m.media_type || params.mediaType || null,
       swapOffer: m.swapOffer,
       transaction: m.transaction,
-      wantedRequest: m.wantedRequest
+      wantedRequest: m.flashRequest || m.flash_request || m.wantedRequest
     };
   },
 
@@ -189,8 +201,9 @@ export const chatService = {
     return res.data?.swap || res.data;
   },
 
-  async respondToSwap(id: string, action: 'accept' | 'decline'): Promise<void> {
-    await api.patch(`/swaps/${id}/respond`, { status: action === 'accept' ? 'accepted' : 'declined' });
+  async respondToSwap(id: string, action: 'accept' | 'decline' | 'accepted' | 'declined'): Promise<void> {
+    const status = (action === 'accept' || action === 'accepted') ? 'accepted' : 'declined';
+    await api.patch(`/swaps/${id}/respond`, { status });
   },
 
   // Transactions

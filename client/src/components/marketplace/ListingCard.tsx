@@ -8,14 +8,15 @@ import { useToast } from '../common/Toast';
 import { BuyNowModal } from './BuyNowModal';
 import { SwapProposalModal } from './SwapProposalModal';
 import { ManageListingModal } from './ManageListingModal';
-import { ArrowLeftRight, Gift, ShoppingBag, Zap, Sparkles, Film, Eye, Sliders, RotateCcw, CheckCircle2 } from 'lucide-react';
+import { ArrowLeftRight, Gift, ShoppingBag, Zap, Clock, Film, Eye, Sliders, RotateCcw, CheckCircle2 } from 'lucide-react';
 
 interface ListingCardProps {
   listing: Listing;
   onClick: () => void;
+  layout?: 'grid' | 'list';
 }
 
-export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) => {
+export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick, layout = 'grid' }) => {
   const { currentUser, isAuthenticated } = useAuth();
   const { markAsSold } = useMarket();
   const { showToast } = useToast();
@@ -73,18 +74,19 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
         className="premium-card"
         style={{
           display: 'flex',
-          flexDirection: 'column',
+          flexDirection: layout === 'list' ? 'row' : 'column',
           cursor: 'pointer',
           position: 'relative',
           borderRadius: '14px',
           backgroundColor: 'var(--bg-surface, #FFFFFF)',
           border: isHovered ? '1.5px solid var(--uc-blue-border, #BCD1F7)' : '1px solid var(--border-subtle, #E2E8F0)',
-          transform: isHovered ? 'translateY(-5px)' : 'translateY(0)',
+          transform: isHovered ? 'translateY(-4px)' : 'translateY(0)',
           boxShadow: isHovered
             ? '0 16px 32px -4px rgba(0, 43, 127, 0.12), 0 4px 12px rgba(0, 0, 0, 0.04)'
             : '0 2px 8px -2px rgba(0, 43, 127, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03)',
           transition: 'all 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
-          opacity: isSoldOut ? 0.85 : 1
+          opacity: isSoldOut ? 0.85 : 1,
+          overflow: 'hidden'
         }}
       >
         {/* Your Listing Seller Badge */}
@@ -108,7 +110,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
               letterSpacing: '0.03em'
             }}
           >
-            <Sparkles size={12} color="#FFC72C" />
+            <Zap size={12} color="#FFC72C" />
             <span>YOUR LISTING</span>
           </div>
         )}
@@ -145,12 +147,17 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
         <div
           style={{
             position: 'relative',
-            width: '100%',
-            paddingTop: '68%',
+            width: layout === 'list' ? '220px' : '100%',
+            minWidth: layout === 'list' ? '180px' : undefined,
+            paddingTop: layout === 'list' ? 0 : '68%',
+            height: layout === 'list' ? 'auto' : undefined,
+            minHeight: layout === 'list' ? '170px' : undefined,
             overflow: 'hidden',
             backgroundColor: 'var(--bg-subtle, #F8FAFC)',
             borderTopLeftRadius: '13px',
-            borderTopRightRadius: '13px'
+            borderTopRightRadius: layout === 'list' ? 0 : '13px',
+            borderBottomLeftRadius: layout === 'list' ? '13px' : 0,
+            flexShrink: 0
           }}
         >
           {/* Shimmer loading placeholder */}
@@ -326,7 +333,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
                 zIndex: 4
               }}
             >
-              <Sparkles size={11} style={{ flexShrink: 0 }} /> <span>NEW</span>
+              <Clock size={11} style={{ flexShrink: 0 }} /> <span>NEW</span>
             </div>
           ) : null}
         </div>

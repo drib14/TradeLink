@@ -3,6 +3,7 @@ import { Listing } from '../../types';
 import { useMarket } from '../../context/MarketContext';
 import { useToast } from '../common/Toast';
 import { Modal } from '../common/Modal';
+import { ConfirmModal } from '../common/ConfirmModal';
 import {
   Sliders,
   CheckCircle2,
@@ -44,6 +45,7 @@ export const ManageListingModal: React.FC<ManageListingModalProps> = ({
   const [isTogglingSold, setIsTogglingSold] = useState(false);
   const [isBoosting, setIsBoosting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   if (!isOpen) return null;
 
@@ -73,7 +75,7 @@ export const ManageListingModal: React.FC<ManageListingModalProps> = ({
     try {
       await boostListing(listing.id);
       setIsBoosted(true);
-      showToast('Listing Boosted! ⚡', `"${listing.title}" has received top campus visibility ranking.`, 'success');
+      showToast('Listing Boosted!', `"${listing.title}" has received top campus visibility ranking.`, 'success');
     } catch (err: any) {
       showToast('Boost Failed', err?.message || 'Unable to boost listing.', 'error');
     } finally {
@@ -108,16 +110,16 @@ export const ManageListingModal: React.FC<ManageListingModalProps> = ({
     }
   };
 
-  const handleDelete = async () => {
-    const confirmed = window.confirm(
-      `Are you sure you want to permanently delete "${listing.title}"? This cannot be undone.`
-    );
-    if (!confirmed) return;
+  const handleDelete = () => {
+    setShowDeleteConfirm(true);
+  };
 
+  const handleConfirmDelete = async () => {
     setIsDeleting(true);
     try {
       await deleteListing(listing.id);
       showToast('Listing Deleted', `"${listing.title}" has been removed from TradeLink.`, 'info');
+      setShowDeleteConfirm(false);
       onClose();
       if (onDeleted) {
         onDeleted();
@@ -134,7 +136,8 @@ export const ManageListingModal: React.FC<ManageListingModalProps> = ({
   const primaryImage = listing.images?.[0] || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=400&q=80';
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Manage Your Listing">
+    <>
+      <Modal isOpen={isOpen} onClose={onClose} title="Manage Your Listing">
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
         {/* Item Summary Card */}
         <div
@@ -400,5 +403,19 @@ export const ManageListingModal: React.FC<ManageListingModalProps> = ({
         </form>
       </div>
     </Modal>
+
+    {/* Delete Confirmation Modal */}
+    <ConfirmModal
+      isOpen={showDeleteConfirm}
+      title="Delete Listing Permanently?"
+      message={`Are you sure you want to permanently delete "${listing.title}"? This action cannot be undone and will remove the item from all searches.`}
+      confirmText="Delete Listing"
+      cancelText="Keep Listing"
+      variant="danger"
+      isLoading={isDeleting}
+      onConfirm={handleConfirmDelete}
+      onCancel={() => setShowDeleteConfirm(false)}
+    />
+  </>
   );
 };

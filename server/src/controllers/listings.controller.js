@@ -86,7 +86,6 @@ const getListings = asyncHandler(async (req, res) => {
         .whereILike('listings.title', q)
         .orWhereILike('listings.description', q)
         .orWhereILike('listings.category', q)
-        .orWhereILike('listings.course_code', q)
         .orWhereILike('seller.name', q);
     });
   }
@@ -188,8 +187,7 @@ const createListing = asyncHandler(async (req, res, next) => {
     department,
     quantity = 1,
     media = [],
-    images = [],
-    courseCode
+    images = []
   } = req.body;
 
   // Check prohibited keywords in title and description
@@ -232,8 +230,7 @@ const createListing = asyncHandler(async (req, res, next) => {
     department: department || req.user.college || null,
     status: 'active',
     views_count: 1,
-    is_featured: false,
-    course_code: courseCode ? courseCode.trim().toUpperCase() : null
+    is_featured: false
   };
 
   // Allow at least 5 media items (up to 10 for video product samples + photos)
@@ -317,7 +314,6 @@ const updateListing = asyncHandler(async (req, res, next) => {
   if (req.body.category) updates.category = req.body.category;
   if (req.body.condition) updates.condition = req.body.condition;
   if (req.body.campus) updates.campus = req.body.campus;
-  if (req.body.courseCode !== undefined) updates.course_code = req.body.courseCode ? req.body.courseCode.trim().toUpperCase() : null;
 
   // Status check: regular users can only mark active or sold; admins can set any status
   if (req.body.status) {
@@ -494,6 +490,25 @@ const reportListing = asyncHandler(async (req, res, next) => {
   });
 });
 
+/**
+ * Increment view count (dedicated endpoint)
+ */
+const viewListing = asyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+  const listing = await db('listings').where({ id }).first();
+
+  if (!listing) {
+    return next(new AppError('Listing not found.', 404));
+  }
+
+  await db('listings').where({ id }).increment('views_count', 1);
+
+  res.status(200).json({
+    status: 'success',
+    message: 'View recorded.'
+  });
+});
+
 module.exports = {
   getListings,
   getListingById,
@@ -502,5 +517,6 @@ module.exports = {
   deleteListing,
   boostListing,
   markAsSold,
-  reportListing
+  reportListing,
+  viewListing
 };

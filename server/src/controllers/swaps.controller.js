@@ -216,7 +216,7 @@ const proposeSwap = asyncHandler(async (req, res, next) => {
 
   // Sync to chat conversation thread
   const io = req.app.get('io');
-  const chatContent = `🔄 Item Barter Proposal: Offered "${finalOfferedTitle}" ${newSwap.cash_adjustment > 0 ? `with +₱${newSwap.cash_adjustment} cash adjustment` : ''} in exchange for "${targetListing.title}". Review and accept or decline below!`;
+  const chatContent = `[Barter Proposal] Offered "${finalOfferedTitle}" ${newSwap.cash_adjustment > 0 ? `with +₱${newSwap.cash_adjustment} cash adjustment` : ''} in exchange for "${targetListing.title}". Review and accept or decline below!`;
 
   await syncSwapToChat({
     listingId: targetListingId,
@@ -303,7 +303,7 @@ const respondToSwap = asyncHandler(async (req, res, next) => {
       proposerId: swap.target_seller_id, // sender of message is seller
       sellerId: swap.proposer_id,
       swapOfferId: swap.id,
-      content: `🎉 Swap Offer ACCEPTED! Order deal created. Let's arrange a convenient campus meetup spot to swap items!`,
+      content: `[Swap Accepted] Swap Offer ACCEPTED! Order deal created. Let's arrange a convenient campus meetup spot to swap items!`,
       isSystem: true,
       io
     });
@@ -315,7 +315,7 @@ const respondToSwap = asyncHandler(async (req, res, next) => {
       proposerId: swap.target_seller_id,
       sellerId: swap.proposer_id,
       swapOfferId: swap.id,
-      content: `❌ Swap proposal was declined. You may inquire again or propose an alternative item.`,
+      content: `[Swap Declined] Swap proposal was declined. You may inquire again or propose an alternative item.`,
       isSystem: true,
       io
     });

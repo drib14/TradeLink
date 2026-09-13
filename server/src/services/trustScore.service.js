@@ -34,6 +34,19 @@ async function recalculateUserStats(userId) {
 
   const completedTrades = Number(tradeStats.completed_count) || 0;
 
+  // Zero-transaction rule: If user has no completed transactions and no reviews, all stats must be 0
+  if (completedTrades === 0 && totalReviews === 0) {
+    await db('users').where({ id: userId }).update({
+      total_reviews: 0,
+      rating: 0.0,
+      punctuality_rate: 0,
+      completed_trades: 0,
+      trust_score: 0,
+      is_pro_merchant: false
+    });
+    return { trustScore: 0, avgRating: 0.0, totalReviews: 0, completedTrades: 0, punctualityRate: 0, isProMerchant: false };
+  }
+
   // 3. Dynamic Trust Score Algorithm (0 - 100)
   let baseScore = user.is_verified ? 75 : 55;
 

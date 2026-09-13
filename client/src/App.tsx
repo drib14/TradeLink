@@ -3,7 +3,7 @@ import { ToastProvider } from './components/common/Toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { MarketProvider } from './context/MarketContext';
 import { ChatProvider } from './context/ChatContext';
-import { WantedProvider } from './context/WantedContext';
+import { FlashMarketProvider } from './context/FlashMarketContext';
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
 import { MobileBottomNav } from './components/layout/MobileBottomNav';
@@ -20,12 +20,12 @@ import { CreateListingPage } from './pages/CreateListingPage';
 import { SwapsPage } from './pages/SwapsPage';
 import { TransactionsPage } from './pages/TransactionsPage';
 import { ProfilePage } from './pages/ProfilePage';
-import { WantedBoardPage } from './pages/WantedBoardPage';
-import { CampusMapPage } from './pages/CampusMapPage';
+import { FlashMarketPage } from './pages/FlashMarketPage';
 import { HelpSafetyPage } from './pages/HelpSafetyPage';
 import { TermsPrivacyPage } from './pages/TermsPrivacyPage';
 import { AboutPage } from './pages/AboutPage';
 import { FAQPage } from './pages/FAQPage';
+import { ResourcesPage } from './pages/ResourcesPage';
 import { MaintenancePage } from './pages/MaintenancePage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -51,14 +51,15 @@ const pathToView = (path: string, search: string = window.location.search): { vi
   if (!cleanLower || cleanLower === 'home') return { view: 'home', params: {} };
   if (cleanLower === 'marketplace' || cleanLower === 'market' || cleanLower === 'catalog') return { view: 'marketplace', params: {} };
   if (cleanLower === 'create-listing' || cleanLower === 'post' || cleanLower === 'sell') return { view: 'create-listing', params: {} };
-  if (cleanLower === 'wanted' || cleanLower === 'requests' || cleanLower === 'pasabuy') return { view: 'wanted', params: {} };
+  if (cleanLower === 'flash-market' || cleanLower === 'flash' || cleanLower === 'wanted' || cleanLower === 'requests' || cleanLower === 'pasabuy' || cleanLower === 'urgent') return { view: 'flash-market', params: {} };
   if (cleanLower === 'swaps' || cleanLower === 'barter') return { view: 'swaps', params: {} };
   if (cleanLower === 'meetups' || cleanLower === 'handshake' || cleanLower === 'transactions' || cleanLower === 'history') return { view: 'transactions', params: {} };
-  if (cleanLower === 'campus-map' || cleanLower === 'landmarks' || cleanLower === 'map') return { view: 'campus-map', params: {} };
   if (cleanLower === 'about') return { view: 'about', params: {} };
+  if (cleanLower === 'resources' || cleanLower === 'team' || cleanLower === 'developers' || cleanLower === 'hierarchy') return { view: 'resources', params: {} };
   if (cleanLower === 'faq') return { view: 'faq', params: {} };
   if (cleanLower === 'help-safety' || cleanLower === 'safety' || cleanLower === 'help') return { view: 'help-safety', params: {} };
-  if (cleanLower === 'terms' || cleanLower === 'guidelines' || cleanLower === 'privacy') return { view: 'terms', params: {} };
+  if (cleanLower === 'terms' || cleanLower === 'guidelines') return { view: 'terms', params: { tab: 'honor-code' } };
+  if (cleanLower === 'privacy') return { view: 'terms', params: { tab: 'privacy' } };
   if (cleanLower === 'maintenance') return { view: 'maintenance', params: {} };
   if (cleanLower === 'favorites' || cleanLower === 'saved') return { view: 'marketplace', params: {} };
   if (cleanLower === 'settings' || cleanLower === 'preferences') return { view: 'settings', params: {} };
@@ -66,7 +67,7 @@ const pathToView = (path: string, search: string = window.location.search): { vi
 };
 
 export const MainApp: React.FC = () => {
-  const { currentUser } = useAuth();
+  const { currentUser: _currentUser } = useAuth();
   const [currentView, setCurrentView] = useState<string>('home');
   const [viewParams, setViewParams] = useState<any>({});
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -85,24 +86,6 @@ export const MainApp: React.FC = () => {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
-
-  const PUBLIC_VIEWS = [
-    'home',
-    'marketplace',
-    'item-detail',
-    'campus-map',
-    'wanted',
-    'profile',
-    'create-listing',
-    'about',
-    'faq',
-    'help-safety',
-    'terms',
-    'maintenance',
-    'not-found'
-  ];
-
-
 
   const handleNavigate = (view: string, params: any = {}) => {
     setCurrentView(view);
@@ -152,9 +135,10 @@ export const MainApp: React.FC = () => {
                   onOpenAuth={() => setIsAuthModalOpen(true)}
                 />
               );
+            case 'flash-market':
             case 'wanted':
               return (
-                <WantedBoardPage
+                <FlashMarketPage
                   onNavigate={handleNavigate}
                   onOpenChat={() => setIsChatOpen(true)}
                   onOpenAuth={() => setIsAuthModalOpen(true)}
@@ -177,8 +161,6 @@ export const MainApp: React.FC = () => {
                   onOpenChat={() => setIsChatOpen(true)}
                 />
               );
-            case 'campus-map':
-              return <CampusMapPage onNavigate={handleNavigate} />;
             case 'profile':
               return (
                 <ProfilePage
@@ -190,12 +172,14 @@ export const MainApp: React.FC = () => {
               );
             case 'about':
               return <AboutPage onNavigate={handleNavigate} />;
+            case 'resources':
+              return <ResourcesPage onNavigate={handleNavigate} initialTab={viewParams?.tab} />;
             case 'faq':
               return <FAQPage onNavigate={handleNavigate} />;
             case 'help-safety':
               return <HelpSafetyPage onNavigate={handleNavigate} />;
             case 'terms':
-              return <TermsPrivacyPage onNavigate={handleNavigate} />;
+              return <TermsPrivacyPage onNavigate={handleNavigate} initialTab={viewParams?.tab} />;
             case 'favorites':
               return <MarketplacePage onNavigate={handleNavigate} />;
             case 'settings':
@@ -268,9 +252,9 @@ export default function App() {
       <AuthProvider>
         <MarketProvider>
           <ChatProvider>
-            <WantedProvider>
+            <FlashMarketProvider>
               <MainApp />
-            </WantedProvider>
+            </FlashMarketProvider>
           </ChatProvider>
         </MarketProvider>
       </AuthProvider>

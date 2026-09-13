@@ -13,6 +13,16 @@ if (envMode === 'production') {
 
 const crypto = require('crypto');
 
+// Validate critical secrets in production
+if (envMode === 'production') {
+  if (!process.env.CLOUDINARY_API_SECRET) {
+    console.warn('[SECURITY WARNING] CLOUDINARY_API_SECRET is not set in production environment.');
+  }
+  if (!process.env.SMTP_PASS) {
+    console.warn('[SECURITY WARNING] SMTP_PASS is not set in production environment.');
+  }
+}
+
 const config = {
   env: envMode,
   port: parseInt(process.env.PORT, 10) || 3001,
@@ -40,9 +50,9 @@ const config = {
   email: {
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
     port: parseInt(process.env.SMTP_PORT, 10) || 465,
-    user: process.env.SMTP_USER || 'uc.tradelink@gmail.com',
+    user: process.env.SMTP_USER || '',
     pass: process.env.SMTP_PASS || '',
-    from: process.env.SMTP_FROM || 'TradeLink UC <uc.tradelink@gmail.com>'
+    from: process.env.SMTP_FROM || 'TradeLink UC <noreply@tradelink.app>'
   },
 
   upload: {
@@ -51,9 +61,9 @@ const config = {
   },
 
   cloudinary: {
-    cloudName: process.env.CLOUDINARY_CLOUD_NAME || 'uyytbpe1',
-    apiKey: process.env.CLOUDINARY_API_KEY || '444765518329932',
-    apiSecret: process.env.CLOUDINARY_API_SECRET || '8bzdy9kQjlWHTx6DhOsxOGHqSEo'
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME || '',
+    apiKey: process.env.CLOUDINARY_API_KEY || '',
+    apiSecret: process.env.CLOUDINARY_API_SECRET || ''
   }
 };
 

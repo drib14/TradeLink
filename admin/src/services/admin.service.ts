@@ -156,34 +156,53 @@ export const adminService = {
     return res;
   },
 
-  async getListings(page = 1, limit = 100, params?: { status?: string; search?: string; campus?: string; category?: string }) {
-    const res = await api.get('/listings', { page, limit, status: params?.status || 'All', ...params });
+  async getListings(page = 1, limit = 100, params?: { status?: string; search?: string; campus?: string; category?: string; tradeMode?: string }) {
+    const res = await api.get('/admin/listings', { page, limit, status: params?.status || 'All', ...params });
     return res.data?.listings || [];
   },
 
+  async createListing(data: any) {
+    const res = await api.post('/admin/listings', data);
+    return res.data?.listing;
+  },
+
+  async updateListing(id: string, updates: any) {
+    const res = await api.put(`/admin/listings/${id}`, updates);
+    return res.data?.listing;
+  },
+
   async boostListing(id: string) {
-    const res = await api.post(`/listings/${id}/boost`);
-    return res;
+    const res = await api.patch(`/admin/listings/${id}/boost`);
+    return res.data;
   },
 
   async markListingAsSold(id: string) {
-    const res = await api.patch(`/listings/${id}/sold`);
-    return res;
+    const res = await api.put(`/admin/listings/${id}`, { status: 'sold', quantity: 0 });
+    return res.data?.listing;
   },
 
   async deleteListing(id: string) {
-    const res = await api.delete(`/listings/${id}`);
+    const res = await api.delete(`/admin/listings/${id}`);
     return res;
   },
 
-  async getWantedRequests(page = 1, limit = 100) {
-    const res = await api.get('/wanted', { page, limit });
+  async getFlashRequests(page = 1, limit = 100) {
+    const res = await api.get('/flash-market', { page, limit });
     return res.data?.requests || res.data || [];
   },
 
-  async deleteWanted(id: string, _reason?: string) {
-    const res = await api.delete(`/wanted/${id}`);
+  async deleteFlashRequest(id: string, _reason?: string) {
+    const res = await api.delete(`/flash-market/${id}`);
     return res;
+  },
+
+  // Backward compatibility aliases
+  async getWantedRequests(page = 1, limit = 100) {
+    return this.getFlashRequests(page, limit);
+  },
+
+  async deleteWanted(id: string, _reason?: string) {
+    return this.deleteFlashRequest(id, _reason);
   },
 
   async getTransactions(page = 1, limit = 100) {

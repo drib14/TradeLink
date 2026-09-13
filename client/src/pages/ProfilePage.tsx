@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useMarket } from '../context/MarketContext';
-import { useWanted } from '../context/WantedContext';
+import { useFlashMarket } from '../context/FlashMarketContext';
 import { useChat } from '../context/ChatContext';
 import { useToast } from '../components/common/Toast';
 import { VerifiedBadge } from '../components/common/VerifiedBadge';
@@ -11,7 +11,7 @@ import { ListingCard } from '../components/marketplace/ListingCard';
 import { Modal } from '../components/common/Modal';
 import { reviewsService } from '../services/reviews.service';
 import { usersService } from '../services/users.service';
-import { User, Listing, Review, WantedRequest, College } from '../types';
+import { User, Listing, Review, FlashRequest, College } from '../types';
 import {
   ShieldCheck,
   Star,
@@ -41,7 +41,6 @@ import {
   TrendingUp,
   Zap,
   RotateCcw,
-  Sparkles,
   DollarSign,
   ArrowUpDown,
   Building2,
@@ -67,7 +66,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
 }) => {
   const { currentUser, allUsers, updateProfile } = useAuth();
   const { listings, favorites, markAsSold } = useMarket();
-  const { requests: wantedRequests } = useWanted();
+  const { requests: flashRequests } = useFlashMarket();
   const { openChatWithSeller, openChatWithUser, meetups } = useChat();
   const { showToast } = useToast();
 
@@ -85,7 +84,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   const targetUser: User | null = (userId && currentUser?.id === userId ? currentUser : (fetchedUser || (userId ? allUsers.find((u: User) => u.id === userId) : null) || currentUser || null));
   const isSelf = !!currentUser && !!targetUser && currentUser.id === targetUser.id;
 
-  const [activeTab, setActiveTab] = useState<'listings' | 'sold' | 'saved' | 'transactions' | 'reviews' | 'wanted'>('listings');
+  const [activeTab, setActiveTab] = useState<'listings' | 'sold' | 'saved' | 'transactions' | 'reviews' | 'flash' | 'wanted'>('listings');
   const [listingFilter, setListingFilter] = useState<'all' | 'buy_sell' | 'swap' | 'free_donation'>('all');
   const [bioInput, setBioInput] = useState(targetUser?.bio || '');
   const [isEditingBio, setIsEditingBio] = useState(false);
@@ -142,7 +141,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   const userActiveListings = listings.filter((l: Listing) => l.sellerId === targetUser?.id && !l.isSold);
   const userSoldListings = listings.filter((l: Listing) => l.sellerId === targetUser?.id && l.isSold);
   const userSavedListings = listings.filter((l: Listing) => favorites.includes(l.id));
-  const userWanted = wantedRequests.filter((w: WantedRequest) => w.requesterId === targetUser?.id);
+  const userFlash = flashRequests.filter((w: FlashRequest) => w.requesterId === targetUser?.id);
+  const userWanted = userFlash;
   const userMeetups = meetups.filter((m) => m.sellerId === targetUser?.id || m.buyerId === targetUser?.id);
 
   // Calculate Marketplace Statistics
@@ -151,9 +151,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
     0
   );
   const completedTradesCount = Number(targetUser?.completedTrades ?? userSoldListings.length);
-  const trustScore = Number(targetUser?.trustScore ?? (targetUser?.isVerified ? 92 : 65));
-  const rating = Number(targetUser?.rating) || 5.0;
-  const punctualityRate = Number(targetUser?.punctualityRate || 100);
+  const totalReviewsCount = Number(targetUser?.totalReviews ?? userReviews.length);
+  const hasTransactions = completedTradesCount > 0 || totalReviewsCount > 0;
+
+  const trustScore = hasTransactions ? Number(targetUser?.trustScore ?? (targetUser?.isVerified ? 92 : 65)) : 0;
+  const rating = hasTransactions ? (Number(targetUser?.rating) || 0) : 0.0;
+  const punctualityRate = hasTransactions ? Number(targetUser?.punctualityRate || 0) : 0;
 
   // In-store filter counts
   const saleCount = userActiveListings.filter((l) => l.tradeMode === 'buy_sell').length;
@@ -594,10 +597,10 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 <Star size={13} color="var(--uc-gold)" /> Peer Rating
               </span>
               <div className="stat-card-value" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '1.45rem' }}>
-                {rating.toFixed(1)} <Star size={15} fill="var(--uc-gold, #FFC72C)" color="var(--uc-gold, #FFC72C)" />
+                {hasTransactions ? rating.toFixed(1) : '0.0'} <Star size={15} fill="var(--uc-gold, #FFC72C)" color="var(--uc-gold, #FFC72C)" />
               </div>
               <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                {Number(targetUser.totalReviews ?? userReviews.length)} Verified Ratings
+                {hasTransactions ? `${totalReviewsCount} Verified Ratings` : '0 Verified Ratings'}
               </span>
             </div>
 
@@ -610,7 +613,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 {completedTradesCount}
               </div>
               <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                Verified Handshakes
+                {hasTransactions ? 'Verified Handshakes' : 'No trades yet'}
               </span>
             </div>
 
@@ -623,7 +626,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 {punctualityRate}%
               </div>
               <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                On-Time Handshakes
+                {hasTransactions ? 'On-Time Handshakes' : '0% On-Time'}
               </span>
             </div>
 
@@ -633,10 +636,10 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 <Zap size={13} color="#D97706" /> Response Speed
               </span>
               <div className="stat-card-value" style={{ color: '#D97706', fontSize: '1.45rem' }}>
-                &lt; 15m
+                {hasTransactions ? '< 15m' : '0%'}
               </div>
               <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                Active Fast Responder
+                {hasTransactions ? 'Active Fast Responder' : 'No trades yet'}
               </span>
             </div>
           </div>
@@ -968,10 +971,10 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
         </button>
 
         <button
-          onClick={() => setActiveTab('wanted')}
-          className={`segmented-tab ${activeTab === 'wanted' ? 'active' : ''}`}
+          onClick={() => setActiveTab('flash')}
+          className={`segmented-tab ${activeTab === 'flash' || activeTab === 'wanted' ? 'active' : ''}`}
         >
-          <Flame size={14} style={{ flexShrink: 0 }} /> <span>Wanted ({userWanted.length})</span>
+          <Zap size={14} style={{ flexShrink: 0, color: 'var(--uc-gold)' }} /> <span>Flash Requests ({userFlash.length})</span>
         </button>
       </div>
 
@@ -1418,18 +1421,21 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
         </div>
       )}
 
-      {/* TAB 6: WANTED REQUESTS */}
-      {activeTab === 'wanted' && (
+      {/* TAB 6: FLASH REQUESTS */}
+      {(activeTab === 'flash' || activeTab === 'wanted') && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {userWanted.length > 0 ? (
+          {userFlash.length > 0 ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
-              {userWanted.map((w) => (
-                <div key={w.id} className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', borderRadius: '14px' }}>
+              {userFlash.map((w) => (
+                <div key={w.id} className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', borderRadius: '14px', borderLeft: '4px solid var(--uc-gold)' }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                     <CampusBadge campus={w.preferredCampus} size="sm" />
                     <span style={{ fontSize: '0.86rem', fontWeight: 900, color: 'var(--uc-blue)' }}>₱{w.targetBudget.toLocaleString()}</span>
                   </div>
-                  <h4 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-primary)' }}>{w.itemTitle}</h4>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Zap size={14} color="var(--uc-gold)" />
+                    <h4 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>{w.itemTitle}</h4>
+                  </div>
                   <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.45, margin: 0 }}>{w.description}</p>
                   <div style={{ marginTop: 'auto', paddingTop: '0.5rem', borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                     <span>Category: {w.category}</span>
@@ -1441,11 +1447,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           ) : (
             <div className="empty-state">
               <div className="empty-state-icon">
-                <Search size={28} />
+                <Zap size={28} color="var(--uc-gold)" />
               </div>
-              <h4 className="empty-state-title">No Open Wanted Requests</h4>
+              <h4 className="empty-state-title">No Open Flash Requests</h4>
               <p className="empty-state-desc">
-                Post what books or gear you're searching for so other students on campus can offer them.
+                Post urgent needs for books, tools, or uniform parts so other students on campus can offer them quickly.
               </p>
             </div>
           )}

@@ -6,8 +6,9 @@ const env = require('../config/env');
 const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
 const { serializeUser } = require('../serializers/userSerializer');
-const { hashCode, verifyCode } = require('../utils/generateCode');
+const { generate4DigitCode, hashCode, verifyCode } = require('../utils/generateCode');
 const { generateTokens, setRefreshTokenCookie } = require('../utils/authHelpers');
+const emailService = require('../services/email.service');
 
 /**
  * Register a new student account
@@ -29,14 +30,16 @@ const register = asyncHandler(async (req, res, next) => {
   const existingEmail = await db('users')
     .whereRaw('LOWER(email) = ?', [email.toLowerCase().trim()])
     .first();
+
   if (existingEmail) {
-    return next(new AppError('Email address is already in use.', 409));
+    return next(new AppError('Email is already registered.', 409));
   }
 
   // Check if student ID already registered
   const existingStudentId = await db('users')
     .where({ student_id: studentId.trim() })
     .first();
+
   if (existingStudentId) {
     return next(new AppError('Student ID is already registered.', 409));
   }
@@ -44,7 +47,7 @@ const register = asyncHandler(async (req, res, next) => {
   const passwordHash = await bcrypt.hash(password, 12);
   const userId = uuidv4();
   const isVerified = false;
-  const trustScore = 60;
+  const trustScore = 0;
 
   const newUser = {
     id: userId,
@@ -60,10 +63,10 @@ const register = asyncHandler(async (req, res, next) => {
     is_verified: isVerified,
     id_photo_url: idPhotoUrl || null,
     trust_score: trustScore,
-    rating: 5.0,
+    rating: 0.0,
     total_reviews: 0,
     completed_trades: 0,
-    punctuality_rate: 100,
+    punctuality_rate: 0,
     bio: `Student at ${campus} - ${college.trim()}.`,
     is_pro_merchant: false,
     is_banned: false
@@ -222,7 +225,7 @@ const logout = asyncHandler(async (req, res) => {
 });
 
 /**
- * Request password reset (Student flow: registered for campus administrator review)
+ * Request password reset (Direct email flow: no admin permission required)
  */
 const forgotPassword = asyncHandler(async (req, res, next) => {
   const { email } = req.body;
@@ -247,58 +250,70 @@ const forgotPassword = asyncHandler(async (req, res, next) => {
     );
   }
 
-  // Check if a reset request is already pending admin review
-  const existingPending = await db('password_reset_requests')
-    .where({ user_id: user.id, status: 'pending' })
-    .first();
+  // Generate 4-digit verification code directly
+  const code = generate4DigitCode();
+  const codeHash = await hashCode(code);
+  const expiry = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes validity
 
-  if (existingPending) {
-    return res.status(200).json({
-      status: 'success',
-      message: 'A password reset request for this account is already pending administrator confirmation. Please wait for an administrator to review it.',
-      data: {
-        requestId: existingPending.id,
-        status: 'pending'
-      }
-    });
-  }
+  // Save code hash directly to student account
+  await db('users').where({ id: user.id }).update({
+    reset_code_hash: codeHash,
+    reset_code_exp: expiry
+  });
 
+  // Record in password_reset_requests for compliance & logging
   const requestId = uuidv4();
   await db('password_reset_requests').insert({
     id: requestId,
     user_id: user.id,
     email: user.email,
-    status: 'pending'
-  });
+    status: 'sent',
+    code_hash: codeHash,
+    code_exp: expiry,
+    reviewed_at: new Date(),
+    admin_note: 'Direct email dispatch (no admin approval required)'
+  }).catch(() => {});
+
+  // Send verification code directly to student's email
+  try {
+    await emailService.sendPasswordResetEmail(user.email, code, user.name);
+  } catch (err) {
+    console.error('[AUTH] Failed to send password reset email:', err.message);
+  }
 
   res.status(200).json({
     status: 'success',
-    message: 'Password reset request submitted successfully. It has been sent to campus administration for approval. Once approved, your verification code will be sent to your registered email.',
+    message: 'A 4-digit verification code has been sent directly to your registered email address. Please check your inbox or spam folder.',
     data: {
-      requestId,
-      status: 'pending'
+      email: user.email,
+      requestId
     }
   });
 });
 
 /**
- * Reset password with admin-approved verification code
+ * Reset password with verification code
  */
 const resetPassword = asyncHandler(async (req, res, next) => {
   const { email, code, newPassword } = req.body;
 
-  const user = await db('users').whereRaw('LOWER(email) = ?', [email.toLowerCase().trim()]).first();
+  if (!email || !code || !newPassword) {
+    return next(new AppError('Email, verification code, and new password are required.', 400));
+  }
+
+  const cleanEmail = email.toLowerCase().trim();
+  const user = await db('users').whereRaw('LOWER(email) = ?', [cleanEmail]).first();
   if (!user) {
     return next(new AppError('Account not found.', 404));
   }
 
   if (!user.reset_code_hash || !user.reset_code_exp || new Date() > new Date(user.reset_code_exp)) {
-    return next(new AppError('Verification code has expired or has not been approved by administration. Please request a new one.', 400));
+    return next(new AppError('Verification code has expired. Please request a new one.', 400));
   }
 
-  const isMatch = await verifyCode(code, user.reset_code_hash);
+  const isMatch = await verifyCode(code.trim(), user.reset_code_hash);
   if (!isMatch) {
-    return next(new AppError('Invalid verification code.', 400));
+    return next(new AppError('Invalid verification code. Please check the 4-digit code in your email.', 400));
   }
 
   const passwordHash = await bcrypt.hash(newPassword, 12);
@@ -309,10 +324,11 @@ const resetPassword = asyncHandler(async (req, res, next) => {
     refresh_token_hash: null // Invalidate existing sessions for security
   });
 
-  // Mark latest approved request as completed
+  // Mark latest reset requests as completed
   await db('password_reset_requests')
-    .where({ user_id: user.id, status: 'approved' })
-    .update({ status: 'completed' });
+    .where({ user_id: user.id })
+    .update({ status: 'completed' })
+    .catch(() => {});
 
   res.status(200).json({
     status: 'success',

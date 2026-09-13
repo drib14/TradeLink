@@ -117,34 +117,91 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
       maxWidth="540px"
     >
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
-        {/* Target Item Summary Banner */}
+        {/* Side-by-Side Trade Comparison Preview */}
         <div
           style={{
-            backgroundColor: 'var(--uc-blue-subtle, #EFF6FF)',
-            border: '1px solid var(--border-subtle, #BFDBFE)',
-            borderRadius: '10px',
-            padding: '0.75rem',
-            display: 'flex',
+            display: 'grid',
+            gridTemplateColumns: '1fr auto 1fr',
+            gap: '0.65rem',
             alignItems: 'center',
-            gap: '0.75rem'
+            backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+            border: '1px solid var(--border-subtle, #E2E8F0)',
+            borderRadius: '12px',
+            padding: '0.85rem'
           }}
         >
-          {targetListing.images && targetListing.images.length > 0 && targetListing.images[0] && targetListing.images[0].trim() !== '' ? (
-            <img
-              src={targetListing.images[0]}
-              alt={targetListing.title}
-              style={{ width: '46px', height: '46px', borderRadius: '8px', objectFit: 'cover' }}
-            />
-          ) : (
-            <div style={{ width: '46px', height: '46px', borderRadius: '8px', backgroundColor: 'var(--bg-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
-              <ArrowLeftRight size={20} />
+          {/* Left: Target Item (Seller) */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', minWidth: 0 }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+              They Give
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              {targetListing.images && targetListing.images.length > 0 && targetListing.images[0] ? (
+                <img
+                  src={targetListing.images[0]}
+                  alt={targetListing.title}
+                  style={{ width: '44px', height: '44px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }}
+                />
+              ) : (
+                <div style={{ width: '44px', height: '44px', borderRadius: '8px', backgroundColor: 'var(--bg-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', flexShrink: 0 }}>
+                  <ArrowLeftRight size={18} />
+                </div>
+              )}
+              <div style={{ minWidth: 0 }}>
+                <h5 style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0 }}>
+                  {targetListing.title}
+                </h5>
+                <span style={{ fontSize: '0.74rem', color: 'var(--uc-blue)', fontWeight: 800 }}>
+                  ₱{targetListing.price.toLocaleString()}
+                </span>
+              </div>
             </div>
-          )}
-          <div style={{ flex: 1 }}>
-            <h5 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>{targetListing.title}</h5>
-            <p style={{ fontSize: '0.74rem', color: 'var(--uc-blue)', marginTop: '2px' }}>
-              Seller: {targetListing.sellerName} ({targetListing.sellerCampus}) • Value: ₱{targetListing.price.toLocaleString()}
-            </p>
+          </div>
+
+          {/* Center: Exchange Icon */}
+          <div
+            style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              backgroundColor: 'var(--uc-blue-subtle, #EFF6FF)',
+              color: 'var(--uc-blue, #002B7F)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}
+          >
+            <ArrowLeftRight size={16} />
+          </div>
+
+          {/* Right: Your Offer */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', minWidth: 0 }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+              You Give
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              {selectedMyListing?.images?.[0] ? (
+                <img
+                  src={selectedMyListing.images[0]}
+                  alt={selectedMyListing.title}
+                  style={{ width: '44px', height: '44px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }}
+                />
+              ) : (
+                <div style={{ width: '44px', height: '44px', borderRadius: '8px', backgroundColor: 'var(--bg-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', flexShrink: 0 }}>
+                  <ArrowLeftRight size={18} />
+                </div>
+              )}
+              <div style={{ minWidth: 0 }}>
+                <h5 style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0 }}>
+                  {selectedMyListing ? selectedMyListing.title : (customDescription.trim() || 'Custom Item')}
+                </h5>
+                <span style={{ fontSize: '0.74rem', color: 'var(--accent-green, #059669)', fontWeight: 800 }}>
+                  {selectedMyListing ? `₱${selectedMyListing.price.toLocaleString()}` : 'Custom Value'}
+                  {cashTopUp > 0 && ` + ₱${cashTopUp.toLocaleString()}`}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -162,10 +219,10 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
             >
               {myListings.map((item) => (
                 <option key={item.id} value={item.id}>
-                  {item.title} (₱{item.price})
+                  {item.title} (₱{item.price.toLocaleString()})
                 </option>
               ))}
-              <option value="">+ Offer custom item</option>
+              <option value="">+ Offer custom item not yet in your listings</option>
             </select>
           ) : (
             <input
@@ -192,23 +249,71 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
           )}
         </div>
 
-        {/* Section 2: Cash Top-up (Optional) */}
+        {/* Section 2: Cash Top-up with Quick Adjustment Chips */}
         <div>
-          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-            Cash Top-Up (Optional)
-          </label>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+            <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              Cash Top-Up (Optional)
+            </label>
+            <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+              Balances out differences in trade value
+            </span>
+          </div>
+
           <div style={{ position: 'relative' }}>
             <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, color: 'var(--text-muted)' }}>
               ₱
             </span>
             <input
               type="number"
+              min="0"
               value={cashTopUp || ''}
-              onChange={(e) => setCashTopUp(Number(e.target.value))}
-              placeholder="0 (e.g. 150 to balance the trade value)"
+              onChange={(e) => setCashTopUp(Math.max(0, Number(e.target.value)))}
+              placeholder="0 (e.g. 150 to balance the trade)"
               className="clean-input"
               style={{ paddingLeft: '1.75rem', fontWeight: 700 }}
             />
+          </div>
+
+          {/* Quick preset top-up chips */}
+          <div style={{ display: 'flex', gap: '0.35rem', marginTop: '0.45rem', flexWrap: 'wrap' }}>
+            {[50, 100, 200, 500].map((amt) => (
+              <button
+                key={amt}
+                type="button"
+                onClick={() => setCashTopUp((prev) => prev + amt)}
+                style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  padding: '0.2rem 0.55rem',
+                  borderRadius: '6px',
+                  backgroundColor: 'var(--bg-subtle, #F1F5F9)',
+                  border: '1px solid var(--border-subtle, #E2E8F0)',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer'
+                }}
+              >
+                +₱{amt}
+              </button>
+            ))}
+            {cashTopUp > 0 && (
+              <button
+                type="button"
+                onClick={() => setCashTopUp(0)}
+                style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  padding: '0.2rem 0.55rem',
+                  borderRadius: '6px',
+                  backgroundColor: '#FEF2F2',
+                  border: '1px solid #FECACA',
+                  color: '#DC2626',
+                  cursor: 'pointer'
+                }}
+              >
+                Clear
+              </button>
+            )}
           </div>
         </div>
 

@@ -63,6 +63,7 @@ module.exports = (io, socket) => {
         isSystemMessage = false,
         swapOfferId,
         transactionId,
+        flashRequestId,
         wantedRequestId,
         mediaUrl,
         mediaType
@@ -78,6 +79,7 @@ module.exports = (io, socket) => {
 
       messageTimestamps.push(now);
 
+      const effectiveFlashId = flashRequestId || wantedRequestId || null;
       const messagePayload = await createMessage({
         conversationId,
         senderId: userId,
@@ -86,7 +88,8 @@ module.exports = (io, socket) => {
         isSystemMessage,
         swapOfferId,
         transactionId,
-        wantedRequestId,
+        flashRequestId: effectiveFlashId,
+        wantedRequestId: effectiveFlashId,
         mediaUrl,
         mediaType
       });

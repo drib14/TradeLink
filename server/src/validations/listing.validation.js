@@ -1,11 +1,23 @@
 const Joi = require('joi');
 const { CONDITIONS, TRADE_MODES } = require('../config/constants');
 
+const mediaItemSchema = Joi.alternatives().try(
+  Joi.string().uri().allow(''),
+  Joi.object({
+    url: Joi.string().required(),
+    mediaType: Joi.string().valid('image', 'video').default('image'),
+    thumbnailUrl: Joi.string().uri().allow('', null).optional()
+  })
+);
+
 const createListingSchema = Joi.object({
-  title: Joi.string().trim().min(5).max(200).required().messages({
-    'string.min': 'Listing title must be at least 5 characters long.',
-    'string.empty': 'Listing title is required.'
-  }),
+  title: Joi.string().trim().min(5).max(200).required()
+    .pattern(/^[^<>]*$/, 'no HTML tags')
+    .messages({
+      'string.min': 'Listing title must be at least 5 characters long.',
+      'string.empty': 'Listing title is required.',
+      'string.pattern.name': 'Listing title must not contain HTML tags.'
+    }),
   description: Joi.string().trim().min(10).max(5000).required().messages({
     'string.min': 'Description must be at least 10 characters long.',
     'string.empty': 'Description is required.'
@@ -18,17 +30,19 @@ const createListingSchema = Joi.object({
   condition: Joi.string().valid(...CONDITIONS).required(),
   quantity: Joi.number().integer().min(1).max(999).default(1),
   tags: Joi.array().items(Joi.string().trim().max(50)).max(10).default([]),
-  images: Joi.array().items(Joi.string()).min(1).max(5).required().messages({
-    'array.min': 'At least one listing photo is required.',
-    'array.max': 'A maximum of 5 photos are allowed per listing.'
-  }),
+  media: Joi.array().items(mediaItemSchema).max(10).optional(),
+  images: Joi.array().items(Joi.string()).max(10).optional(),
   preferredMeetupSpots: Joi.array().items(Joi.string().trim().max(200)).default([]),
   customMeetupSpot: Joi.string().trim().max(200).allow('', null),
-  courseCode: Joi.string().trim().max(30).allow('', null)
+  campus: Joi.string().trim().allow('', null),
+  department: Joi.string().trim().allow('', null)
+}).or('media', 'images').messages({
+  'object.missing': 'At least one listing photo is required (provide media or images).'
 });
 
 const updateListingSchema = Joi.object({
-  title: Joi.string().trim().min(5).max(200),
+  title: Joi.string().trim().min(5).max(200)
+    .pattern(/^[^<>]*$/, 'no HTML tags'),
   description: Joi.string().trim().min(10).max(5000),
   price: Joi.number().min(0).max(100000),
   originalSrp: Joi.number().min(0).max(200000),
@@ -38,12 +52,14 @@ const updateListingSchema = Joi.object({
   condition: Joi.string().valid(...CONDITIONS),
   quantity: Joi.number().integer().min(0).max(999),
   tags: Joi.array().items(Joi.string().trim().max(50)).max(10),
-  images: Joi.array().items(Joi.string()).min(1).max(5),
+  media: Joi.array().items(mediaItemSchema).max(10),
+  images: Joi.array().items(Joi.string()).max(10),
   preferredMeetupSpots: Joi.array().items(Joi.string().trim().max(200)),
   customMeetupSpot: Joi.string().trim().max(200).allow('', null),
-  courseCode: Joi.string().trim().max(30).allow('', null),
   status: Joi.string().valid('active', 'sold'),
-  isSold: Joi.boolean()
+  isSold: Joi.boolean(),
+  isFeatured: Joi.boolean(),
+  isBoosted: Joi.boolean()
 });
 
 const queryListingsSchema = Joi.object({

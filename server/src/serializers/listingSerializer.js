@@ -62,11 +62,10 @@ function serializeListing(row, mediaItems = []) {
     sellerCampus: row.seller_campus || row.sellerCampus || row.campus || '',
     sellerCollege: row.seller_college || row.sellerCollege || row.department || '',
     sellerIsVerified: Boolean(row.seller_is_verified ?? row.sellerIsVerified ?? false),
-    sellerTrustScore: row.seller_trust_score ?? row.sellerTrustScore ?? 60,
+    sellerTrustScore: Number(row.seller_trust_score ?? row.sellerTrustScore ?? 0),
     isBoosted: Boolean(row.is_boosted ?? row.is_featured ?? row.isBoosted),
     isSold: isSoldExplicit || isOutOfStock,
     status: row.status || (isSoldExplicit ? 'sold' : 'active'),
-    courseCode: row.course_code || row.courseCode || null,
     preferredMeetupSpots: row.preferred_meetup_spots
       ? (typeof row.preferred_meetup_spots === 'string' ? JSON.parse(row.preferred_meetup_spots) : row.preferred_meetup_spots)
       : [],

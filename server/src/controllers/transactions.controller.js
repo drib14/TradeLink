@@ -270,7 +270,7 @@ const createTransaction = asyncHandler(async (req, res, next) => {
 
   // Sync to chat conversation
   const io = req.app.get('io');
-  const dealMessageContent = `🎉 Confirmed Order Deal: Reference ${referenceNo} for ₱${targetAmount.toLocaleString()} (${paymentMethod.toUpperCase()}). Let's coordinate meetup location and time right here!`;
+  const dealMessageContent = `[Confirmed Deal] Reference ${referenceNo} for ₱${targetAmount.toLocaleString()} (${paymentMethod.toUpperCase()}). Let's coordinate meetup location and time right here!`;
   await syncTransactionToChat({
     listingId: targetListingId,
     buyerId: targetBuyerId,
@@ -337,7 +337,7 @@ const completeTransaction = asyncHandler(async (req, res, next) => {
     sellerId: tx.seller_id,
     transactionId: tx.id,
     referenceNo: tx.reference_no,
-    content: `✅ Deal ${tx.reference_no} is officially COMPLETED! Thank you for trading safely on campus. Both students can now rate and review each other.`,
+    content: `[Deal Completed] Reference ${tx.reference_no} is officially COMPLETED! Thank you for trading safely on campus. Both students can now rate and review each other.`,
     isSystem: true,
     io
   });
@@ -389,7 +389,7 @@ const cancelTransaction = asyncHandler(async (req, res, next) => {
     sellerId: tx.seller_id,
     transactionId: tx.id,
     referenceNo: tx.reference_no,
-    content: `❌ Order ${tx.reference_no} was CANCELLED (${reason.trim()}). The item has been re-listed on the campus catalog.`,
+    content: `[Deal Cancelled] Order ${tx.reference_no} was CANCELLED (${reason.trim()}). The item has been re-listed on the campus catalog.`,
     isSystem: true,
     io
   });

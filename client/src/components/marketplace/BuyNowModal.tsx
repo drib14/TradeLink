@@ -13,7 +13,6 @@ import {
   CheckCircle2,
   ShoppingBag,
   MessageSquare,
-  Sparkles,
   Lock
 } from 'lucide-react';
 
@@ -38,6 +37,8 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
 
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'gcash' | 'maya'>('cash');
   const [buyerNotes, setBuyerNotes] = useState('');
+  const maxQuantity = listing.quantity !== undefined && listing.quantity > 0 ? listing.quantity : 1;
+  const [orderQuantity, setOrderQuantity] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmedTransaction, setConfirmedTransaction] = useState<any>(null);
 
@@ -96,8 +97,10 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
       const tx = await createDirectOrder({
         listing,
         paymentMethod,
-        notes: buyerNotes.trim()
-      });
+        notes: `Qty: ${orderQuantity}${buyerNotes.trim() ? ` — ${buyerNotes.trim()}` : ''}`,
+        quantity: orderQuantity,
+        amount: listing.price * orderQuantity
+      } as any);
 
       setConfirmedTransaction(tx);
       showToast(
@@ -262,6 +265,49 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
               </div>
             </div>
 
+            {/* Quantity Stepper if more than 1 */}
+            {maxQuantity > 1 && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.65rem 0.85rem',
+                  backgroundColor: 'var(--bg-subtle)',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-subtle)'
+                }}
+              >
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                    Quantity to Buy
+                  </label>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                    {maxQuantity} available in stock
+                  </span>
+                </div>
+                <div style={{ display: 'inline-flex', alignItems: 'center', border: '1.5px solid var(--border-subtle)', borderRadius: '6px', overflow: 'hidden', backgroundColor: '#FFFFFF' }}>
+                  <button
+                    type="button"
+                    onClick={() => setOrderQuantity((prev) => Math.max(1, prev - 1))}
+                    style={{ width: '32px', height: '32px', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '1rem', color: 'var(--text-primary)' }}
+                  >
+                    −
+                  </button>
+                  <span style={{ width: '36px', textAlign: 'center', fontWeight: 800, fontSize: '0.88rem', color: 'var(--uc-blue)' }}>
+                    {orderQuantity}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setOrderQuantity((prev) => Math.min(maxQuantity, prev + 1))}
+                    style={{ width: '32px', height: '32px', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '1rem', color: 'var(--text-primary)' }}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Payment Method Selection */}
             {!isFree && (
               <div>
@@ -341,8 +387,14 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
                 className="btn-gold"
                 style={{ flex: 2, padding: '0.75rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
               >
-                <Sparkles size={16} />
-                <span>{isSubmitting ? 'Placing Order...' : isFree ? 'Claim Free Donation' : `Confirm Order • ₱${listing.price.toLocaleString()}`}</span>
+                <ShoppingBag size={16} />
+                <span>
+                  {isSubmitting
+                    ? 'Placing Order...'
+                    : isFree
+                    ? 'Claim Free Donation'
+                    : `Confirm Order • ₱${(listing.price * orderQuantity).toLocaleString()}${orderQuantity > 1 ? ` (${orderQuantity} items)` : ''}`}
+                </span>
               </button>
             </div>
           </form>

@@ -8,9 +8,8 @@ import { Campus, Listing } from '../types';
 import {
   ArrowRight,
   Bookmark,
-  Flame,
+  Zap,
   ArrowLeftRight,
-  MapPin,
   ShoppingBag
 } from 'lucide-react';
 
@@ -67,15 +66,15 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenChat: _onO
 
           <div
             className="clean-card card-interactive"
-            onClick={() => onNavigate('wanted')}
+            onClick={() => onNavigate('flash-market')}
             style={{ padding: '1rem 1.15rem', display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}
           >
-            <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--accent-red-subtle, #FEF2F2)', color: 'var(--accent-red)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Flame size={18} />
+            <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--color-danger-subtle, #FEF2F2)', color: 'var(--color-danger, #DC2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Zap size={18} />
             </div>
             <div>
-              <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)' }}>Wanted Board</div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Student LTB requests</div>
+              <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)' }}>Flash Market</div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Urgent campus requests</div>
             </div>
           </div>
 
@@ -90,20 +89,6 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenChat: _onO
             <div>
               <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)' }}>Direct Swaps</div>
               <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Barter gear & textbooks</div>
-            </div>
-          </div>
-
-          <div
-            className="clean-card card-interactive"
-            onClick={() => onNavigate('campus-map')}
-            style={{ padding: '1rem 1.15rem', display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}
-          >
-            <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--accent-green-subtle, #ECFDF5)', color: 'var(--accent-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <MapPin size={18} />
-            </div>
-            <div>
-              <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)' }}>Guarded Hubs</div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>8 campus meetup zones</div>
             </div>
           </div>
         </div>

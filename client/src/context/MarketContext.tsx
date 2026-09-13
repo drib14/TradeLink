@@ -29,6 +29,7 @@ interface MarketContextType {
   toggleFavorite: (id: string) => void;
   boostListing: (id: string) => Promise<void>;
   markAsSold: (id: string, isSold: boolean) => Promise<void>;
+  updateListingQuantity: (id: string, quantity: number) => Promise<void>;
   incrementViews: (id: string) => void;
   clearFilters: () => void;
   refreshListings: () => Promise<void>;
@@ -112,9 +113,8 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           const matchTitle = item.title.toLowerCase().includes(q);
           const matchDesc = item.description.toLowerCase().includes(q);
           const matchSeller = item.sellerName.toLowerCase().includes(q);
-          const matchCourse = item.courseCode?.toLowerCase().includes(q);
           const matchTag = item.tags?.some((t) => t.toLowerCase().includes(q));
-          if (!matchTitle && !matchDesc && !matchSeller && !matchCourse && !matchTag) {
+          if (!matchTitle && !matchDesc && !matchSeller && !matchTag) {
             return false;
           }
         }
@@ -179,6 +179,17 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     await listingsService.markAsSold(id, isSold);
   };
 
+  const updateListingQuantity = async (id: string, quantity: number) => {
+    setListings((prev) =>
+      prev.map((item) =>
+        item.id === id
+          ? { ...item, quantity, isSold: quantity === 0 }
+          : item
+      )
+    );
+    await listingsService.updateListingQuantity(id, quantity);
+  };
+
   const incrementViews = (id: string) => {
     setListings((prev) => prev.map((l) => (l.id === id ? { ...l, views: l.views + 1 } : l)));
     listingsService.incrementViews(id);
@@ -212,6 +223,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         toggleFavorite,
         boostListing,
         markAsSold,
+        updateListingQuantity,
         incrementViews,
         clearFilters,
         refreshListings

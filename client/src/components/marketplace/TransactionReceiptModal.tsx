@@ -58,6 +58,7 @@ export const TransactionReceiptModal: React.FC<TransactionReceiptModalProps> = (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
         {/* Receipt Header Card */}
         <div
+          className="printable-receipt-card"
           style={{
             border: '2px dashed var(--border-subtle, #CBD5E1)',
             borderRadius: '12px',
@@ -66,6 +67,21 @@ export const TransactionReceiptModal: React.FC<TransactionReceiptModalProps> = (
             position: 'relative'
           }}
         >
+          {/* UC Watermark Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.65rem', marginBottom: '0.65rem', borderBottom: '1px solid var(--border-subtle, #E2E8F0)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+              <div style={{ width: '22px', height: '22px', borderRadius: '50%', backgroundColor: 'var(--uc-blue, #002B7F)', color: '#FFC72C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.7rem' }}>
+                UC
+              </div>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--uc-blue, #002B7F)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                University of Cebu • TradeLink Voucher
+              </span>
+            </div>
+            <span style={{ fontSize: '0.66rem', color: 'var(--text-muted)', fontWeight: 700 }}>
+              VERIFIED P2P ORDER
+            </span>
+          </div>
+
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--border-subtle, #E2E8F0)', paddingBottom: '0.85rem' }}>
             <div>
               <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.05em' }}>

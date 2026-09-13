@@ -18,6 +18,10 @@ function serializeUser(user, options = {}) {
   const isSelf = Boolean(options.isSelf);
   const isAdmin = Boolean(options.isAdmin);
 
+  const completedTrades = Number(user.completed_trades ?? user.completedTrades ?? 0);
+  const totalReviews = Number(user.total_reviews ?? user.totalReviews ?? 0);
+  const hasTransactions = completedTrades > 0 || totalReviews > 0;
+
   const base = {
     id: user.id,
     name: user.name,
@@ -30,11 +34,11 @@ function serializeUser(user, options = {}) {
     isVerified,
     verificationStatus,
     idPhotoUrl: isSelf || isAdmin ? (user.id_photo_url || user.idPhotoUrl || null) : null,
-    trustScore: user.trust_score ?? user.trustScore ?? 60,
-    rating: parseFloat(user.rating || 5.0),
-    totalReviews: user.total_reviews ?? user.totalReviews ?? 0,
-    completedTrades: user.completed_trades ?? user.completedTrades ?? 0,
-    punctualityRate: user.punctuality_rate ?? user.punctualityRate ?? 100,
+    trustScore: hasTransactions ? Number(user.trust_score ?? user.trustScore ?? 0) : 0,
+    rating: hasTransactions ? parseFloat(user.rating ?? 0.0) : 0.0,
+    totalReviews,
+    completedTrades,
+    punctualityRate: hasTransactions ? Number(user.punctuality_rate ?? user.punctualityRate ?? 0) : 0,
     bio: user.bio || '',
     isProMerchant: Boolean(user.is_pro_merchant ?? user.isProMerchant),
     joinedDate: user.created_at || user.joinedDate || new Date().toISOString()

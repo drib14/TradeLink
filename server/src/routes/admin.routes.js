@@ -5,6 +5,7 @@ const { authenticate } = require('../middleware/auth');
 const { requireRole } = require('../middleware/rbac');
 const decodeParams = require('../middleware/decodeParams');
 const validate = require('../middleware/validate');
+const validateUUID = require('../middleware/validateUUID');
 const {
   createAnnouncementSchema,
   banUserSchema,
@@ -27,20 +28,27 @@ router.use(authenticate, requireRole('admin'));
 // Stats & Overview
 router.get('/stats', adminController.getStats);
 
+// Listings Full Admin CRUD
+router.get('/listings', adminController.getAllListingsAdmin);
+router.post('/listings', adminController.createListingAdmin);
+router.put('/listings/:id', validateUUID('id'), adminController.updateListingAdmin);
+router.patch('/listings/:id/boost', validateUUID('id'), adminController.toggleBoostListingAdmin);
+router.delete('/listings/:id', validateUUID('id'), adminController.deleteListingAdmin);
+
 // Student Verifications
 router.get('/verifications', adminController.getVerifications);
-router.patch('/verifications/:id/approve', adminController.approveVerification);
-router.patch('/verifications/:id/reject', adminController.rejectVerification);
+router.patch('/verifications/:id/approve', validateUUID('id'), adminController.approveVerification);
+router.patch('/verifications/:id/reject', validateUUID('id'), adminController.rejectVerification);
 
 // Password Reset Requests (Admin Confirmation / Refusal)
 router.get('/password-resets', adminController.getPasswordResetRequests);
-router.patch('/password-resets/:id/approve', adminController.approvePasswordReset);
-router.patch('/password-resets/:id/reject', adminController.rejectPasswordReset);
+router.patch('/password-resets/:id/approve', validateUUID('id'), adminController.approvePasswordReset);
+router.patch('/password-resets/:id/reject', validateUUID('id'), adminController.rejectPasswordReset);
 
 // Flagged Listings
 router.get('/flags', adminController.getFlaggedListings);
-router.patch('/flags/:id/resolve', adminController.resolveFlag);
-router.delete('/flags/:id/remove', adminController.removeListingByAdmin);
+router.patch('/flags/:id/resolve', validateUUID('id'), adminController.resolveFlag);
+router.delete('/flags/:id/remove', validateUUID('id'), adminController.removeListingByAdmin);
 
 // Trade Disputes
 router.get('/disputes', adminController.getDisputes);

@@ -18,7 +18,9 @@ import {
   User,
   Receipt,
   Settings,
-  Shield
+  Shield,
+  Zap,
+  Clock
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -277,19 +279,23 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
 
             <button
-              onClick={() => onNavigate('wanted')}
+              onClick={() => onNavigate('flash-market')}
               style={{
                 padding: '0.45rem 0.75rem',
                 borderRadius: '8px',
                 fontSize: '0.84rem',
-                fontWeight: currentView === 'wanted' ? 800 : 600,
-                color: currentView === 'wanted' ? 'var(--uc-blue, #002B7F)' : 'var(--text-secondary, #475569)',
-                backgroundColor: currentView === 'wanted' ? 'var(--uc-blue-subtle, #EBF1FC)' : 'transparent',
+                fontWeight: currentView === 'flash-market' || currentView === 'wanted' ? 800 : 600,
+                color: currentView === 'flash-market' || currentView === 'wanted' ? 'var(--uc-blue, #002B7F)' : 'var(--text-secondary, #475569)',
+                backgroundColor: currentView === 'flash-market' || currentView === 'wanted' ? 'var(--uc-blue-subtle, #EBF1FC)' : 'transparent',
                 border: 'none',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px'
               }}
             >
-              Wanted
+              <Zap size={14} />
+              <span>Flash Market</span>
             </button>
 
             <button
@@ -328,60 +334,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                   {pendingSwapsCount}
                 </span>
               )}
-            </button>
-
-            <button
-              onClick={handleTransactionsClick}
-              style={{
-                position: 'relative',
-                padding: '0.45rem 0.75rem',
-                borderRadius: '8px',
-                fontSize: '0.84rem',
-                fontWeight: currentView === 'transactions' ? 800 : 600,
-                color: currentView === 'transactions' ? 'var(--uc-blue, #002B7F)' : 'var(--text-secondary, #475569)',
-                backgroundColor: currentView === 'transactions' ? 'var(--uc-blue-subtle, #EBF1FC)' : 'transparent',
-                border: 'none',
-                cursor: 'pointer'
-              }}
-            >
-              <span>Transactions</span>
-              {pendingTransactionsCount > 0 && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: '2px',
-                    right: '2px',
-                    backgroundColor: '#059669',
-                    color: '#FFFFFF',
-                    fontSize: '0.6rem',
-                    fontWeight: 800,
-                    width: '15px',
-                    height: '15px',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  {pendingTransactionsCount}
-                </span>
-              )}
-            </button>
-
-            <button
-              onClick={() => onNavigate('campus-map')}
-              style={{
-                padding: '0.45rem 0.75rem',
-                borderRadius: '8px',
-                fontSize: '0.84rem',
-                fontWeight: currentView === 'campus-map' ? 800 : 600,
-                color: currentView === 'campus-map' ? 'var(--uc-blue, #002B7F)' : 'var(--text-secondary, #475569)',
-                backgroundColor: currentView === 'campus-map' ? 'var(--uc-blue-subtle, #EBF1FC)' : 'transparent',
-                border: 'none',
-                cursor: 'pointer'
-              }}
-            >
-              Landmarks
             </button>
           </div>
 
@@ -513,8 +465,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                       {!currentUser.isVerified && (
                         (!currentUser.isVerified && (currentUser.verificationStatus === 'pending' || !!currentUser.idPhotoUrl)) ? (
                           <div style={{ backgroundColor: 'rgba(0, 43, 127, 0.06)', border: '1px solid rgba(0, 43, 127, 0.15)', borderRadius: '8px', padding: '0.45rem 0.6rem', marginTop: '0.4rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--uc-blue)' }}>
-                              ⏳ Verification Pending
+                            <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--uc-blue)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              <Clock size={12} style={{ flexShrink: 0 }} />
+                              <span>Verification Pending</span>
                             </span>
                             <button
                               type="button"
@@ -570,7 +523,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <button
                         onClick={() => {
                           setIsUserMenuOpen(false);
-                          onNavigate('admin');
+                          window.open('http://localhost:5174', '_blank') || (window.location.href = 'http://localhost:5174');
                         }}
                         className="dropdown-item"
                         style={{ backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', color: 'var(--uc-blue, #002B7F)', fontWeight: 700 }}

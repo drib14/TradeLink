@@ -100,6 +100,8 @@ export const WantedCardSkeleton: React.FC = () => {
   );
 };
 
+export const FlashRequestCardSkeleton: React.FC = WantedCardSkeleton;
+
 export const BannerSkeleton: React.FC = () => {
   return (
     <div

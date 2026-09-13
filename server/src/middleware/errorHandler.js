@@ -6,18 +6,29 @@ const errorHandler = (err, req, res, next) => {
   let message = err.message || 'Internal Server Error';
   let status = err.status || 'error';
 
-  // Handle MySQL errors
-  // Handle MySQL duplicate errors securely without exposing column internals
+  // Handle MySQL errors securely — never expose column names or raw SQL
   if (err.code === 'ER_DUP_ENTRY') {
     statusCode = 409;
     status = 'fail';
-    if (err.sqlMessage && err.sqlMessage.includes('email')) {
+    // Provide user-friendly messages without exposing schema internals
+    const sqlMsg = (err.sqlMessage || '').toLowerCase();
+    if (sqlMsg.includes('email')) {
       message = 'An account with this email address already exists.';
-    } else if (err.sqlMessage && err.sqlMessage.includes('student_id')) {
+    } else if (sqlMsg.includes('student_id')) {
       message = 'An account with this ID number is already registered.';
+    } else if (sqlMsg.includes('keyword')) {
+      message = 'This keyword already exists in the prohibited list.';
     } else {
       message = 'A record with this information already exists.';
     }
+  } else if (err.code === 'ER_DATA_TOO_LONG') {
+    statusCode = 400;
+    status = 'fail';
+    message = 'One or more fields exceed the maximum allowed length.';
+  } else if (err.code === 'ER_NO_REFERENCED_ROW_2' || err.code === 'ER_NO_REFERENCED_ROW') {
+    statusCode = 400;
+    status = 'fail';
+    message = 'Referenced record does not exist.';
   }
 
   // Handle JWT specific errors

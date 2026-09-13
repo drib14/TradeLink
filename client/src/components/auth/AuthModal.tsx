@@ -4,10 +4,12 @@ import { useToast } from '../common/Toast';
 import { Campus, College } from '../../types';
 import {
   X,
-  ShieldCheck,
+  Check,
   Loader2,
   Eye,
-  EyeOff
+  EyeOff,
+  ShieldCheck,
+  KeyRound
 } from 'lucide-react';
 import { Logo } from '../common/Logo';
 
@@ -416,30 +418,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   Create Student Account
                 </button>
               </div>
-
-              {/* Admin Portal Link */}
-              <div style={{ textAlign: 'center', marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-light, #E2E8F0)' }}>
-                <a
-                  href={`${window.location.protocol}//${window.location.hostname}:5174`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.35rem',
-                    fontSize: '0.75rem',
-                    color: 'var(--text-muted, #64748B)',
-                    textDecoration: 'none',
-                    fontWeight: 600,
-                    transition: 'color 0.15s ease'
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--uc-blue, #002B7F)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted, #64748B)')}
-                >
-                  <ShieldCheck size={13} />
-                  <span>Login as Administrator</span>
-                </a>
-              </div>
             </form>
           )}
 
@@ -673,17 +651,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    margin: '0 auto 0.75rem auto',
-                    fontSize: '1.5rem',
-                    fontWeight: 'bold'
+                    margin: '0 auto 0.75rem auto'
                   }}>
-                    ✓
+                    <Check size={28} strokeWidth={2.5} />
                   </div>
                   <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.4rem' }}>
-                    Request Submitted to Administration
+                    Verification Code Sent!
                   </h3>
                   <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '1rem' }}>
-                    {forgotMessage || 'Your password reset request is now awaiting campus administration review. Once approved, your verification code will be sent to your registered email.'}
+                    {forgotMessage || `A 4-digit verification code has been dispatched directly to ${forgotEmail}. Please check your inbox or spam folder.`}
                   </p>
                   <div style={{
                     backgroundColor: 'var(--bg-subtle)',
@@ -694,9 +670,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     color: 'var(--text-secondary)',
                     textAlign: 'left',
                     marginBottom: '1rem',
-                    lineHeight: 1.45
+                    lineHeight: 1.45,
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '0.5rem'
                   }}>
-                    🛡️ <strong>What happens next?</strong> Campus moderators verify student identity for account safety. Once approved, check your inbox (or Spam) for an email from <code>uc.tradelink@gmail.com</code> containing your verification code.
+                    <ShieldCheck size={16} color="var(--uc-blue)" style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <div>
+                      <strong>What happens next?</strong> Check your inbox for an email from <code>uc.tradelink@gmail.com</code> containing your 4-digit verification code. It is valid for 30 minutes.
+                    </div>
                   </div>
                   <button
                     type="button"
@@ -742,9 +724,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     padding: '0.75rem 0.9rem',
                     fontSize: '0.8rem',
                     color: 'var(--uc-blue)',
-                    lineHeight: 1.45
+                    lineHeight: 1.45,
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '0.5rem'
                   }}>
-                    🛡️ <strong>Campus Security Verification:</strong> Enter your registered student email. TradeLink will search your account and send a confirmation request to campus administrators. Upon approval, your reset code will be delivered to your inbox.
+                    <KeyRound size={16} color="var(--uc-blue)" style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <div>
+                      <strong>Direct Password Reset:</strong> Enter your registered student email. TradeLink will immediately dispatch a secure 4-digit verification code directly to your email without waiting for administrator approval.
+                    </div>
                   </div>
 
                   <div>
@@ -772,10 +760,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     {isSubmitting ? (
                       <>
                         <Loader2 size={16} className="spin-animation" />
-                        <span>Checking Account & Submitting...</span>
+                        <span>Dispatching Verification Code...</span>
                       </>
                     ) : (
-                      <span>Submit Request for Admin Approval</span>
+                      <span>Send Verification Code to Email</span>
                     )}
                   </button>
 
@@ -785,7 +773,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       onClick={() => setMode('reset')}
                       style={{ color: 'var(--uc-blue)', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer' }}
                     >
-                      Already have an approved code? Enter Code Here →
+                      Already have your code? Enter Code Here →
                     </button>
                     <button
                       type="button"

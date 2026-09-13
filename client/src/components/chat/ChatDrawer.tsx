@@ -4,6 +4,8 @@ import { useChat } from '../../context/ChatContext';
 import { useMarket } from '../../context/MarketContext';
 import { VerifiedBadge } from '../common/VerifiedBadge';
 import { UserAvatar } from '../common/UserAvatar';
+import { ConfirmModal } from '../common/ConfirmModal';
+import { useToast } from '../common/Toast';
 import {
   X,
   Send,
@@ -22,8 +24,11 @@ import {
   Star,
   Zap,
   ShoppingBag,
-  ThumbsUp
+  ThumbsUp,
+  Check,
+  CheckCheck
 } from 'lucide-react';
+import { PromptModal } from '../common/PromptModal';
 
 interface ChatDrawerProps {
   isOpen: boolean;
@@ -83,12 +88,16 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
     cancelTransaction,
     submitTradeReview
   } = useChat();
+  const { showToast } = useToast();
 
   const [inputMessage, setInputMessage] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 640);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState<'all' | 'buying' | 'selling' | 'swaps' | 'wanted'>('all');
+  const [activeTab, setActiveTab] = useState<'conversations' | 'transactions'>('conversations');
+  const [cancelTxModal, setCancelTxModal] = useState<{ id: string } | null>(null);
+  const [completeTxModal, setCompleteTxModal] = useState<{ id: string } | null>(null);
+  const [activeFilter, setActiveFilter] = useState<'all' | 'buying' | 'selling' | 'swaps' | 'flash' | 'wanted'>('all');
 
   // Modal / Popover States
   const [isSpotPickerOpen, setIsSpotPickerOpen] = useState(false);
@@ -129,8 +138,6 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
     sendTypingStatus(e.target.value.length > 0);
   };
 
-  if (!isOpen) return null;
-
   const currentListing = activeConversation
     ? listings.find((l) => l.id === activeConversation.listingId)
     : null;
@@ -140,7 +147,7 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
     currentListing?.sellerId === currentUser.id
   );
 
-  // Filter conversations
+  // Filter conversations unconditionally before any early return
   const filteredConversations = useMemo(() => {
     return conversations.filter((c) => {
       const matchesSearch =
@@ -160,12 +167,14 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
       if (activeFilter === 'swaps') {
         return c.activeSwap || c.listingTradeMode === 'swap';
       }
-      if (activeFilter === 'wanted') {
-        return c.wantedId || c.listingTradeMode === 'wanted';
+      if (activeFilter === 'flash' || activeFilter === 'wanted') {
+        return (c as any).flashRequestId || c.wantedId || (c as any).listingTradeMode === 'flash' || c.listingTradeMode === 'wanted';
       }
       return true;
     });
   }, [conversations, searchQuery, activeFilter, currentUser]);
+
+  if (!isOpen) return null;
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -185,7 +194,7 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
     if (!file) return;
 
     if (file.size > 50 * 1024 * 1024) {
-      alert('File exceeds maximum size limit of 50MB.');
+      showToast('File Too Large', 'File exceeds maximum size limit of 50MB.', 'warning');
       return;
     }
 
@@ -194,7 +203,7 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
       await sendMediaMessage(file, inputMessage.trim() || undefined);
       setInputMessage('');
     } catch (err: any) {
-      alert(err?.message || 'Failed to upload media. Please try again.');
+      showToast('Upload Failed', err?.message || 'Failed to upload media. Please try again.', 'error');
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -218,7 +227,7 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
       setIsBuyModalOpen(false);
       setBuyNotes('');
     } catch (err: any) {
-      alert(err?.message || 'Failed to create order. Please try again.');
+      showToast('Order Failed', err?.message || 'Failed to create order. Please try again.', 'error');
     } finally {
       setIsSubmittingBuy(false);
     }
@@ -248,7 +257,7 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
       setReviewTxId(null);
       setReviewTargetUserId(null);
     } catch (err: any) {
-      alert(err?.message || 'Failed to submit review.');
+      showToast('Review Failed', err?.message || 'Failed to submit review.', 'error');
     } finally {
       setIsSubmittingReview(false);
     }
@@ -388,7 +397,7 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
                 { id: 'buying', label: 'Buying' },
                 { id: 'selling', label: 'Selling' },
                 { id: 'swaps', label: 'Swaps' },
-                { id: 'wanted', label: 'Wanted' }
+                { id: 'flash', label: 'Flash' }
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -403,10 +412,14 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
                     whiteSpace: 'nowrap',
                     backgroundColor: activeFilter === tab.id ? 'var(--uc-blue, #002B7F)' : 'var(--bg-subtle)',
                     color: activeFilter === tab.id ? '#FFFFFF' : 'var(--text-secondary)',
-                    borderColor: activeFilter === tab.id ? 'var(--uc-blue, #002B7F)' : 'var(--border-subtle)'
+                    borderColor: activeFilter === tab.id ? 'var(--uc-blue, #002B7F)' : 'var(--border-subtle)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px'
                   }}
                 >
-                  {tab.label}
+                  {tab.id === 'flash' && <Zap size={11} />}
+                  <span>{tab.label}</span>
                 </button>
               ))}
             </div>
@@ -952,17 +965,14 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
                           {tx && tx.status === 'pending' && (
                             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.2rem', flexWrap: 'wrap' }}>
                               <button
-                                onClick={() => completeTransaction(tx.id)}
+                                onClick={() => setCompleteTxModal({ id: tx.id })}
                                 className="btn-primary"
                                 style={{ padding: '0.4rem 0.85rem', fontSize: '0.74rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
                               >
                                 <CheckCircle2 size={13} /> Confirm Handover & Complete
                               </button>
                               <button
-                                onClick={() => {
-                                  const reason = window.prompt('Reason for order cancellation:', 'Agreed by mutual consent');
-                                  if (reason) cancelTransaction(tx.id, reason);
-                                }}
+                                onClick={() => setCancelTxModal({ id: tx.id })}
                                 className="btn-secondary"
                                 style={{ padding: '0.4rem 0.85rem', fontSize: '0.74rem', color: '#DC2626', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
                               >
@@ -986,18 +996,19 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
                     }
 
                     // ----------------------------------------------------
-                    // 3C. INTERACTIVE WANTED REQUEST CARD
+                    // 3C. INTERACTIVE FLASH REQUEST / WANTED CARD
                     // ----------------------------------------------------
-                    if (msg.wantedRequestId || msg.wantedRequest) {
-                      const wanted = msg.wantedRequest;
+                    if ((msg as any).flashRequestId || (msg as any).flashRequest || msg.wantedRequestId || msg.wantedRequest) {
+                      const flashReq = (msg as any).flashRequest || msg.wantedRequest;
                       return (
                         <div
                           key={msg.id}
                           style={{
                             backgroundColor: '#FFFFFF',
                             borderRadius: '12px',
-                            border: '1.5px solid #C7D2FE',
-                            boxShadow: '0 4px 14px rgba(79, 70, 229, 0.08)',
+                            border: '1.5px solid var(--border-subtle, #E2E8F0)',
+                            borderLeft: '4px solid var(--uc-gold, #FFC72C)',
+                            boxShadow: '0 4px 14px rgba(0, 43, 127, 0.08)',
                             padding: '1rem',
                             display: 'flex',
                             flexDirection: 'column',
@@ -1006,12 +1017,12 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
                             alignSelf: isMe ? 'flex-end' : 'flex-start'
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #E0E7FF', paddingBottom: '0.4rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', fontWeight: 800, color: '#4338CA' }}>
-                              <ShoppingBag size={15} />
-                              <span>Wanted Board Fulfillment Offer</span>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.4rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', fontWeight: 800, color: 'var(--uc-blue, #002B7F)' }}>
+                              <Zap size={15} color="var(--uc-gold, #FFC72C)" />
+                              <span>Flash Market Offer</span>
                             </div>
-                            <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '0.15rem 0.5rem', borderRadius: '4px', backgroundColor: '#EEF2FF', color: '#4338CA' }}>
+                            <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '0.15rem 0.5rem', borderRadius: '4px', backgroundColor: '#FEF9C3', color: '#854D0E' }}>
                               OFFER
                             </span>
                           </div>
@@ -1020,11 +1031,11 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
                             {msg.content}
                           </p>
 
-                          {wanted && (
+                          {flashReq && (
                             <div style={{ backgroundColor: '#F8FAFC', borderRadius: '8px', padding: '0.55rem 0.75rem', fontSize: '0.76rem' }}>
-                              <div><strong>Requested:</strong> {wanted.itemName}</div>
+                              <div><strong>Requested:</strong> {flashReq.itemTitle || flashReq.itemName}</div>
                               <div style={{ marginTop: '2px', color: 'var(--uc-blue)', fontWeight: 700 }}>
-                                Budget Target: ₱{wanted.targetBudget?.toLocaleString()}
+                                Target Budget: ₱{flashReq.targetBudget?.toLocaleString()}
                               </div>
                             </div>
                           )}
@@ -1127,8 +1138,8 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '2px', padding: '0 4px' }}>
                           <span>{msg.timestamp}</span>
                           {isMe && (
-                            <span style={{ color: msg.isRead ? '#38BDF8' : 'var(--text-muted)', fontWeight: 800 }}>
-                              {msg.isRead ? '✓✓' : '✓'}
+                            <span style={{ color: msg.isRead ? '#38BDF8' : 'var(--text-muted)', display: 'inline-flex', alignItems: 'center' }}>
+                              {msg.isRead ? <CheckCheck size={12} /> : <Check size={12} />}
                             </span>
                           )}
                         </div>
@@ -1574,6 +1585,41 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
           />
         </div>
       )}
+
+      {/* Complete Order Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(completeTxModal)}
+        title="Confirm Order Handover"
+        message="Are you sure you want to mark this transaction as completed? Both parties have fulfilled the deal."
+        confirmText="Confirm Handover"
+        cancelText="Cancel"
+        variant="primary"
+        onConfirm={() => {
+          if (completeTxModal) {
+            completeTransaction(completeTxModal.id);
+            setCompleteTxModal(null);
+          }
+        }}
+        onCancel={() => setCompleteTxModal(null)}
+      />
+
+      {/* Cancel Order Prompt Modal */}
+      <PromptModal
+        isOpen={Boolean(cancelTxModal)}
+        title="Cancel Order"
+        message="Please provide a reason for cancelling this order:"
+        placeholder="Reason for cancellation"
+        defaultValue="Agreed by mutual consent"
+        confirmText="Confirm Cancellation"
+        cancelText="Keep Order"
+        onSubmit={(reason) => {
+          if (cancelTxModal) {
+            cancelTransaction(cancelTxModal.id, reason.trim() || undefined);
+            setCancelTxModal(null);
+          }
+        }}
+        onCancel={() => setCancelTxModal(null)}
+      />
     </div>
   );
 };

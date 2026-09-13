@@ -17,7 +17,8 @@ interface ChatContextType {
   setActiveConversationId: (id: string | null) => void;
   openChatWithSeller: (listing: Listing, initialMessage?: string) => Promise<string | void>;
   openChatWithUser: (user: { id: string; name: string; avatar?: string; campus?: string }, initialMessage?: string) => Promise<string | void>;
-  openChatForWanted: (wanted: { id: string; requesterId: string; itemName: string; targetBudget?: number }, offerMessage?: string) => Promise<string | void>;
+  openChatForFlash: (flash: { id: string; requesterId: string; itemTitle?: string; itemName?: string; targetBudget?: number }, offerMessage?: string) => Promise<string | void>;
+  openChatForWanted: (wanted: { id: string; requesterId: string; itemName?: string; itemTitle?: string; targetBudget?: number }, offerMessage?: string) => Promise<string | void>;
   openChatForTransaction: (tx: Transaction) => Promise<string | void>;
   openChatForSwap: (swap: SwapOffer) => Promise<string | void>;
   sendMessage: (
@@ -314,18 +315,20 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Open Chat for Wanted Request
-  const openChatForWanted = async (
-    wanted: { id: string; requesterId: string; itemName: string; targetBudget?: number },
+  // Open Chat for Flash Request
+  const openChatForFlash = async (
+    flash: { id: string; requesterId: string; itemTitle?: string; itemName?: string; targetBudget?: number },
     offerMessage?: string
   ): Promise<string | void> => {
     if (!currentUser) return;
-    const defaultMsg = offerMessage || `📢 Wanted Item Offer: Hi! I have "${wanted.itemName}" available on campus for your target budget of ₱${wanted.targetBudget || 0}. Let's chat here to arrange a meetup!`;
+    const title = flash.itemTitle || flash.itemName || 'Requested Item';
+    const defaultMsg = offerMessage || `[Flash Request Offer] Hi! I have "${title}" available on campus for your target budget of ₱${flash.targetBudget || 0}. Let's chat here to arrange a quick meetup!`;
 
     try {
       const conv = await chatService.getOrCreateConversation({
-        targetUserId: wanted.requesterId,
-        wantedId: wanted.id,
+        targetUserId: flash.requesterId,
+        flashRequestId: flash.id,
+        wantedId: flash.id,
         initialMessage: defaultMsg
       });
 
@@ -342,6 +345,14 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch {
       // Handled
     }
+  };
+
+  // Backward compatibility alias
+  const openChatForWanted = async (
+    wanted: { id: string; requesterId: string; itemName?: string; itemTitle?: string; targetBudget?: number },
+    offerMessage?: string
+  ): Promise<string | void> => {
+    return openChatForFlash(wanted, offerMessage);
   };
 
   // Open Chat for existing Transaction
@@ -412,7 +423,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       activeConversation.participantIds.find((id) => id !== currentUser.id) ||
       activeConversation.otherParticipant.id;
 
-    const summaryContent = text.trim() || (mediaType === 'video' ? '📹 Video attachment' : '📷 Image attachment');
+    const summaryContent = text.trim() || (mediaType === 'video' ? '[Video Attachment]' : '[Image Attachment]');
 
     const tempId = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`;
     const newMsg: Message = {
@@ -468,7 +479,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const sendMeetupLocation = async (spot: string) => {
     if (!activeConversation) return;
-    await sendMessage(`📍 Proposed Campus Meetup Zone: Let's meet at "${spot}". What time works best for you?`);
+    await sendMessage(`Proposed Campus Meetup Zone: Let's meet at "${spot}". What time works best for you?`);
   };
 
   const proposeSwap = async (params: {
@@ -580,6 +591,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setActiveConversationId,
         openChatWithSeller,
         openChatWithUser,
+        openChatForFlash,
         openChatForWanted,
         openChatForTransaction,
         openChatForSwap,

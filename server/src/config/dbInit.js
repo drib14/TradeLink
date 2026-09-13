@@ -62,6 +62,65 @@ async function autoInitDatabase() {
       logger.info('[DB Init] Created password_reset_requests table.');
     }
 
+    // 1c. Ensure flash_requests table and conversation foreign keys exist
+    const hasFlash = await db.schema.hasTable('flash_requests').catch(() => false);
+    const hasWanted = await db.schema.hasTable('wanted_requests').catch(() => false);
+    if (hasWanted && !hasFlash) {
+      await db.schema.renameTable('wanted_requests', 'flash_requests').catch(() => {});
+      logger.info('[DB Init] Renamed wanted_requests to flash_requests.');
+    } else if (!hasFlash) {
+      await db.raw(`
+        CREATE TABLE IF NOT EXISTS \`flash_requests\` (
+          \`id\` VARCHAR(36) NOT NULL PRIMARY KEY,
+          \`requester_id\` VARCHAR(36) NOT NULL,
+          \`item_name\` VARCHAR(150) NOT NULL,
+          \`category\` VARCHAR(50) NOT NULL,
+          \`target_campus\` VARCHAR(50) NOT NULL,
+          \`urgency\` VARCHAR(50) NOT NULL DEFAULT 'flexible',
+          \`budget_range\` VARCHAR(50) DEFAULT NULL,
+          \`notes\` TEXT DEFAULT NULL,
+          \`status\` ENUM('open', 'fulfilled', 'cancelled', 'expired') NOT NULL DEFAULT 'open',
+          \`offers_count\` INT UNSIGNED NOT NULL DEFAULT 0,
+          \`duration_hours\` INT NOT NULL DEFAULT 24,
+          \`expires_at\` DATETIME DEFAULT NULL,
+          \`created_at\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          \`updated_at\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          INDEX \`idx_flash_requester\` (\`requester_id\`),
+          INDEX \`idx_flash_campus\` (\`target_campus\`),
+          INDEX \`idx_flash_status\` (\`status\`),
+          CONSTRAINT \`fk_flash_user\` FOREIGN KEY (\`requester_id\`) REFERENCES \`users\` (\`id\`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      `).catch(() => {});
+      logger.info('[DB Init] Created flash_requests table.');
+    }
+
+    // Ensure expires_at and duration_hours exist on flash_requests
+    const hasExpiresCol = await db.schema.hasColumn('flash_requests', 'expires_at').catch(() => false);
+    if (!hasExpiresCol) {
+      await db.schema.alterTable('flash_requests', (t) => {
+        t.datetime('expires_at').nullable();
+        t.integer('duration_hours').defaultTo(24);
+      }).catch(() => {});
+    }
+
+    // Ensure flash_request_id exists on conversations
+    const hasConvFlashCol = await db.schema.hasColumn('conversations', 'flash_request_id').catch(() => false);
+    if (!hasConvFlashCol) {
+      await db.schema.alterTable('conversations', (t) => {
+        t.string('flash_request_id', 36).nullable();
+        t.index('flash_request_id', 'idx_conv_flash');
+      }).catch(() => {});
+    }
+
+    // Ensure flash_request_id exists on messages
+    const hasMsgFlashCol = await db.schema.hasColumn('messages', 'flash_request_id').catch(() => false);
+    if (!hasMsgFlashCol) {
+      await db.schema.alterTable('messages', (t) => {
+        t.string('flash_request_id', 36).nullable();
+        t.index('flash_request_id', 'idx_msg_flash');
+      }).catch(() => {});
+    }
+
     // 2. Ensure Default Administrator Account Exists (admin@uc.edu.ph / uc.tradelink@gmail.com / TradeLink@2026)
     const adminPassword = 'TradeLink@2026';
     const adminPasswordHash = await bcrypt.hash(adminPassword, 10);
@@ -180,11 +239,11 @@ async function autoInitDatabase() {
         avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80',
         is_verified: false,
         id_photo_url: null,
-        trust_score: 60,
-        rating: 5.0,
+        trust_score: 0,
+        rating: 0.0,
         total_reviews: 0,
         completed_trades: 0,
-        punctuality_rate: 100,
+        punctuality_rate: 0,
         bio: 'BSBA 2nd Year student at UC Banilad.',
         is_pro_merchant: false,
         is_banned: false
@@ -202,8 +261,9 @@ async function autoInitDatabase() {
           config_value: JSON.stringify({
             maintenanceMode: false,
             maxListingPrice: 50000,
-            maxImagesPerListing: 5,
+            maxImagesPerListing: 10,
             swapModeEnabled: true,
+            flashMarketEnabled: true,
             wantedBoardEnabled: true,
             freeDonationEnabled: true,
             maxListingsPerUser: 20
@@ -278,6 +338,19 @@ async function autoInitDatabase() {
         ]);
         logger.info('[DB Init] Seeded default feature flags.');
       }
+    }
+
+    // 7. Normalize all zero-transaction user stats to 0, 0.0, and 0%
+    if (hasUsersTable) {
+      await db('users')
+        .where('completed_trades', 0)
+        .where('total_reviews', 0)
+        .update({
+          trust_score: 0,
+          rating: 0.0,
+          punctuality_rate: 0
+        })
+        .catch(() => {});
     }
 
     logger.info('[DB Init] Database is fully synchronized.');

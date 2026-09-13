@@ -10,7 +10,7 @@ import {
   ArrowLeft,
   Upload,
   Loader2,
-  Sparkles,
+  Award,
   Check,
   RotateCcw,
   Sun,
@@ -533,7 +533,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.74rem', fontWeight: 800, color: 'var(--uc-blue)' }}>
-                  <Sparkles size={15} color="#FFC72C" />
+                  <Award size={15} color="#FFC72C" />
                   <span>Gold Badge</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.74rem', fontWeight: 800, color: 'var(--uc-blue)' }}>
@@ -696,7 +696,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.96rem', fontWeight: 900, color: 'var(--uc-blue)' }}>
-                    <Sparkles size={17} color="#FFC72C" />
+                    <ShieldCheck size={17} color="var(--color-primary, #002B7F)" />
                     <span>Step 2: Biometric Liveness Verification</span>
                   </div>
                   <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
@@ -743,8 +743,15 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
                     </div>
                   </div>
                 </div>
-                <span style={{ fontSize: '0.68rem', backgroundColor: livenessPassed ? '#D1FAE5' : 'var(--uc-blue-subtle)', color: livenessPassed ? '#065F46' : 'var(--uc-blue)', padding: '0.2rem 0.6rem', borderRadius: '9999px', fontWeight: 800 }}>
-                  {livenessPassed ? '✓ Confirmed' : `Energy: ${motionEnergy}%`}
+                <span style={{ fontSize: '0.68rem', backgroundColor: livenessPassed ? '#D1FAE5' : 'var(--uc-blue-subtle)', color: livenessPassed ? '#065F46' : 'var(--uc-blue)', padding: '0.2rem 0.6rem', borderRadius: '9999px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                  {livenessPassed ? (
+                    <>
+                      <Check size={11} />
+                      <span>Confirmed</span>
+                    </>
+                  ) : (
+                    `Energy: ${motionEnergy}%`
+                  )}
                 </span>
               </div>
 

@@ -5,6 +5,7 @@ const { authenticate, optionalAuth } = require('../middleware/auth');
 const { requireVerified } = require('../middleware/rbac');
 const decodeParams = require('../middleware/decodeParams');
 const validate = require('../middleware/validate');
+const validateUUID = require('../middleware/validateUUID');
 const {
   createListingSchema,
   updateListingSchema,
@@ -16,7 +17,7 @@ const { createListingLimiter, reportListingLimiter } = require('../middleware/ra
 decodeParams.bindRouter(router);
 
 router.get('/', validate(queryListingsSchema, 'query'), listingsController.getListings);
-router.get('/:id', optionalAuth, listingsController.getListingById);
+router.get('/:id', validateUUID('id'), optionalAuth, listingsController.getListingById);
 
 router.post(
   '/',
@@ -27,12 +28,14 @@ router.post(
   listingsController.createListing
 );
 
-router.patch('/:id', authenticate, requireVerified, validate(updateListingSchema), listingsController.updateListing);
-router.delete('/:id', authenticate, requireVerified, listingsController.deleteListing);
-router.post('/:id/boost', authenticate, requireVerified, listingsController.boostListing);
-router.patch('/:id/sold', authenticate, requireVerified, listingsController.markAsSold);
+router.patch('/:id', validateUUID('id'), authenticate, requireVerified, validate(updateListingSchema), listingsController.updateListing);
+router.delete('/:id', validateUUID('id'), authenticate, requireVerified, listingsController.deleteListing);
+router.post('/:id/boost', validateUUID('id'), authenticate, requireVerified, listingsController.boostListing);
+router.patch('/:id/sold', validateUUID('id'), authenticate, requireVerified, listingsController.markAsSold);
+router.post('/:id/view', validateUUID('id'), listingsController.viewListing);
 router.post(
   '/:id/report',
+  validateUUID('id'),
   authenticate,
   reportListingLimiter,
   validate(reportListingSchema),
@@ -40,4 +43,3 @@ router.post(
 );
 
 module.exports = router;
-

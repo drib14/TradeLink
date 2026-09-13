@@ -15,6 +15,7 @@ DELETE FROM `messages`;
 DELETE FROM `conversations`;
 DELETE FROM `transactions`;
 DELETE FROM `swap_offers`;
+DELETE FROM `flash_requests`;
 DELETE FROM `wanted_requests`;
 DELETE FROM `listing_media`;
 DELETE FROM `listings`;
@@ -89,13 +90,13 @@ INSERT INTO `system_config` (`config_key`, `config_value`, `last_updated_by`) VA
   'maxListingPrice', 50000,
   'maxImagesPerListing', 10,
   'swapModeEnabled', true,
-  'wantedBoardEnabled', true,
+  'flashMarketEnabled', true,
   'freeDonationEnabled', true,
   'maxListingsPerUser', 20
 ), 'user-admin');
 
 INSERT INTO `feature_flags` (`id`, `name`, `description`, `enabled`) VALUES
-('ff-1', 'Price Advisor AI', 'Enable AI-powered pricing suggestions', 1),
+('ff-1', 'Flash Market', 'Enable urgent campus buy/sell/swap board', 1),
 ('ff-2', 'Direct Student Chat', 'Enable instant peer-to-peer student messaging', 1),
 ('ff-3', 'Campus Swap Desk', 'Allow barter and item-for-item swaps', 1);
 

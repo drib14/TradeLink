@@ -14,7 +14,8 @@ const listingsRoutes = require('./listings.routes');
 const swapsRoutes = require('./swaps.routes');
 const transactionsRoutes = require('./transactions.routes');
 const chatRoutes = require('./chat.routes');
-const wantedRoutes = require('./wanted.routes');
+const flashMarketRoutes = require('./flashMarket.routes');
+const wantedRoutes = flashMarketRoutes; // Compatibility alias
 const reviewsRoutes = require('./reviews.routes');
 const adminRoutes = require('./admin.routes');
 const adminAuthRoutes = require('./adminAuth.routes');
@@ -81,7 +82,8 @@ router.use('/swaps', swapsRoutes);
 router.use('/transactions', transactionsRoutes);
 router.use('/meetups', transactionsRoutes); // Compatibility alias
 router.use('/chat', chatRoutes);
-router.use('/wanted', wantedRoutes);
+router.use('/flash-market', flashMarketRoutes);
+router.use('/wanted', flashMarketRoutes); // Compatibility alias
 router.use('/reviews', reviewsRoutes);
 router.use('/admin', adminRoutes);
 router.use('/admin-auth', adminAuthRoutes);

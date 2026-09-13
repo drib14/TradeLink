@@ -13,7 +13,8 @@ import {
   Save,
   ToggleLeft,
   ToggleRight,
-  LogOut
+  LogOut,
+  Check
 } from 'lucide-react';
 
 interface SettingsPageProps {
@@ -266,8 +267,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate, onOpenAu
                       Clear Photo & Use Name Initials
                     </button>
                   ) : (
-                    <div style={{ marginTop: '0.35rem', fontSize: '0.72rem', color: 'var(--accent-green, #059669)', fontWeight: 700 }}>
-                      ✓ Dynamic Name Initials Active
+                    <div style={{ marginTop: '0.35rem', fontSize: '0.72rem', color: 'var(--accent-green, #059669)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                      <Check size={12} />
+                      <span>Dynamic Name Initials Active</span>
                     </div>
                   )}
                 </div>

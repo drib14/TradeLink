@@ -9,7 +9,8 @@ const { createMessage } = require('../services/message.service');
  */
 const getOrCreateConversation = asyncHandler(async (req, res, next) => {
   const currentUserId = req.user.id;
-  const { targetUserId, listingId = null, wantedId = null, initialMessage = null } = req.body;
+  const { targetUserId, listingId = null, wantedId = null, flashRequestId = null, flashId = null, initialMessage = null } = req.body;
+  const effectiveFlashId = flashRequestId || flashId || wantedId || null;
 
   if (!targetUserId) {
     return next(new AppError('Target user ID is required.', 400));
@@ -33,12 +34,15 @@ const getOrCreateConversation = asyncHandler(async (req, res, next) => {
     user_two_id: userB
   });
 
+  const hasFlashConvCol = await db.schema.hasColumn('conversations', 'flash_request_id').catch(() => false);
+  const convFlashCol = hasFlashConvCol ? 'flash_request_id' : 'wanted_id';
+
   if (listingId) {
     query = query.where({ listing_id: listingId });
-  } else if (wantedId) {
-    query = query.where({ wanted_id: wantedId });
+  } else if (effectiveFlashId) {
+    query = query.where({ [convFlashCol]: effectiveFlashId });
   } else {
-    query = query.whereNull('listing_id').whereNull('wanted_id');
+    query = query.whereNull('listing_id').whereNull(convFlashCol);
   }
 
   let conv = await query.first();
@@ -52,7 +56,7 @@ const getOrCreateConversation = asyncHandler(async (req, res, next) => {
     conv = {
       id: convId,
       listing_id: listingId || null,
-      wanted_id: wantedId || null,
+      [convFlashCol]: effectiveFlashId || null,
       user_one_id: userA,
       user_two_id: userB,
       last_message: initialSummary,
@@ -89,10 +93,13 @@ const getOrCreateConversation = asyncHandler(async (req, res, next) => {
       .first();
   }
 
-  // Fetch wanted details if applicable
-  let wanted = null;
-  if (conv.wanted_id) {
-    wanted = await db('wanted_requests').where({ id: conv.wanted_id }).first();
+  // Fetch flash / wanted details if applicable
+  let flashReq = null;
+  const convFlashId = conv.flash_request_id || conv.wanted_id;
+  if (convFlashId) {
+    const hasFlashTable = await db.schema.hasTable('flash_requests').catch(() => false);
+    const flashTable = hasFlashTable ? 'flash_requests' : 'wanted_requests';
+    flashReq = await db(flashTable).where({ id: convFlashId }).first();
   }
 
   // Unread messages count
@@ -111,24 +118,33 @@ const getOrCreateConversation = asyncHandler(async (req, res, next) => {
       campus: targetUser.campus,
       college: targetUser.college,
       isVerified: Boolean(targetUser.is_verified),
-      trustScore: targetUser.trust_score || 60,
-      rating: parseFloat(targetUser.rating || 5.0)
+      trustScore: Number(targetUser.trust_score ?? 0),
+      rating: parseFloat(targetUser.rating ?? 0.0)
     },
     listingId: conv.listing_id || '',
-    listingTitle: listing?.title || (wanted ? `[Wanted] ${wanted.item_name}` : 'Student Trade Chat'),
+    listingTitle: listing?.title || (flashReq ? `[Flash] ${flashReq.item_name}` : 'Student Trade Chat'),
     listingImage: listingMedia?.media_url || '',
-    listingPrice: listing ? parseFloat(listing.price || 0) : (wanted ? parseFloat(wanted.budget_range || 0) : null),
-    listingTradeMode: listing?.trade_mode || 'buy_sell',
-    listingStatus: listing?.status || (wanted ? wanted.status : 'active'),
-    listingSellerId: listing?.seller_id || (wanted ? wanted.requester_id : ''),
-    wantedId: conv.wanted_id || null,
-    wantedRequest: wanted ? {
-      id: wanted.id,
-      itemName: wanted.item_name,
-      targetBudget: parseFloat(wanted.budget_range || 0),
-      category: wanted.category,
-      urgency: wanted.urgency,
-      campus: wanted.target_campus
+    listingPrice: listing ? parseFloat(listing.price || 0) : (flashReq ? parseFloat(flashReq.budget_range || 0) : null),
+    listingTradeMode: listing?.trade_mode || (flashReq ? 'flash' : 'buy_sell'),
+    listingStatus: listing?.status || (flashReq ? flashReq.status : 'active'),
+    listingSellerId: listing?.seller_id || (flashReq ? flashReq.requester_id : ''),
+    flashRequestId: convFlashId || null,
+    wantedId: convFlashId || null,
+    flashRequest: flashReq ? {
+      id: flashReq.id,
+      itemName: flashReq.item_name,
+      targetBudget: parseFloat(flashReq.budget_range || 0),
+      category: flashReq.category,
+      urgency: flashReq.urgency,
+      campus: flashReq.target_campus
+    } : null,
+    wantedRequest: flashReq ? {
+      id: flashReq.id,
+      itemName: flashReq.item_name,
+      targetBudget: parseFloat(flashReq.budget_range || 0),
+      category: flashReq.category,
+      urgency: flashReq.urgency,
+      campus: flashReq.target_campus
     } : null,
     lastMessage: conv.last_message || '',
     lastMessageTimestamp: conv.last_message_at || conv.created_at,
@@ -147,26 +163,58 @@ const getOrCreateConversation = asyncHandler(async (req, res, next) => {
  */
 const getConversations = asyncHandler(async (req, res) => {
   const userId = req.user.id;
+  const hasFlashConvCol = await db.schema.hasColumn('conversations', 'flash_request_id').catch(() => false);
+  const convFlashCol = hasFlashConvCol ? 'flash_request_id' : 'wanted_id';
+  const hasFlashTable = await db.schema.hasTable('flash_requests').catch(() => false);
+  const flashTable = hasFlashTable ? 'flash_requests' : 'wanted_requests';
 
-  const convs = await db('conversations')
+  let query = db('conversations')
     .where('user_one_id', userId)
     .orWhere('user_two_id', userId)
     .leftJoin('listings', 'conversations.listing_id', 'listings.id')
-    .leftJoin('wanted_requests', 'conversations.wanted_id', 'wanted_requests.id')
     .join('users as userA', 'conversations.user_one_id', 'userA.id')
-    .join('users as userB', 'conversations.user_two_id', 'userB.id')
-    .select(
+    .join('users as userB', 'conversations.user_two_id', 'userB.id');
+
+  if (hasFlashConvCol) {
+    query = query
+      .leftJoin(flashTable, `conversations.${convFlashCol}`, `${flashTable}.id`)
+      .select(
+        'conversations.*',
+        'listings.title as listing_title',
+        'listings.price as listing_price',
+        'listings.trade_mode as listing_trade_mode',
+        'listings.status as listing_status',
+        'listings.seller_id as listing_seller_id',
+        `${flashTable}.item_name as flash_item_name`,
+        `${flashTable}.budget_range as flash_budget`,
+        `${flashTable}.urgency as flash_urgency`,
+        `${flashTable}.status as flash_status`,
+        `${flashTable}.requester_id as flash_requester_id`,
+        'userA.id as user_a_id',
+        'userA.name as user_a_name',
+        'userA.avatar_url as user_a_avatar',
+        'userA.campus as user_a_campus',
+        'userA.college as user_a_college',
+        'userA.is_verified as user_a_verified',
+        'userA.trust_score as user_a_trust',
+        'userA.rating as user_a_rating',
+        'userB.id as user_b_id',
+        'userB.name as user_b_name',
+        'userB.avatar_url as user_b_avatar',
+        'userB.campus as user_b_campus',
+        'userB.college as user_b_college',
+        'userB.is_verified as user_b_verified',
+        'userB.trust_score as user_b_trust',
+        'userB.rating as user_b_rating'
+      );
+  } else {
+    query = query.select(
       'conversations.*',
       'listings.title as listing_title',
       'listings.price as listing_price',
       'listings.trade_mode as listing_trade_mode',
       'listings.status as listing_status',
       'listings.seller_id as listing_seller_id',
-      'wanted_requests.item_name as wanted_item_name',
-      'wanted_requests.budget_range as wanted_budget',
-      'wanted_requests.urgency as wanted_urgency',
-      'wanted_requests.status as wanted_status',
-      'wanted_requests.requester_id as wanted_requester_id',
       'userA.id as user_a_id',
       'userA.name as user_a_name',
       'userA.avatar_url as user_a_avatar',
@@ -183,8 +231,10 @@ const getConversations = asyncHandler(async (req, res) => {
       'userB.is_verified as user_b_verified',
       'userB.trust_score as user_b_trust',
       'userB.rating as user_b_rating'
-    )
-    .orderBy('conversations.last_message_at', 'desc');
+    );
+  }
+
+  const convs = await query.orderBy('conversations.last_message_at', 'desc');
 
   const convIds = convs.map((c) => c.id);
   const listingIds = [...new Set(convs.map((c) => c.listing_id).filter(Boolean))];
@@ -235,8 +285,8 @@ const getConversations = asyncHandler(async (req, res) => {
           campus: c.user_b_campus,
           college: c.user_b_college,
           isVerified: Boolean(c.user_b_verified),
-          trustScore: c.user_b_trust || 60,
-          rating: parseFloat(c.user_b_rating || 5.0)
+          trustScore: Number(c.user_b_trust ?? 0),
+          rating: parseFloat(c.user_b_rating ?? 0.0)
         }
       : {
           id: c.user_a_id,
@@ -245,8 +295,8 @@ const getConversations = asyncHandler(async (req, res) => {
           campus: c.user_a_campus,
           college: c.user_a_college,
           isVerified: Boolean(c.user_a_verified),
-          trustScore: c.user_a_trust || 60,
-          rating: parseFloat(c.user_a_rating || 5.0)
+          trustScore: Number(c.user_a_trust ?? 0),
+          rating: parseFloat(c.user_a_rating ?? 0.0)
         };
 
     const firstMedia = mediaRows.find((m) => m.listing_id === c.listing_id);
@@ -265,12 +315,18 @@ const getConversations = asyncHandler(async (req, res) => {
         (s.proposer_id === otherUser.id || s.proposer_id === userId)
     );
 
+    const flashTitle = c.flash_item_name || c.wanted_item_name;
     let listingTitle = c.listing_title;
-    if (!listingTitle && c.wanted_item_name) {
-      listingTitle = `Looking For: ${c.wanted_item_name}`;
+    if (!listingTitle && flashTitle) {
+      listingTitle = `[Flash] ${flashTitle}`;
     } else if (!listingTitle) {
       listingTitle = 'Campus Trade Chat';
     }
+
+    const flashId = c.flash_request_id || c.wanted_id || null;
+    const flashBudget = c.flash_budget || c.wanted_budget;
+    const flashStatus = c.flash_status || c.wanted_status;
+    const flashRequesterId = c.flash_requester_id || c.wanted_requester_id;
 
     return {
       id: c.id,
@@ -279,11 +335,12 @@ const getConversations = asyncHandler(async (req, res) => {
       listingId: c.listing_id || '',
       listingTitle,
       listingImage: firstMedia ? firstMedia.media_url : '',
-      listingPrice: c.listing_price ? parseFloat(c.listing_price) : (c.wanted_budget ? parseFloat(c.wanted_budget) : null),
-      listingTradeMode: c.listing_trade_mode || (c.wanted_id ? 'wanted' : 'buy_sell'),
-      listingStatus: c.listing_status || (c.wanted_status || 'active'),
-      listingSellerId: c.listing_seller_id || (c.wanted_requester_id || ''),
-      wantedId: c.wanted_id || null,
+      listingPrice: c.listing_price ? parseFloat(c.listing_price) : (flashBudget ? parseFloat(flashBudget) : null),
+      listingTradeMode: c.listing_trade_mode || (flashId ? 'flash' : 'buy_sell'),
+      listingStatus: c.listing_status || (flashStatus || 'active'),
+      listingSellerId: c.listing_seller_id || (flashRequesterId || ''),
+      flashRequestId: flashId,
+      wantedId: flashId,
       activeTransaction: matchingTx ? {
         id: matchingTx.id,
         referenceNo: matchingTx.reference_no,
@@ -337,7 +394,7 @@ const getMessages = asyncHandler(async (req, res, next) => {
   // Gather referenced IDs for batch population
   const swapOfferIds = [...new Set(messages.map((m) => m.swap_offer_id).filter(Boolean))];
   const txIds = [...new Set(messages.map((m) => m.transaction_id).filter(Boolean))];
-  const wantedIds = [...new Set(messages.map((m) => m.wanted_request_id).filter(Boolean))];
+  const flashIds = [...new Set(messages.map((m) => m.flash_request_id || m.wanted_request_id).filter(Boolean))];
 
   // Batch query swap offers
   const swapRows = swapOfferIds.length > 0
@@ -357,10 +414,12 @@ const getMessages = asyncHandler(async (req, res, next) => {
         .select('*')
     : [];
 
-  // Batch query wanted requests
-  const wantedRows = wantedIds.length > 0
-    ? await db('wanted_requests')
-        .whereIn('id', wantedIds)
+  // Batch query flash requests
+  const hasFlashTableForMsg = await db.schema.hasTable('flash_requests').catch(() => false);
+  const flashTableForMsg = hasFlashTableForMsg ? 'flash_requests' : 'wanted_requests';
+  const flashRows = flashIds.length > 0
+    ? await db(flashTableForMsg)
+        .whereIn('id', flashIds)
         .select('*')
     : [];
 
@@ -393,8 +452,8 @@ const getMessages = asyncHandler(async (req, res, next) => {
     notes: t.notes
   }));
 
-  const wantedMap = new Map();
-  wantedRows.forEach((w) => wantedMap.set(w.id, {
+  const flashMap = new Map();
+  flashRows.forEach((w) => flashMap.set(w.id, {
     id: w.id,
     itemName: w.item_name,
     targetBudget: parseFloat(w.budget_range || 0),
@@ -417,10 +476,12 @@ const getMessages = asyncHandler(async (req, res, next) => {
     isSystemMessage: Boolean(m.is_system_message),
     swapOfferId: m.swap_offer_id,
     transactionId: m.transaction_id,
-    wantedRequestId: m.wanted_request_id,
+    flashRequestId: m.flash_request_id || m.wanted_request_id || null,
+    wantedRequestId: m.flash_request_id || m.wanted_request_id || null,
     swapOffer: m.swap_offer_id ? swapMap.get(m.swap_offer_id) || null : null,
     transaction: m.transaction_id ? txMap.get(m.transaction_id) || null : null,
-    wantedRequest: m.wanted_request_id ? wantedMap.get(m.wanted_request_id) || null : null
+    flashRequest: (m.flash_request_id || m.wanted_request_id) ? flashMap.get(m.flash_request_id || m.wanted_request_id) || null : null,
+    wantedRequest: (m.flash_request_id || m.wanted_request_id) ? flashMap.get(m.flash_request_id || m.wanted_request_id) || null : null
   }));
 
   res.status(200).json({
@@ -465,6 +526,7 @@ const sendMessage = asyncHandler(async (req, res, next) => {
     isSystemMessage = false,
     swapOfferId,
     transactionId,
+    flashRequestId,
     wantedRequestId,
     mediaUrl,
     mediaType
@@ -478,7 +540,8 @@ const sendMessage = asyncHandler(async (req, res, next) => {
     isSystemMessage,
     swapOfferId,
     transactionId,
-    wantedRequestId,
+    flashRequestId: flashRequestId || wantedRequestId || null,
+    wantedRequestId: flashRequestId || wantedRequestId || null,
     mediaUrl,
     mediaType
   });

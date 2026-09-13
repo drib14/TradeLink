@@ -3,7 +3,7 @@ import { ToastProvider, useToast } from './components/common/Toast';
 import { AdminAuthProvider, useAdminAuth } from './context/AdminAuthContext';
 import { AdminProvider } from './context/AdminContext';
 import { AdminDashboard } from './pages/AdminDashboard';
-import { ShieldAlert, LogIn, KeyRound, ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
+import { ShieldAlert, LogIn, KeyRound, Loader2, CheckCircle2 } from 'lucide-react';
 
 const AdminAuthGate: React.FC = () => {
   const { login, forgotPassword, resetPassword, isLoading } = useAdminAuth();
@@ -129,49 +129,26 @@ const AdminAuthGate: React.FC = () => {
             </p>
           </div>
 
-          {/* Quick Demo Credentials Card */}
+          {/* Security Notice */}
           <div
             style={{
               backgroundColor: '#F8FAFC',
               border: '1px solid #E2E8F0',
               borderRadius: '12px',
-              padding: '0.85rem 1rem',
+              padding: '0.75rem 1rem',
               width: '100%',
               textAlign: 'left',
               display: 'flex',
-              flexDirection: 'column',
-              gap: '0.4rem',
-              fontSize: '0.78rem'
+              alignItems: 'center',
+              gap: '0.65rem',
+              fontSize: '0.76rem',
+              color: '#475569'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontWeight: 800, color: '#002B7F', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Default Admin Credentials
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  setEmailInput('admin@uc.edu.ph');
-                  setPasswordInput('TradeLink@2026');
-                }}
-                style={{
-                  background: '#002B7F',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  borderRadius: '6px',
-                  padding: '0.25rem 0.6rem',
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  cursor: 'pointer'
-                }}
-              >
-                Auto Fill
-              </button>
-            </div>
-            <div style={{ color: '#475569', display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-              <div>Email / ID: <code style={{ backgroundColor: '#E2E8F0', padding: '0.1rem 0.35rem', borderRadius: '4px', color: '#0F172A', fontWeight: 600 }}>admin@uc.edu.ph</code> or <code style={{ backgroundColor: '#E2E8F0', padding: '0.1rem 0.35rem', borderRadius: '4px', color: '#0F172A', fontWeight: 600 }}>ADMIN001</code></div>
-              <div>Password: <code style={{ backgroundColor: '#E2E8F0', padding: '0.1rem 0.35rem', borderRadius: '4px', color: '#0F172A', fontWeight: 600 }}>TradeLink@2026</code> or <code style={{ backgroundColor: '#E2E8F0', padding: '0.1rem 0.35rem', borderRadius: '4px', color: '#0F172A', fontWeight: 600 }}>AdminUC</code></div>
-            </div>
+            <ShieldAlert size={18} color="#002B7F" style={{ flexShrink: 0 }} />
+            <span>
+              Authorized University of Cebu personnel only. All access attempts and administrative modifications are cryptographically logged for security auditing.
+            </span>
           </div>
         </div>
 
@@ -253,25 +230,6 @@ const AdminAuthGate: React.FC = () => {
             )}
           </button>
         </form>
-
-        {/* Switch to Student Portal */}
-        <div style={{ textAlign: 'center', paddingTop: '0.75rem', borderTop: '1px solid #F1F5F9' }}>
-          <a
-            href="http://localhost:5173"
-            style={{
-              fontSize: '0.82rem',
-              color: '#64748B',
-              fontWeight: 700,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              textDecoration: 'none'
-            }}
-          >
-            <ArrowLeft size={14} />
-            <span>Back to Student Marketplace</span>
-          </a>
-        </div>
       </div>
 
       {/* Forgot Password Modal */}

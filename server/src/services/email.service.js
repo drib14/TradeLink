@@ -92,6 +92,38 @@ function buildEmailLayout(bodyContent, preheader = '') {
 }
 
 /**
+ * Sends a password reset email with verification code directly to the student
+ * @param {string} toEmail
+ * @param {string} code
+ * @param {string} userName
+ */
+async function sendPasswordResetDirectEmail(toEmail, code, userName = 'Student') {
+  const subject = `[TradeLink UC] Password Reset Verification Code: ${code}`;
+  const text = `Hello ${userName},\n\nA password reset was requested for your TradeLink account.\n\nYour verification code is: ${code}\n\nThis code will expire in 30 minutes. Enter this code on the TradeLink reset password screen to complete resetting your password.\n\nIf you did not request this, you can safely ignore this email.\n\nBest regards,\nUniversity of Cebu TradeLink Team`;
+
+  const bodyContent = `
+    <div style="text-align: center; margin-bottom: 16px;">
+      <span style="display: inline-block; background-color: #EBF1FC; color: #002B7F; font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 12px;">
+        Password Reset Code
+      </span>
+    </div>
+    <p style="color: #334155; font-size: 15px; margin: 0 0 12px 0;">Hello <strong>${userName}</strong>,</p>
+    <p style="color: #475569; font-size: 14px; line-height: 1.6; margin: 0 0 20px 0;">
+      A password reset was requested for your TradeLink student account. Use the verification code below to set your new password:
+    </p>
+    <div style="background-color: #F8FAFC; border: 2px dashed #002B7F; font-size: 32px; font-weight: 800; letter-spacing: 8px; text-align: center; padding: 18px; border-radius: 12px; color: #002B7F; margin: 0 0 20px 0;">
+      ${code}
+    </div>
+    <p style="font-size: 13px; color: #64748B; margin: 0;">
+      <strong>Valid for 30 minutes.</strong> Return to the TradeLink sign-in dialog, enter this code along with your new password to complete resetting your password. If you did not make this request, you can safely ignore this email.
+    </p>
+  `;
+
+  const html = buildEmailLayout(bodyContent, `Your verification code is ${code}`);
+  return sendMail(toEmail, subject, text, html);
+}
+
+/**
  * Sends a password reset email with the approved verification code (for students)
  * @param {string} toEmail
  * @param {string} code
@@ -104,7 +136,7 @@ async function sendPasswordResetApprovedEmail(toEmail, code, userName = 'Student
   const bodyContent = `
     <div style="text-align: center; margin-bottom: 16px;">
       <span style="display: inline-block; background-color: #DEF7EC; color: #03543F; font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 12px;">
-        ✓ Password Reset Approved
+        Password Reset Approved
       </span>
     </div>
     <p style="color: #334155; font-size: 15px; margin: 0 0 12px 0;">Hello <strong>${userName}</strong>,</p>
@@ -115,7 +147,7 @@ async function sendPasswordResetApprovedEmail(toEmail, code, userName = 'Student
       ${code}
     </div>
     <p style="font-size: 13px; color: #64748B; margin: 0;">
-      ⏱️ <strong>Valid for 30 minutes.</strong> Return to the TradeLink sign-in dialog, choose "Reset Password", and enter this code along with your new password.
+      <strong>Valid for 30 minutes.</strong> Return to the TradeLink sign-in dialog, choose "Reset Password", and enter this code along with your new password.
     </p>
   `;
 
@@ -165,7 +197,7 @@ async function sendAdminPasswordResetEmail(toEmail, code) {
   const bodyContent = `
     <div style="text-align: center; margin-bottom: 16px;">
       <span style="display: inline-block; background-color: #DBEAFE; color: #1E40AF; font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 12px;">
-        🔐 Administrator Password Reset
+        Administrator Password Reset
       </span>
     </div>
     <p style="color: #334155; font-size: 15px; margin: 0 0 12px 0;">Hello <strong>Administrator</strong>,</p>
@@ -176,7 +208,7 @@ async function sendAdminPasswordResetEmail(toEmail, code) {
       ${code}
     </div>
     <p style="font-size: 13px; color: #64748B; margin: 0 0 12px 0;">
-      ⏱️ <strong>Valid for 30 minutes.</strong> Return to the Administration Portal and enter this code along with your new password.
+      <strong>Valid for 30 minutes.</strong> Return to the Administration Portal and enter this code along with your new password.
     </p>
     <div style="background-color: #FFFBEB; border-left: 4px solid #F59E0B; padding: 10px 14px; border-radius: 4px; margin: 0; color: #92400E; font-size: 12px;">
       <strong>Security Notice:</strong> If you did not request this reset, your account may be at risk. Please contact the development team immediately.
@@ -214,8 +246,9 @@ async function sendMail(toEmail, subject, text, html) {
 }
 
 module.exports = {
+  sendPasswordResetDirectEmail,
   sendPasswordResetApprovedEmail,
   sendPasswordResetRejectedEmail,
   sendAdminPasswordResetEmail,
-  sendPasswordResetEmail: sendPasswordResetApprovedEmail // Alias for backwards compatibility
+  sendPasswordResetEmail: sendPasswordResetDirectEmail
 };

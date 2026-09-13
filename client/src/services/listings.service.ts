@@ -74,11 +74,10 @@ function mapListingFromApi(raw: any): Listing {
     sellerCampus: raw.sellerCampus || raw.seller_campus || 'UC Main',
     sellerCollege: raw.sellerCollege || raw.seller_college || 'General Student',
     sellerIsVerified: Boolean(raw.sellerIsVerified ?? raw.seller_is_verified),
-    sellerTrustScore: raw.sellerTrustScore ?? raw.seller_trust_score ?? 60,
+    sellerTrustScore: Number(raw.sellerTrustScore ?? raw.seller_trust_score ?? 0),
     isBoosted: Boolean(raw.isBoosted ?? raw.is_boosted),
     quantity: raw.quantity !== undefined && raw.quantity !== null ? Math.max(0, parseInt(raw.quantity, 10) || 0) : 1,
     isSold: Boolean((raw.isSold ?? raw.is_sold) || (raw.quantity !== undefined && Number(raw.quantity) === 0)),
-    courseCode: raw.courseCode || raw.course_code || null,
     createdAt: raw.createdAt || raw.created_at || new Date().toISOString(),
     views: Number(raw.views ?? 0)
   };
@@ -109,9 +108,9 @@ export const listingsService = {
       swapPreference: data.swapPreference,
       category: data.category,
       condition: data.condition,
+      quantity: data.quantity !== undefined ? Number(data.quantity) : 1,
       media: data.media || data.images || [],
       images: data.images || [],
-      courseCode: data.courseCode,
       campus: data.campus,
       department: data.department
     };
@@ -124,6 +123,11 @@ export const listingsService = {
     return mapListingFromApi(res.data?.listing || res.data);
   },
 
+  async updateListingQuantity(id: string, quantity: number): Promise<Listing> {
+    const res = await api.patch<{ listing: any }>(`/listings/${id}`, { quantity, isSold: quantity === 0 });
+    return mapListingFromApi(res.data?.listing || res.data);
+  },
+
   async deleteListing(id: string): Promise<void> {
     await api.delete(`/listings/${id}`);
   },
@@ -133,7 +137,7 @@ export const listingsService = {
   },
 
   async markAsSold(id: string, isSold: boolean): Promise<void> {
-    await api.patch(`/listings/${id}`, { isSold });
+    await api.patch(`/listings/${id}`, { isSold, quantity: isSold ? 0 : 1 });
   },
 
   async incrementViews(id: string): Promise<void> {

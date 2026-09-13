@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/common/Toast';
 import { Transaction } from '../types';
 import { TransactionReceiptModal } from '../components/marketplace/TransactionReceiptModal';
+import { ConfirmModal } from '../components/common/ConfirmModal';
+import { PromptModal } from '../components/common/PromptModal';
 import {
   FileText,
   Clock,
@@ -18,7 +20,8 @@ import {
   ArrowUpRight,
   Check,
   Ban,
-  Filter
+  Filter,
+  X
 } from 'lucide-react';
 
 interface TransactionsPageProps {
@@ -36,6 +39,8 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedReceiptTx, setSelectedReceiptTx] = useState<Transaction | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [confirmCompleteTx, setConfirmCompleteTx] = useState<Transaction | null>(null);
+  const [cancelPromptTx, setCancelPromptTx] = useState<Transaction | null>(null);
 
   if (!isAuthenticated || !currentUser) {
     return (
@@ -85,32 +90,41 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
     return true;
   });
 
-  const handleComplete = async (tx: Transaction) => {
-    if (window.confirm(`Confirm order settlement for "${tx.listingTitle}"?`)) {
-      setActionLoadingId(tx.id);
-      try {
-        await completeTransaction(tx.id);
-        showToast('Transaction Completed!', `Order ${tx.referenceNo} marked as complete.`, 'success');
-      } catch (err: any) {
-        showToast('Failed to Complete', err?.message || 'Unable to update transaction.', 'error');
-      } finally {
-        setActionLoadingId(null);
-      }
+  const handleComplete = (tx: Transaction) => {
+    setConfirmCompleteTx(tx);
+  };
+
+  const handleConfirmComplete = async () => {
+    if (!confirmCompleteTx) return;
+    const tx = confirmCompleteTx;
+    setActionLoadingId(tx.id);
+    try {
+      await completeTransaction(tx.id);
+      showToast('Transaction Completed!', `Order ${tx.referenceNo} marked as complete.`, 'success');
+      setConfirmCompleteTx(null);
+    } catch (err: any) {
+      showToast('Failed to Complete', err?.message || 'Unable to update transaction.', 'error');
+    } finally {
+      setActionLoadingId(null);
     }
   };
 
-  const handleCancel = async (tx: Transaction) => {
-    const reason = window.prompt('Reason for order cancellation (optional):', 'Agreed by mutual consent');
-    if (reason !== null) {
-      setActionLoadingId(tx.id);
-      try {
-        await cancelTransaction(tx.id, reason.trim() || undefined);
-        showToast('Order Cancelled', `Order ${tx.referenceNo} was cancelled.`, 'info');
-      } catch (err: any) {
-        showToast('Failed to Cancel', err?.message || 'Unable to cancel transaction.', 'error');
-      } finally {
-        setActionLoadingId(null);
-      }
+  const handleCancel = (tx: Transaction) => {
+    setCancelPromptTx(tx);
+  };
+
+  const handleConfirmCancel = async (reason: string) => {
+    if (!cancelPromptTx) return;
+    const tx = cancelPromptTx;
+    setActionLoadingId(tx.id);
+    try {
+      await cancelTransaction(tx.id, reason.trim() || undefined);
+      showToast('Order Cancelled', `Order ${tx.referenceNo} was cancelled.`, 'info');
+      setCancelPromptTx(null);
+    } catch (err: any) {
+      showToast('Failed to Cancel', err?.message || 'Unable to cancel transaction.', 'error');
+    } finally {
+      setActionLoadingId(null);
     }
   };
 
@@ -384,6 +398,79 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
                   </div>
                 </div>
 
+                {/* Campus Order Lifecycle Timeline */}
+                <div style={{ display: 'flex', alignItems: 'center', width: '100%', padding: '0.6rem 0.5rem', backgroundColor: 'var(--bg-subtle, #F8FAFC)', borderRadius: '8px', border: '1px solid var(--border-subtle, #F1F5F9)' }}>
+                  {[
+                    { num: 1, label: 'Order Placed' },
+                    { num: 2, label: 'Chat Agreed' },
+                    { num: 3, label: 'Meetup Handover' },
+                    { num: 4, label: isCancelled ? 'Cancelled' : 'Settled' }
+                  ].map((step, idx) => {
+                    const isDone = isCompleted || (isPending && idx < 2);
+                    const isCurrent = (isPending && idx === 2) || (isCancelled && idx === 3);
+                    const isStepCancelled = isCancelled && idx === 3;
+
+                    return (
+                      <React.Fragment key={step.num}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem', flex: 1, minWidth: 0 }}>
+                          <div
+                            style={{
+                              width: '20px',
+                              height: '20px',
+                              borderRadius: '50%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '0.64rem',
+                              fontWeight: 900,
+                              backgroundColor: isStepCancelled
+                                ? '#DC2626'
+                                : isDone
+                                ? 'var(--accent-green, #059669)'
+                                : isCurrent
+                                ? 'var(--uc-blue, #002B7F)'
+                                : 'var(--border-subtle, #CBD5E1)',
+                              color: isDone || isCurrent || isStepCancelled ? '#FFFFFF' : 'var(--text-muted)'
+                            }}
+                          >
+                            {isStepCancelled ? <X size={10} strokeWidth={3} /> : isDone ? <Check size={10} strokeWidth={3} /> : step.num}
+                          </div>
+                          <span
+                            style={{
+                              fontSize: '0.65rem',
+                              fontWeight: isCurrent || isDone ? 700 : 500,
+                              color: isStepCancelled
+                                ? '#DC2626'
+                                : isDone
+                                ? 'var(--accent-green, #059669)'
+                                : isCurrent
+                                ? 'var(--uc-blue, #002B7F)'
+                                : 'var(--text-muted)',
+                              textAlign: 'center',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              width: '100%'
+                            }}
+                          >
+                            {step.label}
+                          </span>
+                        </div>
+                        {idx < 3 && (
+                          <div
+                            style={{
+                              height: '2px',
+                              flex: 0.6,
+                              backgroundColor: isDone ? 'var(--accent-green, #059669)' : 'var(--border-subtle, #E2E8F0)',
+                              marginBottom: '0.85rem'
+                            }}
+                          />
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+
                 {/* Card Bottom: Action Buttons */}
                 <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', paddingTop: '0.5rem', borderTop: '1px solid var(--border-subtle, #F1F5F9)' }}>
                   {/* Digital Receipt View */}
@@ -445,6 +532,33 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
           transaction={selectedReceiptTx}
         />
       )}
+
+      {/* Settlement Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(confirmCompleteTx)}
+        title="Confirm Order Settlement"
+        message={`Confirm order settlement for "${confirmCompleteTx?.listingTitle}"? This will complete the transaction and release funds.`}
+        confirmText="Complete Settlement"
+        cancelText="Keep Open"
+        variant="primary"
+        isLoading={actionLoadingId === confirmCompleteTx?.id}
+        onConfirm={handleConfirmComplete}
+        onCancel={() => setConfirmCompleteTx(null)}
+      />
+
+      {/* Cancellation Prompt Modal */}
+      <PromptModal
+        isOpen={Boolean(cancelPromptTx)}
+        title="Cancel Order"
+        message={`Please provide a reason for cancelling order ${cancelPromptTx?.referenceNo}:`}
+        placeholder="e.g. Agreed by mutual consent"
+        defaultValue="Agreed by mutual consent"
+        confirmText="Cancel Order"
+        cancelText="Keep Order"
+        isLoading={actionLoadingId === cancelPromptTx?.id}
+        onSubmit={handleConfirmCancel}
+        onCancel={() => setCancelPromptTx(null)}
+      />
     </div>
   );
 };
