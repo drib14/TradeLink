@@ -4,7 +4,10 @@ const { createMessage } = require('../services/message.service');
 const { sanitizeString } = require('../middleware/sanitizeInput');
 
 module.exports = (io, socket) => {
-  const userId = socket.user.id;
+  const userId = socket.user?.id;
+  if (!userId || userId === 'guest' || socket.user?.role === 'guest') {
+    return;
+  }
 
   // Join personal user room immediately on connection
   socket.join(`user:${userId}`);

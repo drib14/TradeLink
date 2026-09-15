@@ -65,9 +65,16 @@ function serializeListing(row, mediaItems = []) {
     sellerTrustScore: Number(row.seller_trust_score ?? row.sellerTrustScore ?? 0),
     isSold: isSoldExplicit || isOutOfStock,
     status: row.status || (isSoldExplicit ? 'sold' : 'active'),
-    preferredMeetupSpots: row.preferred_meetup_spots
-      ? (typeof row.preferred_meetup_spots === 'string' ? JSON.parse(row.preferred_meetup_spots) : row.preferred_meetup_spots)
-      : [],
+    preferredMeetupSpots: (() => {
+      try {
+        if (!row.preferred_meetup_spots) return [];
+        return typeof row.preferred_meetup_spots === 'string'
+          ? JSON.parse(row.preferred_meetup_spots)
+          : (Array.isArray(row.preferred_meetup_spots) ? row.preferred_meetup_spots : []);
+      } catch {
+        return [];
+      }
+    })(),
     views: Number(row.views_count ?? row.views ?? 0),
     createdAt: row.created_at || row.createdAt || new Date().toISOString()
   };

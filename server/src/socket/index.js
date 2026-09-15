@@ -24,25 +24,29 @@ function initializeSocket(httpServer) {
     pingInterval: 25000
   });
 
-  // Socket.IO authentication middleware
+  // Socket.IO authentication middleware (supports authenticated users & graceful guest fallback)
   io.use(async (socket, next) => {
     try {
       const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.split(' ')[1];
       if (!token) {
-        return next(new Error('Authentication error: Token missing.'));
+        socket.user = { id: 'guest', role: 'guest', is_verified: false };
+        return next();
       }
 
       const decoded = jwt.verify(token, env.jwt.accessSecret);
       const user = await db('users').where({ id: decoded.userId }).first();
 
       if (!user || user.is_banned) {
-        return next(new Error('Authentication error: User invalid or banned.'));
+        socket.user = { id: 'guest', role: 'guest', is_verified: false };
+        return next();
       }
 
       socket.user = user;
       next();
-    } catch (err) {
-      next(new Error('Authentication error: Invalid token.'));
+    } catch {
+      // Degrade gracefully to guest session rather than breaking WebSocket handshake
+      socket.user = { id: 'guest', role: 'guest', is_verified: false };
+      next();
     }
   });
 

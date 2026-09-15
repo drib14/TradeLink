@@ -20,7 +20,6 @@ class SocketService {
 
   connect(customToken?: string): Socket | null {
     const token = customToken || getAccessToken();
-    if (!token) return null;
 
     if (this.socket && this.socket.connected) {
       return this.socket;
@@ -32,12 +31,12 @@ class SocketService {
 
     const baseUrl = getSocketBaseUrl();
     this.socket = io(baseUrl, {
-      auth: { token },
+      auth: token ? { token } : {},
       transports: ['websocket', 'polling'],
       reconnection: true,
-      reconnectionAttempts: 10,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 2000,
+      reconnectionDelayMax: 10000,
       timeout: 20000
     });
 

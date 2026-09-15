@@ -157,25 +157,29 @@ async function autoInitDatabase() {
       logger.info('[DB Init] Created newsletter_subscribers table.');
     }
 
-    // 2. Ensure Default Administrator Account Exists (admin@uc.edu.ph / uc.tradelink@gmail.com / TradeLink@2026)
+    // 2. Ensure Sole Administrator Account Exists: uc.tradelink@gmail.com | TradeLink@2026 | TradeLink Admin
     const adminPassword = 'TradeLink@2026';
     const adminPasswordHash = await bcrypt.hash(adminPassword, 10);
 
-    const existingAdminById = await db('users').where({ id: 'user-admin' }).first();
+    // Remove legacy or alternative admin accounts
+    await db('users').where({ email: 'admin@uc.edu.ph' }).del().catch(() => {});
+    await db('users').where({ id: 'user-admin' }).whereNot({ email: 'uc.tradelink@gmail.com' }).del().catch(() => {});
 
-    if (existingAdminById) {
-      await db('users').where({ id: 'user-admin' }).update({
+    const existingAdmin = await db('users').where({ email: 'uc.tradelink@gmail.com' }).first();
+    if (existingAdmin) {
+      await db('users').where({ id: existingAdmin.id }).update({
+        name: 'TradeLink Admin',
         password_hash: adminPasswordHash,
         role: 'admin',
         is_banned: false,
         is_verified: true
       });
-      logger.info(`[DB Init] Synchronized credentials for admin account [${existingAdminById.email}]`);
+      logger.info(`[DB Init] Synchronized credentials for admin account [${existingAdmin.email}]`);
     } else {
       await db('users').insert({
-        id: 'user-admin',
-        name: 'UC Administrator',
-        email: 'admin@uc.edu.ph',
+        id: 'user-admin-main',
+        name: 'TradeLink Admin',
+        email: 'uc.tradelink@gmail.com',
         student_id: 'ADMIN001',
         password_hash: adminPasswordHash,
         role: 'admin',
@@ -190,101 +194,11 @@ async function autoInitDatabase() {
         total_reviews: 0,
         completed_trades: 0,
         punctuality_rate: 100,
-        bio: 'Official TradeLink Campus Moderation & Safety Desk. Verified student marketplace.',
+        bio: 'Official TradeLink Administration & Moderation Desk.',
         is_pro_merchant: false,
         is_banned: false
       });
-      logger.info('[DB Init] Created default administrator: admin@uc.edu.ph');
-    }
-
-    // Also ensure uc.tradelink@gmail.com exists as an active admin
-    const existingGmailAdmin = await db('users').where({ email: 'uc.tradelink@gmail.com' }).first();
-    if (!existingGmailAdmin) {
-      await db('users').insert({
-        id: 'user-admin-gmail',
-        name: 'TradeLink Support Admin',
-        email: 'uc.tradelink@gmail.com',
-        student_id: 'ADMIN002',
-        password_hash: adminPasswordHash,
-        role: 'admin',
-        campus: 'UC Main',
-        college: 'CCS',
-        year_level: 'Faculty / Staff',
-        avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
-        is_verified: true,
-        id_photo_url: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80',
-        trust_score: 100,
-        rating: 5.0,
-        total_reviews: 0,
-        completed_trades: 0,
-        punctuality_rate: 100,
-        bio: 'Official TradeLink Campus Moderation & Safety Desk. Verified student marketplace.',
-        is_pro_merchant: false,
-        is_banned: false
-      }).catch(() => {});
-      logger.info('[DB Init] Created alternate administrator: uc.tradelink@gmail.com');
-    } else {
-      await db('users').where({ id: existingGmailAdmin.id }).update({
-        password_hash: adminPasswordHash,
-        role: 'admin',
-        is_banned: false,
-        is_verified: true
-      });
-    }
-
-    // 2b. Ensure Default Student Accounts Exist for Testing
-    const student1 = await db('users').where({ student_id: '20240001' }).first();
-    if (!student1) {
-      await db('users').insert({
-        id: 'user-student-1',
-        name: 'Juan Dela Cruz',
-        email: 'juan.delacruz@uc.edu.ph',
-        student_id: '20240001',
-        password_hash: adminPasswordHash,
-        role: 'student',
-        campus: 'UC Main',
-        college: 'CCS',
-        year_level: '3rd Year',
-        avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=300&q=80',
-        is_verified: true,
-        id_photo_url: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80',
-        trust_score: 85,
-        rating: 5.0,
-        total_reviews: 4,
-        completed_trades: 3,
-        punctuality_rate: 100,
-        bio: 'BSIT 3rd Year student at UC Main. Regular campus trader.',
-        is_pro_merchant: false,
-        is_banned: false
-      });
-      logger.info('[DB Init] Created default verified student: 20240001 (Juan Dela Cruz)');
-    }
-
-    const student2 = await db('users').where({ student_id: '20240002' }).first();
-    if (!student2) {
-      await db('users').insert({
-        id: 'user-student-2',
-        name: 'Maria Santos',
-        email: 'maria.santos@uc.edu.ph',
-        student_id: '20240002',
-        password_hash: adminPasswordHash,
-        role: 'student',
-        campus: 'UC Banilad',
-        college: 'CBA',
-        year_level: '2nd Year',
-        avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80',
-        is_verified: false,
-        id_photo_url: null,
-        trust_score: 0,
-        rating: 0.0,
-        total_reviews: 0,
-        completed_trades: 0,
-        punctuality_rate: 0,
-        bio: 'BSBA 2nd Year student at UC Banilad.',
-        is_pro_merchant: false,
-        is_banned: false
-      });
-      logger.info('[DB Init] Created default unverified student: 20240002 (Maria Santos)');
+      logger.info('[DB Init] Created administrator: uc.tradelink@gmail.com');
     }
 
     // 3. Ensure Default System Configuration Exists

@@ -10,7 +10,9 @@ import {
   CheckCircle2,
   Cpu,
   Layers,
-  Terminal
+  Terminal,
+  Sparkles,
+  Users
 } from 'lucide-react';
 
 interface DevelopersPageProps {
@@ -39,141 +41,141 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
   const [carouselIndex, setCarouselIndex] = useState<number>(0);
   const [viewMode, setViewMode] = useState<'carousel' | 'grid'>('carousel');
 
-  // The 8 Official Platform Developers with Assigned Roles, Campuses & Socials
+  // The 8 Official Platform Developers with Student-Friendly Bios, Campuses & Roles
   const teamMembers: TeamMember[] = [
     {
       id: 'jhonrid',
       name: 'Jhonrid Ramirez',
-      role: 'Lead Developer',
+      role: 'Platform Lead & Creator',
       category: 'Lead',
-      categoryBadge: 'Lead Architect',
+      categoryBadge: 'Project Lead & Creator',
       badgeColor: 'linear-gradient(135deg, #002B7F 0%, #001744 100%)',
       accentGlow: 'rgba(0, 43, 127, 0.28)',
       campus: 'UC Main Campus',
       avatarUrl: 'https://avatars.githubusercontent.com/u/112171139?v=4',
       initials: 'JR',
       fallbackColor: '#002B7F',
-      bio: 'Primary system architect and lead engineer of TradeLink. Engineered the end-to-end full-stack architecture, REST APIs, WebSocket real-time messaging, face-to-ID biometric verification, MySQL database schemas, and responsive web & mobile clients.',
-      skills: ['Full-Stack Architecture', 'Node.js & Express REST API', 'WebSocket & Socket.IO Engine', 'MySQL & Knex.js Modeling', 'Security & Handshake Protocols'],
+      bio: 'Envisioned and created TradeLink to make buying, selling, and swapping items easy, safe, and student-friendly across all UC campuses. Oversees the overall platform experience, student safety, and real-time chat features.',
+      skills: ['Platform Vision & Architecture', 'Student Safety & Protection', 'Real-Time Messaging', 'System Reliability', 'Campus Feature Design'],
       githubUrl: 'https://www.github.com/drib14',
       facebookUrl: 'https://www.facebook.com/drib14'
     },
     {
       id: 'richie',
       name: 'Richie Ann Armenion',
-      role: 'Project Manager',
+      role: 'Project Coordinator',
       category: 'Management',
-      categoryBadge: 'Project Management',
+      categoryBadge: 'Project Coordination',
       badgeColor: 'linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)',
       accentGlow: 'rgba(124, 58, 237, 0.25)',
       campus: 'UC Main Campus',
       avatarUrl: '',
       initials: 'RA',
       fallbackColor: '#7C3AED',
-      bio: 'Directs project roadmaps, agile development sprints, cross-campus team milestones, and student stakeholder alignment. Ensures platform deliveries align with University of Cebu student guidelines and academic timelines.',
-      skills: ['Agile Project Planning', 'Sprint & Delivery Management', 'Student Council Liaison', 'Feature Prioritization', 'Product Quality Standards'],
+      bio: 'Coordinates team goals and timelines to make sure TradeLink directly serves the everyday needs of UC students. Keeps the team organized and ensures the platform respects university community guidelines.',
+      skills: ['Project Organization', 'Student Needs Research', 'Campus Guidelines', 'Team Coordination', 'Platform Quality'],
       githubUrl: 'https://github.com/RichieArmenion',
       facebookUrl: 'https://www.facebook.com/richieaaann'
     },
     {
       id: 'visayas',
       name: 'Tim Jaylord Visayas',
-      role: 'Database Engineer',
+      role: 'Data & Records Specialist',
       category: 'Database',
-      categoryBadge: 'Database Infrastructure',
+      categoryBadge: 'Data & Security Records',
       badgeColor: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
       accentGlow: 'rgba(2, 132, 199, 0.25)',
       campus: 'UC Main Campus',
       avatarUrl: '',
       initials: 'TV',
       fallbackColor: '#0284C7',
-      bio: 'Architects and tunes MySQL 8 relational schemas, foreign key integrity, Knex.js automated migrations, and transaction logs. Specializes in indexing strategies, query execution plans, and data scalability.',
-      skills: ['MySQL 8 Schema Design', 'Knex.js Query Optimization', 'Relational Constraints & Indexing', 'Transaction Logging', 'Data Normalization'],
+      bio: 'Ensures all student accounts, listings, and transaction histories are securely organized and accurately saved, so your information stays fast, intact, and protected at all times.',
+      skills: ['Data Protection', 'Record Organization', 'Fast Search Speeds', 'Account Reliability', 'System Storage'],
       githubUrl: 'https://github.com/taymtim',
       facebookUrl: 'https://www.facebook.com/timjaylordrendon'
     },
     {
       id: 'taray',
       name: 'John Paul Taray',
-      role: 'Database Engineer',
+      role: 'Marketplace Records Specialist',
       category: 'Database',
-      categoryBadge: 'Database & Data Ops',
+      categoryBadge: 'Marketplace Records',
       badgeColor: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
       accentGlow: 'rgba(2, 132, 199, 0.25)',
       campus: 'UC Banilad Campus',
       avatarUrl: '',
       initials: 'JT',
       fallbackColor: '#0284C7',
-      bio: 'Co-engineers database models, automated data seeding, user statistic calculations (0-transaction defaults, ratings, punctuality metrics), and query caching for high campus traffic.',
-      skills: ['Data Seeding & Migrations', 'User Stats & Trust Calculation', 'Transaction Storage Engines', 'Data Integrity & Constraints', 'Query Performance'],
+      bio: 'Maintains the marketplace item catalog and user reputation records, making sure reviews, transaction badges, and item statuses are always up to date for smooth browsing.',
+      skills: ['Catalog Organization', 'Trust & Rating Systems', 'Marketplace Activity', 'Account Protection', 'Performance Care'],
       githubUrl: 'https://github.com/johnpaultaray',
       facebookUrl: 'https://www.facebook.com/tarayjohn02'
     },
     {
       id: 'fernandez',
       name: 'Gabriel Fernandez',
-      role: 'UI/UX Designer',
+      role: 'User Experience Designer',
       category: 'UI/UX',
-      categoryBadge: 'UI/UX Design',
+      categoryBadge: 'Campus Experience Design',
       badgeColor: 'linear-gradient(135deg, #DB2777 0%, #9D174D 100%)',
       accentGlow: 'rgba(219, 39, 119, 0.25)',
       campus: 'UC LM Campus',
       avatarUrl: '',
       initials: 'GF',
       fallbackColor: '#DB2777',
-      bio: 'Crafts modern student user interfaces, intuitive user journeys, interactive wireframes, and design systems anchored by official University of Cebu branding tokens and accessibility standards.',
-      skills: ['Figma UI/UX Prototyping', 'Design System Architecture', 'User Journey Mapping', 'Visual Hierarchy & Typography', 'Student Usability Research'],
+      bio: 'Designs clean, easy-to-use screens and navigation so students from any course or year level can effortlessly find what they need, browse items, and feel right at home.',
+      skills: ['Clean Layout Design', 'Student Usability', 'Campus Visuals', 'Simple Navigation', 'User Journey Care'],
       githubUrl: '',
       facebookUrl: 'https://www.facebook.com/iduckinfhatwu'
     },
     {
       id: 'coyoca',
       name: 'Earl Justine Coyoca',
-      role: 'UI/UX Designer',
+      role: 'Visual & Interaction Designer',
       category: 'UI/UX',
-      categoryBadge: 'Experience & Aesthetics',
+      categoryBadge: 'Visual Experience',
       badgeColor: 'linear-gradient(135deg, #D97706 0%, #B45309 100%)',
       accentGlow: 'rgba(217, 119, 6, 0.25)',
       campus: 'UC Main Campus',
       avatarUrl: '',
       initials: 'EC',
       fallbackColor: '#D97706',
-      bio: 'Focuses on visual micro-interactions, responsive mobile layouts, modal states, accessibility guidelines, and interactive campus marketplace card aesthetics.',
-      skills: ['Micro-Interactions & Animation', 'Responsive Mobile Layouts', 'Modal & Dialog UI Design', 'Accessibility & Usability', 'Color Token Systems'],
+      bio: 'Polishes the look and feel of the app, creating smooth buttons, friendly pop-ups, and a great viewing experience whether browsing on a phone or laptop during classes.',
+      skills: ['Mobile Friendly Design', 'Smooth Animations', 'Readable Screens', 'Card Layouts', 'Creative Visuals'],
       githubUrl: '',
       facebookUrl: 'https://www.facebook.com/earljustino'
     },
     {
       id: 'sanchez',
       name: 'John Kith Sanchez',
-      role: 'Frontend Developer',
+      role: 'App Experience Builder',
       category: 'Frontend',
-      categoryBadge: 'Frontend Engineering',
+      categoryBadge: 'Interactive Web Experience',
       badgeColor: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
       accentGlow: 'rgba(5, 150, 105, 0.25)',
       campus: 'UC Banilad Campus',
       avatarUrl: '',
       initials: 'JS',
       fallbackColor: '#059669',
-      bio: 'Develops interactive React 18 & TypeScript frontend components, state management contexts, real-time message drawers, and high-performance campus marketplace catalog filters.',
-      skills: ['React 18 & TypeScript', 'Context API State Management', 'Real-Time Chat & Sockets', 'Dynamic Filtering Engines', 'Performance Optimization'],
+      bio: 'Brings the website pages to life, building the interactive item search filters, instant chat screens, and smooth notifications that make using the platform quick and pleasant.',
+      skills: ['Interactive Web Pages', 'Instant Campus Chat', 'Smart Search Filters', 'Smooth Transitions', 'Speed & Responsiveness'],
       githubUrl: 'https://github.com/FlyingSteps04',
       facebookUrl: 'https://www.facebook.com/johnkithsanchez04'
     },
     {
       id: 'bersales',
       name: 'Lloel Bersales',
-      role: 'Frontend Developer',
+      role: 'Student Interface Builder',
       category: 'Frontend',
-      categoryBadge: 'Client State & Views',
+      categoryBadge: 'Student Forms & Verification',
       badgeColor: 'linear-gradient(135deg, #0D9488 0%, #0F766E 100%)',
       accentGlow: 'rgba(13, 148, 136, 0.25)',
       campus: 'UC Main Campus',
       avatarUrl: '',
       initials: 'LB',
       fallbackColor: '#0D9488',
-      bio: 'Builds responsive client views, modal dialogues, interactive form validation, student ID verification flows, and smooth CSS keyframe transitions.',
-      skills: ['Responsive Client Views', 'Form Validations & Feedback', 'Verification Modal Flow', 'Interactive Animations', 'Cross-Browser Testing'],
+      bio: 'Builds the friendly forms and student ID verification steps, helping fellow Webmasters and students sign up, post their items, and trade securely with clear visual guidance.',
+      skills: ['Easy-to-Use Forms', 'Student ID Verification', 'Clear Alerts & Help', 'Mobile Screen Flow', 'Helpful Guides'],
       githubUrl: 'https://github.com/bersalespaul9-ctrl',
       facebookUrl: 'https://www.facebook.com/paul.bersales.15'
     }
@@ -260,14 +262,14 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
         </button>
 
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', backgroundColor: 'rgba(0, 43, 127, 0.08)', color: 'var(--uc-blue)', padding: '0.3rem 0.75rem', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-          <Code2 size={15} /> Core Engineering & Development Team
+          <Users size={15} /> Platform Creators & Team
         </div>
 
         <h1 style={{ fontSize: '2.4rem', fontWeight: 900, color: 'var(--text-primary)', marginTop: '0.5rem', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', lineHeight: 1.15 }}>
-          The Developers Behind TradeLink
+          The Creators Behind TradeLink
         </h1>
         <p style={{ fontSize: '1rem', color: 'var(--text-secondary)', lineHeight: 1.6, marginTop: '0.5rem', maxWidth: '780px' }}>
-          Meet the 8 student creators and engineers who conceptualized, designed, and built the TradeLink platform for the University of Cebu community.
+          Meet the 8 University of Cebu students who designed and built the TradeLink platform to empower safe, trust-backed peer-to-peer campus commerce.
         </p>
       </div>
 
@@ -456,7 +458,7 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#FFFFFF', fontSize: '0.74rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      {member.id === 'jhonrid' ? <Crown size={14} color="#FFC72C" /> : <Terminal size={14} />}
+                      {member.id === 'jhonrid' ? <Crown size={14} color="#FFC72C" /> : <Sparkles size={14} />}
                       <span>{member.category}</span>
                     </div>
 

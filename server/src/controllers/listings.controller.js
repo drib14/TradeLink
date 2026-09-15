@@ -36,7 +36,7 @@ const getListings = asyncHandler(async (req, res) => {
   const parsedMax = Math.min(1000000, parseFloat(priceMax) || 100000);
 
   let query = db('listings')
-    .join('users as seller', 'listings.seller_id', 'seller.id')
+    .leftJoin('users as seller', 'listings.seller_id', 'seller.id')
     .select(
       'listings.*',
       'seller.name as seller_name',
@@ -46,7 +46,9 @@ const getListings = asyncHandler(async (req, res) => {
       'seller.is_verified as seller_is_verified',
       'seller.trust_score as seller_trust_score'
     )
-    .where('seller.is_banned', false);
+    .where((builder) => {
+      builder.whereNull('seller.is_banned').orWhere('seller.is_banned', false);
+    });
 
   // Filter: Status (default 'active', or specific status if not 'All')
   if (status && status !== 'All') {
@@ -77,16 +79,16 @@ const getListings = asyncHandler(async (req, res) => {
   // Filter: Price range
   query = query.whereBetween('listings.price', [parsedMin, parsedMax]);
 
-  // Search keyword across title, description, category, course_code, seller name with escaped wildcards
+  // Search keyword across title, description, category, seller name with escaped wildcards
   if (search && search.trim()) {
     const cleanSearch = escapeLike(search.trim());
     const q = `%${cleanSearch}%`;
     query = query.where((builder) => {
       builder
-        .whereILike('listings.title', q)
-        .orWhereILike('listings.description', q)
-        .orWhereILike('listings.category', q)
-        .orWhereILike('seller.name', q);
+        .where('listings.title', 'like', q)
+        .orWhere('listings.description', 'like', q)
+        .orWhere('listings.category', 'like', q)
+        .orWhere('seller.name', 'like', q);
     });
   }
 
