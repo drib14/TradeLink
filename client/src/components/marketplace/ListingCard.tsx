@@ -77,13 +77,13 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick, layo
           flexDirection: layout === 'list' ? 'row' : 'column',
           cursor: 'pointer',
           position: 'relative',
-          borderRadius: '14px',
-          backgroundColor: 'var(--bg-surface, #FFFFFF)',
-          border: isHovered ? '1.5px solid var(--uc-blue-border, #BCD1F7)' : '1px solid var(--border-subtle, #E2E8F0)',
+          borderRadius: '22px',
+          backgroundColor: '#FFFFFF',
+          border: isHovered ? '1.5px solid rgba(188, 209, 247, 0.9)' : '1.5px solid rgba(255, 255, 255, 0.85)',
           transform: isHovered ? 'translateY(-4px)' : 'translateY(0)',
           boxShadow: isHovered
-            ? '0 16px 32px -4px rgba(0, 43, 127, 0.12), 0 4px 12px rgba(0, 0, 0, 0.04)'
-            : '0 2px 8px -2px rgba(0, 43, 127, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03)',
+            ? '0 20px 36px -6px rgba(0, 43, 127, 0.14), 0 6px 14px -2px rgba(0, 0, 0, 0.05), inset 3px 3px 6px #FFFFFF, inset -3px -3px 6px rgba(0, 43, 127, 0.06)'
+            : '0 12px 24px -4px rgba(0, 43, 127, 0.08), 0 4px 10px -2px rgba(0, 0, 0, 0.03), inset 3px 3px 6px rgba(255, 255, 255, 0.95), inset -3px -3px 6px rgba(0, 43, 127, 0.04)',
           transition: 'all 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
           opacity: isSoldOut ? 0.85 : 1,
           overflow: 'hidden'
@@ -491,10 +491,10 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick, layo
                 className={listing.tradeMode === 'swap' ? 'btn-secondary' : 'btn-primary'}
                 style={{
                   width: '100%',
-                  padding: '0.5rem 0.75rem',
-                  fontSize: '0.82rem',
+                  padding: '0.6rem 0.85rem',
+                  fontSize: '0.84rem',
                   fontWeight: 800,
-                  borderRadius: '8px',
+                  borderRadius: '14px',
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',

@@ -102,16 +102,17 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header
+      className="sticky-top-nav"
       style={{
-        backgroundColor: 'rgba(255, 255, 255, 0.92)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        borderBottom: '1.5px solid var(--border-subtle, #E2E8F0)',
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        borderBottom: '1.5px solid rgba(255, 255, 255, 0.85)',
         position: 'sticky',
         top: 0,
-        zIndex: 50,
+        zIndex: 100,
         width: '100%',
-        boxShadow: '0 2px 8px -2px rgba(0, 43, 127, 0.05)',
+        boxShadow: '0 8px 24px -4px rgba(0, 43, 127, 0.08), inset 0 -1px 0 rgba(0, 43, 127, 0.03)',
         transition: 'all 0.2s ease'
       }}
     >
@@ -150,13 +151,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                 alignItems: 'center',
                 gap: '0.4rem',
                 backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)',
-                border: '1.5px solid var(--uc-blue-border, #BCD1F7)',
-                padding: '0.4rem 0.85rem',
-                borderRadius: '8px',
+                border: '1px solid rgba(255, 255, 255, 0.8)',
+                padding: '0.45rem 0.95rem',
+                borderRadius: '16px',
                 fontSize: '0.82rem',
                 fontWeight: 700,
                 color: 'var(--uc-blue, #002B7F)',
                 cursor: 'pointer',
+                boxShadow: '0 3px 6px rgba(0, 43, 127, 0.08), inset 1.5px 1.5px 3px rgba(255, 255, 255, 0.9), inset -1.5px -1.5px 3px rgba(0, 43, 127, 0.04)',
                 transition: 'all 0.15s ease'
               }}
             >
@@ -168,15 +170,15 @@ export const Navbar: React.FC<NavbarProps> = ({
               <div
                 style={{
                   position: 'absolute',
-                  top: 'calc(100% + 6px)',
+                  top: 'calc(100% + 8px)',
                   left: 0,
-                  backgroundColor: 'var(--bg-surface, #FFFFFF)',
-                  border: '1.5px solid var(--uc-blue-border, #BCD1F7)',
-                  borderRadius: '10px',
-                  boxShadow: '0 12px 28px rgba(0, 43, 127, 0.12)',
+                  backgroundColor: '#FFFFFF',
+                  border: '1.5px solid rgba(255, 255, 255, 0.9)',
+                  borderRadius: '18px',
+                  boxShadow: '0 16px 36px rgba(0, 43, 127, 0.16), inset 2.5px 2.5px 5px rgba(255, 255, 255, 0.95), inset -2.5px -2.5px 5px rgba(0, 43, 127, 0.04)',
                   width: '220px',
                   zIndex: 60,
-                  padding: '0.4rem',
+                  padding: '0.5rem',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '0.2rem'
@@ -213,11 +215,11 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Center: Search Input (Available to All Visitors) */}
-        <div style={{ flex: 1, minWidth: 0, maxWidth: '400px', position: 'relative' }}>
+        <div className="search-bar-wrapper" style={{ flex: 1, minWidth: 0, maxWidth: '440px' }}>
           <Search
-            size={15}
-            color="var(--text-muted, #64748B)"
-            style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
+            size={16}
+            className="search-icon"
+            style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', zIndex: 2 }}
           />
           <input
             type="text"
@@ -229,31 +231,26 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onNavigate('marketplace');
               }
             }}
-            className="clean-input"
+            className="clean-input search-input navbar-search-input"
             style={{
-              padding: '0.5rem 0.85rem 0.5rem 2.35rem',
-              backgroundColor: 'var(--bg-subtle, #F8FAFC)',
-              fontSize: '0.84rem'
+              paddingLeft: '2.65rem',
+              paddingRight: searchQuery ? '2.4rem' : '1rem'
             }}
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
+              className="search-clear-btn"
               style={{
                 position: 'absolute',
                 right: '0.75rem',
                 top: '50%',
                 transform: 'translateY(-50%)',
-                color: 'var(--text-muted, #64748B)',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
+                zIndex: 2
               }}
+              title="Clear search"
             >
-              <X size={14} />
+              <X size={13} />
             </button>
           )}
         </div>

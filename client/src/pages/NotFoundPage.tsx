@@ -8,7 +8,7 @@ interface NotFoundPageProps {
 }
 
 export const NotFoundPage: React.FC<NotFoundPageProps> = ({ onNavigate }) => {
-  const { setSelectedCampus } = useMarket();
+  const { setSelectedCampus, setSearchQuery } = useMarket();
 
   const handleCampusRedirect = (campus: Campus) => {
     setSelectedCampus(campus);
@@ -104,7 +104,27 @@ export const NotFoundPage: React.FC<NotFoundPageProps> = ({ onNavigate }) => {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.75rem' }}>
+      {/* Direct Search Bar Recovery */}
+      <div className="search-bar-wrapper" style={{ width: '100%', maxWidth: '460px', marginTop: '1.5rem' }}>
+        <Search size={16} className="search-icon" style={{ position: 'absolute', left: '1.1rem', top: '50%', transform: 'translateY(-50%)', zIndex: 2 }} />
+        <input
+          type="text"
+          placeholder="Search items, textbooks, uniforms across UC..."
+          className="clean-input search-input"
+          style={{ paddingLeft: '2.75rem', fontSize: '0.86rem' }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              const val = (e.target as HTMLInputElement).value.trim();
+              if (val) {
+                setSearchQuery(val);
+                onNavigate('marketplace');
+              }
+            }
+          }}
+        />
+      </div>
+
+      <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
         <button
           onClick={() => onNavigate('home')}
           className="btn-primary"
@@ -118,7 +138,7 @@ export const NotFoundPage: React.FC<NotFoundPageProps> = ({ onNavigate }) => {
           className="btn-gold"
           style={{ padding: '0.65rem 1.4rem' }}
         >
-          <Search size={15} /> Search Catalog
+          <Search size={15} /> Browse Marketplace
         </button>
       </div>
     </div>

@@ -39,11 +39,17 @@ const pathToView = (path: string, search: string = window.location.search): { vi
     const parts = cleanPath.split('/');
     const rawUserId = parts[1] || searchParams.get('userId') || searchParams.get('id') || undefined;
     const userId = rawUserId ? decodeHashedId(rawUserId) : undefined;
+    if (parts[1] && !userId) {
+      return { view: 'not-found', params: {} };
+    }
     return { view: 'profile', params: { userId } };
   }
   if (cleanPath.startsWith('item/') || cleanPath === 'item') {
     const rawId = cleanPath.split('/')[1] || searchParams.get('id') || undefined;
     const id = rawId ? decodeHashedId(rawId) : undefined;
+    if (cleanPath.startsWith('item/') && !id) {
+      return { view: 'not-found', params: {} };
+    }
     return { view: 'item-detail', params: { id } };
   }
 
@@ -63,6 +69,7 @@ const pathToView = (path: string, search: string = window.location.search): { vi
   if (cleanLower === 'maintenance') return { view: 'maintenance', params: {} };
   if (cleanLower === 'favorites' || cleanLower === 'saved') return { view: 'marketplace', params: {} };
   if (cleanLower === 'settings' || cleanLower === 'preferences') return { view: 'settings', params: {} };
+  if (cleanLower === 'not-found' || cleanLower === '404') return { view: 'not-found', params: {} };
   return { view: 'not-found', params: {} };
 };
 
@@ -78,6 +85,9 @@ export const MainApp: React.FC = () => {
   useEffect(() => {
     const handlePopState = () => {
       const { view, params } = pathToView(window.location.pathname, window.location.search);
+      if (view === 'not-found' && window.location.pathname !== '/not-found') {
+        window.history.replaceState({}, '', '/not-found');
+      }
       setCurrentView(view);
       setViewParams(params);
     };
@@ -88,20 +98,28 @@ export const MainApp: React.FC = () => {
   }, []);
 
   const handleNavigate = (view: string, params: any = {}) => {
-    setCurrentView(view);
+    const validViews = [
+      'home', 'marketplace', 'item-detail', 'create-listing', 'flash-market',
+      'wanted', 'swaps', 'meetups', 'transactions', 'profile', 'about',
+      'developers', 'faq', 'help-safety', 'terms', 'privacy', 'favorites',
+      'settings', 'maintenance', 'not-found'
+    ];
+    const targetView = validViews.includes(view) ? view : 'not-found';
+    setCurrentView(targetView);
     setViewParams(params);
 
-    let path = `/${view}`;
-    if (view === 'home') path = '/';
-    if (view === 'item-detail' && params.id) path = `/item/${encodeHashedId(params.id, 'listing')}`;
-    if (view === 'profile' && params.userId) path = `/profile/${encodeHashedId(params.userId, 'user')}`;
+    let path = `/${targetView}`;
+    if (targetView === 'home') path = '/';
+    if (targetView === 'item-detail' && params.id) path = `/item/${encodeHashedId(params.id, 'listing')}`;
+    if (targetView === 'profile' && params.userId) path = `/profile/${encodeHashedId(params.userId, 'user')}`;
+    if (targetView === 'not-found') path = '/not-found';
 
     window.history.pushState({}, '', path);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: 'var(--bg-base, #F8FAFC)', width: '100%', maxWidth: '100vw', overflowX: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: 'var(--bg-base, #F8FAFC)', width: '100%', maxWidth: '100vw', overflowX: 'clip' }}>
       {/* 1. Official Campus Navbar */}
       <Navbar
         currentView={currentView}
@@ -111,7 +129,7 @@ export const MainApp: React.FC = () => {
         onOpenVerification={() => setIsVerificationModalOpen(true)}
       />
 
-      <main style={{ flex: 1, width: '100%', maxWidth: '100vw', overflowX: 'hidden' }}>
+      <main style={{ flex: 1, width: '100%', maxWidth: '100vw', overflowX: 'clip' }}>
         {(() => {
           switch (currentView) {
             case 'home':
