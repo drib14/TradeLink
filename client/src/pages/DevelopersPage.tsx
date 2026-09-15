@@ -3,7 +3,6 @@ import {
   Code2,
   ChevronLeft,
   ChevronRight,
-  Sparkles,
   LayoutGrid,
   MapPin,
   HeartHandshake,
@@ -356,7 +355,7 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
               color: viewMode === 'carousel' ? '#FFFFFF' : 'var(--text-secondary)'
             }}
           >
-            <Sparkles size={14} /> 3D Carousel View
+            <Layers size={14} /> 3D Carousel View
           </button>
           <button
             onClick={() => setViewMode('grid')}

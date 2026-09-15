@@ -6,6 +6,7 @@ const upload = require('../middleware/upload');
 const AppError = require('../utils/AppError');
 const storageService = require('../services/storage.service');
 const asyncHandler = require('../utils/asyncHandler');
+const { uploadLimiter } = require('../middleware/rateLimiter');
 
 // Sub-routers
 const authRoutes = require('./auth.routes');
@@ -19,6 +20,7 @@ const wantedRoutes = flashMarketRoutes; // Compatibility alias
 const reviewsRoutes = require('./reviews.routes');
 const adminRoutes = require('./admin.routes');
 const adminAuthRoutes = require('./adminAuth.routes');
+const newsletterRoutes = require('./newsletter.routes');
 
 // System Health Check
 router.get('/health', async (req, res) => {
@@ -38,7 +40,7 @@ router.get('/upload/status', authenticate, asyncHandler(async (req, res) => {
 }));
 
 // File / Media Upload endpoint (supports images and videos, streams directly to Cloudinary)
-router.post('/upload', authenticate, upload.any(), asyncHandler(async (req, res, next) => {
+router.post('/upload', authenticate, uploadLimiter, upload.array('image', 10), asyncHandler(async (req, res, next) => {
   const uploadedFiles = req.files && req.files.length > 0 ? req.files : (req.file ? [req.file] : []);
   if (uploadedFiles.length === 0) {
     return next(new AppError('No file uploaded.', 400));
@@ -87,5 +89,6 @@ router.use('/wanted', flashMarketRoutes); // Compatibility alias
 router.use('/reviews', reviewsRoutes);
 router.use('/admin', adminRoutes);
 router.use('/admin-auth', adminAuthRoutes);
+router.use('/newsletter', newsletterRoutes);
 
 module.exports = router;

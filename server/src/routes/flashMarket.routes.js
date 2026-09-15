@@ -5,12 +5,12 @@ const { authenticate } = require('../middleware/auth');
 const validate = require('../middleware/validate');
 const validateUUID = require('../middleware/validateUUID');
 const { createFlashRequestSchema } = require('../validations/flashMarket.validation');
-const { requireVerified } = require('../middleware/rbac');
+const { requireVerified, requireStudent } = require('../middleware/rbac');
 
 router.get('/', flashMarketController.getFlashRequests);
-router.post('/', authenticate, requireVerified, validate(createFlashRequestSchema), flashMarketController.createFlashRequest);
-router.post('/:id/respond', authenticate, requireVerified, validateUUID, flashMarketController.respondToFlashRequest);
-router.patch('/:id/fulfill', authenticate, validateUUID, flashMarketController.fulfillFlashRequest);
-router.delete('/:id', authenticate, validateUUID, flashMarketController.deleteFlashRequest);
+router.post('/', authenticate, requireStudent, requireVerified, validate(createFlashRequestSchema), flashMarketController.createFlashRequest);
+router.post('/:id/respond', authenticate, requireStudent, requireVerified, validateUUID, flashMarketController.respondToFlashRequest);
+router.patch('/:id/fulfill', authenticate, requireStudent, validateUUID, flashMarketController.fulfillFlashRequest);
+router.delete('/:id', authenticate, requireStudent, validateUUID, flashMarketController.deleteFlashRequest);
 
 module.exports = router;

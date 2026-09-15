@@ -66,7 +66,6 @@ function getExtension(filename, mimeType) {
       'image/png': '.png',
       'image/webp': '.webp',
       'image/gif': '.gif',
-      'image/svg+xml': '.svg',
       'video/mp4': '.mp4',
       'video/webm': '.webm',
       'video/quicktime': '.mov',
@@ -75,6 +74,51 @@ function getExtension(filename, mimeType) {
     return map[mimeType.toLowerCase()] || (mimeType.startsWith('video/') ? '.mp4' : '.jpg');
   }
   return '.jpg';
+}
+
+/**
+ * Validates file buffer magic bytes against claimed MIME type.
+ * Prevents attackers from uploading malicious files with renamed extensions.
+ */
+function validateMagicBytes(buffer, mimeType) {
+  if (!buffer || buffer.length < 4) return false;
+
+  const signatures = {
+    'image/jpeg': [[0xFF, 0xD8, 0xFF]],
+    'image/jpg': [[0xFF, 0xD8, 0xFF]],
+    'image/png': [[0x89, 0x50, 0x4E, 0x47]],
+    'image/gif': [[0x47, 0x49, 0x46, 0x38]],
+    'image/webp': null, // RIFF-based, check below
+    'video/mp4': null,  // ftyp-based, check below
+    'video/quicktime': null,
+    'video/webm': [[0x1A, 0x45, 0xDF, 0xA3]],
+    'video/x-m4v': null
+  };
+
+  const lowerMime = (mimeType || '').toLowerCase();
+
+  // WebP check: RIFF....WEBP
+  if (lowerMime === 'image/webp') {
+    return buffer.length >= 12 &&
+      buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 &&
+      buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50;
+  }
+
+  // MP4/MOV/M4V check: look for 'ftyp' at offset 4
+  if (['video/mp4', 'video/quicktime', 'video/x-m4v'].includes(lowerMime)) {
+    if (buffer.length >= 8) {
+      const ftyp = buffer.slice(4, 8).toString('ascii');
+      return ftyp === 'ftyp';
+    }
+    return false;
+  }
+
+  const sigs = signatures[lowerMime];
+  if (!sigs) return true; // Unknown MIME — allow (Cloudinary will validate further)
+
+  return sigs.some(sig =>
+    sig.every((byte, i) => buffer[i] === byte)
+  );
 }
 
 /**
@@ -130,6 +174,11 @@ async function uploadBuffer(buffer, originalFilename = 'file.jpg', mimeType = 'i
   const uniqueId = uuidv4();
   const filename = `${uniqueId}${ext}`;
 
+  // Validate magic bytes match claimed MIME type
+  if (!validateMagicBytes(buffer, mimeType)) {
+    throw new Error('File content does not match the declared file type. Upload rejected for security.');
+  }
+
   if (isCloudinaryConfigured()) {
     try {
       const result = await new Promise((resolve, reject) => {
@@ -178,6 +227,11 @@ async function uploadBase64(dataUriOrBase64, folder = 'listings') {
   }
 
   const trimmed = dataUriOrBase64.trim();
+
+  // Prevent memory exhaustion from oversized base64 payloads
+  if (trimmed.length > 15 * 1024 * 1024) {
+    throw new Error('Base64 payload exceeds maximum allowed size (15MB).');
+  }
 
   // If already an HTTP(S) URL or /uploads/ path, do not re-upload
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('/uploads/')) {

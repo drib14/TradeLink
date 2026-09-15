@@ -131,7 +131,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   // Search and filters
   const [userSearch, setUserSearch] = useState('');
   const [userCampusFilter, setUserCampusFilter] = useState<string>('All');
-  const [verificationFilter, setVerificationFilter] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending');
+  const [verificationFilter, setVerificationFilter] = useState<'pending' | 'suspicious' | 'approved' | 'rejected' | 'all'>('pending');
 
   // Scanner Tool State
   const [newKeywordInput, setNewKeywordInput] = useState('');
@@ -839,32 +839,72 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
       {activeTab === 'verifications' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              {(['pending', 'approved', 'rejected', 'all'] as const).map((filter) => (
-                <button
-                  key={filter}
-                  onClick={() => setVerificationFilter(filter)}
-                  style={{
-                    padding: '0.4rem 0.85rem',
-                    borderRadius: '8px',
-                    fontSize: '0.78rem',
-                    fontWeight: verificationFilter === filter ? 800 : 600,
-                    backgroundColor: verificationFilter === filter ? '#002B7F' : '#F1F5F9',
-                    color: verificationFilter === filter ? '#FFFFFF' : '#475569',
-                    textTransform: 'capitalize'
-                  }}
-                >
-                  {filter}
-                </button>
-              ))}
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              {(['pending', 'suspicious', 'approved', 'rejected', 'all'] as const).map((filter) => {
+                const count = filter === 'suspicious'
+                  ? verificationRequests.filter((r) => r.isSuspicious && r.status === 'pending').length
+                  : filter === 'pending'
+                    ? verificationRequests.filter((r) => r.status === 'pending').length
+                    : filter === 'approved'
+                      ? verificationRequests.filter((r) => r.status === 'approved').length
+                      : filter === 'rejected'
+                        ? verificationRequests.filter((r) => r.status === 'rejected').length
+                        : verificationRequests.length;
+
+                return (
+                  <button
+                    key={filter}
+                    onClick={() => setVerificationFilter(filter)}
+                    style={{
+                      padding: '0.4rem 0.85rem',
+                      borderRadius: '8px',
+                      fontSize: '0.78rem',
+                      fontWeight: verificationFilter === filter ? 800 : 600,
+                      backgroundColor: verificationFilter === filter
+                        ? (filter === 'suspicious' ? '#DC2626' : '#002B7F')
+                        : '#F1F5F9',
+                      color: verificationFilter === filter ? '#FFFFFF' : '#475569',
+                      textTransform: 'capitalize',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.35rem'
+                    }}
+                  >
+                    <span>{filter}</span>
+                    <span style={{
+                      backgroundColor: verificationFilter === filter ? 'rgba(255,255,255,0.25)' : '#E2E8F0',
+                      padding: '1px 6px',
+                      borderRadius: '9999px',
+                      fontSize: '0.7rem'
+                    }}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
             {verificationRequests
-              .filter((r) => verificationFilter === 'all' || r.status === verificationFilter)
+              .filter((r) => {
+                if (verificationFilter === 'all') return true;
+                if (verificationFilter === 'suspicious') return r.isSuspicious && r.status === 'pending';
+                return r.status === verificationFilter;
+              })
               .map((req) => (
-                <div key={req.id} className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div
+                  key={req.id}
+                  className="clean-card"
+                  style={{
+                    padding: '1.25rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '1rem',
+                    border: req.isSuspicious && req.status === 'pending' ? '1.5px solid #FCA5A5' : undefined,
+                    backgroundColor: req.isSuspicious && req.status === 'pending' ? '#FFFDFD' : undefined
+                  }}
+                >
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                     <div>
                       <h4 style={{ fontSize: '0.98rem', fontWeight: 800, color: '#0F172A' }}>{req.userName}</h4>
@@ -874,6 +914,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                       </div>
                       <div style={{ fontSize: '0.75rem', color: '#002B7F', fontWeight: 700, marginTop: '0.25rem' }}>
                         ID: {req.studentIdNumber}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.35rem', flexWrap: 'wrap' }}>
+                        <span
+                          style={{
+                            fontSize: '0.68rem',
+                            fontWeight: 800,
+                            padding: '0.15rem 0.45rem',
+                            borderRadius: '6px',
+                            backgroundColor: (req.confidenceScore ?? 0) >= 90 ? '#ECFDF5' : '#FEF3C7',
+                            color: (req.confidenceScore ?? 0) >= 90 ? '#059669' : '#B45309',
+                            border: `1px solid ${(req.confidenceScore ?? 0) >= 90 ? '#A7F3D0' : '#FDE68A'}`
+                          }}
+                        >
+                          Confidence: {req.confidenceScore ?? 75}%
+                        </span>
+                        {req.isSuspicious && (
+                          <span
+                            style={{
+                              fontSize: '0.68rem',
+                              fontWeight: 800,
+                              padding: '0.15rem 0.45rem',
+                              borderRadius: '6px',
+                              backgroundColor: '#FEF2F2',
+                              color: '#DC2626',
+                              border: '1px solid #FECACA',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.25rem'
+                            }}
+                          >
+                            <AlertTriangle size={11} /> Suspicious Flag
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -891,6 +964,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                       {req.status}
                     </span>
                   </div>
+
+                  {/* Suspicious Reasons Diagnostic Box */}
+                  {req.isSuspicious && req.suspiciousReasons && req.suspiciousReasons.length > 0 && (
+                    <div
+                      style={{
+                        backgroundColor: '#FEF2F2',
+                        border: '1px solid #FCA5A5',
+                        borderRadius: '8px',
+                        padding: '0.5rem 0.75rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.25rem'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#B91C1C', fontSize: '0.72rem', fontWeight: 800 }}>
+                        <AlertTriangle size={12} />
+                        <span>Action Required: Suspicious Signals Flagged</span>
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '0.66rem', color: '#991B1B', lineHeight: 1.4 }}>
+                        {req.suspiciousReasons.map((reason, idx) => (
+                          <li key={idx}>{reason}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
 
                   {/* Side-by-Side ID & Biometric Selfie Preview */}
                   <div style={{ display: 'grid', gridTemplateColumns: req.selfiePhotoUrl ? '1fr 1fr' : '1fr', gap: '0.5rem' }}>

@@ -1,6 +1,7 @@
 const db = require('../config/db');
 const logger = require('../utils/logger');
 const { createMessage } = require('../services/message.service');
+const { sanitizeString } = require('../middleware/sanitizeInput');
 
 module.exports = (io, socket) => {
   const userId = socket.user.id;
@@ -45,6 +46,12 @@ module.exports = (io, socket) => {
    */
   socket.on('chat:message', async (data) => {
     try {
+      // SECURITY: Block admin accounts from sending student chat messages
+      if (socket.user.role === 'admin') {
+        socket.emit('chat:error', { message: 'Administrator accounts cannot send student chat messages.' });
+        return;
+      }
+
       const now = Date.now();
       // Remove timestamps older than 60 seconds
       while (messageTimestamps.length > 0 && messageTimestamps[0] < now - 60000) {
@@ -72,7 +79,25 @@ module.exports = (io, socket) => {
       if (!conversationId) return;
       if (!content && !mediaUrl) return;
 
-      if (content && content.length > 3000) {
+      // SECURITY: Validate sender is a member of this conversation
+      const conv = await db('conversations').where({ id: conversationId }).first();
+      if (!conv) {
+        socket.emit('chat:error', { message: 'Conversation not found.' });
+        return;
+      }
+      if (conv.user_one_id !== userId && conv.user_two_id !== userId) {
+        socket.emit('chat:error', { message: 'Unauthorized: you are not a participant in this conversation.' });
+        return;
+      }
+
+      // SECURITY: Validate receiverId is the OTHER participant
+      const expectedReceiver = conv.user_one_id === userId ? conv.user_two_id : conv.user_one_id;
+      const safeReceiverId = receiverId === expectedReceiver ? receiverId : expectedReceiver;
+
+      // SECURITY: Sanitize content — socket events bypass Express sanitizeInput middleware
+      const sanitizedContent = content ? sanitizeString(content) : '';
+
+      if (sanitizedContent && sanitizedContent.length > 3000) {
         socket.emit('chat:error', { message: 'Message exceeds maximum length of 3000 characters.' });
         return;
       }
@@ -83,8 +108,8 @@ module.exports = (io, socket) => {
       const messagePayload = await createMessage({
         conversationId,
         senderId: userId,
-        receiverId,
-        content,
+        receiverId: safeReceiverId,
+        content: sanitizedContent,
         isSystemMessage,
         swapOfferId,
         transactionId,
@@ -98,7 +123,7 @@ module.exports = (io, socket) => {
       io.to(`conv:${conversationId}`).emit('chat:message', messagePayload);
 
       // Emit real-time notification alert to receiver's personal user room
-      io.to(`user:${receiverId}`).emit('notification:new', {
+      io.to(`user:${safeReceiverId}`).emit('notification:new', {
         title: `Message from ${socket.user.name}`,
         message: messagePayload.content,
         type: 'message',

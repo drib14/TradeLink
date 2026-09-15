@@ -55,8 +55,10 @@ const pathToView = (path: string, search: string = window.location.search): { vi
 
   const cleanLower = cleanPath.toLowerCase();
   if (!cleanLower || cleanLower === 'home') return { view: 'home', params: {} };
-  if (cleanLower === 'marketplace' || cleanLower === 'market' || cleanLower === 'catalog') return { view: 'marketplace', params: {} };
-  if (cleanLower === 'create-listing' || cleanLower === 'post' || cleanLower === 'sell') return { view: 'create-listing', params: {} };
+  if (cleanLower === 'create-listing' || cleanLower === 'post' || cleanLower === 'sell' || cleanLower === 'swap-item' || cleanLower === 'post-swap') {
+    const mode = searchParams.get('mode') || (cleanLower === 'swap-item' || cleanLower === 'post-swap' ? 'swap' : cleanLower === 'sell' ? 'sell' : undefined);
+    return { view: 'create-listing', params: { mode } };
+  }
   if (cleanLower === 'flash-market' || cleanLower === 'flash' || cleanLower === 'wanted' || cleanLower === 'requests' || cleanLower === 'pasabuy' || cleanLower === 'urgent') return { view: 'flash-market', params: {} };
   if (cleanLower === 'swaps' || cleanLower === 'barter') return { view: 'swaps', params: {} };
   if (cleanLower === 'meetups' || cleanLower === 'handshake' || cleanLower === 'transactions' || cleanLower === 'history') return { view: 'transactions', params: {} };
@@ -77,6 +79,9 @@ export const MainApp: React.FC = () => {
   const { currentUser: _currentUser } = useAuth();
   const [currentView, setCurrentView] = useState<string>(() => {
     const { view } = pathToView(window.location.pathname, window.location.search);
+    if (view === 'not-found' && window.location.pathname !== '/404') {
+      window.history.replaceState({}, '', '/404');
+    }
     return view;
   });
   const [viewParams, setViewParams] = useState<any>(() => {
@@ -122,6 +127,7 @@ export const MainApp: React.FC = () => {
     let path = `/${targetView}`;
     if (targetView === 'home') path = '/';
     if (targetView === 'item-detail' && params.id) path = `/item/${encodeHashedId(params.id, 'listing')}`;
+    if (targetView === 'create-listing' && params.mode) path = `/create-listing?mode=${params.mode}`;
     if (targetView === 'profile') {
       path = params.userId ? `/profile/${encodeHashedId(params.userId, 'user')}` : '/profile';
     }
@@ -164,6 +170,7 @@ export const MainApp: React.FC = () => {
                 <CreateListingPage
                   onNavigate={handleNavigate}
                   onOpenAuth={() => setIsAuthModalOpen(true)}
+                  initialMode={viewParams?.mode === 'swap' ? 'swap' : 'sell'}
                 />
               );
             case 'flash-market':

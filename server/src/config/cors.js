@@ -50,6 +50,10 @@ function getAllowedOrigins() {
 function isOriginAllowed(origin) {
   // Allow requests without Origin header (mobile apps, curl, server-to-server)
   if (!origin) {
+    if (env.isProduction) {
+      const logger = require('../utils/logger');
+      logger.warn('[CORS] Request received without Origin header in production.');
+    }
     return true;
   }
 

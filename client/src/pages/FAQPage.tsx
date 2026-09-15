@@ -5,16 +5,10 @@ import {
   ChevronUp,
   ChevronLeft,
   Search,
-  KeyRound,
-  ShieldCheck,
-  ShoppingBag,
-  MapPin,
-  GraduationCap,
-  Sparkles,
   Mail,
-  AlertTriangle,
-  Clock,
-  DollarSign
+  ShieldCheck,
+  CheckCircle2,
+  Lock
 } from 'lucide-react';
 
 interface FAQPageProps {
@@ -24,7 +18,7 @@ interface FAQPageProps {
 interface FAQItem {
   question: string;
   answer: string;
-  category: 'Meetups & Payment' | 'Handshake & Trust Score' | 'Buying, Selling & Swapping' | 'Account & Verification' | 'Senior High & Campuses';
+  category: 'Meetups & Safety' | 'Handshake & Trust' | 'Buying & Swapping' | 'Student Verification';
   badge?: string;
 }
 
@@ -34,112 +28,62 @@ export const FAQPage: React.FC<FAQPageProps> = ({ onNavigate }) => {
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   const faqs: FAQItem[] = [
-    // 1. Meetups & Payment
     {
-      category: 'Meetups & Payment',
-      badge: 'Crucial Rule',
-      question: 'What happens if the buyer or seller doesn’t show up to the scheduled campus meetup?',
-      answer: 'Wait 10 to 15 minutes at the designated security booth and send a quick message in chat. If they fail to show up without notifying you beforehand, you can safely cancel the transaction. Repeated unexcused no-shows are penalized: the user’s punctuality rate and campus trust score drop automatically, and chronic no-shows face temporary account suspension.'
+      category: 'Meetups & Safety',
+      badge: 'Campus Rule',
+      question: 'Where do trades take place, and can we meet outside campus?',
+      answer: 'All trades must take place strictly inside designated, guarded University of Cebu security booths during daytime hours (7:00 AM – 6:00 PM). Never agree to meet in boarding houses, private dorm rooms, or secluded spots. Meeting at campus security gates ensures physical safety, CCTV coverage, and honest exchanges for both parties.'
     },
     {
-      category: 'Meetups & Payment',
-      badge: 'Inspection Tip',
-      question: 'What should I do if the item is damaged or doesn’t match the listing photos?',
-      answer: 'You have ZERO obligation to proceed with the trade! Politely decline the item and do NOT give the seller your 4-digit Handshake Code. The handshake code is your final confirmation that the item is in acceptable condition; once you release the code, the transaction is finalized. Always inspect book pages, uniform sizing, or electronics thoroughly in person before handing over the code.'
+      category: 'Handshake & Trust',
+      badge: 'Core Protocol',
+      question: 'How does the 4-Digit Handshake Code and Trust Score work?',
+      answer: 'The 4-digit Handshake Code is your final transaction confirmation. Never give the seller your code until you have physically held, tested, and confirmed the item condition. Once the seller enters your code in the app, the transaction completes and Trust Score points are awarded. All new student accounts start at 0% Trust Score and earn ratings through verified peer transactions.'
     },
     {
-      category: 'Meetups & Payment',
-      question: 'How should I pay the seller? Can I use GCash or cash?',
-      answer: 'Both cash and GCash/Maya are widely accepted. Agree on your preferred payment method in chat before meeting. If paying via GCash, send the money in front of the campus guard desk after physically inspecting the item, and show the completed receipt screen to the seller. Never send money in advance prior to the physical meetup.'
+      category: 'Meetups & Safety',
+      badge: 'Payment Safety',
+      question: 'How should I pay for items? Is advance payment allowed?',
+      answer: 'Both physical cash and in-person GCash/Maya transfers are accepted. However, you must NEVER send money in advance prior to the physical campus meetup. If paying via GCash, transfer the funds in front of the campus guard desk only after thoroughly inspecting the item.'
     },
     {
-      category: 'Meetups & Payment',
-      question: 'Can we meet outside campus, such as at a nearby cafe or boarding house?',
-      answer: 'For your safety, all trades must occur inside designated, guarded University of Cebu security booths. For bulky items (like dorm mini-fridges or large drawing boards), you may only meet in high-visibility student hubs immediately adjacent to campus security (such as E-Mall for UC Main or Country Mall for UC Banilad) during daytime hours (7:00 AM – 6:00 PM). Never agree to meet in private boarding houses or secluded spots.'
-    },
-
-    // 2. Handshake & Trust Score
-    {
-      category: 'Handshake & Trust Score',
-      badge: 'Handshake Rule',
-      question: 'When exactly should I give the seller my 4-Digit Handshake Code?',
-      answer: 'Only give the 4-digit code (or present your Handshake QR code) after: (1) You have held and inspected the item, (2) You confirmed it functions and matches the description, and (3) You have paid the agreed price. Once the seller enters the code in the app, the transaction is marked completed and trust points are awarded.'
+      category: 'Meetups & Safety',
+      badge: 'Inspection Rights',
+      question: 'What happens if an item is damaged or the student does not show up?',
+      answer: 'You have zero obligation to accept an item that does not match its listing photos or description—simply decline the trade and do not give your handshake code. For meetups, wait 10 to 15 minutes at the security desk. If the other student fails to arrive without notice, you can safely cancel. Repeated unexcused no-shows trigger automatic punctuality penalties and account suspension.'
     },
     {
-      category: 'Handshake & Trust Score',
-      badge: 'Zero Default',
-      question: 'Why does my profile show 0% Trust Score and 0.0 Rating as a new user?',
-      answer: 'All new student accounts and accounts with zero completed transactions strictly start at 0% Trust Score, 0.0 Rating, and 0 completed trades. Trust on TradeLink is authentic and must be earned through real, successful campus handshakes. This protects the community by ensuring no one can spoof high trust scores.'
+      category: 'Student Verification',
+      badge: 'Security System',
+      question: 'How does the Student Verification System work, and how fast is approval?',
+      answer: 'TradeLink uses a secure 3-step verification system requiring your physical UC Student ID card and a live webcam biometric selfie with anti-spoofing challenge actions. Submissions with clear credentials and valid liveness verification (>90% confidence score) are automatically approved instantly. Submissions with blur, mismatched credentials, or suspicious signals are held for manual campus administrator review.'
     },
     {
-      category: 'Handshake & Trust Score',
-      question: 'How is the Campus Trust Score calculated, and how do I increase it?',
-      answer: 'The Trust Score (0% to 100%) evaluates four components: (1) Completed handshake trades (up to 40 pts), (2) Average verified peer review rating (up to 30 pts), (3) On-time punctuality rate at meetups (up to 15 pts), and (4) Official Student ID & live selfie verification badge (+15 pts). Maintaining on-time arrival and accurate item descriptions keeps you at 95%+.'
-    },
-
-    // 3. Buying, Selling & Swapping
-    {
-      category: 'Buying, Selling & Swapping',
-      badge: 'Barter',
-      question: 'How do direct item swaps work without exchanging money?',
-      answer: 'When viewing an item marked "Open to Swap", click "Propose Swap" and select an item from your own active listings to offer in exchange. You and the other student can agree to a direct 1:1 trade, or an uneven trade with a cash top-up difference. At the campus security desk, both students inspect each other’s items and exchange the mutual handshake code to complete the swap.'
+      category: 'Buying & Swapping',
+      badge: 'Direct Barter',
+      question: 'How do peer item swaps (barter trades) work without money?',
+      answer: 'On items marked "Open to Swap", click "Propose Swap" to select an item from your own active listings to offer in exchange. You and the other student can agree on a straight 1:1 trade, or an uneven trade with a cash difference. Meet at the campus security gate, inspect both items, and exchange the mutual handshake code to finalize the barter.'
     },
     {
-      category: 'Buying, Selling & Swapping',
-      question: 'Can I cancel a trade or swap after agreeing in chat?',
-      answer: 'Yes. As long as the 4-digit handshake code has not been entered, either student can cancel the transaction. If you change your mind, message the other student respectfully as early as possible so they don’t commute or wait at the campus guard desk.'
-    },
-    {
-      category: 'Buying, Selling & Swapping',
-      question: 'Why was my listing removed or flagged by moderators?',
-      answer: 'Listings are automatically or manually taken down if they violate campus policies. Prohibited items include: exam questionnaires, test answer keys, thesis commissions, counterfeit uniforms, weapons, illegal substances, vapes, alcohol, or off-campus commercial spam. Check your notifications for moderator notes.'
-    },
-    {
-      category: 'Buying, Selling & Swapping',
+      category: 'Buying & Swapping',
+      badge: 'Zero Fees',
       question: 'Are there any platform fees or commissions on student sales?',
-      answer: 'None at all! TradeLink is 100% free for all University of Cebu students. We take zero commissions, zero listing fees, and zero hidden cuts. 100% of the funds stay between you and your fellow student.'
-    },
-
-    // 4. Account & Verification
-    {
-      category: 'Account & Verification',
-      badge: 'Direct Reset',
-      question: 'How do I reset my password? Does a campus admin need to approve it?',
-      answer: 'Password resets are 100% automated and direct—no administrator approval is required! Click "Forgot Password" on the sign-in modal, enter your registered email address, and an encrypted 4-digit verification code will be sent straight to your inbox within seconds. Enter this code along with your new password in the modal to regain access immediately. Codes remain valid for 30 minutes.'
+      answer: 'None at all. TradeLink is 100% free for all University of Cebu students across all 8 campus branches. There are zero listing fees, zero transaction cuts, and zero commissions. 100% of the agreed amount stays between you and your fellow student.'
     },
     {
-      category: 'Account & Verification',
-      badge: 'ID Only Policy',
-      question: 'What documents are accepted for student verification? Can I submit a Study Load or COR?',
-      answer: 'TradeLink ONLY accepts official physical or digital UC Student ID cards with a clear photo. We strictly DO NOT accept Study Loads or CORs (Certificates of Registration). This is because our biometric security protocol matches your live camera selfie directly to the facial portrait printed on your Student ID to prevent impersonation and fraud.'
-    },
-    {
-      category: 'Account & Verification',
-      question: 'How do I report a scam attempt, defective item, or abusive behavior?',
-      answer: 'Click the "Report" button inside the peer chat drawer or on any item listing. You can also email us directly at uc.tradelink@gmail.com with screenshots. Our student safety team reviews reports within 24 hours and can suspend fraudulent accounts.'
-    },
-
-    // 5. Senior High & Campuses
-    {
-      category: 'Senior High & Campuses',
-      badge: 'SHS Ready',
-      question: 'Can Senior High School (SHS) students trade on TradeLink?',
-      answer: 'Yes, absolutely! Senior High School students across STEM, ABM, HUMSS, TVL, and GAS tracks—as well as Junior High School students—are fully eligible to trade textbooks, uniforms, reviewers, and supplies safely across all UC campuses.'
-    },
-    {
-      category: 'Senior High & Campuses',
-      question: 'Can a UC Main student trade with a student from UC Banilad, LM, or other campuses?',
-      answer: 'Yes! TradeLink interconnects all 8 UC campuses: UC Main, UC Banilad, UC LM, UC METC, UC PRI, UC Pardo-Talisay, UC South, and UC Medical Center. You can coordinate in chat to meet at whichever campus security desk is most convenient for both of you.'
+      category: 'Meetups & Safety',
+      badge: 'Dispute & Reports',
+      question: 'How do I report scam attempts, abusive behavior, or meetup disputes?',
+      answer: 'Click the "Report" button inside the peer chat drawer or on any item listing. You can also contact our student safety desk directly at uc.tradelink@gmail.com. Campus security administrators review flagged accounts and reports within 24 hours to suspend fraudulent or abusive users.'
     }
   ];
 
   const categories = [
     'All',
-    'Meetups & Payment',
-    'Handshake & Trust Score',
-    'Buying, Selling & Swapping',
-    'Account & Verification',
-    'Senior High & Campuses'
+    'Meetups & Safety',
+    'Handshake & Trust',
+    'Buying & Swapping',
+    'Student Verification'
   ];
 
   const filteredFAQs = useMemo(() => {
@@ -183,7 +127,7 @@ export const FAQPage: React.FC<FAQPageProps> = ({ onNavigate }) => {
           Frequently Asked Questions
         </h1>
         <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6, marginTop: '0.35rem' }}>
-          Clear, honest answers on campus meetups, no-shows, handshake codes, trust scores, payments, and account safety.
+          Essential answers on campus security booth meetups, 4-digit handshake codes, payment safety, student verification, and item swaps.
         </p>
       </div>
 
@@ -194,7 +138,7 @@ export const FAQPage: React.FC<FAQPageProps> = ({ onNavigate }) => {
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search questions (e.g. no show, damaged item, gcash, password reset, swap)..."
+          placeholder="Search questions (e.g. security booth, handshake code, verification, gcash, swap)..."
           style={{
             width: '100%',
             padding: '0.85rem 1rem 0.85rem 3rem',
@@ -257,7 +201,7 @@ export const FAQPage: React.FC<FAQPageProps> = ({ onNavigate }) => {
         <div className="clean-card" style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
           <p style={{ fontSize: '0.95rem', fontWeight: 600 }}>No matching questions found for "{searchQuery}".</p>
           <p style={{ fontSize: '0.82rem', marginTop: '0.35rem' }}>
-            Need help with an unusual situation? Email our student helpdesk at{' '}
+            Need direct help? Contact our student helpdesk at{' '}
             <a href="mailto:uc.tradelink@gmail.com" style={{ color: 'var(--uc-blue)', fontWeight: 700 }}>
               uc.tradelink@gmail.com
             </a>
@@ -275,7 +219,7 @@ export const FAQPage: React.FC<FAQPageProps> = ({ onNavigate }) => {
                   overflow: 'hidden',
                   transition: 'all 0.15s ease',
                   padding: 0,
-                  border: isOpen ? '1px solid var(--uc-blue)' : '1px solid var(--border-subtle)'
+                  border: isOpen ? '1.5px solid var(--uc-blue)' : '1px solid var(--border-subtle)'
                 }}
               >
                 <button
@@ -304,8 +248,8 @@ export const FAQPage: React.FC<FAQPageProps> = ({ onNavigate }) => {
                         style={{
                           fontSize: '0.68rem',
                           fontWeight: 800,
-                          backgroundColor: 'var(--uc-gold-light)',
-                          color: '#B45309',
+                          backgroundColor: 'var(--uc-gold-light, #FEF3C7)',
+                          color: '#92400E',
                           padding: '0.15rem 0.5rem',
                           borderRadius: '9999px',
                           textTransform: 'uppercase'
@@ -342,7 +286,7 @@ export const FAQPage: React.FC<FAQPageProps> = ({ onNavigate }) => {
         </div>
       )}
 
-      {/* Still Need Assistance Banner */}
+      {/* Support Card */}
       <div
         className="clean-card"
         style={{
@@ -360,14 +304,14 @@ export const FAQPage: React.FC<FAQPageProps> = ({ onNavigate }) => {
           Have an urgent question or meetup dispute?
         </h4>
         <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', maxWidth: '520px' }}>
-          Our student moderation board and security liaisons are ready to assist with account verification, trade disputes, or safety concerns.
+          Our campus moderation board and security liaisons are ready to assist with account verification, trade disputes, or safety concerns.
         </p>
         <a
           href="mailto:uc.tradelink@gmail.com"
           className="btn-primary"
           style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', padding: '0.65rem 1.35rem', textDecoration: 'none' }}
         >
-          <Mail size={16} /> Contact Support Desk: uc.tradelink@gmail.com
+          <Mail size={16} /> Contact Support: uc.tradelink@gmail.com
         </a>
       </div>
     </div>

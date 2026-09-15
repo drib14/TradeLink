@@ -66,10 +66,8 @@ const errorHandler = (err, req, res, next) => {
     message
   };
 
-  // Only expose detailed validation schema errors in non-production
-  if (err.errors && env.env !== 'production') {
-    responseBody.errors = err.errors;
-  }
+  // SECURITY: Never expose detailed validation errors to clients — they reveal schema structure
+  // Validation details are already included in the primary error message
 
   res.status(statusCode).json(responseBody);
 };

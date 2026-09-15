@@ -121,6 +121,42 @@ async function autoInitDatabase() {
       }).catch(() => {});
     }
 
+    // 1d. Ensure verification_requests columns exist for automated approval and fraud analysis
+    const hasVerifTable = await db.schema.hasTable('verification_requests').catch(() => false);
+    if (hasVerifTable) {
+      const hasConfidenceCol = await db.schema.hasColumn('verification_requests', 'confidence_score').catch(() => false);
+      if (!hasConfidenceCol) {
+        await db.schema.alterTable('verification_requests', (t) => {
+          t.integer('confidence_score').defaultTo(0);
+          t.boolean('is_suspicious').defaultTo(false);
+          t.text('suspicious_reasons').nullable();
+          t.text('credential_diagnostics').nullable();
+          t.string('id_photo_hash', 64).nullable();
+          t.string('selfie_photo_hash', 64).nullable();
+          t.string('verification_method', 50).defaultTo('automated');
+          t.index('is_suspicious', 'idx_verif_suspicious');
+        }).catch(() => {});
+        logger.info('[DB Init] Enhanced verification_requests table with automated confidence and fraud detection columns.');
+      }
+    }
+
+    // 1e. Ensure newsletter_subscribers table exists
+    const hasNewsletterTable = await db.schema.hasTable('newsletter_subscribers').catch(() => false);
+    if (!hasNewsletterTable) {
+      await db.raw(`
+        CREATE TABLE IF NOT EXISTS \`newsletter_subscribers\` (
+          \`id\` VARCHAR(36) NOT NULL PRIMARY KEY,
+          \`email\` VARCHAR(150) NOT NULL UNIQUE,
+          \`status\` ENUM('active', 'unsubscribed') NOT NULL DEFAULT 'active',
+          \`ip_address\` VARCHAR(45) DEFAULT NULL,
+          \`created_at\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          INDEX \`idx_newsletter_email\` (\`email\`),
+          INDEX \`idx_newsletter_status\` (\`status\`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      `).catch(() => {});
+      logger.info('[DB Init] Created newsletter_subscribers table.');
+    }
+
     // 2. Ensure Default Administrator Account Exists (admin@uc.edu.ph / uc.tradelink@gmail.com / TradeLink@2026)
     const adminPassword = 'TradeLink@2026';
     const adminPasswordHash = await bcrypt.hash(adminPassword, 10);

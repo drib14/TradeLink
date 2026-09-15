@@ -5,7 +5,7 @@ const storageService = require('../../src/services/storage.service');
 describe('Unit Test: Cloudinary Object Storage & Local Fallback Security', () => {
   jest.setTimeout(30000);
   const samplePngBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
-  const sampleBuffer = Buffer.from('fake-image-bytes-tradelink-testing');
+  const sampleBuffer = Buffer.concat([Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]), Buffer.from('image-bytes-tradelink-testing')]);
 
   describe('Credential Leak Prevention & Zero Secret Exposure', () => {
     it('should never expose tokens, secret keys, or query credentials in generated URLs', () => {

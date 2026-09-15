@@ -23,8 +23,8 @@ const { autoInitDatabase } = require('./config/dbInit');
 const app = express();
 const server = http.createServer(app);
 
-// Enable trust proxy for IP detection across network interfaces, LAN, and proxies
-app.set('trust proxy', true);
+// Enable trust proxy — trust only the first proxy (prevents IP spoofing for rate limiters)
+app.set('trust proxy', 1);
 
 // 1. Security Headers (Helmet)
 app.use(
@@ -36,11 +36,19 @@ app.use(
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["*"],
+        imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "https:"],
+        connectSrc: ["'self'", "https://res.cloudinary.com", "wss:", "ws:"],
         fontSrc: ["'self'", "https:", "data:"],
         objectSrc: ["'none'"],
         upgradeInsecureRequests: []
+      }
+    },
+    permissionsPolicy: {
+      features: {
+        camera: ["'self'"],
+        microphone: ["'none'"],
+        geolocation: ["'none'"],
+        payment: ["'none'"]
       }
     }
   })
@@ -64,8 +72,12 @@ app.use(hpp());
 // 6. General API Rate Limiting
 app.use('/api', apiLimiter);
 
-// 7. Static Uploads Folder
-app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')));
+// 7. Static Uploads Folder (with nosniff to prevent MIME-type sniffing attacks)
+app.use('/uploads', (req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Content-Security-Policy', "default-src 'none'");
+  next();
+}, express.static(path.resolve(__dirname, '../uploads')));
 
 // 8. Root Health Check Route
 app.get('/', (req, res) => {

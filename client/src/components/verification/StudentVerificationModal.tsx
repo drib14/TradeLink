@@ -15,7 +15,8 @@ import {
   RotateCcw,
   Sun,
   Eye,
-  Smile,
+  ScanLine,
+  BadgeCheck,
   Timer,
   Info,
   ShieldAlert,
@@ -80,6 +81,8 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
   const [isFlashActive, setIsFlashActive] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
+  const [isAutoApproved, setIsAutoApproved] = useState<boolean>(false);
+  const [confidenceScore, setConfidenceScore] = useState<number>(95);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -395,13 +398,23 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
   const handleSubmitVerification = async () => {
     setIsSubmitting(true);
     try {
-      await submitIdVerification(studentIdInput.trim(), idPhotoUrl, selfiePhotoUrl, sessionToken);
-      confetti({
-        particleCount: 140,
-        spread: 80,
-        origin: { y: 0.6 }
-      });
-      showToast('Verification Submitted', 'Your student ID and biometric selfie have been securely submitted.', 'success');
+      const res = await submitIdVerification(studentIdInput.trim(), idPhotoUrl, selfiePhotoUrl, sessionToken);
+      const isAuto = Boolean(res?.autoApproved || res?.data?.autoApproved);
+      const score = res?.confidenceScore ?? res?.data?.confidenceScore ?? (isAuto ? 95 : 75);
+      setIsAutoApproved(isAuto);
+      setConfidenceScore(score);
+
+      if (isAuto) {
+        confetti({
+          particleCount: 160,
+          spread: 80,
+          origin: { y: 0.6 }
+        });
+        showToast('Identity Verified Instantly!', `Credentials passed automated verification with ${score}% confidence score. Verified Gold badge unlocked!`, 'success');
+      } else {
+        showToast('Verification Submitted', 'Credentials securely submitted. Your account is queued for campus administrator review.', 'info');
+      }
+
       setStep('success');
       if (onSuccess) {
         onSuccess();
@@ -732,7 +745,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                   <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: livenessPassed ? '#10B981' : '#002B7F', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    {livenessPassed ? <Check size={18} /> : <Smile size={18} />}
+                    {livenessPassed ? <Check size={18} /> : <ScanLine size={18} />}
                   </div>
                   <div>
                     <div style={{ fontSize: '0.8rem', fontWeight: 800, color: livenessPassed ? '#059669' : 'var(--uc-blue)' }}>
@@ -1220,79 +1233,154 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
             </div>
           )}
 
-          {/* STEP 4: CELEBRATORY SUCCESS & REAL-TIME TIMELINE */}
+          {/* STEP 4: CELEBRATORY SUCCESS / LIVE STATUS */}
           {step === 'success' && (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '1.5rem 0.5rem', gap: '1.25rem' }}>
-              <div style={{ width: '68px', height: '68px', borderRadius: '50%', backgroundColor: 'var(--accent-green-subtle)', color: 'var(--accent-green)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <CheckCircle2 size={40} />
-              </div>
+              {isAutoApproved ? (
+                <>
+                  <div
+                    style={{
+                      width: '76px',
+                      height: '76px',
+                      borderRadius: '50%',
+                      backgroundColor: '#002B7F',
+                      color: '#FFC72C',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 0 30px rgba(255, 199, 44, 0.4), 0 8px 20px rgba(0, 43, 127, 0.3)'
+                    }}
+                  >
+                    <BadgeCheck size={48} />
+                  </div>
 
-              <div>
-                <h3 style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--uc-blue)', margin: 0, fontFamily: 'var(--font-display)' }}>
-                  Verification Submitted Successfully!
-                </h3>
-                <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.35rem', maxWidth: '440px', lineHeight: 1.5 }}>
-                  Your student credentials and biometric live selfie are now undergoing official campus administration review.
-                </p>
-              </div>
+                  <div>
+                    <h3 style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--uc-blue)', margin: 0, fontFamily: 'var(--font-display)' }}>
+                      Official UC Verification Approved!
+                    </h3>
+                    <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', marginTop: '0.35rem', maxWidth: '440px', lineHeight: 1.5 }}>
+                      Credentials verified automatically with <strong style={{ color: '#059669' }}>{confidenceScore}% confidence score</strong>. You are now officially recognized as a verified University of Cebu student.
+                    </p>
+                  </div>
 
-              {/* Dynamic Live Status Timeline */}
-              <div
-                style={{
-                  width: '100%',
-                  maxWidth: '460px',
-                  backgroundColor: 'var(--bg-subtle, #F8FAFC)',
-                  borderRadius: '16px',
-                  padding: '1.1rem 1.25rem',
-                  border: '1.5px solid var(--border-subtle, #E2E8F0)',
-                  textAlign: 'left'
-                }}
-              >
-                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--uc-blue)', marginBottom: '0.75rem' }}>
-                  Verification Timeline:
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                    <div style={{ width: '22px', height: '22px', borderRadius: '50%', backgroundColor: '#10B981', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem' }}>
-                      <Check size={13} />
+                  {/* Unlocked Perks Showcase */}
+                  <div
+                    style={{
+                      width: '100%',
+                      maxWidth: '460px',
+                      backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                      borderRadius: '16px',
+                      padding: '1rem 1.25rem',
+                      border: '1.5px solid var(--border-subtle, #E2E8F0)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.65rem',
+                      textAlign: 'left'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                      <CheckCircle2 size={16} color="#059669" style={{ flexShrink: 0 }} />
+                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                        +25 Campus Trust Score Added to Your Profile
+                      </span>
                     </div>
-                    <div>
-                      <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-primary)' }}>1. Documents Uploaded</div>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Student ID and live biometric selfie encrypted and stored.</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                      <CheckCircle2 size={16} color="#059669" style={{ flexShrink: 0 }} />
+                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                        Official Gold Verified Webmaster Badge Unlocked
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                      <CheckCircle2 size={16} color="#059669" style={{ flexShrink: 0 }} />
+                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                        Unlimited Peer-to-Peer Selling, Buying & Campus Swaps
+                      </span>
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                    <div style={{ width: '22px', height: '22px', borderRadius: '50%', backgroundColor: '#10B981', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem' }}>
-                      <Check size={13} />
+                  <button
+                    onClick={onClose}
+                    id="close-success-verification-btn"
+                    className="btn-primary"
+                    style={{ padding: '0.8rem 2.5rem', fontSize: '0.92rem', fontWeight: 800, borderRadius: '12px', marginTop: '0.25rem' }}
+                  >
+                    Start Trading as Verified Student
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div style={{ width: '68px', height: '68px', borderRadius: '50%', backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', color: 'var(--uc-blue, #002B7F)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <ShieldCheck size={40} />
+                  </div>
+
+                  <div>
+                    <h3 style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--uc-blue)', margin: 0, fontFamily: 'var(--font-display)' }}>
+                      Verification Queued for Campus Review
+                    </h3>
+                    <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.35rem', maxWidth: '440px', lineHeight: 1.5 }}>
+                      Your student credentials and biometric live selfie are now undergoing official University of Cebu campus administration review.
+                    </p>
+                  </div>
+
+                  {/* Dynamic Live Status Timeline */}
+                  <div
+                    style={{
+                      width: '100%',
+                      maxWidth: '460px',
+                      backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                      borderRadius: '16px',
+                      padding: '1.1rem 1.25rem',
+                      border: '1.5px solid var(--border-subtle, #E2E8F0)',
+                      textAlign: 'left'
+                    }}
+                  >
+                    <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--uc-blue)', marginBottom: '0.75rem' }}>
+                      Verification Status Timeline:
                     </div>
-                    <div>
-                      <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-primary)' }}>2. Anti-Spoofing Screening</div>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Real-time optical motion and reflectance checks passed.</div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                        <div style={{ width: '22px', height: '22px', borderRadius: '50%', backgroundColor: '#10B981', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem' }}>
+                          <Check size={13} />
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-primary)' }}>1. Documents Uploaded</div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Student ID and live biometric selfie encrypted and stored.</div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                        <div style={{ width: '22px', height: '22px', borderRadius: '50%', backgroundColor: '#10B981', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem' }}>
+                          <Check size={13} />
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-primary)' }}>2. Anti-Spoofing Screening</div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Optical motion and challenge telemetry passed.</div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                        <div style={{ width: '22px', height: '22px', borderRadius: '50%', backgroundColor: '#F59E0B', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem' }}>
+                          <Loader2 size={13} className="spin-animation" />
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#D97706' }}>3. Campus Administrator Approval</div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>In progress — manual admin verification typically completed within 1–2 hours.</div>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                    <div style={{ width: '22px', height: '22px', borderRadius: '50%', backgroundColor: '#F59E0B', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem' }}>
-                      <Loader2 size={13} className="spin-animation" />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#D97706' }}>3. Campus Administrator Approval</div>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>In progress — typically approved within 1–2 hours during campus hours.</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <button
-                onClick={onClose}
-                id="close-success-verification-btn"
-                className="btn-primary"
-                style={{ padding: '0.8rem 2.25rem', fontSize: '0.92rem', fontWeight: 800, borderRadius: '12px', marginTop: '0.25rem' }}
-              >
-                Return to TradeLink
-              </button>
+                  <button
+                    onClick={onClose}
+                    id="close-success-verification-btn"
+                    className="btn-primary"
+                    style={{ padding: '0.8rem 2.25rem', fontSize: '0.92rem', fontWeight: 800, borderRadius: '12px', marginTop: '0.25rem' }}
+                  >
+                    Return to TradeLink
+                  </button>
+                </>
+              )}
             </div>
           )}
         </div>

@@ -234,23 +234,27 @@ const forgotPassword = asyncHandler(async (req, res, next) => {
   }
 
   const cleanEmail = email.toLowerCase().trim();
+
+  // Always return success to prevent account enumeration
+  const successResponse = () => {
+    res.status(200).json({
+      status: 'success',
+      message: 'If an account with that email exists, a verification code has been sent to the registered email address. Please check your inbox or spam folder.'
+    });
+  };
+
   const user = await db('users').whereRaw('LOWER(email) = ?', [cleanEmail]).first();
 
   if (!user) {
-    return next(new AppError('No registered account found with that email address. Please check your email or register.', 404));
+    return successResponse();
   }
 
   // Guard: Administrator accounts must use the admin portal forgot password flow
   if (user.role === 'admin') {
-    return next(
-      new AppError(
-        'Administrator accounts must request password reset via the TradeLink Administration Portal.',
-        403
-      )
-    );
+    return successResponse();
   }
 
-  // Generate 4-digit verification code directly
+  // Generate 6-digit verification code directly
   const code = generate4DigitCode();
   const codeHash = await hashCode(code);
   const expiry = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes validity
@@ -281,14 +285,7 @@ const forgotPassword = asyncHandler(async (req, res, next) => {
     console.error('[AUTH] Failed to send password reset email:', err.message);
   }
 
-  res.status(200).json({
-    status: 'success',
-    message: 'A 4-digit verification code has been sent directly to your registered email address. Please check your inbox or spam folder.',
-    data: {
-      email: user.email,
-      requestId
-    }
-  });
+  return successResponse();
 });
 
 /**

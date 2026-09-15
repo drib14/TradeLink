@@ -1,14 +1,14 @@
 const { generate4DigitCode, hashCode, verifyCode } = require('../../src/utils/generateCode');
 
 describe('Unit Test: Code Generation & Cryptographic Verification', () => {
-  it('should generate a 4-digit numeric string', () => {
+  it('should generate a 6-digit numeric string', () => {
     for (let i = 0; i < 50; i++) {
       const code = generate4DigitCode();
       expect(typeof code).toBe('string');
-      expect(code).toMatch(/^\d{4}$/);
+      expect(code).toMatch(/^\d{6}$/);
       const num = parseInt(code, 10);
-      expect(num).toBeGreaterThanOrEqual(1000);
-      expect(num).toBeLessThanOrEqual(9999);
+      expect(num).toBeGreaterThanOrEqual(100000);
+      expect(num).toBeLessThanOrEqual(999999);
     }
   });
 

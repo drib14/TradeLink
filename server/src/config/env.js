@@ -25,6 +25,7 @@ if (envMode === 'production') {
 
 const config = {
   env: envMode,
+  isProduction: envMode === 'production',
   port: parseInt(process.env.PORT, 10) || 3001,
   host: process.env.HOST || '0.0.0.0',
   

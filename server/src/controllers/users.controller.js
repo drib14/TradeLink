@@ -7,6 +7,7 @@ const { serializeListing } = require('../serializers/listingSerializer');
 const { serializeReview } = require('../serializers');
 const storageService = require('../services/storage.service');
 const verificationSessionService = require('../services/verificationSession.service');
+const studentVerificationEngine = require('../services/studentVerificationEngine');
 
 /**
  * Get public profile of a student
@@ -154,18 +155,10 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
     return next(new AppError('Live biometric selfie is required to complete verification.', 400));
   }
 
-  // Cryptographic session token verification (if provided, validate and consume)
-  if (sessionToken) {
-    const tokenResult = verificationSessionService.validateAndConsumeSession(req.user.id, sessionToken);
-    if (!tokenResult.valid) {
-      return next(new AppError(`Verification security check failed: ${tokenResult.reason}`, 403));
-    }
-  }
-
-  // Validate Student ID Format: must contain between 6 and 20 numeric digits
-  const cleanId = studentIdNumber.replace(/\D/g, '');
-  if (cleanId.length < 6 || cleanId.length > 20) {
-    return next(new AppError('Student ID must contain between 6 and 20 digits with no hyphens or letters.', 400));
+  // Basic image data sanity check
+  const isDataUrl = (str) => typeof str === 'string' && (str.startsWith('data:image/') || str.startsWith('http'));
+  if (!isDataUrl(rawIdPhoto) || !isDataUrl(selfiePhotoUrl)) {
+    return next(new AppError('Invalid image format. Images must be valid JPEG, PNG, or WebP files.', 400));
   }
 
   // Check rate limiting: max 5 verification submissions per 24 hours
@@ -178,6 +171,11 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
   }
 
   // Check if another account is already registered with this student ID
+  const cleanId = studentIdNumber.replace(/\D/g, '');
+  if (cleanId.length < 6 || cleanId.length > 20) {
+    return next(new AppError('Student ID must contain between 6 and 20 digits with no hyphens or letters.', 400));
+  }
+
   const existingAccountWithId = await db('users')
     .where({ student_id: cleanId })
     .andWhereNot({ id: req.user.id })
@@ -198,11 +196,15 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
     return next(new AppError('A verification request with this Student ID is already active on another account.', 409));
   }
 
-  // Basic image data sanity check
-  const isDataUrl = (str) => typeof str === 'string' && (str.startsWith('data:image/') || str.startsWith('http'));
-  if (!isDataUrl(rawIdPhoto) || !isDataUrl(selfiePhotoUrl)) {
-    return next(new AppError('Invalid image format. Images must be valid JPEG, PNG, or WebP files.', 400));
-  }
+  // Evaluate verification credentials, liveness challenge, and image forensics
+  const evaluation = await studentVerificationEngine.evaluateVerification({
+    user: req.user,
+    studentId: studentIdNumber,
+    idPhotoUrl: rawIdPhoto,
+    selfiePhotoUrl,
+    sessionToken,
+    telemetry: req.body.telemetry
+  });
 
   // Upload ID photos to Cloudflare R2 / secure storage
   const [resolvedIdPhoto, resolvedSelfie] = await Promise.all([
@@ -216,40 +218,86 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
     .andWhere({ status: 'pending' })
     .first();
 
+  let targetVerifId = existingPending ? existingPending.id : uuidv4();
+
+  const verifData = {
+    student_id_number: evaluation.cleanId,
+    id_photo_url: resolvedIdPhoto,
+    selfie_photo_url: resolvedSelfie,
+    status: evaluation.status,
+    confidence_score: evaluation.confidenceScore,
+    is_suspicious: evaluation.isSuspicious,
+    suspicious_reasons: evaluation.suspiciousReasons.length > 0 ? JSON.stringify(evaluation.suspiciousReasons) : null,
+    credential_diagnostics: JSON.stringify(evaluation.credentialDiagnostics),
+    id_photo_hash: evaluation.idPhotoHash,
+    selfie_photo_hash: evaluation.selfiePhotoHash,
+    verification_method: evaluation.isApproved ? 'automated' : 'manual_review',
+    reviewed_by: evaluation.isApproved ? 'system_auto_verify' : null,
+    reviewed_at: evaluation.isApproved ? new Date() : null,
+    rejection_reason: null,
+    updated_at: new Date()
+  };
+
   if (existingPending) {
-    await db('verification_requests').where({ id: existingPending.id }).update({
-      student_id_number: cleanId,
-      id_photo_url: resolvedIdPhoto,
-      selfie_photo_url: resolvedSelfie,
-      rejection_reason: null,
-      updated_at: new Date()
-    });
+    await db('verification_requests').where({ id: existingPending.id }).update(verifData);
   } else {
     await db('verification_requests').insert({
-      id: uuidv4(),
+      id: targetVerifId,
       user_id: req.user.id,
-      student_id_number: cleanId,
-      id_photo_url: resolvedIdPhoto,
-      selfie_photo_url: resolvedSelfie,
-      status: 'pending',
-      rejection_reason: null,
       created_at: new Date(),
-      updated_at: new Date()
+      ...verifData
     });
   }
 
-  // Update user student ID and photo
-  await db('users').where({ id: req.user.id }).update({
-    student_id: cleanId,
-    id_photo_url: resolvedIdPhoto
-  });
+  // Update user record
+  if (evaluation.isApproved) {
+    // Automated instant approval (>90% accuracy passed)
+    await db('users').where({ id: req.user.id }).update({
+      student_id: evaluation.cleanId,
+      id_photo_url: resolvedIdPhoto,
+      is_verified: true,
+      trust_score: db.raw('LEAST(100, trust_score + 25)')
+    });
+
+    // Record automated audit log
+    const clientIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1';
+    await db('admin_audit_logs').insert({
+      id: `log_${Date.now()}_auto`,
+      admin_id: 'system_auto_verify',
+      admin_name: 'Automated Student Verification Engine',
+      action: 'Automated Approval',
+      target_type: 'verification',
+      target_id: targetVerifId,
+      details: `Student ID [${evaluation.cleanId}] auto-approved with ${evaluation.confidenceScore}% confidence score.`,
+      ip_address: typeof clientIp === 'string' ? clientIp.split(',')[0].trim() : clientIp,
+      created_at: new Date()
+    }).catch(() => {});
+  } else {
+    // Queued for human administrator review (suspicious or <90% score)
+    await db('users').where({ id: req.user.id }).update({
+      student_id: evaluation.cleanId,
+      id_photo_url: resolvedIdPhoto
+    });
+  }
+
+  const successMessage = evaluation.isApproved
+    ? `Student ID verified automatically (${evaluation.confidenceScore}% confidence score). Your verified badge is now active!`
+    : (evaluation.isSuspicious
+      ? 'Verification submitted. Credentials flagged for priority administrator manual review.'
+      : 'ID verification and biometric live selfie submitted successfully for administrator review.');
 
   res.status(200).json({
     status: 'success',
-    message: 'ID verification and biometric live selfie submitted successfully for administrator review.',
+    message: successMessage,
+    autoApproved: evaluation.isApproved,
+    isSuspicious: evaluation.isSuspicious,
+    confidenceScore: evaluation.confidenceScore,
     data: {
-      status: 'pending',
-      studentIdNumber: cleanId,
+      status: evaluation.status,
+      autoApproved: evaluation.isApproved,
+      isSuspicious: evaluation.isSuspicious,
+      confidenceScore: evaluation.confidenceScore,
+      studentIdNumber: evaluation.cleanId,
       submittedAt: new Date().toISOString()
     }
   });

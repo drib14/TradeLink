@@ -25,6 +25,11 @@ const createReview = asyncHandler(async (req, res, next) => {
     return next(new AppError('Transaction not found.', 404));
   }
 
+  // Only allow reviews on completed trades
+  if (transaction.status !== 'completed') {
+    return next(new AppError('Reviews can only be submitted for completed trades.', 400));
+  }
+
   // Ensure caller is buyer or seller
   if (req.user.id !== transaction.seller_id && req.user.id !== transaction.buyer_id) {
     return next(new AppError('Unauthorized to review this transaction.', 403));
@@ -33,6 +38,12 @@ const createReview = asyncHandler(async (req, res, next) => {
   // Prevent self review
   if (targetUserId === req.user.id) {
     return next(new AppError('You cannot review yourself.', 400));
+  }
+
+  // SECURITY: Validate that targetUserId is the OTHER party in this transaction
+  const otherParty = req.user.id === transaction.seller_id ? transaction.buyer_id : transaction.seller_id;
+  if (targetUserId !== otherParty) {
+    return next(new AppError('You can only review the other party in this transaction.', 400));
   }
 
   // Prevent duplicate review for the same transaction by the same reviewer

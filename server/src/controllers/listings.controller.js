@@ -236,6 +236,15 @@ const createListing = asyncHandler(async (req, res, next) => {
   // Allow at least 5 media items (up to 10 for video product samples + photos)
   const rawItems = (Array.isArray(media) && media.length > 0) ? media : (Array.isArray(images) ? images : []);
   const cappedItems = rawItems.slice(0, 10);
+
+  // Validate base64 payload size before uploading to prevent memory exhaustion
+  for (const item of cappedItems) {
+    const rawUrl = typeof item === 'string' ? item : (item.url || item.media_url || item.mediaUrl || '');
+    if (typeof rawUrl === 'string' && rawUrl.startsWith('data:') && rawUrl.length > 15 * 1024 * 1024) {
+      return next(new AppError('A media item exceeds maximum allowed size of 15MB.', 400));
+    }
+  }
+
   const resolvedMedia = await Promise.all(
     cappedItems.map(async (item, index) => {
       const rawUrl = typeof item === 'string' ? item : (item.url || item.media_url || item.mediaUrl || '');
@@ -332,6 +341,12 @@ const updateListing = asyncHandler(async (req, res, next) => {
     const rawMedia = Array.isArray(req.body.media) ? req.body.media : (Array.isArray(req.body.images) ? req.body.images : null);
     if (rawMedia) {
       const cappedMedia = rawMedia.slice(0, 10);
+      for (const item of cappedMedia) {
+        const rawUrl = typeof item === 'string' ? item : (item.url || item.media_url || item.mediaUrl || '');
+        if (typeof rawUrl === 'string' && rawUrl.startsWith('data:') && rawUrl.length > 15 * 1024 * 1024) {
+          return next(new AppError('A media item exceeds maximum allowed size of 15MB.', 400));
+        }
+      }
       const resolvedMedia = await Promise.all(
         cappedMedia.map(async (item, index) => {
           const rawUrl = typeof item === 'string' ? item : (item.url || item.media_url || item.mediaUrl || '');

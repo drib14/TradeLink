@@ -1,16 +1,24 @@
 /**
  * Input sanitization middleware
- * Cleans request body, query params, and route params from malicious script tags and injection patterns.
+ * Uses the 'xss' library to properly sanitize strings against all XSS vectors,
+ * including <img onerror>, <svg onload>, encoded entities, and javascript: URIs.
+ * Also prevents prototype pollution on nested objects.
  */
+const xss = require('xss');
+
+// Configure xss options — strip all HTML tags, no whitelisted tags for user input
+const xssOptions = {
+  whiteList: {},          // No HTML tags allowed
+  stripIgnoreTag: true,   // Strip tags not in whitelist
+  stripIgnoreTagBody: ['script', 'style', 'noscript'], // Completely strip these tag contents
+  stripBlankChar: false   // Preserve whitespace characters
+};
 
 function sanitizeString(str) {
   if (typeof str !== 'string') return str;
-  return str
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/javascript:/gi, '')
-    .replace(/on\w+\s*=/gi, '')
-    .replace(/data:\s*text\/html/gi, '')
-    .trim();
+  // Strip javascript: pseudo-protocol (e.g. javascript:alert(1) -> alert(1))
+  const cleanProtocol = str.replace(/javascript\s*:/gi, '');
+  return xss(cleanProtocol, xssOptions).trim();
 }
 
 function sanitizeObject(obj) {
@@ -45,5 +53,8 @@ const sanitizeInput = (req, res, next) => {
   }
   next();
 };
+
+// Export sanitizeString for use in socket handlers and other non-Express contexts
+sanitizeInput.sanitizeString = sanitizeString;
 
 module.exports = sanitizeInput;

@@ -6,13 +6,13 @@ const decodeParams = require('../middleware/decodeParams');
 const validate = require('../middleware/validate');
 const { proposeSwapSchema, respondSwapSchema } = require('../validations/swap.validation');
 
-const { requireVerified } = require('../middleware/rbac');
+const { requireVerified, requireStudent } = require('../middleware/rbac');
 
 decodeParams.bindRouter(router);
 router.use(authenticate);
 
 router.get('/', swapsController.getSwaps);
-router.post('/', requireVerified, validate(proposeSwapSchema), swapsController.proposeSwap);
-router.patch('/:id/respond', validate(respondSwapSchema), swapsController.respondToSwap);
+router.post('/', requireStudent, requireVerified, validate(proposeSwapSchema), swapsController.proposeSwap);
+router.patch('/:id/respond', requireStudent, validate(respondSwapSchema), swapsController.respondToSwap);
 
 module.exports = router;

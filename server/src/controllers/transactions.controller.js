@@ -213,8 +213,8 @@ const createTransaction = asyncHandler(async (req, res, next) => {
   } = req.body;
 
   const targetListingId = listingId;
-  const targetSellerId = sellerId;
-  const targetBuyerId = buyerId || req.user.id;
+  // SECURITY: Always use the authenticated user as buyer — never trust client-supplied buyerId
+  const targetBuyerId = req.user.id;
   const targetAmount = parseFloat(amount ?? finalPrice ?? 0);
 
   const listing = await db('listings').where({ id: targetListingId }).first();
@@ -222,7 +222,11 @@ const createTransaction = asyncHandler(async (req, res, next) => {
     return next(new AppError('Listing not found.', 404));
   }
 
-  const actualSellerId = targetSellerId || listing.seller_id;
+  // SECURITY: Validate sellerId matches the listing's actual owner
+  const actualSellerId = listing.seller_id;
+  if (sellerId && sellerId !== actualSellerId) {
+    return next(new AppError('Seller ID does not match the listing owner.', 400));
+  }
 
   if (targetBuyerId === actualSellerId) {
     return next(new AppError('You cannot create a transaction with yourself.', 400));

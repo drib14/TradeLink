@@ -30,10 +30,11 @@ function generateTokens(userId, role, campus) {
  * @param {string} refreshToken
  */
 function setRefreshTokenCookie(res, refreshToken) {
+  const isProduction = env.isProduction || env.env === 'production';
   res.cookie('refreshToken', refreshToken, {
     httpOnly: true,
-    secure: env.isProduction,
-    sameSite: 'lax',
+    secure: isProduction,
+    sameSite: isProduction ? 'strict' : 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     path: '/api'
   });

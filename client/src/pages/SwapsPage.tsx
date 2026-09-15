@@ -78,7 +78,7 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({
         </div>
 
         <button
-          onClick={() => onNavigate('create-listing')}
+          onClick={() => onNavigate('create-listing', { mode: 'swap' })}
           className="btn-gold"
           style={{ padding: '0.55rem 1.25rem', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
         >
@@ -145,8 +145,8 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({
           ) : (
             <div className="empty-state">
               <h3 className="empty-state-title">No items currently listed for swap</h3>
-              <p className="empty-state-desc">Post an item and choose Swap mode to initiate student peer barter.</p>
-              <button onClick={() => onNavigate('create-listing')} className="btn-primary" style={{ marginTop: '0.75rem' }}>
+              <p className="empty-state-desc">Post an item with the Swap Item Form to initiate student peer barter.</p>
+              <button onClick={() => onNavigate('create-listing', { mode: 'swap' })} className="btn-primary" style={{ marginTop: '0.75rem' }}>
                 Post a Swap Item
               </button>
             </div>

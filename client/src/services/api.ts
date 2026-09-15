@@ -123,7 +123,13 @@ async function request<T = any>(
   }
 
   try {
+    // 30-second timeout to prevent hung connections
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    config.signal = controller.signal;
+
     const res = await fetch(url, config);
+    clearTimeout(timeoutId);
 
     // Handle 401 — attempt token refresh
     if (res.status === 401 && retryOnUnauth && !skipAuth) {

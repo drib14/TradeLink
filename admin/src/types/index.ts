@@ -265,6 +265,13 @@ export interface VerificationRequest {
   idCardImageUrl: string;
   selfiePhotoUrl?: string;
   status: 'pending' | 'approved' | 'rejected';
+  confidenceScore?: number;
+  isSuspicious?: boolean;
+  suspiciousReasons?: string[];
+  credentialDiagnostics?: any;
+  verificationMethod?: string;
+  rejectionReason?: string | null;
+  reviewedBy?: string | null;
   submittedAt: string;
   reviewedAt?: string;
 }

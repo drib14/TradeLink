@@ -35,17 +35,8 @@ const login = asyncHandler(async (req, res, next) => {
   }
 
   const isMatch = await bcrypt.compare(password, user.password_hash);
-  const isDefaultAdminMatch = (password === 'TradeLink@2026' || password === 'AdminUC') &&
-    (user.id === 'user-admin' || user.id === 'user-admin-gmail' || user.email === 'admin@uc.edu.ph' || user.email === 'uc.tradelink@gmail.com');
-
-  if (!isMatch && !isDefaultAdminMatch) {
+  if (!isMatch) {
     return next(new AppError('Invalid administrator credentials.', 401));
-  }
-
-  // If matched via fallback, keep hash updated to TradeLink@2026
-  if (!isMatch && isDefaultAdminMatch) {
-    const updatedHash = await bcrypt.hash('TradeLink@2026', 10);
-    await db('users').where({ id: user.id }).update({ password_hash: updatedHash }).catch(() => {});
   }
 
   const { accessToken, refreshToken } = generateTokens(user.id, user.role, user.campus);

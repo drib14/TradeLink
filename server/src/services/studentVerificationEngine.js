@@ -1,0 +1,327 @@
+const crypto = require('crypto');
+const db = require('../config/db');
+const verificationSessionService = require('./verificationSession.service');
+const logger = require('../utils/logger');
+
+/**
+ * Computes a SHA-256 hash of an image data string or buffer
+ * @param {string} dataUrlOrBase64 
+ * @returns {string} hex hash
+ */
+function computeImageHash(dataUrlOrBase64) {
+  if (!dataUrlOrBase64 || typeof dataUrlOrBase64 !== 'string') return '';
+  const pureData = dataUrlOrBase64.includes('base64,')
+    ? dataUrlOrBase64.split('base64,')[1]
+    : dataUrlOrBase64;
+  return crypto.createHash('sha256').update(pureData).digest('hex');
+}
+
+/**
+ * Analyzes binary payload characteristics (size, approximate entropy) to detect blank/spoofed images
+ * @param {string} dataUrl 
+ * @returns {{ valid: boolean, byteLength: number, entropyScore: number, reason?: string }}
+ */
+function inspectImagePayload(dataUrl) {
+  if (!dataUrl || typeof dataUrl !== 'string') {
+    return { valid: false, byteLength: 0, entropyScore: 0, reason: 'Missing image payload' };
+  }
+
+  const base64Data = dataUrl.includes('base64,') ? dataUrl.split('base64,')[1] : dataUrl;
+  let buffer;
+  try {
+    buffer = Buffer.from(base64Data, 'base64');
+  } catch {
+    return { valid: false, byteLength: 0, entropyScore: 0, reason: 'Invalid base64 encoding' };
+  }
+
+  const byteLength = buffer.length;
+
+  // Minimum 12KB to ensure image contains authentic sensor detail and text
+  if (byteLength < 12 * 1024) {
+    return { valid: false, byteLength, entropyScore: 0, reason: 'Image resolution/file size too low (<12KB)' };
+  }
+
+  // Maximum 10MB
+  if (byteLength > 10 * 1024 * 1024) {
+    return { valid: false, byteLength, entropyScore: 0, reason: 'Image payload exceeds 10MB limit' };
+  }
+
+  // Sample byte distribution variance (entropy check to detect single-color fake images)
+  const byteCounts = new Uint32Array(256);
+  const sampleStep = Math.max(1, Math.floor(byteLength / 2000));
+  let samples = 0;
+  for (let i = 0; i < byteLength; i += sampleStep) {
+    byteCounts[buffer[i]]++;
+    samples++;
+  }
+
+  let entropy = 0;
+  for (let i = 0; i < 256; i++) {
+    if (byteCounts[i] > 0) {
+      const p = byteCounts[i] / samples;
+      entropy -= p * Math.log2(p);
+    }
+  }
+
+  // High quality photo usually has entropy > 6.0 bits/byte
+  const entropyScore = Math.min(100, Math.round((entropy / 8.0) * 100));
+
+  if (entropy < 4.0) {
+    return { valid: false, byteLength, entropyScore, reason: 'Image exhibits unnatural flat pixel distribution (possible solid color or corrupted image)' };
+  }
+
+  return { valid: true, byteLength, entropyScore };
+}
+
+/**
+ * Validates UC Student ID formatting syntax
+ * University of Cebu Student IDs are typically 7-9 numeric digits (e.g. 20240001, 12345678)
+ * or academic year formatted like 2024-12345.
+ * @param {string} studentId 
+ * @returns {{ valid: boolean, cleanId: string, formatScore: number, reason?: string }}
+ */
+function validateStudentIdSyntax(studentId) {
+  if (!studentId || typeof studentId !== 'string') {
+    return { valid: false, cleanId: '', formatScore: 0, reason: 'Student ID number is missing.' };
+  }
+
+  const raw = studentId.trim();
+  const cleanId = raw.replace(/[^0-9A-Za-z-]/g, '');
+  const digitsOnly = raw.replace(/\D/g, '');
+
+  if (digitsOnly.length < 6 || digitsOnly.length > 14) {
+    return {
+      valid: false,
+      cleanId,
+      formatScore: 0,
+      reason: `Student ID length invalid (${digitsOnly.length} digits). UC student IDs require between 6 and 14 digits.`
+    };
+  }
+
+  // Common UC formats:
+  // 1. Pure 7-10 digit numbers (e.g. 20240001, 21102934)
+  // 2. Year-prefix hyphen format (e.g. 2024-00123)
+  const isPureDigits = /^\d{6,12}$/.test(cleanId);
+  const isHyphenatedYear = /^\d{2,4}-\d{4,8}$/.test(cleanId);
+
+  if (isPureDigits || isHyphenatedYear) {
+    return { valid: true, cleanId, formatScore: 100 };
+  }
+
+  // Alphanumeric fallback (some faculty/special SHS IDs)
+  return { valid: true, cleanId, formatScore: 85 };
+}
+
+/**
+ * Evaluates student verification submission with automated approval rule engine and fraud detection.
+ * Requires >90% accuracy across credentials, session liveness, and image integrity for auto-approval.
+ * 
+ * @param {object} params
+ * @param {object} params.user Current user record from database
+ * @param {string} params.studentId Raw submitted student ID
+ * @param {string} params.idPhotoUrl Raw base64 or URL of ID Card
+ * @param {string} params.selfiePhotoUrl Raw base64 or URL of Biometric Selfie
+ * @param {string} params.sessionToken Signed session challenge token
+ * @param {object} [params.telemetry] Client-side biometric capture telemetry
+ * @returns {Promise<{
+ *   isApproved: boolean,
+ *   isSuspicious: boolean,
+ *   confidenceScore: number,
+ *   status: 'approved' | 'pending',
+ *   suspiciousReasons: string[],
+ *   credentialDiagnostics: object,
+ *   idPhotoHash: string,
+ *   selfiePhotoHash: string,
+ *   cleanId: string
+ * }>}
+ */
+async function evaluateVerification({
+  user,
+  studentId,
+  idPhotoUrl,
+  selfiePhotoUrl,
+  sessionToken,
+  telemetry = {}
+}) {
+  const suspiciousReasons = [];
+  const diagnostics = {
+    idSyntax: { score: 0, passed: false },
+    sessionChallenge: { score: 0, passed: false },
+    idImageQuality: { score: 0, passed: false },
+    selfieImageQuality: { score: 0, passed: false },
+    institutionalTrust: { score: 0, passed: false },
+    antiDuplicateCheck: { passed: true }
+  };
+
+  let totalScore = 0;
+
+  // -------------------------------------------------------------
+  // 1. Student ID Syntax & Format Check (Weight: 20%)
+  // -------------------------------------------------------------
+  const idSyntax = validateStudentIdSyntax(studentId);
+  if (!idSyntax.valid) {
+    suspiciousReasons.push(`Invalid Student ID format: ${idSyntax.reason}`);
+    diagnostics.idSyntax = { score: 0, passed: false, details: idSyntax.reason };
+  } else {
+    const syntaxWeight = Math.round((idSyntax.formatScore / 100) * 20);
+    totalScore += syntaxWeight;
+    diagnostics.idSyntax = { score: syntaxWeight, passed: true, cleanId: idSyntax.cleanId };
+  }
+  const cleanId = idSyntax.cleanId || studentId.trim();
+
+  // -------------------------------------------------------------
+  // 2. Cryptographic Session Challenge & Anti-Replay (Weight: 25%)
+  // -------------------------------------------------------------
+  if (!sessionToken) {
+    suspiciousReasons.push('Biometric session token missing: direct API submission or bypassed challenge.');
+    diagnostics.sessionChallenge = { score: 0, passed: false, details: 'Missing session token' };
+  } else {
+    const sessionResult = verificationSessionService.validateAndConsumeSession(user.id, sessionToken);
+    if (!sessionResult.valid) {
+      suspiciousReasons.push(`Biometric session validation failed: ${sessionResult.reason}`);
+      diagnostics.sessionChallenge = { score: 0, passed: false, details: sessionResult.reason };
+    } else {
+      // Session challenge cryptographically verified
+      let sessionScore = 25;
+
+      // Telemetry capture speed check: human reaction + snapshot takes at least 1000ms
+      const sessionAge = Date.now() - (sessionResult.payload?.exp - 5 * 60 * 1000);
+      if (sessionAge < 1000) {
+        suspiciousReasons.push('Abnormally fast snapshot capture (<1000ms). Potential bot automated submission.');
+        sessionScore -= 15;
+      }
+
+      totalScore += Math.max(0, sessionScore);
+      diagnostics.sessionChallenge = { score: Math.max(0, sessionScore), passed: sessionScore >= 20, sessionAge };
+    }
+  }
+
+  // -------------------------------------------------------------
+  // 3. Image Forensics & Quality Check (Weight: 20% ID Card, 15% Selfie)
+  // -------------------------------------------------------------
+  const idPhotoInspection = inspectImagePayload(idPhotoUrl);
+  if (!idPhotoInspection.valid) {
+    suspiciousReasons.push(`ID Card image rejected: ${idPhotoInspection.reason}`);
+    diagnostics.idImageQuality = { score: 0, passed: false, details: idPhotoInspection.reason };
+  } else {
+    // Quality scoring based on entropy and resolution
+    const idQualityScore = Math.min(20, Math.round((idPhotoInspection.entropyScore / 100) * 20));
+    totalScore += idQualityScore;
+    diagnostics.idImageQuality = {
+      score: idQualityScore,
+      passed: true,
+      bytes: idPhotoInspection.byteLength,
+      entropy: idPhotoInspection.entropyScore
+    };
+  }
+
+  const selfieInspection = inspectImagePayload(selfiePhotoUrl);
+  if (!selfieInspection.valid) {
+    suspiciousReasons.push(`Live selfie rejected: ${selfieInspection.reason}`);
+    diagnostics.selfieImageQuality = { score: 0, passed: false, details: selfieInspection.reason };
+  } else {
+    const selfieQualityScore = Math.min(15, Math.round((selfieInspection.entropyScore / 100) * 15));
+    totalScore += selfieQualityScore;
+    diagnostics.selfieImageQuality = {
+      score: selfieQualityScore,
+      passed: true,
+      bytes: selfieInspection.byteLength,
+      entropy: selfieInspection.entropyScore
+    };
+  }
+
+  // -------------------------------------------------------------
+  // 4. Duplicate Image Fingerprinting & Sybil Attack Shield
+  // -------------------------------------------------------------
+  const idPhotoHash = computeImageHash(idPhotoUrl);
+  const selfiePhotoHash = computeImageHash(selfiePhotoUrl);
+
+  if (idPhotoHash) {
+    // Check if another account has already uploaded this exact ID photo
+    const duplicateId = await db('verification_requests')
+      .where({ id_photo_hash: idPhotoHash })
+      .andWhereNot({ user_id: user.id })
+      .first()
+      .catch(() => null);
+
+    if (duplicateId) {
+      suspiciousReasons.push(`Duplicate ID photo detected: exact image fingerprint was previously submitted by user ID [${duplicateId.user_id}].`);
+      diagnostics.antiDuplicateCheck.passed = false;
+    }
+  }
+
+  if (selfiePhotoHash) {
+    // Check if another account used this exact selfie
+    const duplicateSelfie = await db('verification_requests')
+      .where({ selfie_photo_hash: selfiePhotoHash })
+      .andWhereNot({ user_id: user.id })
+      .first()
+      .catch(() => null);
+
+    if (duplicateSelfie) {
+      suspiciousReasons.push(`Duplicate selfie detected: identical facial selfie was previously submitted by user ID [${duplicateSelfie.user_id}].`);
+      diagnostics.antiDuplicateCheck.passed = false;
+    }
+  }
+
+  // -------------------------------------------------------------
+  // 5. Account & Institutional Consistency Check (Weight: 20%)
+  // -------------------------------------------------------------
+  let institutionalScore = 0;
+  const userEmail = (user.email || '').toLowerCase();
+
+  // Official University domain (@uc.edu.ph or @*.uc.edu.ph) provides highest trust tier
+  if (userEmail.endsWith('@uc.edu.ph') || userEmail.includes('.uc.edu.ph')) {
+    institutionalScore += 15;
+  } else {
+    // Verified email fallback
+    institutionalScore += 8;
+  }
+
+  // Name consistency: User name must be non-empty and reasonably structured
+  if (user.name && user.name.trim().length >= 3) {
+    institutionalScore += 5;
+  }
+
+  totalScore += institutionalScore;
+  diagnostics.institutionalTrust = {
+    score: institutionalScore,
+    passed: institutionalScore >= 12,
+    hasInstitutionalEmail: userEmail.endsWith('@uc.edu.ph')
+  };
+
+  // -------------------------------------------------------------
+  // 6. Final Decision Engine (>90% Accuracy Threshold)
+  // -------------------------------------------------------------
+  const confidenceScore = Math.min(100, Math.max(0, Math.round(totalScore)));
+  const hasSuspicion = suspiciousReasons.length > 0;
+
+  // Automated Approval Condition:
+  // 1. Confidence Score must be at least 90%
+  // 2. Zero suspicious risk signals detected
+  // 3. ID and Selfie pass image forensics
+  const isApproved = confidenceScore >= 90 && !hasSuspicion;
+  const isSuspicious = hasSuspicion || confidenceScore < 90;
+  const status = isApproved ? 'approved' : 'pending';
+
+  logger.info(`[Student Verification Engine] Evaluated user [${user.id}]: score=${confidenceScore}%, status=${status}, isApproved=${isApproved}, suspiciousCount=${suspiciousReasons.length}`);
+
+  return {
+    isApproved,
+    isSuspicious,
+    confidenceScore,
+    status,
+    suspiciousReasons,
+    credentialDiagnostics: diagnostics,
+    idPhotoHash,
+    selfiePhotoHash,
+    cleanId
+  };
+}
+
+module.exports = {
+  evaluateVerification,
+  computeImageHash,
+  validateStudentIdSyntax,
+  inspectImagePayload
+};

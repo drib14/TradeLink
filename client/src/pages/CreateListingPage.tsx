@@ -18,17 +18,19 @@ import {
   ArrowLeftRight,
   Clock,
   ShieldAlert,
-  AlertTriangle,
   Loader2,
   X,
-  Sparkles as _Sparkles,
   MapPin,
-  Check
+  Check,
+  Sparkles
 } from 'lucide-react';
+
+export type PostingFormMode = 'sell' | 'swap';
 
 interface CreateListingPageProps {
   onNavigate: (view: string, param?: any) => void;
   onOpenAuth?: () => void;
+  initialMode?: PostingFormMode;
 }
 
 const CATEGORY_OPTIONS = [
@@ -45,12 +47,30 @@ const CATEGORY_OPTIONS = [
   'General Campus Item'
 ];
 
-export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate, onOpenAuth }) => {
+const SWAP_INSPIRATION_CHIPS = [
+  'Open to any fair offer',
+  'Casio FX-991CW Calculator',
+  'Nursing Scrubs / PE Uniform',
+  'Drafting Board & T-Square',
+  'College Textbook / Reviewer',
+  'USB-C Hub or Tech Gear'
+];
+
+export const CreateListingPage: React.FC<CreateListingPageProps> = ({
+  onNavigate,
+  onOpenAuth,
+  initialMode = 'sell'
+}) => {
   const { currentUser, isAuthenticated } = useAuth();
   const { addListing } = useMarket();
   const { showToast } = useToast();
 
-  // Wizard Step (1: Details, 2: Media, 3: Pricing, 4: Preview)
+  // Active Posting Form Mode: 'sell' (Cash/E-Wallet sale) vs 'swap' (Cashless barter)
+  const [formMode, setFormMode] = useState<PostingFormMode>(
+    initialMode === 'swap' ? 'swap' : 'sell'
+  );
+
+  // Wizard Step (1: Details, 2: Media, 3: Pricing/Barter, 4: Preview)
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1);
 
   // Form states
@@ -59,10 +79,11 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
   const [category, setCategory] = useState(CATEGORY_OPTIONS[0]);
   const [condition, setCondition] = useState<ConditionGrade>('Gently Used');
   const [quantity, setQuantity] = useState<number>(1);
-  const [tradeMode, setTradeMode] = useState<TradeMode>('buy_sell');
+  const [sellType, setSellType] = useState<'paid' | 'free'>('paid');
   const [price, setPrice] = useState<number>(0);
   const [originalSrp, setOriginalSrp] = useState<number>(0);
   const [swapPreference, setSwapPreference] = useState('');
+  const [swapConditionNote, setSwapConditionNote] = useState('');
   const [customTagInput, setCustomTagInput] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [images, setImages] = useState<string[]>([]);
@@ -70,7 +91,21 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
 
-  const isDirty = Boolean(title.trim() || description.trim() || images.length > 0 || customTagInput.trim() || price > 0);
+  // Sync initialMode if passed or navigated
+  useEffect(() => {
+    if (initialMode && (initialMode === 'swap' || initialMode === 'sell')) {
+      setFormMode(initialMode);
+    }
+  }, [initialMode]);
+
+  const isDirty = Boolean(
+    title.trim() ||
+    description.trim() ||
+    images.length > 0 ||
+    customTagInput.trim() ||
+    price > 0 ||
+    swapPreference.trim()
+  );
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -83,14 +118,30 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isDirty, isSubmitting]);
 
+  // Handle switching between Sell and Swap forms
+  const handleModeSwitch = (newMode: PostingFormMode) => {
+    if (newMode === formMode) return;
+    setFormMode(newMode);
+    if (newMode === 'swap') {
+      setSellType('paid');
+      setPrice(0);
+    }
+  };
+
   const validateStep = (step: number): boolean => {
     if (step === 1) {
       if (!title.trim() || title.trim().length < 5) {
-        showToast('Title Too Short', 'Item title must be at least 5 characters long.', 'warning');
+        showToast(
+          'Title Too Short',
+          formMode === 'sell'
+            ? 'Item title must be at least 5 characters long.'
+            : 'Please specify the item you are offering to swap (min 5 characters).',
+          'warning'
+        );
         return false;
       }
       if (description.trim().length < 10) {
-        showToast('Description Required', 'Please provide at least 10 characters describing the item.', 'warning');
+        showToast('Description Required', 'Please provide at least 10 characters describing the item condition.', 'warning');
         return false;
       }
       return true;
@@ -103,13 +154,17 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
       return true;
     }
     if (step === 3) {
-      if (tradeMode === 'buy_sell' && price <= 0) {
-        showToast('Price Required', 'Please set a valid price in PHP or choose Free Gift.', 'warning');
-        return false;
-      }
-      if (tradeMode === 'swap' && !swapPreference.trim()) {
-        showToast('Swap Preference Required', 'Please specify what item you want in exchange.', 'warning');
-        return false;
+      if (formMode === 'sell') {
+        if (sellType === 'paid' && price <= 0) {
+          showToast('Price Required', 'Please set a valid selling price in PHP or select Free Student Gift.', 'warning');
+          return false;
+        }
+      } else {
+        // Swap mode
+        if (!swapPreference.trim() || swapPreference.trim().length < 3) {
+          showToast('Swap Item Desired', 'Please specify what items or gear you would like in exchange.', 'warning');
+          return false;
+        }
       }
       return true;
     }
@@ -132,7 +187,7 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
     if (isDirty) {
       setShowDiscardConfirm(true);
     } else {
-      onNavigate('marketplace');
+      onNavigate(formMode === 'swap' ? 'swaps' : 'marketplace');
     }
   };
 
@@ -142,23 +197,40 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
 
     setIsSubmitting(true);
     try {
+      const computedTradeMode: TradeMode =
+        formMode === 'swap'
+          ? 'swap'
+          : sellType === 'free'
+          ? 'free_donation'
+          : 'buy_sell';
+
+      const computedPrice = computedTradeMode === 'buy_sell' ? price : 0;
+      const computedSrp = computedTradeMode === 'buy_sell' ? (originalSrp > 0 ? originalSrp : price) : 0;
+
+      const combinedSwapPreference =
+        formMode === 'swap'
+          ? swapConditionNote.trim()
+            ? `${swapPreference.trim()} (${swapConditionNote.trim()})`
+            : swapPreference.trim()
+          : undefined;
+
       const newListing = await addListing({
         title: title.trim(),
         category: category.trim(),
         description: description.trim(),
-        price: tradeMode === 'free_donation' ? 0 : price,
-        originalSrp: originalSrp > 0 ? originalSrp : (tradeMode === 'free_donation' ? 0 : price),
+        price: computedPrice,
+        originalSrp: computedSrp,
         condition,
         quantity: Math.max(1, quantity),
-        tradeMode,
-        swapPreference: tradeMode === 'swap' ? swapPreference.trim() : undefined,
+        tradeMode: computedTradeMode,
+        swapPreference: combinedSwapPreference,
         images,
         media: images.map((url, idx) => ({
           url,
           mediaType: (url.match(/\.(mp4|webm|mov|mkv)$/i) || url.includes('/video/upload/')) ? 'video' : 'image',
           isPrimary: idx === 0
         })),
-        tags: tags.length > 0 ? tags.slice(0, 10) : [category.split(' ')[0] || 'Campus'],
+        tags: tags.length > 0 ? tags.slice(0, 10) : [category.split(' ')[0] || 'Campus', formMode === 'swap' ? 'Swap' : 'ForSale'],
         sellerId: currentUser?.id,
         sellerName: currentUser?.name,
         sellerAvatar: currentUser?.avatar,
@@ -168,7 +240,13 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
         sellerTrustScore: currentUser?.trustScore
       });
 
-      showToast('Listing Published!', `"${newListing.title}" is now active in the campus catalog.`, 'success');
+      const successTitle = formMode === 'swap' ? 'Swap Offer Published!' : 'Listing Published for Sale!';
+      const successMsg =
+        formMode === 'swap'
+          ? `"${newListing.title}" is now live in the Campus Swap Hub.`
+          : `"${newListing.title}" is now active in the campus catalog.`;
+
+      showToast(successTitle, successMsg, 'success');
       onNavigate('item-detail', { id: newListing.id });
     } catch (err: any) {
       const msg = err?.message || 'Failed to post item listing.';
@@ -300,17 +378,24 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
     );
   }
 
-  const stepsConfig = [
-    { num: 1, label: 'Item Details', icon: <ShoppingBag size={15} /> },
-    { num: 2, label: 'Photos & Media', icon: <Film size={15} /> },
-    { num: 3, label: 'Pricing & Mode', icon: <Tag size={15} /> },
-    { num: 4, label: 'Preview & Post', icon: <Eye size={15} /> }
-  ];
+  const stepsConfig = formMode === 'sell'
+    ? [
+        { num: 1, label: 'Item Details', icon: <ShoppingBag size={15} /> },
+        { num: 2, label: 'Photos & Media', icon: <Film size={15} /> },
+        { num: 3, label: 'Pricing & Value', icon: <Tag size={15} /> },
+        { num: 4, label: 'Preview & Post', icon: <Eye size={15} /> }
+      ]
+    : [
+        { num: 1, label: 'Item for Barter', icon: <ShoppingBag size={15} /> },
+        { num: 2, label: 'Photos & Media', icon: <Film size={15} /> },
+        { num: 3, label: 'Barter Terms', icon: <ArrowLeftRight size={15} /> },
+        { num: 4, label: 'Preview & Post', icon: <Eye size={15} /> }
+      ];
 
   return (
-    <div className="container page-enter" style={{ maxWidth: '760px', padding: '2rem 1.25rem 5rem 1.25rem' }}>
+    <div className="container page-enter" style={{ maxWidth: '780px', padding: '2rem 1.25rem 5rem 1.25rem' }}>
       {/* Header Bar */}
-      <div style={{ marginBottom: '1.5rem' }}>
+      <div style={{ marginBottom: '1.25rem' }}>
         <button
           onClick={handleCancel}
           className="btn-ghost"
@@ -323,21 +408,95 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
             gap: '0.3rem'
           }}
         >
-          <ChevronLeft size={16} /> Back to Catalog
+          <ChevronLeft size={16} /> Back to {formMode === 'swap' ? 'Campus Swaps' : 'Catalog'}
         </button>
+
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
           <div>
             <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--uc-blue, #002B7F)', margin: 0 }}>
-              Create a Listing
+              {formMode === 'sell' ? 'Post Item for Sale' : 'Post Item for Swap (Barter)'}
             </h1>
             <p style={{ fontSize: '0.84rem', color: 'var(--text-muted, #64748B)', marginTop: '0.2rem' }}>
-              Publish your items to verified students across UC campuses.
+              {formMode === 'sell'
+                ? 'List textbooks, electronics, or campus gear for direct cash or e-wallet sale.'
+                : 'Offer an item for direct, cashless peer-to-peer student trade across UC campuses.'}
             </p>
           </div>
           <span style={{ fontSize: '0.76rem', fontWeight: 700, padding: '0.25rem 0.65rem', borderRadius: '20px', backgroundColor: 'var(--uc-blue-subtle)', color: 'var(--uc-blue)' }}>
             Step {currentStep} of 4
           </span>
         </div>
+      </div>
+
+      {/* Top-Level Posting Form Selector (Sell Form vs Swap Form) */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: '0.75rem',
+          backgroundColor: '#FFFFFF',
+          padding: '0.5rem',
+          borderRadius: '14px',
+          border: '1.5px solid #E2E8F0',
+          marginBottom: '1.5rem',
+          boxShadow: '0 2px 8px rgba(0, 43, 127, 0.04)'
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => handleModeSwitch('sell')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.5rem',
+            padding: '0.75rem 1rem',
+            borderRadius: '10px',
+            border: formMode === 'sell' ? '2px solid var(--uc-blue)' : '1px solid transparent',
+            backgroundColor: formMode === 'sell' ? 'var(--uc-blue-subtle, #EBF1FC)' : 'transparent',
+            color: formMode === 'sell' ? 'var(--uc-blue)' : '#64748B',
+            cursor: 'pointer',
+            fontWeight: 800,
+            fontSize: '0.88rem',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          <Tag size={17} />
+          <span>Sell Item Form</span>
+          {formMode === 'sell' && (
+            <span style={{ fontSize: '0.68rem', backgroundColor: 'var(--uc-blue)', color: '#FFFFFF', padding: '1px 6px', borderRadius: '10px', marginLeft: '2px' }}>
+              Active
+            </span>
+          )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleModeSwitch('swap')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.5rem',
+            padding: '0.75rem 1rem',
+            borderRadius: '10px',
+            border: formMode === 'swap' ? '2px solid var(--uc-blue)' : '1px solid transparent',
+            backgroundColor: formMode === 'swap' ? 'var(--uc-blue-subtle, #EBF1FC)' : 'transparent',
+            color: formMode === 'swap' ? 'var(--uc-blue)' : '#64748B',
+            cursor: 'pointer',
+            fontWeight: 800,
+            fontSize: '0.88rem',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          <ArrowLeftRight size={17} />
+          <span>Swap Item Form</span>
+          {formMode === 'swap' && (
+            <span style={{ fontSize: '0.68rem', backgroundColor: 'var(--uc-blue)', color: '#FFFFFF', padding: '1px 6px', borderRadius: '10px', marginLeft: '2px' }}>
+              Active
+            </span>
+          )}
+        </button>
       </div>
 
       {/* Stepper Progress Bar */}
@@ -402,7 +561,7 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', borderBottom: '1px solid var(--border-subtle, #E2E8F0)', paddingBottom: '0.75rem' }}>
             <ShoppingBag size={18} color="var(--uc-blue)" />
             <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-              Step 1: Item Details
+              {formMode === 'sell' ? 'Step 1: Item Details for Sale' : 'Step 1: Details of Item Offered for Barter'}
             </h3>
           </div>
 
@@ -410,7 +569,7 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
               <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                Item Title *
+                {formMode === 'sell' ? 'Item Title *' : 'Item Offered for Swap *'}
               </label>
               <span style={{ fontSize: '0.72rem', color: title.length > 190 ? '#DC2626' : title.length > 0 && title.length < 5 ? '#EA580C' : 'var(--text-muted)' }}>
                 {title.length}/200 {title.length > 0 && title.length < 5 ? '(min 5 chars)' : ''}
@@ -421,7 +580,11 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
               value={title}
               maxLength={200}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Casio FX-991CW Calculator, BSN Scrubs (Medium), Java Programming 8th Ed."
+              placeholder={
+                formMode === 'sell'
+                  ? 'e.g. Casio FX-991CW Calculator, BSN Scrubs (Medium), Java Programming 8th Ed.'
+                  : 'e.g. Drafting Table A3 with Parallel Ruler, Nursing Med-Surg Reviewer 2025'
+              }
               className="clean-input"
               required
             />
@@ -448,7 +611,7 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
           {/* Condition Grade */}
           <div>
             <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-              Condition Grade *
+              Current Condition Grade *
             </label>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.5rem' }}>
               {(['Brand New', 'Like New', 'Gently Used', 'Fair / Academic Usable'] as ConditionGrade[]).map((cond) => {
@@ -508,7 +671,7 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
                 </button>
               </div>
               <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                {quantity === 1 ? '1 unit (will mark as Sold once settled)' : `${quantity} units in stock`}
+                {quantity === 1 ? '1 unit (will mark as settled once swapped or sold)' : `${quantity} units available`}
               </span>
             </div>
           </div>
@@ -517,7 +680,7 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
               <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                Item Description *
+                {formMode === 'sell' ? 'Item Description *' : 'Description of Offered Item *'}
               </label>
               <span style={{ fontSize: '0.72rem', color: description.length > 4900 ? '#DC2626' : description.length > 0 && description.length < 10 ? '#EA580C' : 'var(--text-muted)' }}>
                 {description.length}/5000 {description.length > 0 && description.length < 10 ? '(min 10 chars)' : ''}
@@ -528,7 +691,11 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
               value={description}
               maxLength={5000}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Detail item condition, book edition, inclusions (e.g., charger, pouch, stylus), and reasons for selling..."
+              placeholder={
+                formMode === 'sell'
+                  ? 'Detail item condition, book edition, inclusions (charger, stylus, pouch), and reason for selling...'
+                  : 'Specify exact model, condition, any wear/tear, and inclusions you are handing over in the barter...'
+              }
               className="clean-input"
               style={{ fontSize: '0.84rem' }}
               required
@@ -543,14 +710,14 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', borderBottom: '1px solid var(--border-subtle, #E2E8F0)', paddingBottom: '0.75rem' }}>
             <Film size={18} color="var(--uc-blue)" />
             <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-              Step 2: Media & Product Demonstration
+              Step 2: Media & Visual Verification
             </h3>
           </div>
 
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
               <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                Photos & Optional Product Video *
+                {formMode === 'sell' ? 'Item Photos & Video *' : 'Photos of Item Being Offered *'}
               </label>
               <span style={{ fontSize: '0.75rem', fontWeight: 700, color: images.length === 0 ? '#DC2626' : 'var(--accent-green, #059669)' }}>
                 {images.length}/10 uploaded {images.length === 0 ? '(at least 1 required)' : ''}
@@ -571,70 +738,78 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
             <ShieldAlert size={20} color="var(--uc-blue)" style={{ flexShrink: 0, marginTop: '2px' }} />
             <div>
               <h4 style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--uc-blue)', margin: '0 0 0.2rem 0' }}>
-                Authentic Campus Media Guidelines
+                {formMode === 'sell' ? 'Authentic Campus Media Guidelines' : 'Authentic Barter Photos'}
               </h4>
               <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.45, margin: 0 }}>
-                Upload actual photos of your items on campus desks or lockers. Items with realistic photos and condition videos receive 3x more campus trade responses and pass moderation faster.
+                {formMode === 'sell'
+                  ? 'Upload actual photos of your items on campus desks or lockers. Items with realistic photos receive 3x faster buyer inquiries.'
+                  : 'Show clear angles of your barter item to help student peers quickly evaluate and accept your trade proposal.'}
               </p>
             </div>
           </div>
         </div>
       )}
 
-      {/* STEP 3: PRICING & TRADE MODE */}
-      {currentStep === 3 && (
+      {/* STEP 3: DEDICATED SELL FORM PRICING vs DEDICATED SWAP FORM BARTER TERMS */}
+      {currentStep === 3 && formMode === 'sell' && (
         <div className="clean-card" style={{ padding: '1.75rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', borderBottom: '1px solid var(--border-subtle, #E2E8F0)', paddingBottom: '0.75rem' }}>
             <Tag size={18} color="var(--uc-blue)" />
             <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-              Step 3: Pricing & Trade Mode
+              Step 3: Selling Price & Valuation
             </h3>
           </div>
 
-          {/* Trade Mode Selector */}
+          {/* Pricing Model Choice */}
           <div>
             <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-              Trade Mode *
+              Listing Type *
             </label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.65rem' }}>
-              {[
-                { id: 'buy_sell', label: 'For Sale', desc: 'Direct cash / e-wallet sale', icon: <ShoppingBag size={16} /> },
-                { id: 'swap', label: 'Barter Swap', desc: 'Exchange for other items', icon: <ArrowLeftRight size={16} /> },
-                { id: 'free_donation', label: 'Free Gift', desc: 'Pay-it-forward donation', icon: <Gift size={16} /> }
-              ].map((mode) => {
-                const isSelected = tradeMode === mode.id;
-                return (
-                  <button
-                    key={mode.id}
-                    type="button"
-                    onClick={() => setTradeMode(mode.id as TradeMode)}
-                    style={{
-                      padding: '0.75rem 0.65rem',
-                      borderRadius: '10px',
-                      backgroundColor: isSelected ? 'var(--uc-blue-subtle)' : 'var(--bg-surface)',
-                      color: isSelected ? 'var(--uc-blue)' : 'var(--text-secondary)',
-                      border: isSelected ? '2px solid var(--uc-blue)' : '1px solid var(--border-subtle)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '0.25rem',
-                      cursor: 'pointer',
-                      textAlign: 'center'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: 800, fontSize: '0.86rem' }}>
-                      {mode.icon}
-                      <span>{mode.label}</span>
-                    </div>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{mode.desc}</span>
-                  </button>
-                );
-              })}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.65rem' }}>
+              <button
+                type="button"
+                onClick={() => setSellType('paid')}
+                style={{
+                  padding: '0.75rem',
+                  borderRadius: '10px',
+                  backgroundColor: sellType === 'paid' ? 'var(--uc-blue-subtle)' : '#FFFFFF',
+                  border: sellType === 'paid' ? '2px solid var(--uc-blue)' : '1px solid #CBD5E1',
+                  color: sellType === 'paid' ? 'var(--uc-blue)' : '#475569',
+                  cursor: 'pointer',
+                  textAlign: 'left'
+                }}
+              >
+                <div style={{ fontWeight: 800, fontSize: '0.86rem' }}>For Sale (PHP)</div>
+                <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Cash or GCash/Maya on meetup</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSellType('free');
+                  setPrice(0);
+                }}
+                style={{
+                  padding: '0.75rem',
+                  borderRadius: '10px',
+                  backgroundColor: sellType === 'free' ? '#ECFDF5' : '#FFFFFF',
+                  border: sellType === 'free' ? '2px solid #059669' : '1px solid #CBD5E1',
+                  color: sellType === 'free' ? '#065F46' : '#475569',
+                  cursor: 'pointer',
+                  textAlign: 'left'
+                }}
+              >
+                <div style={{ fontWeight: 800, fontSize: '0.86rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <Gift size={15} color="#059669" />
+                  <span>Free Student Gift (₱0)</span>
+                </div>
+                <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Pay-it-forward donation</span>
+              </button>
             </div>
           </div>
 
-          {/* Pricing fields if buy_sell */}
-          {tradeMode === 'buy_sell' && (
+          {/* Pricing fields if paid */}
+          {sellType === 'paid' ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
@@ -677,42 +852,22 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
                 </div>
               </div>
             </div>
+          ) : (
+            <div style={{ backgroundColor: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: '10px', padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#065F46', fontSize: '0.82rem' }}>
+              <Gift size={20} style={{ flexShrink: 0 }} />
+              <span>This listing is marked as a <strong>Free Student Gift (₱0)</strong>. Verified peers can claim it without any payment.</span>
+            </div>
           )}
 
           {/* Discount badge preview */}
-          {tradeMode === 'buy_sell' && originalSrp > price && price > 0 && (
+          {sellType === 'paid' && originalSrp > price && price > 0 && (
             <div style={{ padding: '0.55rem 0.85rem', borderRadius: '8px', backgroundColor: '#ECFDF5', border: '1px solid #A7F3D0', color: '#065F46', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <CheckCircle2 size={16} />
               <span>Great Student Deal: <strong>{Math.round(((originalSrp - price) / originalSrp) * 100)}% off</strong> original store price!</span>
             </div>
           )}
 
-          {/* Swap details if swap */}
-          {tradeMode === 'swap' && (
-            <div>
-              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-                Item(s) Desired in Exchange *
-              </label>
-              <input
-                type="text"
-                value={swapPreference}
-                onChange={(e) => setSwapPreference(e.target.value)}
-                placeholder="e.g. Scientific Calculator FX-991, Architecture T-Square, or Open to any offer"
-                className="clean-input"
-                required
-              />
-            </div>
-          )}
-
-          {/* Free Donation note */}
-          {tradeMode === 'free_donation' && (
-            <div style={{ backgroundColor: 'rgba(5, 150, 105, 0.08)', border: '1px solid rgba(5, 150, 105, 0.25)', borderRadius: '8px', padding: '0.75rem 1rem', fontSize: '0.82rem', color: '#065F46', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Gift size={18} />
-              <span>This listing is marked as a <strong>Free Campus Gift (₱0)</strong> to support fellow University of Cebu peers.</span>
-            </div>
-          )}
-
-          {/* Tags */}
+          {/* Search Tags */}
           <div>
             <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
               Search Tags (Max 10)
@@ -732,7 +887,172 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
                     }
                   }
                 }}
-                placeholder={tags.length >= 10 ? 'Limit 10 tags reached' : 'Type keyword (e.g. midterm, ccs, scrubs) and press Enter'}
+                placeholder={tags.length >= 10 ? 'Limit 10 tags reached' : 'Type keyword and press Enter'}
+                className="clean-input"
+                style={{ fontSize: '0.84rem' }}
+              />
+              <button
+                type="button"
+                disabled={tags.length >= 10 || !customTagInput.trim()}
+                onClick={() => {
+                  if (customTagInput.trim() && !tags.includes(customTagInput.trim()) && tags.length < 10) {
+                    setTags([...tags, customTagInput.trim().replace(/^#/, '')]);
+                    setCustomTagInput('');
+                  }
+                }}
+                className="btn-secondary"
+                style={{ padding: '0.45rem 0.85rem', fontSize: '0.8rem', fontWeight: 700, flexShrink: 0 }}
+              >
+                Add Tag
+              </button>
+            </div>
+            {tags.length > 0 && (
+              <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                {tags.map((t) => (
+                  <span
+                    key={t}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.3rem',
+                      padding: '0.25rem 0.65rem',
+                      borderRadius: '9999px',
+                      backgroundColor: 'var(--uc-blue-subtle)',
+                      color: 'var(--uc-blue)',
+                      fontSize: '0.74rem',
+                      fontWeight: 700
+                    }}
+                  >
+                    #{t}
+                    <button
+                      type="button"
+                      onClick={() => setTags(tags.filter((tag) => tag !== t))}
+                      style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* STEP 3: DEDICATED SWAP FORM BARTER TERMS */}
+      {currentStep === 3 && formMode === 'swap' && (
+        <div className="clean-card" style={{ padding: '1.75rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', borderBottom: '1px solid var(--border-subtle, #E2E8F0)', paddingBottom: '0.75rem' }}>
+            <ArrowLeftRight size={18} color="var(--uc-blue)" />
+            <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+              Step 3: Barter Terms & Desired Swap Items
+            </h3>
+          </div>
+
+          {/* Zero-cash Notice Banner */}
+          <div
+            style={{
+              backgroundColor: 'rgba(0, 43, 127, 0.05)',
+              border: '1.5px solid rgba(0, 43, 127, 0.15)',
+              borderRadius: '10px',
+              padding: '0.85rem 1rem',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '0.65rem'
+            }}
+          >
+            <ArrowLeftRight size={18} color="var(--uc-blue)" style={{ flexShrink: 0, marginTop: '2px' }} />
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '0.84rem', color: 'var(--uc-blue)' }}>
+                Cashless Student Barter Exchange
+              </div>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: '0.2rem 0 0 0', lineHeight: 1.45 }}>
+                No money or e-wallet transfers are needed. You are proposing a direct item-for-item exchange with fellow UC students.
+              </p>
+            </div>
+          </div>
+
+          {/* Desired Items in Exchange */}
+          <div>
+            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+              What item(s) are you looking to receive in exchange? *
+            </label>
+            <input
+              type="text"
+              value={swapPreference}
+              onChange={(e) => setSwapPreference(e.target.value)}
+              placeholder="e.g. Casio FX-991CW, BSN Scrubs (M), Drafting Table, or Open to any offer"
+              className="clean-input"
+              style={{ fontSize: '0.86rem', fontWeight: 600 }}
+              required
+            />
+
+            {/* Quick Inspiration Chips */}
+            <div style={{ marginTop: '0.5rem' }}>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+                Quick suggestions (click to auto-fill):
+              </span>
+              <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                {SWAP_INSPIRATION_CHIPS.map((chip) => (
+                  <button
+                    key={chip}
+                    type="button"
+                    onClick={() => setSwapPreference(chip)}
+                    style={{
+                      border: '1px solid #CBD5E1',
+                      borderRadius: '6px',
+                      backgroundColor: swapPreference === chip ? 'var(--uc-blue-subtle)' : '#FFFFFF',
+                      color: swapPreference === chip ? 'var(--uc-blue)' : '#475569',
+                      fontSize: '0.72rem',
+                      fontWeight: 600,
+                      padding: '3px 8px',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    + {chip}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Barter Condition Preference (Optional) */}
+          <div>
+            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+              Preferred Condition of Incoming Item (Optional)
+            </label>
+            <input
+              type="text"
+              value={swapConditionNote}
+              onChange={(e) => setSwapConditionNote(e.target.value)}
+              placeholder="e.g. Must be functional / Like New only / Minor highlights okay"
+              className="clean-input"
+              style={{ fontSize: '0.84rem' }}
+            />
+          </div>
+
+          {/* Search Tags */}
+          <div>
+            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+              Search Tags (Max 10)
+            </label>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: tags.length > 0 ? '0.5rem' : '0' }}>
+              <input
+                type="text"
+                value={customTagInput}
+                onChange={(e) => setCustomTagInput(e.target.value)}
+                disabled={tags.length >= 10}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (customTagInput.trim() && !tags.includes(customTagInput.trim()) && tags.length < 10) {
+                      setTags([...tags, customTagInput.trim().replace(/^#/, '')]);
+                      setCustomTagInput('');
+                    }
+                  }
+                }}
+                placeholder={tags.length >= 10 ? 'Limit 10 tags reached' : 'Type keyword (e.g. barter, trade, med) and press Enter'}
                 className="clean-input"
                 style={{ fontSize: '0.84rem' }}
               />
@@ -792,11 +1112,11 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
                 <Eye size={18} color="var(--uc-blue)" />
                 <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-                  Step 4: Live Marketplace Preview
+                  Step 4: Live Marketplace Card Preview
                 </h3>
               </div>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                This is how your item appears to buyers on campus.
+                {formMode === 'sell' ? 'How your listing looks to buyers' : 'How your swap card appears in Swap Hub'}
               </span>
             </div>
 
@@ -833,7 +1153,7 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
                     left: '10px',
                     padding: '0.2rem 0.55rem',
                     borderRadius: '6px',
-                    backgroundColor: tradeMode === 'swap' ? 'var(--uc-blue)' : tradeMode === 'free_donation' ? '#059669' : 'rgba(15, 23, 42, 0.85)',
+                    backgroundColor: formMode === 'swap' ? 'var(--uc-blue)' : sellType === 'free' ? '#059669' : 'rgba(15, 23, 42, 0.85)',
                     color: '#FFFFFF',
                     fontSize: '0.7rem',
                     fontWeight: 800,
@@ -841,7 +1161,7 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
                     backdropFilter: 'blur(4px)'
                   }}
                 >
-                  {tradeMode === 'buy_sell' ? 'For Sale' : tradeMode === 'swap' ? 'Barter Swap' : 'Free Gift'}
+                  {formMode === 'swap' ? 'Barter Swap' : sellType === 'free' ? 'Free Gift' : 'For Sale'}
                 </div>
                 {/* Campus Pill */}
                 <div
@@ -879,17 +1199,19 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
 
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '0.35rem' }}>
                   <div>
-                    {tradeMode === 'buy_sell' ? (
-                      <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--uc-blue)' }}>
-                        ₱{price.toLocaleString()}
-                      </span>
-                    ) : tradeMode === 'swap' ? (
-                      <span style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--uc-blue)' }}>
-                        ⇄ Swap: {swapPreference || 'Open'}
-                      </span>
+                    {formMode === 'sell' ? (
+                      sellType === 'paid' ? (
+                        <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--uc-blue)' }}>
+                          ₱{price.toLocaleString()}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '1.1rem', fontWeight: 900, color: '#059669' }}>
+                          FREE (₱0)
+                        </span>
+                      )
                     ) : (
-                      <span style={{ fontSize: '1.1rem', fontWeight: 900, color: '#059669' }}>
-                        FREE (₱0)
+                      <span style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--uc-blue)' }}>
+                        ⇄ Swap: {swapPreference || 'Open to offers'}
                       </span>
                     )}
                   </div>
@@ -995,12 +1317,12 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
               {isSubmitting ? (
                 <>
                   <Loader2 size={16} className="animate-spin" />
-                  <span>Publishing Listing...</span>
+                  <span>Publishing {formMode === 'swap' ? 'Swap Offer...' : 'Listing...'}</span>
                 </>
               ) : (
                 <>
-                  <Tag size={16} />
-                  <span>Publish Listing to Catalog</span>
+                  {formMode === 'swap' ? <ArrowLeftRight size={16} /> : <Tag size={16} />}
+                  <span>{formMode === 'swap' ? 'Publish Barter Swap' : 'Publish Item for Sale'}</span>
                 </>
               )}
             </button>
@@ -1011,14 +1333,14 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({ onNavigate
       {/* Discard Confirmation Modal */}
       <ConfirmModal
         isOpen={showDiscardConfirm}
-        title="Discard Listing Draft?"
-        message="You have unsaved changes in this listing wizard. Leaving now will discard your entered data."
+        title={`Discard ${formMode === 'swap' ? 'Swap' : 'Listing'} Draft?`}
+        message="You have unsaved changes in this wizard. Leaving now will discard your entered details."
         confirmText="Discard Draft"
         cancelText="Keep Editing"
         variant="danger"
         onConfirm={() => {
           setShowDiscardConfirm(false);
-          onNavigate('marketplace');
+          onNavigate(formMode === 'swap' ? 'swaps' : 'marketplace');
         }}
         onCancel={() => setShowDiscardConfirm(false)}
       />

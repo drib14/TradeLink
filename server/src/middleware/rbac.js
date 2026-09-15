@@ -46,8 +46,17 @@ const requireVerified = (req, res, next) => {
   next();
 };
 
+const { requireStudent } = require('./requireStudent');
+
+/**
+ * Convenience shorthand: Requires admin role
+ */
+const requireAdmin = requireRole('admin');
+
 module.exports = {
   requireRole,
-  requireVerified
+  requireVerified,
+  requireStudent,
+  requireAdmin
 };
 

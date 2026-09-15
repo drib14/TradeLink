@@ -33,13 +33,14 @@ export const usersService = {
     return res.data;
   },
 
-  async submitIdVerification(studentIdNumber: string, idPhotoUrl: string, selfiePhotoUrl?: string, sessionToken?: string): Promise<void> {
-    await api.post('/users/me/verify-id', {
+  async submitIdVerification(studentIdNumber: string, idPhotoUrl: string, selfiePhotoUrl?: string, sessionToken?: string): Promise<any> {
+    const res = await api.post<any>('/users/me/verify-id', {
       studentIdNumber,
       idPhotoUrl,
       idCardImageUrl: idPhotoUrl,
       selfiePhotoUrl,
       sessionToken
     });
+    return res;
   },
 };
