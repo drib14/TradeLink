@@ -425,7 +425,7 @@ input[type="url"],
 .clean-textarea,
 textarea {
   width: 100%;
-  padding: 0.75rem 1.15rem !important;
+  padding: 0.75rem 1.15rem;
   border-radius: var(--radius-md) !important;
   border: 1.5px solid #E2E8F0 !important;
   background-color: #F8FAFC !important;
@@ -516,9 +516,13 @@ textarea:focus::placeholder {
 /* Dedicated Search Fields (Pill shape, smooth hover & focus animation) */
 .search-input,
 input[type="search"],
-.navbar-search-input {
+.navbar-search-input,
+.search-bar-wrapper input,
+.search-bar-wrapper input[type="text"],
+input.search-input,
+input.navbar-search-input {
   border-radius: var(--radius-full) !important;
-  padding: 0.6rem 1rem 0.6rem 2.65rem !important;
+  padding: 0.6rem 1rem 0.6rem 2.85rem !important;
   font-size: 0.85rem !important;
   background-color: #F8FAFC !important;
   border: 1.5px solid #E2E8F0 !important;
@@ -529,7 +533,8 @@ input[type="search"],
 
 .search-input:hover,
 input[type="search"]:hover,
-.navbar-search-input:hover {
+.navbar-search-input:hover,
+.search-bar-wrapper input:hover {
   background-color: #FFFFFF !important;
   border-color: #CBD5E1 !important;
   box-shadow: inset 2px 2px 4px rgba(0, 43, 127, 0.10),

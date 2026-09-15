@@ -369,7 +369,7 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
                   onChange={(e) => setSearchQuery(e.target.value)}
                   style={{
                     width: '100%',
-                    padding: '0.4rem 0.65rem 0.4rem 2rem',
+                    padding: '0.45rem 0.65rem 0.45rem 2.25rem',
                     fontSize: '0.78rem',
                     borderRadius: '8px',
                     border: '1px solid var(--border-subtle)',

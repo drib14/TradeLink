@@ -243,7 +243,7 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by reference code (TL-2026-XXXX), item title, or student name..."
             className="clean-input"
-            style={{ paddingLeft: '2.1rem', fontSize: '0.82rem' }}
+            style={{ paddingLeft: '2.5rem', fontSize: '0.82rem' }}
           />
         </div>
       </div>

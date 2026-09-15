@@ -106,12 +106,12 @@ export const NotFoundPage: React.FC<NotFoundPageProps> = ({ onNavigate }) => {
 
       {/* Direct Search Bar Recovery */}
       <div className="search-bar-wrapper" style={{ width: '100%', maxWidth: '460px', marginTop: '1.5rem' }}>
-        <Search size={16} className="search-icon" style={{ position: 'absolute', left: '1.1rem', top: '50%', transform: 'translateY(-50%)', zIndex: 2 }} />
+        <Search size={16} className="search-icon" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', zIndex: 2 }} />
         <input
           type="text"
           placeholder="Search items, textbooks, uniforms across UC..."
           className="clean-input search-input"
-          style={{ paddingLeft: '2.75rem', fontSize: '0.86rem' }}
+          style={{ paddingLeft: '2.85rem', fontSize: '0.86rem' }}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               const val = (e.target as HTMLInputElement).value.trim();

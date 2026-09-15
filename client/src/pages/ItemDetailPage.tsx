@@ -72,19 +72,29 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
   onOpenAuth,
   onOpenVerification
 }) => {
-  const { listings, favorites, toggleFavorite, markAsSold, incrementViews } = useMarket();
+  const { listings, favorites, toggleFavorite, markAsSold, incrementViews, isLoading } = useMarket();
   const { currentUser, isAuthenticated } = useAuth();
   const { openChatWithSeller } = useChat();
   const { showToast } = useToast();
 
-  const listing = listings.find((l: Listing) => l.id === listingId) || listings[0];
+  const listing = listings.find((l: Listing) => l.id === listingId);
   const isFavorite = favorites.includes(listing?.id || '');
 
   useEffect(() => {
-    if (listingId) {
+    if (!listingId) {
+      onNavigate('not-found');
+      return;
+    }
+    if (!isLoading && listings.length > 0 && !listing) {
+      onNavigate('not-found');
+    }
+  }, [listingId, isLoading, listings.length, listing, onNavigate]);
+
+  useEffect(() => {
+    if (listingId && listing) {
       incrementViews(listingId);
     }
-  }, [listingId]);
+  }, [listingId, listing]);
 
   const [activeImageIdx, setActiveImageIdx] = useState(0);
   const [isSwapModalOpen, setIsSwapModalOpen] = useState(false);

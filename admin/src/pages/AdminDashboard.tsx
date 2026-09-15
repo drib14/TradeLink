@@ -1019,7 +1019,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 value={userSearch}
                 onChange={(e) => setUserSearch(e.target.value)}
                 className="clean-input"
-                style={{ paddingLeft: '2.25rem', fontSize: '0.82rem' }}
+                style={{ paddingLeft: '2.5rem', fontSize: '0.82rem' }}
               />
             </div>
 
@@ -1277,7 +1277,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     setVisibleListingsCount(25);
                   }}
                   className="clean-input"
-                  style={{ paddingLeft: '2rem', fontSize: '0.82rem', height: '36px' }}
+                  style={{ paddingLeft: '2.25rem', fontSize: '0.82rem', height: '36px' }}
                 />
               </div>
 

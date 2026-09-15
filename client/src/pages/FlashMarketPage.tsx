@@ -194,7 +194,7 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search requested books, calculators, scrubs, tracks..."
               className="clean-input"
-              style={{ paddingLeft: '2.25rem' }}
+              style={{ paddingLeft: '2.65rem' }}
             />
           </div>
 

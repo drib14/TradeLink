@@ -5,25 +5,16 @@ import {
   Mail,
   CheckCircle2,
   Info,
-  ShoppingBag,
-  MapPin,
-  Sparkles,
-  ArrowRight
+  ShoppingBag
 } from 'lucide-react';
 import { useMarket } from '../../context/MarketContext';
-import { Campus } from '../../types';
 
 interface FooterProps {
   onNavigate: (view: string, param?: any) => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
-  const { setSelectedCampus, setSelectedCategory } = useMarket();
-
-  const handleCampusClick = (campus: Campus) => {
-    setSelectedCampus(campus);
-    onNavigate('marketplace');
-  };
+  const { setSelectedCategory } = useMarket();
 
   const handleCategoryClick = (category: string) => {
     setSelectedCategory(category);
@@ -53,28 +44,24 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           padding: '0 clamp(1.5rem, 3.5vw, 4.5rem)'
         }}
       >
-        {/* Main 5-Column Full-Bleed Layout */}
+        {/* Main 4-Column Layout */}
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
             gap: '2.5rem',
             paddingBottom: '3rem',
             borderBottom: '1px solid rgba(255, 255, 255, 0.12)'
           }}
         >
-          {/* Col 1: Brand & UC Student Community (Wider column) */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', gridColumn: 'span 1' }}>
+          {/* Col 1: Brand & UC Student Community */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <Logo size="md" showSubtitle={true} isDark={true} />
             <p style={{ fontSize: '0.84rem', lineHeight: 1.65, color: '#94A3B8', maxWidth: '340px' }}>
               The official student-to-student marketplace and barter network for the University of Cebu community. Built by Webmasters, for Webmasters with zero platform fees.
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', marginTop: '0.1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem', color: '#CBD5E1' }}>
-                <CheckCircle2 size={15} color="#FFC72C" style={{ flexShrink: 0 }} />
-                <span>8 Official UC Campuses Connected</span>
-              </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem', color: '#CBD5E1' }}>
                 <CheckCircle2 size={15} color="#FFC72C" style={{ flexShrink: 0 }} />
                 <span>Zero Platform Fees • 100% Free Forever</span>
@@ -99,7 +86,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             </div>
           </div>
 
-          {/* Col 2: Marketplace Hubs & Categories */}
+          {/* Col 2: Popular Categories */}
           <div>
             <h5
               style={{
@@ -114,114 +101,30 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                 gap: '0.45rem'
               }}
             >
-              <ShoppingBag size={15} style={{ flexShrink: 0 }} /> <span>Marketplace Hubs</span>
-            </h5>
-            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.7rem', fontSize: '0.84rem', padding: 0, margin: 0 }}>
-              <li>
-                <button
-                  onClick={() => onNavigate('marketplace')}
-                  style={linkBtnStyle}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = '#FFC72C')}
-                  onMouseLeave={(e) => (e.currentTarget.style.color = '#CBD5E1')}
-                >
-                  Browse All Catalog
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onNavigate('flash-market')}
-                  style={linkBtnStyle}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = '#FFC72C')}
-                  onMouseLeave={(e) => (e.currentTarget.style.color = '#CBD5E1')}
-                >
-                  Flash Market & Urgent Needs
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onNavigate('swaps')}
-                  style={linkBtnStyle}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = '#FFC72C')}
-                  onMouseLeave={(e) => (e.currentTarget.style.color = '#CBD5E1')}
-                >
-                  Student Swaps & Barter
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => handleCategoryClick('Textbooks')}
-                  style={linkBtnStyle}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = '#FFC72C')}
-                  onMouseLeave={(e) => (e.currentTarget.style.color = '#CBD5E1')}
-                >
-                  Textbooks & Reviewers
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => handleCategoryClick('Uniforms')}
-                  style={linkBtnStyle}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = '#FFC72C')}
-                  onMouseLeave={(e) => (e.currentTarget.style.color = '#CBD5E1')}
-                >
-                  Uniforms & Scrubs
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => handleCategoryClick('Electronics')}
-                  style={linkBtnStyle}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = '#FFC72C')}
-                  onMouseLeave={(e) => (e.currentTarget.style.color = '#CBD5E1')}
-                >
-                  Tech, Gadgets & Calculators
-                </button>
-              </li>
-            </ul>
-          </div>
-
-          {/* Col 3: UC Campus Exchange Zones */}
-          <div>
-            <h5
-              style={{
-                color: '#FFC72C',
-                fontSize: '0.82rem',
-                fontWeight: 800,
-                marginBottom: '1.1rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.45rem'
-              }}
-            >
-              <MapPin size={15} style={{ flexShrink: 0 }} /> <span>Campus Meetup Hubs</span>
+              <ShoppingBag size={15} style={{ flexShrink: 0 }} /> <span>Popular Categories</span>
             </h5>
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.7rem', fontSize: '0.84rem', padding: 0, margin: 0 }}>
               {[
-                { name: 'UC Main Campus', campus: 'UC Main' as Campus },
-                { name: 'UC Banilad Campus', campus: 'UC Banilad' as Campus },
-                { name: 'UC Lapu-Lapu & Mandaue (LM)', campus: 'UC LM' as Campus },
-                { name: 'UC Maritime (METC)', campus: 'UC METC' as Campus },
-                { name: 'UC Pardo-Talisay (PT)', campus: 'UC PT' as Campus },
-                { name: 'UC Pri Campus', campus: 'UC Pri' as Campus },
-                { name: 'Authorized Guard Checkpoints', campus: 'All' as Campus }
+                { label: 'Textbooks & Reviewers', category: 'Textbooks' },
+                { label: 'Uniforms & Scrubs', category: 'Uniforms' },
+                { label: 'Tech, Gadgets & Calculators', category: 'Electronics' },
+                { label: 'Art & Drafting Supplies', category: 'Supplies' }
               ].map((item) => (
-                <li key={item.name}>
+                <li key={item.category}>
                   <button
-                    onClick={() => handleCampusClick(item.campus)}
+                    onClick={() => handleCategoryClick(item.category)}
                     style={linkBtnStyle}
                     onMouseEnter={(e) => (e.currentTarget.style.color = '#FFC72C')}
                     onMouseLeave={(e) => (e.currentTarget.style.color = '#CBD5E1')}
                   >
-                    {item.name}
+                    {item.label}
                   </button>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Col 4: Trust, Safety & Support */}
+          {/* Col 3: Trust, Safety & Support */}
           <div>
             <h5
               style={{
@@ -242,7 +145,6 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               {[
                 { label: 'Help & Safety Center', view: 'help-safety', params: {} },
                 { label: 'Frequently Asked Questions', view: 'faq', params: {} },
-                { label: 'Meetup Safeguards & Guidelines', view: 'help-safety', params: {} },
                 { label: 'Student Honor Code', view: 'terms', params: { tab: 'honor-code' } },
                 { label: 'Terms of Service', view: 'terms', params: { tab: 'honor-code' } },
                 { label: 'Privacy Policy', view: 'terms', params: { tab: 'privacy' } }
@@ -261,7 +163,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             </ul>
           </div>
 
-          {/* Col 5: Platform, Team & Live System Status */}
+          {/* Col 4: Platform, Team & Live System Status */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             <div>
               <h5
@@ -277,7 +179,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                   gap: '0.45rem'
                 }}
               >
-                <Info size={15} style={{ flexShrink: 0 }} /> <span>Platform & Team</span>
+                <Info size={15} style={{ flexShrink: 0 }} /> <span>About & Community</span>
               </h5>
               <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.7rem', fontSize: '0.84rem', padding: 0, margin: 0 }}>
                 <li>

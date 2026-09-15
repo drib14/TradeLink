@@ -47,7 +47,7 @@ const pathToView = (path: string, search: string = window.location.search): { vi
   if (cleanPath.startsWith('item/') || cleanPath === 'item') {
     const rawId = cleanPath.split('/')[1] || searchParams.get('id') || undefined;
     const id = rawId ? decodeHashedId(rawId) : undefined;
-    if (cleanPath.startsWith('item/') && !id) {
+    if ((cleanPath.startsWith('item/') || cleanPath === 'item') && !id) {
       return { view: 'not-found', params: {} };
     }
     return { view: 'item-detail', params: { id } };
@@ -75,8 +75,14 @@ const pathToView = (path: string, search: string = window.location.search): { vi
 
 export const MainApp: React.FC = () => {
   const { currentUser: _currentUser } = useAuth();
-  const [currentView, setCurrentView] = useState<string>('home');
-  const [viewParams, setViewParams] = useState<any>({});
+  const [currentView, setCurrentView] = useState<string>(() => {
+    const { view } = pathToView(window.location.pathname, window.location.search);
+    return view;
+  });
+  const [viewParams, setViewParams] = useState<any>(() => {
+    const { params } = pathToView(window.location.pathname, window.location.search);
+    return params;
+  });
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isUnverifiedModalOpen, setIsUnverifiedModalOpen] = useState(false);
@@ -85,8 +91,8 @@ export const MainApp: React.FC = () => {
   useEffect(() => {
     const handlePopState = () => {
       const { view, params } = pathToView(window.location.pathname, window.location.search);
-      if (view === 'not-found' && window.location.pathname !== '/not-found') {
-        window.history.replaceState({}, '', '/not-found');
+      if (view === 'not-found' && window.location.pathname !== '/404') {
+        window.history.replaceState({}, '', '/404');
       }
       setCurrentView(view);
       setViewParams(params);
@@ -104,15 +110,22 @@ export const MainApp: React.FC = () => {
       'developers', 'faq', 'help-safety', 'terms', 'privacy', 'favorites',
       'settings', 'maintenance', 'not-found'
     ];
-    const targetView = validViews.includes(view) ? view : 'not-found';
+    let targetView = validViews.includes(view) ? view : 'not-found';
+
+    if (targetView === 'item-detail' && !params?.id) {
+      targetView = 'not-found';
+    }
+
     setCurrentView(targetView);
     setViewParams(params);
 
     let path = `/${targetView}`;
     if (targetView === 'home') path = '/';
     if (targetView === 'item-detail' && params.id) path = `/item/${encodeHashedId(params.id, 'listing')}`;
-    if (targetView === 'profile' && params.userId) path = `/profile/${encodeHashedId(params.userId, 'user')}`;
-    if (targetView === 'not-found') path = '/not-found';
+    if (targetView === 'profile') {
+      path = params.userId ? `/profile/${encodeHashedId(params.userId, 'user')}` : '/profile';
+    }
+    if (targetView === 'not-found') path = '/404';
 
     window.history.pushState({}, '', path);
     window.scrollTo({ top: 0, behavior: 'smooth' });

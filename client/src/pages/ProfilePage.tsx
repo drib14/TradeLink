@@ -81,7 +81,16 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
     }
   }, [userId, currentUser]);
 
-  const targetUser: User | null = (userId && currentUser?.id === userId ? currentUser : (fetchedUser || (userId ? allUsers.find((u: User) => u.id === userId) : null) || currentUser || null));
+  const targetUser: User | null = userId
+    ? (currentUser?.id === userId ? currentUser : (fetchedUser || allUsers.find((u: User) => u.id === userId) || null))
+    : (currentUser || null);
+
+  useEffect(() => {
+    if (userId && !targetUser && allUsers.length > 0) {
+      onNavigate('not-found');
+    }
+  }, [userId, targetUser, allUsers.length, onNavigate]);
+
   const isSelf = !!currentUser && !!targetUser && currentUser.id === targetUser.id;
 
   const [activeTab, setActiveTab] = useState<'listings' | 'sold' | 'saved' | 'transactions' | 'reviews' | 'flash' | 'wanted'>('listings');
@@ -1023,7 +1032,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                   onChange={(e) => setStoreSearch(e.target.value)}
                   placeholder={`Search ${targetUser.name.split(' ')[0]}'s items...`}
                   className="clean-input"
-                  style={{ paddingLeft: '30px', paddingRight: storeSearch ? '28px' : '10px', height: '34px', fontSize: '0.78rem' }}
+                  style={{ paddingLeft: '34px', paddingRight: storeSearch ? '28px' : '10px', height: '34px', fontSize: '0.78rem' }}
                 />
                 {storeSearch && (
                   <button

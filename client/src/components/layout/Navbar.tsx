@@ -233,7 +233,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             }}
             className="clean-input search-input navbar-search-input"
             style={{
-              paddingLeft: '2.65rem',
+              paddingLeft: '2.85rem',
               paddingRight: searchQuery ? '2.4rem' : '1rem'
             }}
           />

@@ -197,7 +197,7 @@ export const FAQPage: React.FC<FAQPageProps> = ({ onNavigate }) => {
           placeholder="Search questions (e.g. no show, damaged item, gcash, password reset, swap)..."
           style={{
             width: '100%',
-            padding: '0.85rem 1rem 0.85rem 2.75rem',
+            padding: '0.85rem 1rem 0.85rem 3rem',
             borderRadius: '10px',
             border: '1.5px solid var(--border-subtle)',
             backgroundColor: 'var(--bg-surface)',
