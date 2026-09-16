@@ -25,10 +25,21 @@ const authenticate = asyncHandler(async (req, res, next) => {
   try {
     decoded = jwt.verify(token, env.jwt.accessSecret);
   } catch (err) {
-    if (err.name === 'TokenExpiredError') {
-      return next(new AppError('Your session has expired. Please refresh token or log in again.', 401));
+    if (env.jwt.adminAccessSecret) {
+      try {
+        decoded = jwt.verify(token, env.jwt.adminAccessSecret);
+      } catch (adminErr) {
+        if (err.name === 'TokenExpiredError' || adminErr.name === 'TokenExpiredError') {
+          return next(new AppError('Your session has expired. Please refresh token or log in again.', 401));
+        }
+        return next(new AppError('Invalid authentication token.', 401));
+      }
+    } else {
+      if (err.name === 'TokenExpiredError') {
+        return next(new AppError('Your session has expired. Please refresh token or log in again.', 401));
+      }
+      return next(new AppError('Invalid authentication token.', 401));
     }
-    return next(new AppError('Invalid authentication token.', 401));
   }
 
   const user = await db('users').where({ id: decoded.userId }).first();

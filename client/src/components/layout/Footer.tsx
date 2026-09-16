@@ -184,12 +184,19 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                 { label: 'Campus Safety Guidelines', view: 'help-safety', params: {} },
                 { label: 'Terms & Student Honor Code', view: 'terms', params: { tab: 'honor-code' } },
                 { label: 'Privacy Policy', view: 'terms', params: { tab: 'privacy' } },
+                { label: 'Cookie Preferences', view: '__cookie_consent__', params: {} },
                 { label: 'About TradeLink', view: 'about', params: {} },
                 { label: 'Student Contributors & Team', view: 'developers', params: {} }
               ].map((link) => (
                 <li key={link.label}>
                   <button
-                    onClick={() => onNavigate(link.view, link.params)}
+                    onClick={() => {
+                      if (link.view === '__cookie_consent__') {
+                        window.dispatchEvent(new CustomEvent('tradelink_open_cookie_consent'));
+                      } else {
+                        onNavigate(link.view, link.params);
+                      }
+                    }}
                     style={linkBtnStyle}
                     onMouseEnter={(e) => (e.currentTarget.style.color = '#FFC72C')}
                     onMouseLeave={(e) => (e.currentTarget.style.color = '#CBD5E1')}

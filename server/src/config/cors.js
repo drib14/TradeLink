@@ -93,9 +93,30 @@ const corsOptions = {
     'Authorization',
     'X-Requested-With',
     'Accept',
-    'Origin'
+    'Origin',
+    'X-XSRF-TOKEN',
+    'x-xsrf-token',
+    'X-CSRF-Token',
+    'x-csrf-token',
+    'X-Idempotency-Key',
+    'x-idempotency-key',
+    'X-Request-ID',
+    'x-request-id',
+    'Cache-Control',
+    'Pragma'
   ],
-  exposedHeaders: ['Set-Cookie']
+  exposedHeaders: [
+    'Set-Cookie',
+    'X-Request-ID',
+    'X-Upload-Quota-Limit',
+    'X-Upload-Quota-Used',
+    'X-Upload-Quota-Remaining',
+    'X-RateLimit-Limit',
+    'X-RateLimit-Remaining',
+    'X-RateLimit-Reset',
+    'X-XSRF-TOKEN',
+    'x-xsrf-token'
+  ]
 };
 
 corsOptions.isOriginAllowed = isOriginAllowed;

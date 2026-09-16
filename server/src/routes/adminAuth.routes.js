@@ -9,6 +9,7 @@ router.post('/login', adminAuthLimiter, adminAuthController.login);
 router.post('/forgot-password', passwordResetLimiter, adminAuthController.forgotPassword);
 router.post('/reset-password', passwordResetLimiter, adminAuthController.resetPassword);
 router.post('/refresh-token', authController.refreshToken);
+router.get('/me', authenticateAdmin, authController.getMe);
 router.post('/logout', authenticateAdmin, authController.logout);
 
 module.exports = router;
