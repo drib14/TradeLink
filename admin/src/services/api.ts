@@ -31,6 +31,12 @@ export function getAccessToken(): string | null {
   return accessToken;
 }
 
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(new RegExp('(^|;\\s*)(' + name + ')=([^;]*)'));
+  return match ? decodeURIComponent(match[3]) : null;
+}
+
 async function request<T = any>(
   method: HttpMethod,
   endpoint: string,
@@ -42,6 +48,12 @@ async function request<T = any>(
 
   if (accessToken) {
     headers['Authorization'] = `Bearer ${accessToken}`;
+  }
+
+  // Inject CSRF double-submit token on state-mutating requests
+  const xsrfToken = getCookie('XSRF-TOKEN');
+  if (xsrfToken && method !== 'GET') {
+    headers['X-XSRF-TOKEN'] = xsrfToken;
   }
 
   const config: RequestInit = {

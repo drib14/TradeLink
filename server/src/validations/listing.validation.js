@@ -1,5 +1,5 @@
 const Joi = require('joi');
-const { CONDITIONS, TRADE_MODES } = require('../config/constants');
+const { CONDITIONS, TRADE_MODES, CATEGORIES, CAMPUSES } = require('../config/constants');
 
 const mediaItemSchema = Joi.alternatives().try(
   Joi.string().uri().allow(''),
@@ -26,16 +26,18 @@ const createListingSchema = Joi.object({
   originalSrp: Joi.number().min(0).max(200000).default(0),
   tradeMode: Joi.string().valid(...TRADE_MODES).required(),
   swapPreference: Joi.string().trim().max(300).allow('', null),
-  category: Joi.string().trim().min(2).max(100).required(),
+  category: Joi.string().valid(...CATEGORIES).required().messages({
+    'any.only': 'Please select a valid category from the approved list.'
+  }),
   condition: Joi.string().valid(...CONDITIONS).required(),
   quantity: Joi.number().integer().min(1).max(999).default(1),
   tags: Joi.array().items(Joi.string().trim().max(50)).max(10).default([]),
-  media: Joi.array().items(mediaItemSchema).min(1).max(10).optional(),
-  images: Joi.array().items(Joi.string()).min(1).max(10).optional(),
+  media: Joi.array().items(mediaItemSchema).min(1).max(5).optional(),
+  images: Joi.array().items(Joi.string()).min(1).max(5).optional(),
   preferredMeetupSpots: Joi.array().items(Joi.string().trim().max(200)).default([]),
   customMeetupSpot: Joi.string().trim().max(200).allow('', null),
-  campus: Joi.string().trim().allow('', null),
-  department: Joi.string().trim().allow('', null)
+  campus: Joi.string().valid(...CAMPUSES).allow('', null),
+  department: Joi.string().trim().max(100).allow('', null)
 }).or('media', 'images').messages({
   'object.missing': 'At least one listing photo is required (provide media or images).'
 });
@@ -48,14 +50,16 @@ const updateListingSchema = Joi.object({
   originalSrp: Joi.number().min(0).max(200000),
   tradeMode: Joi.string().valid(...TRADE_MODES),
   swapPreference: Joi.string().trim().max(300).allow('', null),
-  category: Joi.string().trim().min(2).max(100),
+  category: Joi.string().valid(...CATEGORIES),
   condition: Joi.string().valid(...CONDITIONS),
   quantity: Joi.number().integer().min(0).max(999),
   tags: Joi.array().items(Joi.string().trim().max(50)).max(10),
-  media: Joi.array().items(mediaItemSchema).max(10),
-  images: Joi.array().items(Joi.string()).max(10),
+  media: Joi.array().items(mediaItemSchema).max(5),
+  images: Joi.array().items(Joi.string()).max(5),
   preferredMeetupSpots: Joi.array().items(Joi.string().trim().max(200)),
   customMeetupSpot: Joi.string().trim().max(200).allow('', null),
+  campus: Joi.string().valid(...CAMPUSES).allow('', null),
+  department: Joi.string().trim().max(100).allow('', null),
   status: Joi.string().valid('active', 'sold'),
   isSold: Joi.boolean()
 });

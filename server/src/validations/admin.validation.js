@@ -46,7 +46,45 @@ const updateSystemConfigSchema = Joi.object({
   wantedBoardEnabled: Joi.boolean(),
   freeDonationEnabled: Joi.boolean(),
   maxListingsPerUser: Joi.number().min(1).max(100)
-}).unknown(true);
+});
+
+const adminCreateListingSchema = Joi.object({
+  title: Joi.string().trim().min(3).max(200).required(),
+  description: Joi.string().trim().max(5000).allow('', null),
+  price: Joi.number().min(0).max(1000000).default(0),
+  originalSrp: Joi.number().min(0).max(1000000).allow(null),
+  category: Joi.string().trim().required(),
+  tradeMode: Joi.string().valid('buy_sell', 'swap', 'free_donation').default('buy_sell'),
+  condition: Joi.string().trim().default('Like New'),
+  quantity: Joi.number().integer().min(1).max(9999).default(1),
+  isFeatured: Joi.boolean().default(false),
+  images: Joi.array().items(Joi.string().uri().allow('')).max(10).default([]),
+  media: Joi.array().items(Joi.object({
+    url: Joi.string().required(),
+    type: Joi.string().valid('image', 'video').default('image')
+  })).max(10).default([]),
+  tags: Joi.array().items(Joi.string().trim().max(50)).max(20).default([]),
+  sellerId: Joi.string().uuid().optional()
+});
+
+const adminUpdateListingSchema = Joi.object({
+  title: Joi.string().trim().min(3).max(200),
+  description: Joi.string().trim().max(5000).allow('', null),
+  price: Joi.number().min(0).max(1000000),
+  originalSrp: Joi.number().min(0).max(1000000).allow(null),
+  category: Joi.string().trim(),
+  tradeMode: Joi.string().valid('buy_sell', 'swap', 'free_donation'),
+  condition: Joi.string().trim(),
+  quantity: Joi.number().integer().min(0).max(9999),
+  isFeatured: Joi.boolean(),
+  status: Joi.string().valid('active', 'sold', 'flagged', 'archived'),
+  tags: Joi.array().items(Joi.string().trim().max(50)).max(20),
+  images: Joi.array().items(Joi.string().uri().allow('')).max(10),
+  media: Joi.array().items(Joi.object({
+    url: Joi.string().required(),
+    type: Joi.string().valid('image', 'video').default('image')
+  })).max(10)
+});
 
 module.exports = {
   createAnnouncementSchema,
@@ -55,5 +93,7 @@ module.exports = {
   adjustTrustScoreSchema,
   resolveDisputeSchema,
   addKeywordSchema,
-  updateSystemConfigSchema
+  updateSystemConfigSchema,
+  adminCreateListingSchema,
+  adminUpdateListingSchema
 };

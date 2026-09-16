@@ -81,21 +81,34 @@ async function attemptTokenRefresh(): Promise<string | null> {
   }
 }
 
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(new RegExp('(^|;\\s*)(' + name + ')=([^;]*)'));
+  return match ? decodeURIComponent(match[3]) : null;
+}
+
 // Core request function
 async function request<T = any>(
   method: HttpMethod,
   endpoint: string,
   body?: any,
-  options: { skipAuth?: boolean; retryOnUnauth?: boolean } = {}
+  options: { skipAuth?: boolean; retryOnUnauth?: boolean; headers?: Record<string, string> } = {}
 ): Promise<ApiResponse<T>> {
-  const { skipAuth = false, retryOnUnauth = true } = options;
+  const { skipAuth = false, retryOnUnauth = true, headers: customHeaders = {} } = options;
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    ...customHeaders
   };
 
   if (!skipAuth && accessToken) {
     headers['Authorization'] = `Bearer ${accessToken}`;
+  }
+
+  // Inject CSRF double-submit token on state-mutating requests
+  const xsrfToken = getCookie('XSRF-TOKEN');
+  if (xsrfToken && method !== 'GET') {
+    headers['X-XSRF-TOKEN'] = xsrfToken;
   }
 
   const config: RequestInit = {
@@ -186,23 +199,23 @@ async function request<T = any>(
 
 // Public API methods
 export const api = {
-  get: <T = any>(endpoint: string, params?: Record<string, any>, options?: { skipAuth?: boolean }) =>
+  get: <T = any>(endpoint: string, params?: Record<string, any>, options?: { skipAuth?: boolean; headers?: Record<string, string> }) =>
     request<T>('GET', endpoint, params, options),
 
-  post: <T = any>(endpoint: string, body?: any, options?: { skipAuth?: boolean }) =>
+  post: <T = any>(endpoint: string, body?: any, options?: { skipAuth?: boolean; headers?: Record<string, string> }) =>
     request<T>('POST', endpoint, body, options),
 
-  put: <T = any>(endpoint: string, body?: any, options?: { skipAuth?: boolean }) =>
+  put: <T = any>(endpoint: string, body?: any, options?: { skipAuth?: boolean; headers?: Record<string, string> }) =>
     request<T>('PUT', endpoint, body, options),
 
-  patch: <T = any>(endpoint: string, body?: any, options?: { skipAuth?: boolean }) =>
+  patch: <T = any>(endpoint: string, body?: any, options?: { skipAuth?: boolean; headers?: Record<string, string> }) =>
     request<T>('PATCH', endpoint, body, options),
 
-  delete: <T = any>(endpoint: string, options?: { skipAuth?: boolean }) =>
+  delete: <T = any>(endpoint: string, options?: { skipAuth?: boolean; headers?: Record<string, string> }) =>
     request<T>('DELETE', endpoint, undefined, options),
 };
 
-// Upload helper (multipart/form-data, streamed to Cloudflare R2 / storage service)
+// Upload helper (multipart/form-data, streamed to Cloudinary / storage service)
 export async function uploadFile(
   file: File,
   folder: 'listings' | 'avatars' | 'id-photos' | 'chat' = 'listings'
@@ -216,11 +229,16 @@ export async function uploadFile(
     headers['Authorization'] = `Bearer ${accessToken}`;
   }
 
+  const xsrfToken = getCookie('XSRF-TOKEN');
+  if (xsrfToken) {
+    headers['X-XSRF-TOKEN'] = xsrfToken;
+  }
+
   const res = await fetch(`${API_BASE_URL}/upload`, {
     method: 'POST',
     headers,
     body: formData,
-    credentials: 'include',
+    credentials: 'include'
   });
 
   const json = await res.json();

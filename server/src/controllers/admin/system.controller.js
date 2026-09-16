@@ -163,9 +163,27 @@ const updateSystemConfig = asyncHandler(async (req, res) => {
     ? (typeof current.config_value === 'string' ? JSON.parse(current.config_value) : current.config_value)
     : {};
 
+  const ALLOWED_CONFIG_KEYS = [
+    'maintenanceMode',
+    'maxListingPrice',
+    'maxImagesPerListing',
+    'swapModeEnabled',
+    'flashMarketEnabled',
+    'wantedBoardEnabled',
+    'freeDonationEnabled',
+    'maxListingsPerUser'
+  ];
+
+  const safeUpdates = {};
+  for (const key of ALLOWED_CONFIG_KEYS) {
+    if (req.body[key] !== undefined) {
+      safeUpdates[key] = req.body[key];
+    }
+  }
+
   const merged = {
     ...currentVal,
-    ...req.body
+    ...safeUpdates
   };
 
   await db('system_config')

@@ -1,8 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/admin.controller');
-const { authenticate } = require('../middleware/auth');
-const { requireRole } = require('../middleware/rbac');
+const { authenticateAdmin } = require('../middleware/auth');
 const decodeParams = require('../middleware/decodeParams');
 const validate = require('../middleware/validate');
 const validateUUID = require('../middleware/validateUUID');
@@ -13,7 +12,9 @@ const {
   adjustTrustScoreSchema,
   resolveDisputeSchema,
   addKeywordSchema,
-  updateSystemConfigSchema
+  updateSystemConfigSchema,
+  adminCreateListingSchema,
+  adminUpdateListingSchema
 } = require('../validations/admin.validation');
 
 decodeParams.bindRouter(router);
@@ -22,16 +23,16 @@ decodeParams.bindRouter(router);
 router.get('/announcements', adminController.getAnnouncements);
 router.get('/config', adminController.getSystemConfig);
 
-// All protected admin routes require authentication and admin role
-router.use(authenticate, requireRole('admin'));
+// All protected admin routes strictly require dedicated administrator authentication
+router.use(authenticateAdmin);
 
 // Stats & Overview
 router.get('/stats', adminController.getStats);
 
 // Listings Full Admin CRUD
 router.get('/listings', adminController.getAllListingsAdmin);
-router.post('/listings', adminController.createListingAdmin);
-router.put('/listings/:id', validateUUID('id'), adminController.updateListingAdmin);
+router.post('/listings', validate(adminCreateListingSchema), adminController.createListingAdmin);
+router.put('/listings/:id', validateUUID('id'), validate(adminUpdateListingSchema), adminController.updateListingAdmin);
 router.delete('/listings/:id', validateUUID('id'), adminController.deleteListingAdmin);
 
 // Student Verifications

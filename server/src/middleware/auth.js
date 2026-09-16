@@ -69,7 +69,52 @@ const optionalAuth = asyncHandler(async (req, res, next) => {
   next();
 });
 
+/**
+ * Strict authentication middleware for Admin routes
+ * Validates against dedicated JWT_ADMIN_ACCESS_SECRET and confirms admin role and tokenType
+ */
+const authenticateAdmin = asyncHandler(async (req, res, next) => {
+  let token = null;
+
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+    token = req.headers.authorization.split(' ')[1];
+  } else if (req.cookies && req.cookies.accessToken) {
+    token = req.cookies.accessToken;
+  }
+
+  if (!token) {
+    return next(new AppError('Administrator authentication required. Please log in to admin portal.', 401));
+  }
+
+  let decoded;
+  try {
+    decoded = jwt.verify(token, env.jwt.adminAccessSecret);
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      return next(new AppError('Your administrative session has expired. Please log in again.', 401));
+    }
+    return next(new AppError('Invalid administrator credentials or token.', 401));
+  }
+
+  if (decoded.tokenType !== 'admin' || decoded.role !== 'admin') {
+    return next(new AppError('Access denied: Provided token does not have administrator privileges.', 403));
+  }
+
+  const user = await db('users').where({ id: decoded.userId }).first();
+  if (!user || user.role !== 'admin') {
+    return next(new AppError('Administrator account does not exist or has been revoked.', 403));
+  }
+
+  if (user.is_banned) {
+    return next(new AppError('This administrator account has been deactivated.', 403));
+  }
+
+  req.user = user;
+  next();
+});
+
 module.exports = {
   authenticate,
-  optionalAuth
+  optionalAuth,
+  authenticateAdmin
 };

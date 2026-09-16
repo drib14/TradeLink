@@ -113,7 +113,10 @@ export const listingsService = {
       campus: data.campus,
       department: data.department
     };
-    const res = await api.post<{ listing: any }>('/listings', payload);
+    const idempotencyKey = data.idempotencyKey || `list_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    const res = await api.post<{ listing: any }>('/listings', payload, {
+      headers: { 'X-Idempotency-Key': idempotencyKey }
+    });
     return mapListingFromApi(res.data?.listing || res.data);
   },
 

@@ -2,6 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const cloudinary = require('cloudinary').v2;
+const sharp = require('sharp');
 const config = require('../config/env');
 const logger = require('../utils/logger');
 
@@ -83,6 +84,12 @@ function getExtension(filename, mimeType) {
 function validateMagicBytes(buffer, mimeType) {
   if (!buffer || buffer.length < 4) return false;
 
+  // Reject anything containing XML/SVG or HTML tags at header
+  const headerString = buffer.slice(0, 100).toString('utf8').trim().toLowerCase();
+  if (headerString.startsWith('<?xml') || headerString.startsWith('<svg') || headerString.startsWith('<!doctype html') || headerString.startsWith('<html')) {
+    return false;
+  }
+
   const signatures = {
     'image/jpeg': [[0xFF, 0xD8, 0xFF]],
     'image/jpg': [[0xFF, 0xD8, 0xFF]],
@@ -114,11 +121,44 @@ function validateMagicBytes(buffer, mimeType) {
   }
 
   const sigs = signatures[lowerMime];
-  if (!sigs) return true; // Unknown MIME — allow (Cloudinary will validate further)
+  if (!sigs) return false; // Reject unknown MIME signatures for security
 
   return sigs.some(sig =>
     sig.every((byte, i) => buffer[i] === byte)
   );
+}
+
+/**
+ * Optimizes image buffer using Sharp:
+ * - Strips EXIF metadata to protect user privacy
+ * - Resizes high-res images to a max bounding box of 1920x1080 (without enlargement)
+ * - Converts to optimized WebP format with quality 80
+ * Greatly reduces Cloudinary storage and bandwidth usage.
+ */
+async function processImage(inputBuffer) {
+  try {
+    const processed = await sharp(inputBuffer)
+      .rotate() // Autorotate based on EXIF before stripping metadata
+      .resize(1920, 1080, {
+        fit: 'inside',
+        withoutEnlargement: true
+      })
+      .webp({ quality: 80, effort: 4 })
+      .toBuffer();
+
+    return {
+      buffer: processed,
+      mimeType: 'image/webp',
+      extension: '.webp'
+    };
+  } catch (err) {
+    logger.warn(`Sharp image processing failed, using original buffer: ${err.message}`);
+    return {
+      buffer: inputBuffer,
+      mimeType: null,
+      extension: null
+    };
+  }
 }
 
 /**
@@ -169,31 +209,51 @@ async function uploadBuffer(buffer, originalFilename = 'file.jpg', mimeType = 'i
   }
 
   const safeFolder = folders.includes(folder) ? folder : 'listings';
-  const ext = getExtension(originalFilename, mimeType);
-  const mediaType = getMediaType(originalFilename, mimeType);
-  const uniqueId = uuidv4();
-  const filename = `${uniqueId}${ext}`;
+  let mediaType = getMediaType(originalFilename, mimeType);
 
   // Validate magic bytes match claimed MIME type
   if (!validateMagicBytes(buffer, mimeType)) {
     throw new Error('File content does not match the declared file type. Upload rejected for security.');
   }
 
+  let finalBuffer = buffer;
+  let finalMime = mimeType;
+  let ext = getExtension(originalFilename, mimeType);
+
+  // Optimize and sanitize images via Sharp
+  if (mediaType === 'image') {
+    const optimized = await processImage(buffer);
+    finalBuffer = optimized.buffer;
+    if (optimized.extension) {
+      ext = optimized.extension;
+      finalMime = optimized.mimeType;
+    }
+  }
+
+  const uniqueId = uuidv4();
+  const filename = `${uniqueId}${ext}`;
+
   if (isCloudinaryConfigured()) {
     try {
+      const uploadOptions = {
+        folder: `tradelink/${safeFolder}`,
+        public_id: uniqueId,
+        resource_type: mediaType === 'video' ? 'video' : 'image',
+        moderation: 'aws_rek', // Enable AI moderation as specified in plan
+        transformation: mediaType === 'video' ? [] : [
+          { quality: 'auto:good', fetch_format: 'auto' }
+        ]
+      };
+
       const result = await new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
-          {
-            folder: `tradelink/${safeFolder}`,
-            public_id: uniqueId,
-            resource_type: 'auto'
-          },
+          uploadOptions,
           (error, res) => {
             if (error) return reject(error);
             resolve(res);
           }
         );
-        uploadStream.end(buffer);
+        uploadStream.end(finalBuffer);
       });
 
       return {
@@ -201,17 +261,17 @@ async function uploadBuffer(buffer, originalFilename = 'file.jpg', mimeType = 'i
         key: result.public_id,
         filename,
         mediaType: result.resource_type === 'video' ? 'video' : mediaType,
-        size: result.bytes || buffer.length,
+        size: result.bytes || finalBuffer.length,
         storage: 'cloudinary'
       };
     } catch (err) {
       logger.warn(`Cloudinary upload failed, falling back to local storage: ${err.message}`);
-      return saveLocalBuffer(buffer, safeFolder, filename, mediaType);
+      return saveLocalBuffer(finalBuffer, safeFolder, filename, mediaType);
     }
   }
 
   // Local fallback
-  return saveLocalBuffer(buffer, safeFolder, filename, mediaType);
+  return saveLocalBuffer(finalBuffer, safeFolder, filename, mediaType);
 }
 
 /**
@@ -240,19 +300,7 @@ async function uploadBase64(dataUriOrBase64, folder = 'listings') {
 
   const safeFolder = folders.includes(folder) ? folder : 'listings';
 
-  if (isCloudinaryConfigured()) {
-    try {
-      const result = await cloudinary.uploader.upload(trimmed, {
-        folder: `tradelink/${safeFolder}`,
-        resource_type: 'auto'
-      });
-      return result.secure_url;
-    } catch (err) {
-      logger.warn(`Cloudinary base64 upload failed, using buffer fallback: ${err.message}`);
-    }
-  }
-
-  // Parse buffer fallback
+  // Parse buffer fallback & perform magic byte verification
   const dataUriMatch = trimmed.match(/^data:([a-zA-Z0-9/+-]+);base64,(.+)$/);
   let buffer;
   let mimeType = 'image/jpeg';
@@ -266,9 +314,37 @@ async function uploadBase64(dataUriOrBase64, folder = 'listings') {
     return trimmed;
   }
 
+  // Strictly check magic bytes on decoded Base64 content
+  if (!validateMagicBytes(buffer, mimeType)) {
+    throw new Error('Base64 file content failed security signature verification.');
+  }
+
   const ext = getExtension(null, mimeType);
   const result = await uploadBuffer(buffer, `upload${ext}`, mimeType, safeFolder);
   return result.url;
+}
+
+/**
+ * Helper to extract Cloudinary public ID from URL or key
+ */
+function extractCloudinaryPublicId(fileUrlOrKey) {
+  if (!fileUrlOrKey || typeof fileUrlOrKey !== 'string') return null;
+  if (fileUrlOrKey.startsWith('tradelink/')) {
+    return fileUrlOrKey.replace(/\.[^/.]+$/, '');
+  }
+
+  const match = fileUrlOrKey.match(/tradelink\/[^.\s?#]+/);
+  if (match) {
+    return match[0];
+  }
+
+  const parts = fileUrlOrKey.split('/upload/');
+  if (parts.length > 1) {
+    const afterUpload = parts[1].replace(/^v\d+\//, '');
+    return afterUpload.substring(0, afterUpload.lastIndexOf('.')) || afterUpload;
+  }
+
+  return null;
 }
 
 /**
@@ -279,23 +355,21 @@ async function uploadBase64(dataUriOrBase64, folder = 'listings') {
 async function deleteFile(fileUrlOrKey) {
   if (!fileUrlOrKey || typeof fileUrlOrKey !== 'string') return;
 
-  if (isCloudinaryConfigured() && (fileUrlOrKey.includes('cloudinary') || fileUrlOrKey.startsWith('tradelink/'))) {
+  if (isCloudinaryConfigured() && (fileUrlOrKey.includes('cloudinary') || fileUrlOrKey.includes('tradelink/'))) {
     try {
-      let publicId = fileUrlOrKey;
-      if (fileUrlOrKey.startsWith('http://') || fileUrlOrKey.startsWith('https://')) {
-        const parts = fileUrlOrKey.split('/upload/');
-        if (parts.length > 1) {
-          const afterUpload = parts[1].replace(/^v\d+\//, '');
-          publicId = afterUpload.substring(0, afterUpload.lastIndexOf('.')) || afterUpload;
-        }
+      const publicId = extractCloudinaryPublicId(fileUrlOrKey);
+      if (publicId) {
+        const isVideo = Boolean(
+          fileUrlOrKey.match(/\.(mp4|webm|mov|m4v)(\?.*)?$/i) ||
+          fileUrlOrKey.includes('/video/upload/')
+        );
+        await cloudinary.uploader.destroy(publicId, {
+          resource_type: isVideo ? 'video' : 'image',
+          invalidate: true
+        });
       }
-      const isVideo = Boolean(
-        fileUrlOrKey.match(/\.(mp4|webm|mov|m4v)(\?.*)?$/i) ||
-        fileUrlOrKey.includes('/video/upload/')
-      );
-      await cloudinary.uploader.destroy(publicId, { resource_type: isVideo ? 'video' : 'image' });
     } catch (err) {
-      logger.warn(`Failed to delete object from Cloudinary: ${err.message}`);
+      logger.warn(`Failed to delete object from Cloudinary (${fileUrlOrKey}): ${err.message}`);
     }
     return;
   }
@@ -308,7 +382,7 @@ async function deleteFile(fileUrlOrKey) {
       await fs.promises.unlink(localPath);
     }
   } catch (err) {
-    logger.warn(`Failed to delete local file: ${err.message}`);
+    logger.warn(`Failed to delete local file (${localPath}): ${err.message}`);
   }
 }
 
@@ -351,5 +425,8 @@ module.exports = {
   buildPublicUrl,
   isCloudinaryConfigured,
   getMediaType,
-  testCloudinaryConnection
+  testCloudinaryConnection,
+  validateMagicBytes,
+  processImage,
+  extractCloudinaryPublicId
 };

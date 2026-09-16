@@ -47,27 +47,29 @@ const errorHandler = (err, req, res, next) => {
     statusCode = 400;
     status = 'fail';
     if (err.code === 'LIMIT_FILE_SIZE') {
-      message = `Uploaded file exceeds maximum allowed size of ${env.upload.maxSizeMB}MB.`;
+      message = `Uploaded file exceeds maximum allowed size of ${env.upload.maxSizeMB || 15}MB.`;
+    } else if (err.code === 'LIMIT_FILE_COUNT') {
+      message = 'Too many files uploaded in a single request (maximum 5 files).';
+    } else if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+      message = 'Unexpected file field in upload payload.';
     }
   }
 
   // Log error stack securely for server-side debugging
   if (statusCode === 500) {
-    logger.error(`[Unhandled Error] ${req.method} ${req.originalUrl}: %s`, err.stack || err.message);
+    logger.error(`[Unhandled Error] [${req.id || 'no-id'}] ${req.method} ${req.originalUrl}: %s`, err.stack || err.message);
     if (env.env === 'production') {
       message = 'An unexpected server error occurred. Please try again later.';
     }
   } else {
-    logger.warn(`[Client Error ${statusCode}] ${req.method} ${req.originalUrl}: ${message}`);
+    logger.warn(`[Client Error ${statusCode}] [${req.id || 'no-id'}] ${req.method} ${req.originalUrl}: ${message}`);
   }
 
   const responseBody = {
     status,
-    message
+    message,
+    ...(req.id ? { requestId: req.id } : {})
   };
-
-  // SECURITY: Never expose detailed validation errors to clients — they reveal schema structure
-  // Validation details are already included in the primary error message
 
   res.status(statusCode).json(responseBody);
 };

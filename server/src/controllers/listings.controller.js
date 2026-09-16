@@ -12,6 +12,33 @@ function escapeLike(str) {
   return str.replace(/[%_]/g, '\\$&');
 }
 
+// In-memory cooldown tracker to deduplicate listing views (30-minute window)
+const viewCooldowns = new Map();
+const VIEW_COOLDOWN_MS = 30 * 60 * 1000;
+
+function shouldIncrementView(listingId, viewerKey) {
+  const key = `${listingId}:${viewerKey}`;
+  const now = Date.now();
+  const lastView = viewCooldowns.get(key);
+  if (lastView && (now - lastView < VIEW_COOLDOWN_MS)) {
+    return false;
+  }
+  viewCooldowns.set(key, now);
+  return true;
+}
+
+// Periodic cleanup of view cooldowns
+const viewCleanupTimer = setInterval(() => {
+  const now = Date.now();
+  for (const [k, timestamp] of viewCooldowns.entries()) {
+    if (now - timestamp > VIEW_COOLDOWN_MS) {
+      viewCooldowns.delete(k);
+    }
+  }
+}, 15 * 60 * 1000);
+if (viewCleanupTimer.unref) viewCleanupTimer.unref();
+
+
 /**
  * List & search marketplace listings with multi-filter and pagination
  */
@@ -154,9 +181,10 @@ const getListingById = asyncHandler(async (req, res, next) => {
     return next(new AppError('Listing not found.', 404));
   }
 
-  // Increment view counter safely for non-owners only (prevent self-inflation)
+  // Increment view counter safely for non-owners only with cooldown deduplication
   const isOwner = req.user && req.user.id === listing.seller_id;
-  if (!isOwner) {
+  const viewerKey = req.user ? `user:${req.user.id}` : `ip:${req.ip || 'anon'}`;
+  if (!isOwner && shouldIncrementView(id, viewerKey)) {
     try {
       await db('listings').where({ id }).increment('views_count', 1);
     } catch {}
@@ -192,11 +220,16 @@ const createListing = asyncHandler(async (req, res, next) => {
     images = []
   } = req.body;
 
-  // Check prohibited keywords in title and description
+  // Unicode normalization (NFKC) prevents homoglyph bypasses of prohibited keywords
+  const cleanTitle = (title || '').normalize('NFKC').trim();
+  const cleanDesc = (description || '').normalize('NFKC').trim();
+  const cleanSwap = swapPreference ? swapPreference.normalize('NFKC').trim() : null;
+
+  // Check prohibited keywords in normalized title and description
   const prohibited = await db('prohibited_keywords').select('keyword');
-  const lowerText = `${title} ${description}`.toLowerCase();
+  const lowerText = `${cleanTitle} ${cleanDesc}`.toLowerCase();
   for (const item of prohibited) {
-    if (lowerText.includes(item.keyword.toLowerCase())) {
+    if (lowerText.includes(item.keyword.toLowerCase().normalize('NFKC'))) {
       return next(
         new AppError(
           `Listing contains prohibited keyword: "${item.keyword}". Restricted items or academic dishonesty materials are not permitted.`,
@@ -206,9 +239,26 @@ const createListing = asyncHandler(async (req, res, next) => {
     }
   }
 
-  // Prevent rapid double-click duplicate creation
+  // Support client idempotency key to prevent accidental duplicate charges/posts
+  const idempotencyKey = req.headers['x-idempotency-key'];
+  if (idempotencyKey) {
+    const existingListing = await db('listings')
+      .where({ seller_id: req.user.id, title: cleanTitle })
+      .andWhere('created_at', '>', new Date(Date.now() - 60000))
+      .first();
+    if (existingListing) {
+      const existingMedia = await db('listing_media').where({ listing_id: existingListing.id }).orderBy('display_order', 'asc');
+      return res.status(200).json({
+        status: 'success',
+        message: 'Listing retrieved (idempotent request).',
+        data: { listing: serializeListing(existingListing, existingMedia) }
+      });
+    }
+  }
+
+  // Prevent rapid duplicate creation (within 15 seconds)
   const recentDuplicate = await db('listings')
-    .where({ seller_id: req.user.id, title: title.trim(), status: 'active' })
+    .where({ seller_id: req.user.id, title: cleanTitle, status: 'active' })
     .andWhere('created_at', '>', new Date(Date.now() - 15000))
     .first();
 
@@ -220,12 +270,12 @@ const createListing = asyncHandler(async (req, res, next) => {
   const newListing = {
     id: listingId,
     seller_id: req.user.id,
-    title: title.trim(),
-    description: description.trim(),
+    title: cleanTitle,
+    description: cleanDesc,
     price: parseFloat(price || 0),
     original_srp: originalSrp ? parseFloat(originalSrp) : null,
     trade_mode: tradeMode || 'buy_sell',
-    swap_preference: swapPreference ? swapPreference.trim() : null,
+    swap_preference: cleanSwap,
     category,
     condition: condition || 'Gently Used',
     campus: campus || req.user.campus || 'UC Main',
@@ -235,9 +285,9 @@ const createListing = asyncHandler(async (req, res, next) => {
     is_featured: false
   };
 
-  // Allow at least 5 media items (up to 10 for video product samples + photos)
+  // Cap at 5 media items to optimize storage and bandwidth usage
   const rawItems = (Array.isArray(media) && media.length > 0) ? media : (Array.isArray(images) ? images : []);
-  const cappedItems = rawItems.slice(0, 10);
+  const cappedItems = rawItems.slice(0, 5);
 
   // Validate base64 payload size before uploading to prevent memory exhaustion
   for (const item of cappedItems) {
@@ -316,15 +366,31 @@ const updateListing = asyncHandler(async (req, res, next) => {
   }
 
   const updates = {};
-  if (req.body.title) updates.title = req.body.title.trim();
-  if (req.body.description) updates.description = req.body.description.trim();
+  if (req.body.title) updates.title = req.body.title.normalize('NFKC').trim();
+  if (req.body.description) updates.description = req.body.description.normalize('NFKC').trim();
   if (req.body.price !== undefined) updates.price = Math.max(0, parseFloat(req.body.price) || 0);
   if (req.body.originalSrp !== undefined) updates.original_srp = parseFloat(req.body.originalSrp);
   if (req.body.tradeMode) updates.trade_mode = req.body.tradeMode;
-  if (req.body.swapPreference !== undefined) updates.swap_preference = req.body.swapPreference;
+  if (req.body.swapPreference !== undefined) updates.swap_preference = req.body.swapPreference ? req.body.swapPreference.normalize('NFKC').trim() : null;
   if (req.body.category) updates.category = req.body.category;
   if (req.body.condition) updates.condition = req.body.condition;
   if (req.body.campus) updates.campus = req.body.campus;
+
+  // Validate prohibited keywords in updated text
+  if (updates.title || updates.description) {
+    const prohibited = await db('prohibited_keywords').select('keyword');
+    const combinedText = `${updates.title || listing.title} ${updates.description || listing.description}`.toLowerCase();
+    for (const item of prohibited) {
+      if (combinedText.includes(item.keyword.toLowerCase().normalize('NFKC'))) {
+        return next(
+          new AppError(
+            `Listing update contains prohibited keyword: "${item.keyword}". Restricted items or academic dishonesty materials are not permitted.`,
+            400
+          )
+        );
+      }
+    }
+  }
 
   // Status check: regular users can only mark active or sold; admins can set any status
   if (req.body.status) {
@@ -342,7 +408,7 @@ const updateListing = asyncHandler(async (req, res, next) => {
 
     const rawMedia = Array.isArray(req.body.media) ? req.body.media : (Array.isArray(req.body.images) ? req.body.images : null);
     if (rawMedia) {
-      const cappedMedia = rawMedia.slice(0, 10);
+      const cappedMedia = rawMedia.slice(0, 5);
       for (const item of cappedMedia) {
         const rawUrl = typeof item === 'string' ? item : (item.url || item.media_url || item.mediaUrl || '');
         if (typeof rawUrl === 'string' && rawUrl.startsWith('data:') && rawUrl.length > 15 * 1024 * 1024) {
@@ -369,6 +435,15 @@ const updateListing = asyncHandler(async (req, res, next) => {
           };
         })
       );
+
+      // Clean up replaced media files from Cloudinary to prevent orphaned asset leak
+      const existingMedia = await trx('listing_media').where({ listing_id: id });
+      const newUrls = new Set(resolvedMedia.map(m => m.media_url));
+      const toDelete = existingMedia.filter(m => !newUrls.has(m.media_url));
+      for (const oldItem of toDelete) {
+        await storageService.deleteFile(oldItem.media_url);
+      }
+
       await trx('listing_media').where({ listing_id: id }).delete();
       if (resolvedMedia.length > 0) {
         await trx('listing_media').insert(resolvedMedia);
@@ -490,7 +565,12 @@ const viewListing = asyncHandler(async (req, res, next) => {
     return next(new AppError('Listing not found.', 404));
   }
 
-  await db('listings').where({ id }).increment('views_count', 1);
+  const isOwner = req.user && req.user.id === listing.seller_id;
+  const viewerKey = req.user ? `user:${req.user.id}` : `ip:${req.ip || 'anon'}`;
+
+  if (!isOwner && shouldIncrementView(id, viewerKey)) {
+    await db('listings').where({ id }).increment('views_count', 1);
+  }
 
   res.status(200).json({
     status: 'success',

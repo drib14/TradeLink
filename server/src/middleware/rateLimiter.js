@@ -96,6 +96,30 @@ const uploadLimiter = rateLimit({
   legacyHeaders: false
 });
 
+// Listing view count limiter (prevents automated view inflation)
+const viewListingLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 30, // max 30 view recordings per minute per IP
+  message: {
+    status: 'fail',
+    message: 'Too many view requests. Please slow down.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// Admin authentication limiter (strict anti-brute-force)
+const adminAuthLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // max 5 attempts per IP
+  message: {
+    status: 'fail',
+    message: 'Too many admin authentication attempts. Access locked for 15 minutes.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
 // Chat message rate limiter (REST path — WebSocket has its own limiter)
 const chatMessageLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
@@ -117,5 +141,8 @@ module.exports = {
   favoriteToggleLimiter,
   resetCodeLimiter,
   uploadLimiter,
+  viewListingLimiter,
+  adminAuthLimiter,
   chatMessageLimiter
 };
+

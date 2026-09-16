@@ -16,9 +16,14 @@ const xssOptions = {
 
 function sanitizeString(str) {
   if (typeof str !== 'string') return str;
-  // Strip javascript: pseudo-protocol (e.g. javascript:alert(1) -> alert(1))
-  const cleanProtocol = str.replace(/javascript\s*:/gi, '');
-  return xss(cleanProtocol, xssOptions).trim();
+  // 1. Strip null bytes and dangerous control characters
+  let clean = str.replace(/\0/g, '').replace(/[\x01-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+  // 2. Unicode normalization (NFKC) to resolve spoofing homoglyphs and hidden zero-width chars
+  clean = clean.normalize('NFKC');
+  // 3. Strip javascript: and data:text/html pseudo-protocols
+  clean = clean.replace(/javascript\s*:/gi, '').replace(/data\s*:\s*text\/html/gi, '');
+  // 4. Run through strict XSS sanitizer
+  return xss(clean, xssOptions).trim();
 }
 
 function sanitizeObject(obj) {

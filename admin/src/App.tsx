@@ -3,6 +3,7 @@ import { ToastProvider, useToast } from './components/common/Toast';
 import { AdminAuthProvider, useAdminAuth } from './context/AdminAuthContext';
 import { AdminProvider } from './context/AdminContext';
 import { AdminDashboard } from './pages/AdminDashboard';
+import { CookieConsent } from './components/common/CookieConsent';
 import { ShieldAlert, LogIn, KeyRound, Loader2, CheckCircle2 } from 'lucide-react';
 
 const AdminAuthGate: React.FC = () => {
@@ -367,6 +368,7 @@ export const App: React.FC = () => {
     <ToastProvider>
       <AdminAuthProvider>
         <AdminAppContent />
+        <CookieConsent />
       </AdminAuthProvider>
     </ToastProvider>
   );

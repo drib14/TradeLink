@@ -12,7 +12,8 @@ const {
   queryListingsSchema,
   reportListingSchema
 } = require('../validations/listing.validation');
-const { createListingLimiter, reportListingLimiter, apiLimiter } = require('../middleware/rateLimiter');
+const { createListingLimiter, reportListingLimiter, viewListingLimiter } = require('../middleware/rateLimiter');
+const { checkUploadQuota } = require('../middleware/uploadQuota');
 
 decodeParams.bindRouter(router);
 
@@ -24,15 +25,25 @@ router.post(
   authenticate,
   requireStudent,
   requireVerified,
+  checkUploadQuota,
   createListingLimiter,
   validate(createListingSchema),
   listingsController.createListing
 );
 
-router.patch('/:id', validateUUID('id'), authenticate, requireStudent, requireVerified, validate(updateListingSchema), listingsController.updateListing);
+router.patch(
+  '/:id',
+  validateUUID('id'),
+  authenticate,
+  requireStudent,
+  requireVerified,
+  checkUploadQuota,
+  validate(updateListingSchema),
+  listingsController.updateListing
+);
 router.delete('/:id', validateUUID('id'), authenticate, requireStudent, requireVerified, listingsController.deleteListing);
 router.patch('/:id/sold', validateUUID('id'), authenticate, requireStudent, requireVerified, listingsController.markAsSold);
-router.post('/:id/view', validateUUID('id'), apiLimiter, listingsController.viewListing);
+router.post('/:id/view', validateUUID('id'), viewListingLimiter, optionalAuth, listingsController.viewListing);
 router.post(
   '/:id/report',
   validateUUID('id'),

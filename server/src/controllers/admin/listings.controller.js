@@ -4,6 +4,7 @@ const AppError = require('../../utils/AppError');
 const asyncHandler = require('../../utils/asyncHandler');
 const { serializeListing } = require('../../serializers/listingSerializer');
 const { logAdminAction } = require('./verification.controller');
+const storageService = require('../../services/storage.service');
 
 function escapeLike(str) {
   return str.replace(/[%_]/g, '\\$&');
@@ -253,8 +254,6 @@ const updateListingAdmin = asyncHandler(async (req, res, next) => {
     await trx('listings').where({ id }).update(updates);
 
     if (media !== undefined || images !== undefined) {
-      await trx('listing_media').where({ listing_id: id }).delete();
-
       const mediaToInsert = [];
       if (Array.isArray(media) && media.length > 0) {
         media.forEach((item, idx) => {
@@ -282,6 +281,16 @@ const updateListingAdmin = asyncHandler(async (req, res, next) => {
           }
         });
       }
+
+      // Clean up replaced media files from Cloudinary storage
+      const existingMedia = await trx('listing_media').where({ listing_id: id });
+      const newUrls = new Set(mediaToInsert.map(m => m.media_url));
+      const toDelete = existingMedia.filter(m => !newUrls.has(m.media_url));
+      for (const oldItem of toDelete) {
+        await storageService.deleteFile(oldItem.media_url);
+      }
+
+      await trx('listing_media').where({ listing_id: id }).delete();
 
       if (mediaToInsert.length > 0) {
         await trx('listing_media').insert(mediaToInsert);
@@ -324,6 +333,12 @@ const deleteListingAdmin = asyncHandler(async (req, res, next) => {
 
   if (!listing) {
     return next(new AppError('Listing not found.', 404));
+  }
+
+  // Delete attached files from Cloudinary storage
+  const listingMedia = await db('listing_media').where({ listing_id: id });
+  for (const m of listingMedia) {
+    await storageService.deleteFile(m.media_url);
   }
 
   await db.transaction(async (trx) => {

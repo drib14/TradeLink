@@ -24,7 +24,8 @@ exports.seed = async function(knex) {
   }
   await knex.raw('SET FOREIGN_KEY_CHECKS = 1');
 
-  const adminHash = await bcrypt.hash('TradeLink@2026', 10);
+  // Hash admin password using 12 salt rounds for enhanced brute-force resistance
+  const adminHash = await bcrypt.hash('TradeLink@2026', 12);
 
   // 1. Seed ONLY the single official Administrator Account
   await knex('users').insert([
@@ -94,7 +95,7 @@ exports.seed = async function(knex) {
       config_value: JSON.stringify({
         maintenanceMode: false,
         maxListingPrice: 50000,
-        maxMediaPerListing: 10,
+        maxMediaPerListing: 5,
         swapModeEnabled: true,
         wantedBoardEnabled: true,
         freeDonationEnabled: true,

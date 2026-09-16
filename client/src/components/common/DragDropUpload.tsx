@@ -12,10 +12,56 @@ interface DragDropUploadProps {
   acceptVideos?: boolean;
 }
 
+function compressImageClient(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const MAX_DIM = 1600;
+      let { width, height } = img;
+      if (width > MAX_DIM || height > MAX_DIM) {
+        if (width > height) {
+          height = Math.round((height * MAX_DIM) / width);
+          width = MAX_DIM;
+        } else {
+          width = Math.round((width * MAX_DIM) / height);
+          height = MAX_DIM;
+        }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+        return;
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+      let dataUrl = canvas.toDataURL('image/webp', 0.82);
+      if (!dataUrl.startsWith('data:image/webp')) {
+        dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      }
+      resolve(dataUrl);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    };
+    img.src = objectUrl;
+  });
+}
+
 export const DragDropUpload: React.FC<DragDropUploadProps> = ({
   images,
   onChange,
-  maxFiles = 8,
+  maxFiles = 5,
   label = 'Photos & Product Demonstration Videos',
   helperText = 'Drag & drop photos or product sample videos here, or browse',
   isMultiple = true,
@@ -25,7 +71,7 @@ export const DragDropUpload: React.FC<DragDropUploadProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { showToast } = useToast();
 
-  const handleFiles = (files: FileList | null) => {
+  const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
 
     const remainingSlots = isMultiple ? maxFiles - images.length : 1;
@@ -35,6 +81,11 @@ export const DragDropUpload: React.FC<DragDropUploadProps> = ({
     }
 
     const validFiles = Array.from(files).filter((file) => {
+      // Explicitly reject SVG for security
+      if (file.type.includes('svg') || file.name.toLowerCase().endsWith('.svg')) {
+        showToast('File Rejected', 'SVG files are prohibited for security.', 'error');
+        return false;
+      }
       const isImg = file.type.startsWith('image/');
       const isVid = acceptVideos && (file.type.startsWith('video/') || /\.(mp4|webm|mov|m4v)$/i.test(file.name));
       return isImg || isVid;
@@ -46,26 +97,51 @@ export const DragDropUpload: React.FC<DragDropUploadProps> = ({
     }
 
     const filesToProcess = validFiles.slice(0, remainingSlots);
+    const newItems: string[] = [];
 
-    filesToProcess.forEach((file) => {
-      // 50MB limit to allow product demonstration videos
-      if (file.size > 50 * 1024 * 1024) {
-        showToast('File Too Large', `${file.name} is larger than 50MB.`, 'warning');
-        return;
+    for (const file of filesToProcess) {
+      // 15MB limit for videos, 10MB limit for images
+      if (file.size > 15 * 1024 * 1024) {
+        showToast('File Too Large', `${file.name} is larger than 15MB limit.`, 'warning');
+        continue;
       }
 
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          if (isMultiple) {
-            onChange([...images, reader.result]);
-          } else {
-            onChange([reader.result]);
-          }
+      if (file.type.startsWith('image/')) {
+        try {
+          const compressed = await compressImageClient(file);
+          newItems.push(compressed);
+        } catch {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            if (typeof reader.result === 'string') {
+              newItems.push(reader.result);
+              if (isMultiple) onChange([...images, ...newItems]);
+              else onChange(newItems);
+            }
+          };
+          reader.readAsDataURL(file);
         }
-      };
-      reader.readAsDataURL(file);
-    });
+      } else {
+        // Video file — read as Data URL
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (typeof reader.result === 'string') {
+            newItems.push(reader.result);
+            if (isMultiple) onChange([...images, ...newItems]);
+            else onChange(newItems);
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    if (newItems.length > 0) {
+      if (isMultiple) {
+        onChange([...images, ...newItems]);
+      } else {
+        onChange(newItems);
+      }
+    }
   };
 
   const handleDragOver = (e: React.DragEvent) => {

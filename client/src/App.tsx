@@ -11,6 +11,7 @@ import { ChatDrawer } from './components/chat/ChatDrawer';
 import { AuthModal } from './components/auth/AuthModal';
 import { UnverifiedAccountModal } from './components/auth/UnverifiedAccountModal';
 import { StudentVerificationModal } from './components/verification/StudentVerificationModal';
+import { CookieConsent } from './components/common/CookieConsent';
 
 // Pages
 import { HomePage } from './pages/HomePage';
@@ -280,6 +281,9 @@ export const MainApp: React.FC = () => {
         onOpenChat={() => setIsChatOpen(true)}
         onOpenAuth={() => setIsAuthModalOpen(true)}
       />
+
+      {/* 9. Cookie Consent Banner */}
+      <CookieConsent onNavigate={handleNavigate} />
     </div>
   );
 };

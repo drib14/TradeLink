@@ -7,6 +7,7 @@ const AppError = require('../utils/AppError');
 const storageService = require('../services/storage.service');
 const asyncHandler = require('../utils/asyncHandler');
 const { uploadLimiter } = require('../middleware/rateLimiter');
+const { checkUploadQuota } = require('../middleware/uploadQuota');
 
 // Sub-routers
 const authRoutes = require('./auth.routes');
@@ -40,7 +41,7 @@ router.get('/upload/status', authenticate, asyncHandler(async (req, res) => {
 }));
 
 // File / Media Upload endpoint (supports images and videos, streams directly to Cloudinary)
-router.post('/upload', authenticate, uploadLimiter, upload.array('image', 10), asyncHandler(async (req, res, next) => {
+router.post('/upload', authenticate, checkUploadQuota, uploadLimiter, upload.array('image', 5), asyncHandler(async (req, res, next) => {
   const uploadedFiles = req.files && req.files.length > 0 ? req.files : (req.file ? [req.file] : []);
   if (uploadedFiles.length === 0) {
     return next(new AppError('No file uploaded.', 400));

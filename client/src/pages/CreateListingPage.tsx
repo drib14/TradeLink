@@ -35,16 +35,18 @@ interface CreateListingPageProps {
 
 const CATEGORY_OPTIONS = [
   'Electronics & Gadgets',
-  'College Textbooks & Reviewers',
-  'Uniforms, PE Attire & Scrubs',
-  'Scientific Calculators & Tools',
-  'Drafting, Art & Lab Supplies',
+  'Textbooks & Reviewers',
+  'Uniforms & Apparel',
+  'Calculators & Electronics',
   'Fashion & Sneakers',
   'Music & Instruments',
-  'Gaming & PC Gear',
-  'Dorm & Appliances',
-  'Hobbies & Collectibles',
-  'General Campus Item'
+  'Audio & Gadgets',
+  'Dorm & Living',
+  'Gaming & Tech',
+  'Medical Equipment',
+  'Junior High School Books & Reviewers',
+  'Senior High Reviewers & Books',
+  'General Supplies'
 ];
 
 const SWAP_INSPIRATION_CHIPS = [

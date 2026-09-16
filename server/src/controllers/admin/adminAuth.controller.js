@@ -7,6 +7,8 @@ const { generate4DigitCode, hashCode, verifyCode } = require('../../utils/genera
 const { generateTokens, setRefreshTokenCookie } = require('../../utils/authHelpers');
 const emailService = require('../../services/email.service');
 
+const logger = require('../../utils/logger');
+
 /**
  * Administrator Login (Email + Password only, role must be admin)
  */
@@ -27,15 +29,18 @@ const login = asyncHandler(async (req, res, next) => {
     .first();
 
   if (!user) {
+    logger.warn(`[ADMIN_AUTH_FAIL] Invalid admin credentials for "${cleanIdentifier}" from IP ${req.ip}`);
     return next(new AppError('Invalid administrator credentials.', 401));
   }
 
   if (user.is_banned) {
+    logger.warn(`[ADMIN_AUTH_FAIL] Suspended admin account attempted login: "${user.email}" from IP ${req.ip}`);
     return next(new AppError('Administrator account suspended.', 403));
   }
 
   const isMatch = await bcrypt.compare(password, user.password_hash);
   if (!isMatch) {
+    logger.warn(`[ADMIN_AUTH_FAIL] Password mismatch for admin "${user.email}" from IP ${req.ip}`);
     return next(new AppError('Invalid administrator credentials.', 401));
   }
 
@@ -44,6 +49,7 @@ const login = asyncHandler(async (req, res, next) => {
   await db('users').where({ id: user.id }).update({ refresh_token_hash: refreshTokenHash });
 
   setRefreshTokenCookie(res, refreshToken);
+  logger.info(`[ADMIN_AUTH_SUCCESS] Administrator "${user.email}" logged in from IP ${req.ip}`);
 
   res.status(200).json({
     status: 'success',
@@ -57,6 +63,7 @@ const login = asyncHandler(async (req, res, next) => {
 
 /**
  * Administrator Direct Forgot Password (Generates code and emails directly without approval)
+ * Uses constant-time response to prevent admin account enumeration
  */
 const forgotPassword = asyncHandler(async (req, res, next) => {
   const { email } = req.body;
@@ -71,8 +78,15 @@ const forgotPassword = asyncHandler(async (req, res, next) => {
     .andWhere({ role: 'admin' })
     .first();
 
+  // Consistent message returned whether account exists or not to prevent enumeration
+  const standardMessage = 'If an administrator account exists with this email, a verification code has been dispatched.';
+
   if (!user) {
-    return next(new AppError('No administrator account associated with that email.', 404));
+    logger.info(`[ADMIN_AUTH_RESET] Password reset requested for non-admin email "${cleanEmail}" from IP ${req.ip}`);
+    return res.status(200).json({
+      status: 'success',
+      message: standardMessage
+    });
   }
 
   const code = generate4DigitCode();
@@ -86,13 +100,14 @@ const forgotPassword = asyncHandler(async (req, res, next) => {
 
   try {
     await emailService.sendAdminPasswordResetEmail(user.email, user.name || 'Administrator', code);
+    logger.info(`[ADMIN_AUTH_RESET] Verification code sent to admin "${user.email}" from IP ${req.ip}`);
   } catch (err) {
-    console.error('Failed to send admin reset email:', err);
+    logger.error(`Failed to send admin reset email: ${err.message}`);
   }
 
   res.status(200).json({
     status: 'success',
-    message: 'Verification code sent directly to administrator email address.'
+    message: standardMessage
   });
 });
 
