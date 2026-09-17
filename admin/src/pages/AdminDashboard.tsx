@@ -42,6 +42,8 @@ import { VerifiedBadge } from '../components/common/VerifiedBadge';
 import { ConfirmModal } from '../components/common/ConfirmModal';
 import { CampusBadge } from '../components/common/CampusBadge';
 import { UserAvatar } from '../components/common/UserAvatar';
+import { Logo } from '../components/common/Logo';
+import { TradeLinkIcon } from '../components/common/TradeLinkIcon';
 
 function formatRelativeTime(dateStr?: string) {
   if (!dateStr) return '';
@@ -307,22 +309,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
           }}
         >
           {/* Header */}
-          <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.65rem' }}>
-            <div
-              style={{
-                width: '56px',
-                height: '56px',
-                borderRadius: '16px',
-                backgroundColor: '#EBF1FC',
-                border: '1.5px solid #BCD1F7',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#002B7F'
-              }}
-            >
-              <ShieldAlert size={30} />
-            </div>
+          <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.85rem' }}>
+            <Logo size="lg" showSubtitle={true} subtitleText="Administration & Safety Portal" />
 
             <div>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: '#002B7F', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', backgroundColor: '#EBF1FC', padding: '0.2rem 0.6rem', borderRadius: '6px' }}>
@@ -607,15 +595,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   return (
     <div className="container" style={{ padding: '2rem 1.5rem 6rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
       {/* Top Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#002B7F', fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', backgroundColor: '#EBF1FC', padding: '0.25rem 0.65rem', borderRadius: '6px', border: '1px solid #BCD1F7' }}>
-            <ShieldAlert size={14} color="#002B7F" /> University of Cebu Moderation Desk
-          </div>
-          <h1 style={{ fontSize: '1.85rem', fontWeight: 900, color: '#0F172A', marginTop: '0.45rem', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}>
-            Campus Administration & Safety Center
-          </h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.25rem' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+          <TradeLinkIcon size={44} style={{ marginTop: '0.15rem' }} />
+          <div>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#002B7F', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', backgroundColor: '#EBF1FC', padding: '0.2rem 0.65rem', borderRadius: '6px', border: '1px solid #BCD1F7' }}>
+              <ShieldAlert size={13} color="#002B7F" /> University of Cebu Moderation Desk
+            </div>
+            <h1 style={{ fontSize: '1.85rem', fontWeight: 900, color: '#0F172A', marginTop: '0.35rem', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', lineHeight: 1.15 }}>
+              Campus Administration & Safety Center
+            </h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '0.82rem', color: '#64748B' }}>
               Logged in as: <strong style={{ color: '#002B7F' }}>{currentUser?.name || 'UC Admin Moderator'}</strong> ({currentUser?.email ? <code>{currentUser.email}</code> : 'Authenticated'})
             </span>
@@ -624,6 +614,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
             </span>
           </div>
         </div>
+      </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
           <button

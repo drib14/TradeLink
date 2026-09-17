@@ -155,7 +155,14 @@ export const MainApp: React.FC = () => {
             case 'home':
               return <HomePage onNavigate={handleNavigate} onOpenChat={() => setIsChatOpen(true)} />;
             case 'marketplace':
-              return <MarketplacePage onNavigate={handleNavigate} />;
+              return (
+                <MarketplacePage
+                  onNavigate={handleNavigate}
+                  onOpenAuth={() => setIsAuthModalOpen(true)}
+                  onOpenVerification={() => setIsVerificationModalOpen(true)}
+                  onOpenChat={() => setIsChatOpen(true)}
+                />
+              );
             case 'item-detail':
               return (
                 <ItemDetailPage
@@ -220,7 +227,14 @@ export const MainApp: React.FC = () => {
             case 'terms':
               return <TermsPrivacyPage onNavigate={handleNavigate} initialTab={viewParams?.tab} />;
             case 'favorites':
-              return <MarketplacePage onNavigate={handleNavigate} />;
+              return (
+                <MarketplacePage
+                  onNavigate={handleNavigate}
+                  onOpenAuth={() => setIsAuthModalOpen(true)}
+                  onOpenVerification={() => setIsVerificationModalOpen(true)}
+                  onOpenChat={() => setIsChatOpen(true)}
+                />
+              );
             case 'settings':
               return (
                 <SettingsPage

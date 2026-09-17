@@ -21,8 +21,7 @@ import {
   Loader2,
   X,
   MapPin,
-  Check,
-  Sparkles
+  Check
 } from 'lucide-react';
 
 export type PostingFormMode = 'sell' | 'swap';

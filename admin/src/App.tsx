@@ -4,7 +4,9 @@ import { AdminAuthProvider, useAdminAuth } from './context/AdminAuthContext';
 import { AdminProvider } from './context/AdminContext';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { CookieConsent } from './components/common/CookieConsent';
-import { ShieldAlert, LogIn, KeyRound, Loader2, CheckCircle2 } from 'lucide-react';
+import { ShieldAlert, LogIn, KeyRound, Loader2, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { Logo } from './components/common/Logo';
+import { TradeLinkIcon } from './components/common/TradeLinkIcon';
 
 const AdminAuthGate: React.FC = () => {
   const { login, forgotPassword, resetPassword, isLoading } = useAdminAuth();
@@ -103,32 +105,18 @@ const AdminAuthGate: React.FC = () => {
         }}
       >
         {/* Header Badge & Brand */}
-        <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.65rem' }}>
-          <div
-            style={{
-              width: '58px',
-              height: '58px',
-              borderRadius: '16px',
-              backgroundColor: '#002B7F',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#FFC72C',
-              boxShadow: '0 8px 20px rgba(0, 43, 127, 0.25)'
-            }}
-          >
-            <ShieldAlert size={32} />
-          </div>
+        <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.85rem' }}>
+          <Logo size="lg" showSubtitle={true} subtitleText="Administration & Safety Portal" />
 
           <div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: '#002B7F', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', backgroundColor: 'rgba(0, 43, 127, 0.08)', padding: '0.2rem 0.65rem', borderRadius: '6px' }}>
-              Restricted Campus Portal
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: '#002B7F', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', backgroundColor: '#EBF1FC', padding: '0.25rem 0.65rem', borderRadius: '6px', border: '1px solid #BCD1F7' }}>
+              <ShieldCheck size={13} color="#002B7F" /> Restricted Campus Portal
             </div>
-            <h1 style={{ fontSize: '1.45rem', fontWeight: 900, color: '#0F172A', marginTop: '0.45rem', margin: '0.45rem 0 0 0' }}>
-              University of Cebu Admin
+            <h1 style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0F172A', marginTop: '0.55rem', margin: '0.55rem 0 0 0' }}>
+              University of Cebu Moderation Desk
             </h1>
-            <p style={{ fontSize: '0.82rem', color: '#64748B', marginTop: '0.25rem', margin: '0.25rem 0 0 0' }}>
-              Sign in with your official administrator email or ID to access KYC queues, student moderation, and campus safety desks.
+            <p style={{ fontSize: '0.82rem', color: '#64748B', marginTop: '0.3rem', margin: '0.3rem 0 0 0', lineHeight: 1.45 }}>
+              Sign in with your administrator email or ID to access KYC queues, student moderation, and campus safety desks.
             </p>
           </div>
 

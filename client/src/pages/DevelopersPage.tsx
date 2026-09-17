@@ -11,7 +11,6 @@ import {
   Cpu,
   Layers,
   Terminal,
-  Sparkles,
   Users
 } from 'lucide-react';
 
@@ -458,7 +457,7 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#FFFFFF', fontSize: '0.74rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      {member.id === 'jhonrid' ? <Crown size={14} color="#FFC72C" /> : <Sparkles size={14} />}
+                      {member.id === 'jhonrid' ? <Crown size={14} color="#FFC72C" /> : <Code2 size={14} color="#FFC72C" />}
                       <span>{member.category}</span>
                     </div>
 

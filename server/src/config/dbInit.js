@@ -302,7 +302,7 @@ async function autoInitDatabase() {
       const flagCount = await db('feature_flags').count('id as count').first();
       if (Number(flagCount?.count || 0) === 0) {
         await db('feature_flags').insert([
-          { id: 'ff-1', name: 'Price Advisor AI', description: 'Enable AI-powered pricing suggestions', enabled: true },
+          { id: 'ff-1', name: 'Campus Fair Price Guide', description: 'Standard campus student resale valuation', enabled: true },
           { id: 'ff-2', name: 'Campus Map', description: 'Interactive campus meetup map', enabled: true },
           { id: 'ff-3', name: 'Pro Merchant Badge', description: 'Allow pro merchant status for top sellers', enabled: true },
           { id: 'ff-4', name: 'Dark Mode', description: 'Dark mode toggle for all users', enabled: true }

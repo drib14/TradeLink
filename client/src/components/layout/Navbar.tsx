@@ -20,7 +20,8 @@ import {
   Settings,
   Shield,
   Zap,
-  Clock
+  Clock,
+  Check
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -425,47 +426,44 @@ export const Navbar: React.FC<NavbarProps> = ({
                   )}
                 </button>
 
-                {/* User Dropdown Menu */}
+                {/* User Dropdown Menu (Spacious & Uncompressed) */}
                 {isUserMenuOpen && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: 'calc(100% + 8px)',
-                      right: 0,
-                      width: '260px',
-                      backgroundColor: 'var(--bg-surface, #FFFFFF)',
-                      borderRadius: '12px',
-                      border: '1.5px solid var(--border-subtle, #BCD1F7)',
-                      boxShadow: '0 12px 30px rgba(0, 43, 127, 0.15)',
-                      zIndex: 100,
-                      overflow: 'hidden',
-                      padding: '0.5rem',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '0.2rem',
-                      animation: 'slideDown 0.2s ease-out'
-                    }}
-                  >
-                    <div style={{ padding: '0.55rem 0.75rem', borderBottom: '1px solid var(--border-subtle, #F1F5F9)' }}>
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-                        <span style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary, #002B7F)' }}>
-                          {currentUser.name}
+                  <div className="dropdown-menu-user" role="menu">
+                    {/* User Identity Card */}
+                    <div className="dropdown-user-card">
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
+                          <span style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-primary, #0F172A)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {currentUser.name}
+                          </span>
+                          {currentUser.isVerified && (
+                            <VerifiedBadge size="xs" variant="green" showTooltip={false} />
+                          )}
+                        </div>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--uc-blue)', backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', padding: '2px 6px', borderRadius: '4px', flexShrink: 0 }}>
+                          {currentUser.campus}
                         </span>
-                        {currentUser.isVerified && (
-                          <VerifiedBadge size="xs" variant="green" showTooltip={false} />
-                        )}
-                      </div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted, #64748B)', marginTop: '2px' }}>
-                        {currentUser.campus} • ID: {currentUser.studentId}
                       </div>
 
-                      {!currentUser.isVerified && (
+                      <div style={{ fontSize: '0.74rem', color: 'var(--text-muted, #64748B)' }}>
+                        Student ID: <strong>{currentUser.studentId}</strong>
+                      </div>
+
+                      {/* Verification Status Banner */}
+                      {currentUser.isVerified ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.72rem', fontWeight: 800, color: 'var(--accent-green, #059669)', backgroundColor: 'var(--accent-green-subtle, #ECFDF5)', padding: '0.35rem 0.6rem', borderRadius: '6px' }}>
+                          <Check size={13} /> Official UC Peer Verified
+                        </div>
+                      ) : (
                         (!currentUser.isVerified && (currentUser.verificationStatus === 'pending' || !!currentUser.idPhotoUrl)) ? (
-                          <div style={{ backgroundColor: 'rgba(0, 43, 127, 0.06)', border: '1px solid rgba(0, 43, 127, 0.15)', borderRadius: '8px', padding: '0.45rem 0.6rem', marginTop: '0.4rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--uc-blue)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                              <Clock size={12} style={{ flexShrink: 0 }} />
-                              <span>Verification Pending</span>
-                            </span>
+                          <div style={{ backgroundColor: 'rgba(0, 43, 127, 0.06)', border: '1px solid rgba(0, 43, 127, 0.15)', borderRadius: '8px', padding: '0.5rem 0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--uc-blue)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                <Clock size={12} style={{ flexShrink: 0 }} />
+                                <span>Verification In Review</span>
+                              </span>
+                              <span style={{ fontSize: '0.66rem', color: 'var(--text-muted)' }}>Estimated: 1–3 business days</span>
+                            </div>
                             <button
                               type="button"
                               onClick={() => {
@@ -473,23 +471,24 @@ export const Navbar: React.FC<NavbarProps> = ({
                                 onNavigate('profile');
                               }}
                               style={{
-                                fontSize: '0.68rem',
+                                fontSize: '0.7rem',
                                 fontWeight: 800,
                                 color: 'var(--uc-blue)',
-                                backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)',
+                                backgroundColor: '#FFFFFF',
                                 border: '1px solid var(--uc-blue-border, #BCD1F7)',
-                                borderRadius: '4px',
-                                padding: '2px 8px',
-                                cursor: 'pointer'
+                                borderRadius: '6px',
+                                padding: '3px 10px',
+                                cursor: 'pointer',
+                                flexShrink: 0
                               }}
                             >
                               Status
                             </button>
                           </div>
                         ) : (
-                          <div style={{ backgroundColor: 'rgba(255, 199, 44, 0.15)', border: '1px solid rgba(229, 168, 0, 0.3)', borderRadius: '8px', padding: '0.45rem 0.6rem', marginTop: '0.4rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#B45309' }}>
-                              Unverified Account
+                          <div style={{ backgroundColor: 'rgba(255, 199, 44, 0.15)', border: '1px solid rgba(229, 168, 0, 0.35)', borderRadius: '8px', padding: '0.5rem 0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#B45309' }}>
+                              Unverified Student
                             </span>
                             <button
                               type="button"
@@ -497,15 +496,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                                 setIsUserMenuOpen(false);
                                 if (onOpenVerification) onOpenVerification();
                               }}
+                              className="btn-gold"
                               style={{
-                                fontSize: '0.68rem',
+                                fontSize: '0.7rem',
                                 fontWeight: 800,
-                                color: '#002B7F',
-                                backgroundColor: '#FFC72C',
-                                border: 'none',
-                                borderRadius: '4px',
-                                padding: '2px 8px',
-                                cursor: 'pointer'
+                                padding: '3px 10px',
+                                borderRadius: '6px',
+                                flexShrink: 0
                               }}
                             >
                               Verify Now
@@ -515,7 +512,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       )}
                     </div>
 
-                    {/* Admin Moderation Desk */}
+                    {/* Admin Moderation Desk (if admin) */}
                     {(isAdmin || currentUser.role === 'admin') && (
                       <button
                         onClick={() => {
@@ -525,7 +522,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                         className="dropdown-item"
                         style={{ backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', color: 'var(--uc-blue, #002B7F)', fontWeight: 700 }}
                       >
-                        <Shield size={15} color="var(--uc-blue, #002B7F)" style={{ flexShrink: 0 }} />
+                        <Shield size={16} color="var(--uc-blue, #002B7F)" style={{ flexShrink: 0 }} />
                         <span>Admin Moderation Desk</span>
                       </button>
                     )}
@@ -538,8 +535,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                       }}
                       className="dropdown-item"
                     >
-                      <User size={15} color="var(--uc-blue, #002B7F)" style={{ flexShrink: 0 }} />
-                      <span>My Profile & Listings</span>
+                      <User size={16} color="var(--uc-blue, #002B7F)" style={{ flexShrink: 0 }} />
+                      <span>My Profile & Storefront</span>
                     </button>
 
                     {/* 2. Transaction History */}
@@ -550,11 +547,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                       }}
                       className="dropdown-item"
                     >
-                      <Receipt size={15} color="#059669" style={{ flexShrink: 0 }} />
+                      <Receipt size={16} color="#059669" style={{ flexShrink: 0 }} />
                       <span>Transaction History</span>
                     </button>
 
-                    {/* 4. Settings */}
+                    {/* 3. Settings */}
                     <button
                       onClick={() => {
                         setIsUserMenuOpen(false);
@@ -562,19 +559,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                       }}
                       className="dropdown-item"
                     >
-                      <Settings size={15} color="var(--text-secondary)" style={{ flexShrink: 0 }} />
+                      <Settings size={16} color="var(--text-secondary)" style={{ flexShrink: 0 }} />
                       <span>Settings & Privacy</span>
                     </button>
 
                     <div className="dropdown-divider" />
 
-                    {/* 5. Logout */}
+                    {/* 4. Logout */}
                     <button
                       onClick={handleLogout}
                       className="dropdown-item"
                       style={{ color: '#DC2626' }}
                     >
-                      <LogOut size={15} color="#DC2626" style={{ flexShrink: 0 }} />
+                      <LogOut size={16} color="#DC2626" style={{ flexShrink: 0 }} />
                       <span>Log Out</span>
                     </button>
                   </div>

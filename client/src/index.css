@@ -1163,44 +1163,49 @@ input[type="radio"] {
 }
 
 .modal-card-custom {
-  background-color: #FFFFFF !important;
-  border-radius: var(--radius-2xl) !important;
-  border: 2px solid rgba(255, 255, 255, 0.95) !important;
-  box-shadow: 0 28px 60px -12px rgba(0, 43, 127, 0.24), 0 12px 24px -4px rgba(0, 0, 0, 0.08), inset 3px 3px 6px rgba(255, 255, 255, 0.95), inset -4px -4px 8px rgba(0, 43, 127, 0.05) !important;
+  background-color: #FFFFFF;
+  border-radius: 20px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 25px 50px -12px rgba(0, 43, 127, 0.25), 0 0 0 1px rgba(0, 43, 127, 0.05);
   width: 100%;
   max-width: 540px;
-  max-height: 90vh;
+  max-height: min(90vh, 850px);
   overflow-y: auto;
-  padding: 2rem !important;
-  animation: modalSlideUpAnim 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow-x: hidden;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  animation: modalSlideUpAnim 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-body-padded {
+  padding: 1.5rem;
 }
 
 .drawer-grabber-handle {
-  width: 48px;
-  height: 6px;
+  width: 44px;
+  height: 5px;
   border-radius: 9999px;
   background-color: #CBD5E1;
-  box-shadow: inset 1px 1px 2px rgba(0, 43, 127, 0.1), inset -1px -1px 2px rgba(255, 255, 255, 0.8);
-  margin: 0 auto 1.25rem auto;
+  margin: 0.75rem auto 0.5rem auto;
   display: none;
 }
 
 @media (max-width: 768px) {
   .modal-backdrop-custom {
-    align-items: flex-end;
-    padding: 0;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem;
   }
 
   .modal-card-custom {
-    border-radius: 28px 28px 0 0 !important;
-    max-width: 100%;
-    max-height: 88vh;
-    padding: 1.25rem 1.25rem 2.5rem 1.25rem !important;
-    border-bottom: none !important;
-    border-left: none !important;
-    border-right: none !important;
-    box-shadow: 0 -12px 36px rgba(0, 43, 127, 0.18), inset 0 3px 6px rgba(255, 255, 255, 0.95) !important;
-    animation: drawerSlideUpAnim 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    border-radius: 20px !important;
+    max-width: min(95vw, 540px);
+    max-height: 92vh;
+    padding: 0 !important;
+    border: 1px solid rgba(226, 232, 240, 0.9) !important;
+    box-shadow: 0 20px 40px rgba(0, 43, 127, 0.22) !important;
+    animation: modalSlideUpAnim 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .drawer-grabber-handle {
@@ -2131,8 +2136,8 @@ input[type="radio"] {
   .modal-card-custom {
     width: 95vw !important;
     max-width: 95vw !important;
-    margin: 0.5rem auto !important;
-    padding: 1.25rem !important;
+    margin: auto !important;
+    padding: 0 !important;
   }
 
   .chat-drawer-container {
@@ -2394,88 +2399,25 @@ textarea:focus,
 }
 
 /* ==========================================================================
-   BIOMETRIC LIVE SELFIE CAMERA STYLING & ANIMATIONS
+   STUDENT VERIFICATION LIVE CAMERA STYLING
    ========================================================================== */
-@keyframes biometricScan {
-  0% {
-    top: 8%;
-    opacity: 0.2;
-  }
-  30% {
-    opacity: 0.9;
-  }
-  50% {
-    top: 88%;
-    opacity: 0.9;
-  }
-  70% {
-    opacity: 0.9;
-  }
-  100% {
-    top: 8%;
-    opacity: 0.2;
-  }
-}
-
-@keyframes faceGuidePulse {
-  0%, 100% {
-    border-color: rgba(255, 199, 44, 0.85);
-    box-shadow: 0 0 15px rgba(255, 199, 44, 0.35), inset 0 0 15px rgba(255, 199, 44, 0.2);
-  }
-  50% {
-    border-color: rgba(255, 224, 130, 1);
-    box-shadow: 0 0 30px rgba(255, 199, 44, 0.65), inset 0 0 25px rgba(255, 199, 44, 0.35);
-  }
-}
-
-@keyframes shutterPulseRing {
-  0% {
-    transform: scale(0.96);
-    box-shadow: 0 0 0 0 rgba(255, 199, 44, 0.7);
-  }
-  70% {
-    transform: scale(1.02);
-    box-shadow: 0 0 0 14px rgba(255, 199, 44, 0);
-  }
-  100% {
-    transform: scale(0.96);
-    box-shadow: 0 0 0 0 rgba(255, 199, 44, 0);
-  }
-}
-
-@keyframes cameraFlashAnim {
-  0% {
-    opacity: 0.95;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
-.biometric-scanner-line {
-  position: absolute;
-  left: 12%;
-  right: 12%;
-  height: 2.5px;
-  background: linear-gradient(90deg, transparent 0%, rgba(255, 199, 44, 0.95) 50%, transparent 100%);
-  box-shadow: 0 0 14px 2px rgba(255, 199, 44, 0.9);
-  animation: biometricScan 3s ease-in-out infinite;
-  pointer-events: none;
-  z-index: 10;
-}
-
 .face-guide-oval {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 200px;
-  height: 260px;
+  width: 210px;
+  height: 270px;
   border-radius: 50%;
-  border: 2.5px solid rgba(255, 199, 44, 0.85);
-  animation: faceGuidePulse 2.5s ease-in-out infinite;
+  border: 2px dashed rgba(255, 255, 255, 0.7);
   pointer-events: none;
   z-index: 9;
+  transition: border 0.25s ease, box-shadow 0.25s ease;
+}
+
+.face-guide-oval.ready {
+  border: 2.5px solid #10B981;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.35);
 }
 
 .camera-flash-effect {
@@ -2487,28 +2429,13 @@ textarea:focus,
   pointer-events: none;
 }
 
-/* Biometric Radar Pulse */
-@keyframes radarSweep {
+@keyframes cameraFlashAnim {
   0% {
-    transform: translate(-50%, -50%) rotate(0deg);
+    opacity: 0.95;
   }
   100% {
-    transform: translate(-50%, -50%) rotate(360deg);
+    opacity: 0;
   }
-}
-
-.radar-sweep-cone {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 280px;
-  height: 280px;
-  border-radius: 50%;
-  background: conic-gradient(from 0deg, rgba(255, 199, 44, 0.25) 0deg, transparent 60deg);
-  transform-origin: center center;
-  animation: radarSweep 4s linear infinite;
-  pointer-events: none;
-  z-index: 8;
 }
 
 /* Quality Diagnostics Badge */
@@ -2599,3 +2526,71 @@ textarea:focus,
   border: 1px solid #CBD5E1 !important;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
 }
+
+/* =========================================================================
+   NAVBAR PROFILE DROPDOWN SYSTEM (SPACIOUS & UNCOMPRESSED)
+   ========================================================================= */
+
+.dropdown-menu-user {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 320px;
+  max-width: calc(100vw - 2rem);
+  background: #FFFFFF;
+  border-radius: 16px;
+  border: 1px solid var(--border-subtle, #E2E8F0);
+  box-shadow: 0 20px 45px -12px rgba(0, 43, 127, 0.2), 0 0 0 1px rgba(0, 43, 127, 0.05);
+  z-index: 1000;
+  overflow: hidden;
+  padding: 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  animation: slideDown 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dropdown-user-card {
+  padding: 0.85rem 0.95rem;
+  background: linear-gradient(135deg, #F8FAFC 0%, #EEF2F6 100%);
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle, #E2E8F0);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--text-primary, #0F172A);
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+
+.dropdown-item:hover {
+  background-color: var(--bg-subtle, #F1F5F9);
+  color: var(--uc-blue, #002B7F);
+}
+
+.dropdown-item:active {
+  transform: scale(0.99);
+}
+
+.dropdown-divider {
+  height: 1px;
+  background-color: var(--border-subtle, #E2E8F0);
+  margin: 0.35rem 0.4rem;
+}
+

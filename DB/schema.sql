@@ -1,5 +1,5 @@
 -- ============================================================================
--- TradeLink MySQL 8.0 Full Schema DDL
+-- TradeLink MySQL 8.0 Full Production Schema DDL
 -- Platform: University of Cebu Student-to-Student Marketplace & Barter System
 -- Database: tradelink_db_test / tradelink_db
 -- ============================================================================
@@ -10,23 +10,18 @@ COLLATE utf8mb4_unicode_ci;
 
 USE `tradelink_db_test`;
 
--- Disable foreign key checks for table creation/resets
+-- Disable foreign key checks for clean teardown and recreation
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- Drop tables in reverse dependency order
 DROP TABLE IF EXISTS `review_badges`;
 DROP TABLE IF EXISTS `reviews`;
-DROP TABLE IF EXISTS `favorites`;
-DROP TABLE IF EXISTS `notifications`;
 DROP TABLE IF EXISTS `messages`;
-DROP TABLE IF EXISTS `conversation_read_status`;
 DROP TABLE IF EXISTS `conversations`;
-DROP TABLE IF EXISTS `meetup_transactions`;
+DROP TABLE IF EXISTS `transactions`;
 DROP TABLE IF EXISTS `swap_offers`;
 DROP TABLE IF EXISTS `flash_requests`;
-DROP TABLE IF EXISTS `wanted_requests`;
-DROP TABLE IF EXISTS `listing_tags`;
-DROP TABLE IF EXISTS `listing_images`;
+DROP TABLE IF EXISTS `listing_media`;
 DROP TABLE IF EXISTS `listings`;
 DROP TABLE IF EXISTS `verification_requests`;
 DROP TABLE IF EXISTS `flagged_listings`;
@@ -34,14 +29,23 @@ DROP TABLE IF EXISTS `trade_disputes`;
 DROP TABLE IF EXISTS `announcements`;
 DROP TABLE IF EXISTS `admin_audit_logs`;
 DROP TABLE IF EXISTS `prohibited_keywords`;
+DROP TABLE IF EXISTS `password_reset_requests`;
 DROP TABLE IF EXISTS `feature_flags`;
 DROP TABLE IF EXISTS `system_config`;
 DROP TABLE IF EXISTS `users`;
 
+-- Drop obsolete deprecated tables
+DROP TABLE IF EXISTS `meetup_transactions`;
+DROP TABLE IF EXISTS `wanted_requests`;
+DROP TABLE IF EXISTS `listing_tags`;
+DROP TABLE IF EXISTS `listing_images`;
+DROP TABLE IF EXISTS `conversation_read_status`;
+DROP TABLE IF EXISTS `favorites`;
+DROP TABLE IF EXISTS `notifications`;
+
 -- ----------------------------------------------------------------------------
 -- 1. USERS TABLE
 -- ----------------------------------------------------------------------------
-DROP TABLE IF EXISTS `users`;
 CREATE TABLE `users` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
   `name` VARCHAR(100) NOT NULL,
@@ -78,6 +82,11 @@ CREATE TABLE `users` (
   `refresh_token_hash` VARCHAR(255) DEFAULT NULL,
   `reset_code_hash` VARCHAR(255) DEFAULT NULL,
   `reset_code_exp` DATETIME DEFAULT NULL,
+  `failed_login_attempts` INT UNSIGNED NOT NULL DEFAULT 0,
+  `locked_until` DATETIME DEFAULT NULL,
+  `token_version` INT UNSIGNED NOT NULL DEFAULT 1,
+  `failed_reset_attempts` TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  `password_changed_at` DATETIME DEFAULT NULL,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
@@ -86,13 +95,13 @@ CREATE TABLE `users` (
   INDEX `idx_users_student_id` (`student_id`),
   INDEX `idx_users_role` (`role`),
   INDEX `idx_users_trust_score` (`trust_score`),
-  INDEX `idx_users_is_banned` (`is_banned`)
+  INDEX `idx_users_is_banned` (`is_banned`),
+  INDEX `idx_users_locked_until` (`locked_until`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
 -- 2. LISTINGS TABLE
 -- ----------------------------------------------------------------------------
-DROP TABLE IF EXISTS `listings`;
 CREATE TABLE `listings` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
   `seller_id` VARCHAR(36) NOT NULL,
@@ -143,8 +152,6 @@ CREATE TABLE `listings` (
 -- ----------------------------------------------------------------------------
 -- 3. LISTING MEDIA TABLE (Images and Video Samples)
 -- ----------------------------------------------------------------------------
-DROP TABLE IF EXISTS `listing_images`;
-DROP TABLE IF EXISTS `listing_media`;
 CREATE TABLE `listing_media` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
   `listing_id` VARCHAR(36) NOT NULL,
@@ -162,13 +169,11 @@ CREATE TABLE `listing_media` (
 -- ----------------------------------------------------------------------------
 -- 4. FLASH MARKET REQUESTS TABLE (Urgent Buy/Sell/Swap Requests)
 -- ----------------------------------------------------------------------------
-DROP TABLE IF EXISTS `flash_requests`;
-DROP TABLE IF EXISTS `wanted_requests`;
 CREATE TABLE `flash_requests` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
   `requester_id` VARCHAR(36) NOT NULL,
-  `item_name` VARCHAR(150) NOT NULL,
-  `category` VARCHAR(50) NOT NULL,
+  `item_name` VARCHAR(200) NOT NULL,
+  `category` VARCHAR(100) NOT NULL,
   `target_campus` ENUM(
     'UC Main',
     'UC Banilad',
@@ -196,7 +201,6 @@ CREATE TABLE `flash_requests` (
 -- ----------------------------------------------------------------------------
 -- 5. SWAP OFFERS / BARTER PROPOSALS TABLE
 -- ----------------------------------------------------------------------------
-DROP TABLE IF EXISTS `swap_offers`;
 CREATE TABLE `swap_offers` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
   `listing_id` VARCHAR(36) NOT NULL,
@@ -221,10 +225,8 @@ CREATE TABLE `swap_offers` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
--- 6. TRANSACTIONS TABLE (Direct Student Purchases & Swaps)
+-- 6. TRANSACTIONS TABLE (Student Purchases, Swaps & Donations)
 -- ----------------------------------------------------------------------------
-DROP TABLE IF EXISTS `meetup_transactions`;
-DROP TABLE IF EXISTS `transactions`;
 CREATE TABLE `transactions` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
   `reference_no` VARCHAR(32) NOT NULL UNIQUE,
@@ -259,8 +261,6 @@ CREATE TABLE `transactions` (
 -- ----------------------------------------------------------------------------
 -- 7. CONVERSATIONS TABLE
 -- ----------------------------------------------------------------------------
-DROP TABLE IF EXISTS `conversation_read_status`;
-DROP TABLE IF EXISTS `conversations`;
 CREATE TABLE `conversations` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
   `listing_id` VARCHAR(36) DEFAULT NULL,
@@ -285,9 +285,8 @@ CREATE TABLE `conversations` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
--- 8. MESSAGES TABLE (With Media Attachments)
+-- 8. MESSAGES TABLE (With Media Attachments & Direct Context Links)
 -- ----------------------------------------------------------------------------
-DROP TABLE IF EXISTS `messages`;
 CREATE TABLE `messages` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
   `conversation_id` VARCHAR(36) NOT NULL,
@@ -318,15 +317,9 @@ CREATE TABLE `messages` (
   INDEX `idx_messages_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Drop obsolete tables if they exist
-DROP TABLE IF EXISTS `notifications`;
-DROP TABLE IF EXISTS `favorites`;
-DROP TABLE IF EXISTS `listing_tags`;
-
 -- ----------------------------------------------------------------------------
 -- 9. REVIEWS & TRUST RATINGS TABLE
 -- ----------------------------------------------------------------------------
-DROP TABLE IF EXISTS `reviews`;
 CREATE TABLE `reviews` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
   `transaction_id` VARCHAR(36) NOT NULL,
@@ -350,7 +343,6 @@ CREATE TABLE `reviews` (
 -- ----------------------------------------------------------------------------
 -- 10. REVIEW BADGES TABLE
 -- ----------------------------------------------------------------------------
-DROP TABLE IF EXISTS `review_badges`;
 CREATE TABLE `review_badges` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
   `review_id` VARCHAR(36) NOT NULL,
@@ -363,7 +355,6 @@ CREATE TABLE `review_badges` (
 -- ----------------------------------------------------------------------------
 -- 11. STUDENT ID VERIFICATION REQUESTS TABLE
 -- ----------------------------------------------------------------------------
-DROP TABLE IF EXISTS `verification_requests`;
 CREATE TABLE `verification_requests` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
   `user_id` VARCHAR(36) NOT NULL,
@@ -386,7 +377,6 @@ CREATE TABLE `verification_requests` (
 -- ----------------------------------------------------------------------------
 -- 12. FLAGGED LISTINGS / MODERATION REPORTS TABLE
 -- ----------------------------------------------------------------------------
-DROP TABLE IF EXISTS `flagged_listings`;
 CREATE TABLE `flagged_listings` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
   `listing_id` VARCHAR(36) NOT NULL,
@@ -408,7 +398,6 @@ CREATE TABLE `flagged_listings` (
 -- ----------------------------------------------------------------------------
 -- 13. TRADE DISPUTES TABLE
 -- ----------------------------------------------------------------------------
-DROP TABLE IF EXISTS `trade_disputes`;
 CREATE TABLE `trade_disputes` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
   `transaction_id` VARCHAR(36) NOT NULL,
@@ -433,7 +422,6 @@ CREATE TABLE `trade_disputes` (
 -- ----------------------------------------------------------------------------
 -- 14. CAMPUS ANNOUNCEMENTS BULLETIN TABLE
 -- ----------------------------------------------------------------------------
-DROP TABLE IF EXISTS `announcements`;
 CREATE TABLE `announcements` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
   `title` VARCHAR(200) NOT NULL,
@@ -464,7 +452,6 @@ CREATE TABLE `announcements` (
 -- ----------------------------------------------------------------------------
 -- 15. ADMIN AUDIT LOGS TABLE
 -- ----------------------------------------------------------------------------
-DROP TABLE IF EXISTS `admin_audit_logs`;
 CREATE TABLE `admin_audit_logs` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
   `admin_id` VARCHAR(36) NOT NULL,
@@ -484,7 +471,6 @@ CREATE TABLE `admin_audit_logs` (
 -- ----------------------------------------------------------------------------
 -- 16. PROHIBITED KEYWORDS TABLE
 -- ----------------------------------------------------------------------------
-DROP TABLE IF EXISTS `prohibited_keywords`;
 CREATE TABLE `prohibited_keywords` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
   `keyword` VARCHAR(100) NOT NULL UNIQUE,
@@ -497,7 +483,6 @@ CREATE TABLE `prohibited_keywords` (
 -- ----------------------------------------------------------------------------
 -- 17. SYSTEM CONFIGURATION
 -- ----------------------------------------------------------------------------
-DROP TABLE IF EXISTS `system_config`;
 CREATE TABLE `system_config` (
   `config_key` VARCHAR(50) NOT NULL PRIMARY KEY,
   `config_value` JSON NOT NULL,
@@ -508,7 +493,6 @@ CREATE TABLE `system_config` (
 -- ----------------------------------------------------------------------------
 -- 18. FEATURE FLAGS TABLE
 -- ----------------------------------------------------------------------------
-DROP TABLE IF EXISTS `feature_flags`;
 CREATE TABLE `feature_flags` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
   `name` VARCHAR(100) NOT NULL UNIQUE,
@@ -520,7 +504,6 @@ CREATE TABLE `feature_flags` (
 -- ----------------------------------------------------------------------------
 -- 19. PASSWORD RESET REQUESTS TABLE
 -- ----------------------------------------------------------------------------
-DROP TABLE IF EXISTS `password_reset_requests`;
 CREATE TABLE `password_reset_requests` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
   `user_id` VARCHAR(36) NOT NULL,
@@ -539,4 +522,5 @@ CREATE TABLE `password_reset_requests` (
   CONSTRAINT `fk_pw_reset_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Re-enable foreign key constraints
 SET FOREIGN_KEY_CHECKS = 1;

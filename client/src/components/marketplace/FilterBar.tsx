@@ -133,6 +133,7 @@ export const FilterBar: React.FC = () => {
               <option value="buy_sell">Buy & Sell Only</option>
               <option value="swap">Swap / Barter Only</option>
               <option value="free_donation">Free Donations Only</option>
+              <option value="flash_only">⚡ Flash Requests Only</option>
             </select>
           </div>
 

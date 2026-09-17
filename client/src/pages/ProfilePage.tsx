@@ -315,7 +315,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   }
 
   return (
-    <div className="container page-enter" style={{ maxWidth: '1120px', padding: '2rem 1.5rem 6rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div className="container page-enter" style={{ padding: '2rem 1.5rem 6rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {/* 1. STOREFRONT HERO CARD */}
       <div
         className="clean-card"
@@ -880,7 +880,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 </h3>
               </div>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem', margin: 0 }}>
-                Your student credentials and biometric live selfie have been submitted to campus administrators. Review is underway.
+                Your student credentials and live biometric selfie have been submitted for campus moderation. Please allow <strong>1–3 business days</strong> for campus safety administrators to complete verification.
               </p>
             </div>
             <button
@@ -1449,7 +1449,15 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 <div key={w.id} className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', borderRadius: '14px', borderLeft: '4px solid var(--uc-gold)' }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                     <CampusBadge campus={w.preferredCampus} size="sm" />
-                    <span style={{ fontSize: '0.86rem', fontWeight: 900, color: 'var(--uc-blue)' }}>₱{w.targetBudget.toLocaleString()}</span>
+                    <span style={{ fontSize: '0.86rem', fontWeight: 900, color: 'var(--uc-blue)' }}>
+                      {w.targetBudget <= 0 && w.targetBudget !== 0 ? (
+                        <span style={{ color: 'var(--accent-green, #059669)' }}>FREE / Donation</span>
+                      ) : w.targetBudget === 0 ? (
+                        <span style={{ color: '#D97706' }}>Open to Offers</span>
+                      ) : (
+                        `₱${w.targetBudget.toLocaleString()}`
+                      )}
+                    </span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Zap size={14} color="var(--uc-gold)" />

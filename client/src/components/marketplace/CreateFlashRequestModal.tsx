@@ -3,12 +3,14 @@ import { useFlashMarket } from '../../context/FlashMarketContext';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../common/Toast';
 import { Campus } from '../../types';
-import { X, Zap, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import { X, Zap, CheckCircle2, Clock, AlertCircle, Tag, HelpCircle, Gift } from 'lucide-react';
 
 interface CreateFlashRequestModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
+
+export type FlashPriceMode = 'fixed' | 'negotiable' | 'free';
 
 export const CreateFlashRequestModal: React.FC<CreateFlashRequestModalProps> = ({
   isOpen,
@@ -20,6 +22,7 @@ export const CreateFlashRequestModal: React.FC<CreateFlashRequestModalProps> = (
 
   const [itemTitle, setItemTitle] = useState('');
   const [category, setCategory] = useState('Textbooks');
+  const [priceMode, setPriceMode] = useState<FlashPriceMode>('fixed');
   const [targetBudget, setTargetBudget] = useState<number | ''>('');
   const [urgency, setUrgency] = useState<'Immediate / Urgent' | 'This Week' | 'Flexible'>('Immediate / Urgent');
   const [durationHours, setDurationHours] = useState<number>(24);
@@ -36,20 +39,30 @@ export const CreateFlashRequestModal: React.FC<CreateFlashRequestModalProps> = (
       return;
     }
 
-    if (targetBudget === '' || Number(targetBudget) <= 0) {
-      showToast('Price Required', 'Please enter your target budget or price.', 'warning');
-      return;
+    let budgetValue = 0;
+    if (priceMode === 'fixed') {
+      if (targetBudget === '' || isNaN(Number(targetBudget)) || Number(targetBudget) < 0) {
+        showToast('Budget Required', 'Please enter a target budget amount.', 'warning');
+        return;
+      }
+      budgetValue = Number(targetBudget);
+    } else if (priceMode === 'free') {
+      budgetValue = 0;
+    } else {
+      budgetValue = 0;
     }
+
+    const priceLabel = priceMode === 'free' ? ' [FREE Donation Request]' : priceMode === 'negotiable' ? ' [Open to Offers]' : '';
 
     setIsSubmitting(true);
     try {
       await addRequest({
         itemTitle: itemTitle.trim(),
         category,
-        targetBudget: Number(targetBudget),
+        targetBudget: budgetValue,
         urgency,
         durationHours,
-        description: description.trim() || `Looking for ${itemTitle} in ${preferredCampus}.`,
+        description: (description.trim() || `Looking for ${itemTitle} in ${preferredCampus}.`) + priceLabel,
         preferredCampus
       });
 
@@ -57,6 +70,7 @@ export const CreateFlashRequestModal: React.FC<CreateFlashRequestModalProps> = (
       onClose();
       setItemTitle('');
       setTargetBudget('');
+      setPriceMode('fixed');
       setDescription('');
     } catch (err: any) {
       showToast('Posting Failed', err?.message || 'Unable to post flash request.', 'error');
@@ -183,19 +197,128 @@ export const CreateFlashRequestModal: React.FC<CreateFlashRequestModalProps> = (
 
             <div>
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#1E293B', marginBottom: '0.35rem' }}>
-                Target Budget (₱) *
+                Preferred Campus
               </label>
-              <input
-                type="number"
-                min="1"
-                step="10"
-                value={targetBudget}
-                onChange={(e) => setTargetBudget(e.target.value === '' ? '' : Math.max(0, Number(e.target.value)))}
-                placeholder="0.00"
-                className="clean-input"
-                required
-              />
+              <select
+                value={preferredCampus}
+                onChange={(e: any) => setPreferredCampus(e.target.value)}
+                style={{ width: '100%', padding: '0.6rem', borderRadius: '10px', border: '1.5px solid #CBD5E1', fontSize: '0.82rem', color: '#0F172A', outline: 'none' }}
+              >
+                <option value="UC Main">UC Main</option>
+                <option value="UC Banilad">UC Banilad</option>
+                <option value="UC LM">UC LM</option>
+                <option value="UC METC">UC METC</option>
+                <option value="UC Pardo-Talisay">UC Pardo-Talisay</option>
+                <option value="UC South Campus">UC South Campus</option>
+                <option value="UC Medical Center">UC Medical Center</option>
+                <option value="UC PRI">UC PRI</option>
+              </select>
             </div>
+          </div>
+
+          {/* Pricing & Budget Mode */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1E293B' }}>
+                Pricing / Budget *
+              </label>
+              <span style={{ fontSize: '0.7rem', color: '#64748B' }}>
+                Accepts any amount, negotiable, or free
+              </span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.45rem', marginBottom: '0.65rem' }}>
+              {[
+                { id: 'fixed' as const, label: 'Target Budget (₱)', icon: <Tag size={13} /> },
+                { id: 'negotiable' as const, label: 'Open to Offers', icon: <HelpCircle size={13} /> },
+                { id: 'free' as const, label: 'Free / Donation', icon: <Gift size={13} /> }
+              ].map((m) => {
+                const active = priceMode === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setPriceMode(m.id)}
+                    style={{
+                      padding: '0.55rem 0.35rem',
+                      borderRadius: '8px',
+                      fontSize: '0.74rem',
+                      fontWeight: active ? 800 : 600,
+                      backgroundColor: active ? '#002B7F' : '#F8FAFC',
+                      color: active ? '#FFFFFF' : '#475569',
+                      border: active ? '1.5px solid #002B7F' : '1.5px solid #E2E8F0',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '0.25rem',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    {m.icon}
+                    <span style={{ textAlign: 'center', lineHeight: 1.15 }}>{m.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {priceMode === 'fixed' && (
+              <div>
+                <div style={{ position: 'relative' }}>
+                  <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, color: '#64748B', fontSize: '0.9rem' }}>
+                    ₱
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={targetBudget}
+                    onChange={(e) => setTargetBudget(e.target.value === '' ? '' : Math.max(0, Number(e.target.value)))}
+                    placeholder="Enter your target budget"
+                    className="clean-input"
+                    style={{ paddingLeft: '1.85rem' }}
+                    required
+                  />
+                </div>
+                {/* Quick chip presets */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.45rem', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: 600 }}>Quick:</span>
+                  {[50, 100, 200, 500, 1000].map((amt) => (
+                    <button
+                      key={amt}
+                      type="button"
+                      onClick={() => setTargetBudget(amt)}
+                      style={{
+                        padding: '0.2rem 0.5rem',
+                        borderRadius: '6px',
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        backgroundColor: targetBudget === amt ? '#EBF1FC' : '#F1F5F9',
+                        color: targetBudget === amt ? '#002B7F' : '#475569',
+                        border: targetBudget === amt ? '1px solid #BCD1F7' : '1px solid #E2E8F0',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      ₱{amt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {priceMode === 'negotiable' && (
+              <div style={{ padding: '0.65rem 0.85rem', borderRadius: '8px', backgroundColor: '#FFFBEB', border: '1px solid #FDE68A', fontSize: '0.75rem', color: '#B45309', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <HelpCircle size={15} style={{ flexShrink: 0 }} />
+                <span>Open to peer offers. Campus classmates can message you their suggested price on chat.</span>
+              </div>
+            )}
+
+            {priceMode === 'free' && (
+              <div style={{ padding: '0.65rem 0.85rem', borderRadius: '8px', backgroundColor: '#ECFDF5', border: '1px solid #A7F3D0', fontSize: '0.75rem', color: '#065F46', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <Gift size={15} style={{ flexShrink: 0 }} />
+                <span>Looking for a free student donation or passed-down study reviewer (₱0).</span>
+              </div>
+            )}
           </div>
 
           {/* Urgency Level connected dynamically to expiration window */}
@@ -282,25 +405,6 @@ export const CreateFlashRequestModal: React.FC<CreateFlashRequestModalProps> = (
             </div>
           </div>
 
-          <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#1E293B', marginBottom: '0.35rem' }}>
-              Preferred UC Campus
-            </label>
-            <select
-              value={preferredCampus}
-              onChange={(e: any) => setPreferredCampus(e.target.value)}
-              style={{ width: '100%', padding: '0.6rem', borderRadius: '10px', border: '1.5px solid #CBD5E1', fontSize: '0.82rem', color: '#0F172A', outline: 'none' }}
-            >
-              <option value="UC Main">UC Main</option>
-              <option value="UC Banilad">UC Banilad</option>
-              <option value="UC LM">UC LM</option>
-              <option value="UC METC">UC METC</option>
-              <option value="UC Pardo-Talisay">UC Pardo-Talisay</option>
-              <option value="UC South Campus">UC South Campus</option>
-              <option value="UC Medical Center">UC Medical Center</option>
-              <option value="UC PRI">UC PRI</option>
-            </select>
-          </div>
 
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#1E293B', marginBottom: '0.35rem' }}>

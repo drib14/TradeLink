@@ -351,8 +351,16 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
                     <span style={{ fontSize: '0.64rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>
                       Target Budget
                     </span>
-                    <div style={{ fontSize: '1.15rem', fontWeight: 900, color: isCardExpired ? '#64748B' : 'var(--uc-blue)', fontFamily: 'var(--font-display)' }}>
-                      ₱{req.targetBudget.toLocaleString()}
+                    <div style={{ fontSize: '1.05rem', fontWeight: 900, color: isCardExpired ? '#64748B' : 'var(--uc-blue)', fontFamily: 'var(--font-display)' }}>
+                      {req.targetBudget <= 0 ? (
+                        req.description?.toLowerCase().includes('free') ? (
+                          <span style={{ color: '#059669', fontSize: '0.92rem' }}>FREE / Donation</span>
+                        ) : (
+                          <span style={{ color: '#D97706', fontSize: '0.92rem' }}>Open to Offers</span>
+                        )
+                      ) : (
+                        `₱${req.targetBudget.toLocaleString()}`
+                      )}
                     </div>
                   </div>
 

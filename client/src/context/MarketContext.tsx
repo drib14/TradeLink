@@ -10,14 +10,14 @@ interface MarketContextType {
   isOffline: boolean;
   selectedCampus: 'All' | Campus;
   selectedCategory: string;
-  selectedTradeMode: 'All' | TradeMode;
+  selectedTradeMode: 'All' | TradeMode | 'flash_only';
   selectedCondition: 'All' | ConditionGrade;
   searchQuery: string;
   sortBy: 'recent' | 'price_low' | 'price_high' | 'trust_high' | 'views_high';
   priceRange: [number, number];
   setSelectedCampus: (campus: 'All' | Campus) => void;
   setSelectedCategory: (category: string) => void;
-  setSelectedTradeMode: (mode: 'All' | TradeMode) => void;
+  setSelectedTradeMode: (mode: 'All' | TradeMode | 'flash_only') => void;
   setSelectedCondition: (condition: 'All' | ConditionGrade) => void;
   setSearchQuery: (query: string) => void;
   setSortBy: (sort: 'recent' | 'price_low' | 'price_high' | 'trust_high' | 'views_high') => void;
@@ -45,7 +45,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Filter States
   const [selectedCampus, setSelectedCampus] = useState<'All' | Campus>('All');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
-  const [selectedTradeMode, setSelectedTradeMode] = useState<'All' | TradeMode>('All');
+  const [selectedTradeMode, setSelectedTradeMode] = useState<'All' | TradeMode | 'flash_only'>('All');
   const [selectedCondition, setSelectedCondition] = useState<'All' | ConditionGrade>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'recent' | 'price_low' | 'price_high' | 'trust_high' | 'views_high'>('recent');

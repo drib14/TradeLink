@@ -281,10 +281,8 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
   }
 
   const successMessage = evaluation.isApproved
-    ? `Student ID verified automatically (${evaluation.confidenceScore}% confidence score). Your verified badge is now active!`
-    : (evaluation.isSuspicious
-      ? 'Verification submitted. Credentials flagged for priority administrator manual review.'
-      : 'ID verification and biometric live selfie submitted successfully for administrator review.');
+    ? `Student ID verified automatically (${evaluation.confidenceScore}% confidence score, ${evaluation.facialMatchScore}% facial match). Your verified badge is now active!`
+    : `Verification submitted for manual review. Because automated facial match (${evaluation.facialMatchScore}%) was below the 90% threshold or requires inspection, your submission has been forwarded to the Campus Safety Moderation Desk. Please allow 1–3 business days for verification.`;
 
   res.status(200).json({
     status: 'success',
@@ -292,11 +290,15 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
     autoApproved: evaluation.isApproved,
     isSuspicious: evaluation.isSuspicious,
     confidenceScore: evaluation.confidenceScore,
+    facialMatchScore: evaluation.facialMatchScore,
+    reviewEstimate: evaluation.reviewEstimate || '1-3 business days',
     data: {
       status: evaluation.status,
       autoApproved: evaluation.isApproved,
       isSuspicious: evaluation.isSuspicious,
       confidenceScore: evaluation.confidenceScore,
+      facialMatchScore: evaluation.facialMatchScore,
+      reviewEstimate: evaluation.reviewEstimate || '1-3 business days',
       studentIdNumber: evaluation.cleanId,
       submittedAt: new Date().toISOString()
     }

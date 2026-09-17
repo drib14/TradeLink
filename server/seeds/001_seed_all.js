@@ -106,7 +106,7 @@ exports.seed = async function(knex) {
   ]);
 
   await knex('feature_flags').insert([
-    { id: 'ff-1', name: 'Price Advisor AI', description: 'Enable fair pricing assistance', enabled: true },
+    { id: 'ff-1', name: 'Campus Fair Price Guide', description: 'Standard campus student resale valuation', enabled: true },
     { id: 'ff-2', name: 'Direct Student Chat', description: 'Enable instant peer-to-peer student messaging', enabled: true },
     { id: 'ff-3', name: 'Campus Swap Desk', description: 'Allow barter and item-for-item swaps', enabled: true }
   ]);
