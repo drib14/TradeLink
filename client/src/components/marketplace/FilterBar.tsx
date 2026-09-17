@@ -116,7 +116,7 @@ export const FilterBar: React.FC = () => {
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
           {/* Trade Mode Filter */}
-          <div style={{ position: 'relative', minWidth: '150px', flex: '1 1 auto', maxWidth: '220px' }}>
+          <div style={{ position: 'relative', minWidth: '120px', flex: '1 1 120px', maxWidth: '220px' }}>
             <select
               value={selectedTradeMode}
               onChange={(e: any) => setSelectedTradeMode(e.target.value)}
@@ -137,7 +137,7 @@ export const FilterBar: React.FC = () => {
           </div>
 
           {/* Condition Filter */}
-          <div style={{ position: 'relative', minWidth: '140px', flex: '1 1 auto', maxWidth: '200px' }}>
+          <div style={{ position: 'relative', minWidth: '120px', flex: '1 1 120px', maxWidth: '200px' }}>
             <select
               value={selectedCondition}
               onChange={(e: any) => setSelectedCondition(e.target.value)}
@@ -159,7 +159,7 @@ export const FilterBar: React.FC = () => {
           </div>
 
           {/* Sort By Filter */}
-          <div style={{ position: 'relative', minWidth: '150px', flex: '1 1 auto', maxWidth: '220px' }}>
+          <div style={{ position: 'relative', minWidth: '120px', flex: '1 1 120px', maxWidth: '220px' }}>
             <select
               value={sortBy}
               onChange={(e: any) => setSortBy(e.target.value)}

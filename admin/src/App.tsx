@@ -66,7 +66,9 @@ const AdminAuthGate: React.FC = () => {
         showToast('Password Reset', 'Your administrator password has been updated. Please sign in.', 'success');
         setIsForgotOpen(false);
         setForgotStep('request');
-        setPasswordInput(newPassword);
+        setResetCode('');
+        setNewPassword('');
+        setPasswordInput('');
       } else {
         showToast('Reset Failed', res.message, 'error');
       }
@@ -156,14 +158,14 @@ const AdminAuthGate: React.FC = () => {
         {/* Login Form */}
         <form onSubmit={handleLoginSubmit} autoComplete="off" style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 800, color: '#334155', marginBottom: '0.35rem' }}>
-              Administrator Email or Student ID
+            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+              ID Number or Email
             </label>
             <input
               type="text"
               value={emailInput}
               onChange={(e) => setEmailInput(e.target.value)}
-              placeholder="admin@uc.edu.ph or ADMIN001"
+              placeholder="ID Number or Email"
               autoComplete="off"
               autoCorrect="off"
               autoCapitalize="off"
@@ -175,7 +177,7 @@ const AdminAuthGate: React.FC = () => {
 
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: 800, color: '#334155' }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155' }}>
                 Password
               </label>
               <button
@@ -194,7 +196,7 @@ const AdminAuthGate: React.FC = () => {
               type="password"
               value={passwordInput}
               onChange={(e) => setPasswordInput(e.target.value)}
-              placeholder="Enter administrator password"
+              placeholder="Password"
               autoComplete="new-password"
               className="clean-input"
               required
@@ -208,14 +210,13 @@ const AdminAuthGate: React.FC = () => {
             style={{
               padding: '0.85rem',
               width: '100%',
-              fontWeight: 800,
+              fontWeight: 700,
               fontSize: '0.9rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '0.5rem',
-              borderRadius: '12px',
-              boxShadow: '0 4px 14px rgba(0, 43, 127, 0.25)'
+              borderRadius: '10px'
             }}
           >
             {isSubmitting ? (
@@ -240,10 +241,10 @@ const AdminAuthGate: React.FC = () => {
           onClick={() => setIsForgotOpen(false)}
         >
           <div
-            style={{ backgroundColor: '#FFFFFF', borderRadius: '20px', padding: '2rem', maxWidth: '420px', width: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+            style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', padding: '2rem', maxWidth: '420px', width: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem', border: '1px solid #E2E8F0', boxShadow: '0 20px 40px -15px rgba(0, 43, 127, 0.2)' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#002B7F', fontWeight: 900, fontSize: '1.15rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#002B7F', fontWeight: 800, fontSize: '1.15rem' }}>
               <KeyRound size={22} color="#FFC72C" />
               <span>Admin Password Recovery</span>
             </div>
@@ -251,17 +252,17 @@ const AdminAuthGate: React.FC = () => {
             {forgotStep === 'request' ? (
               <form onSubmit={handleRequestResetCode} autoComplete="off" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <p style={{ fontSize: '0.82rem', color: '#64748B', margin: 0, lineHeight: 1.5 }}>
-                  Enter your registered administrator email address. A 4-digit verification code will be sent directly to your inbox.
+                  Enter your registered administrator email address. A 6-digit verification code will be sent directly to your inbox.
                 </p>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#334155', marginBottom: '0.35rem' }}>
-                    Administrator Email
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                    Email Address
                   </label>
                   <input
                     type="email"
                     value={forgotEmail}
                     onChange={(e) => setForgotEmail(e.target.value)}
-                    placeholder="Enter administrator email"
+                    placeholder="Email Address"
                     autoComplete="off"
                     className="clean-input"
                     required
@@ -271,7 +272,7 @@ const AdminAuthGate: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setIsForgotOpen(false)}
-                    style={{ flex: 1, padding: '0.75rem', borderRadius: '10px', fontSize: '0.84rem', fontWeight: 700, backgroundColor: '#F1F5F9', border: 'none', cursor: 'pointer' }}
+                    style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', fontSize: '0.84rem', fontWeight: 600, backgroundColor: '#F1F5F9', border: '1px solid #E2E8F0', cursor: 'pointer' }}
                   >
                     Cancel
                   </button>
@@ -279,7 +280,7 @@ const AdminAuthGate: React.FC = () => {
                     type="submit"
                     disabled={isResetting}
                     className="btn-primary"
-                    style={{ flex: 1.5, padding: '0.75rem', borderRadius: '10px', fontSize: '0.84rem', fontWeight: 800 }}
+                    style={{ flex: 1.5, padding: '0.75rem', borderRadius: '8px', fontSize: '0.84rem', fontWeight: 700 }}
                   >
                     {isResetting ? 'Sending...' : 'Send Reset Code'}
                   </button>
@@ -288,32 +289,33 @@ const AdminAuthGate: React.FC = () => {
             ) : (
               <form onSubmit={handleCompletePasswordReset} autoComplete="off" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <p style={{ fontSize: '0.82rem', color: '#64748B', margin: 0, lineHeight: 1.5 }}>
-                  Enter the 4-digit code sent to <strong>{forgotEmail}</strong> and your new password.
+                  Enter the 6-digit code sent to <strong>{forgotEmail}</strong> and your new password.
                 </p>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#334155', marginBottom: '0.35rem' }}>
-                    4-Digit Code
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                    Verification Code
                   </label>
                   <input
                     type="text"
-                    maxLength={4}
+                    maxLength={6}
                     value={resetCode}
-                    onChange={(e) => setResetCode(e.target.value.replace(/\D/g, ''))}
-                    placeholder="e.g. 1234"
+                    onChange={(e) => setResetCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="Verification Code"
                     autoComplete="off"
                     className="clean-input"
+                    style={{ textAlign: 'center', letterSpacing: '0.2em', fontSize: '1.1rem', fontWeight: 700 }}
                     required
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#334155', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
                     New Password
                   </label>
                   <input
                     type="password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Min. 6 characters"
+                    placeholder="New Password"
                     autoComplete="new-password"
                     className="clean-input"
                     required

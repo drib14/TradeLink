@@ -93,31 +93,31 @@
   --font-mono: 'JetBrains Mono', monospace;
 
   /* =========================================================================
-     CLAYMORPHISM SIGNATURE SHADOWS & DUAL INSET BEVEL TOKENS
+     MODERN ELEVATION & SHADOW TOKENS
      ========================================================================= */
-  --clay-shadow-xs: 0 2px 6px rgba(0, 43, 127, 0.06), 0 1px 2px rgba(0, 0, 0, 0.03);
-  --clay-shadow-sm: 0 6px 14px -2px rgba(0, 43, 127, 0.08), 0 2px 5px rgba(0, 0, 0, 0.04);
-  --clay-shadow-card: 0 12px 24px -4px rgba(0, 43, 127, 0.08), 0 4px 10px -2px rgba(0, 0, 0, 0.03);
-  --clay-shadow-card-hover: 0 20px 36px -6px rgba(0, 43, 127, 0.14), 0 6px 14px -2px rgba(0, 0, 0, 0.05);
-  --clay-shadow-modal: 0 28px 56px -10px rgba(0, 43, 127, 0.22), 0 12px 24px -4px rgba(0, 0, 0, 0.08);
+  --clay-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --clay-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --clay-shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  --clay-shadow-card-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+  --clay-shadow-modal: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 
-  /* Dual Inset Bevels */
-  --clay-inset-surface: inset 2.5px 2.5px 5px rgba(255, 255, 255, 0.95), inset -3px -3px 6px rgba(0, 43, 127, 0.04);
-  --clay-inset-surface-hover: inset 2.5px 2.5px 5px #FFFFFF, inset -3px -3px 6px rgba(0, 43, 127, 0.06);
-  --clay-inset-primary: inset 2px 2px 4px rgba(255, 255, 255, 0.45), inset -3px -3px 6px rgba(0, 18, 61, 0.6);
-  --clay-inset-gold: inset 2.5px 2.5px 5px rgba(255, 255, 255, 0.8), inset -3px -3px 6px rgba(180, 83, 9, 0.38);
-  --clay-inset-concave: inset 2.5px 2.5px 5px rgba(0, 43, 127, 0.07), inset -2px -2px 5px rgba(255, 255, 255, 0.95);
-  --clay-inset-concave-focus: inset 2.5px 2.5px 5px rgba(0, 43, 127, 0.11), inset -2px -2px 5px #FFFFFF;
+  /* Clean Surface Elevation (No plastic bevels) */
+  --clay-inset-surface: none;
+  --clay-inset-surface-hover: none;
+  --clay-inset-primary: none;
+  --clay-inset-gold: none;
+  --clay-inset-concave: none;
+  --clay-inset-concave-focus: none;
 
   /* Composite Shadows for Cards & Modals */
-  --shadow-xs: var(--clay-shadow-xs), inset 1.5px 1.5px 3px rgba(255, 255, 255, 0.9);
-  --shadow-sm: var(--clay-shadow-sm), inset 2px 2px 4px rgba(255, 255, 255, 0.9);
-  --shadow-card: var(--clay-shadow-card), var(--clay-inset-surface);
-  --shadow-card-hover: var(--clay-shadow-card-hover), var(--clay-inset-surface-hover);
-  --shadow-gold-hover: 0 14px 28px -4px rgba(229, 168, 0, 0.45), var(--clay-inset-gold);
-  --shadow-modal: var(--clay-shadow-modal), var(--clay-inset-surface);
-  --shadow-glow-blue: 0 8px 24px rgba(0, 43, 127, 0.35), var(--clay-inset-primary);
-  --shadow-glow-gold: 0 8px 24px rgba(255, 199, 44, 0.5), var(--clay-inset-gold);
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  --shadow-card-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+  --shadow-gold-hover: 0 10px 15px -3px rgba(229, 168, 0, 0.3);
+  --shadow-modal: 0 20px 25px -5px rgba(0, 0, 0, 0.12), 0 10px 10px -5px rgba(0, 0, 0, 0.05);
+  --shadow-glow-blue: 0 4px 14px rgba(0, 43, 127, 0.25);
+  --shadow-glow-gold: 0 4px 14px rgba(255, 199, 44, 0.35);
 
   /* Radius Tokens — Soft Clay Volume */
   --radius-xs: 6px;
@@ -138,6 +138,7 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  overflow-wrap: break-word;
 }
 
 html {
@@ -155,6 +156,34 @@ body {
   min-height: 100vh;
   overflow-x: clip;
   width: 100%;
+}
+
+/* Responsive Content Containment — Fit all content in designated containers */
+p, h1, h2, h3, h4, h5, h6, span, label, div {
+  max-width: 100%;
+}
+
+img, video, iframe {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Responsive Modals & Dialogs */
+.modal-dialog,
+.modal-content,
+[role="dialog"] {
+  max-width: min(94vw, 680px) !important;
+  width: 100%;
+  box-sizing: border-box !important;
+}
+
+@media (max-width: 640px) {
+  .modal-dialog,
+  .modal-content,
+  [role="dialog"] {
+    max-width: calc(100vw - 1rem) !important;
+    padding: 1.15rem !important;
+  }
 }
 
 /* Sticky Top Navigation Bar */
@@ -202,23 +231,40 @@ input, select, textarea {
   outline-offset: 2px;
 }
 
-/* Custom Sleek Scrollbars */
+/* Custom Sleek Scrollbar System (Standard, Firefox & Webkit) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #CBD5E1 transparent;
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #F1F5F9;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #002B7F;
+  background: #CBD5E1;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #001D59;
+  background: #94A3B8;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+}
+.no-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
 }
 
 /* Fluid Responsive Container */
@@ -346,37 +392,99 @@ input, select, textarea {
 
 .clean-card, .premium-card {
   background-color: var(--bg-surface) !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.85) !important;
-  border-radius: var(--radius-xl) !important;
+  border: 1px solid #E2E8F0 !important;
+  border-radius: var(--radius-lg) !important;
   transition: transform var(--transition-normal), box-shadow var(--transition-normal), border-color var(--transition-normal) !important;
-  box-shadow: 0 12px 24px -4px rgba(0, 43, 127, 0.08), 0 4px 10px -2px rgba(0, 0, 0, 0.03), inset 3px 3px 6px rgba(255, 255, 255, 0.95), inset -3px -3px 6px rgba(0, 43, 127, 0.04) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03) !important;
   overflow: hidden;
   position: relative;
 }
 
 .clean-card:hover, .premium-card:hover {
-  border-color: rgba(188, 209, 247, 0.8) !important;
-  transform: translateY(-4px) !important;
-  box-shadow: 0 20px 36px -6px rgba(0, 43, 127, 0.14), 0 6px 14px -2px rgba(0, 0, 0, 0.05), inset 3px 3px 6px #FFFFFF, inset -3px -3px 6px rgba(0, 43, 127, 0.06) !important;
+  border-color: #CBD5E1 !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 12px -2px rgba(0, 43, 127, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04) !important;
 }
 
-/* Claymorphic Glass Cards */
+/* Stunning & Simple Product Cards */
+.product-card-modern {
+  display: flex !important;
+  flex-direction: column !important;
+  position: relative;
+  background-color: #FFFFFF !important;
+  border: 1px solid var(--border-subtle, #E2E8F0) !important;
+  border-radius: 14px !important;
+  overflow: hidden !important;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.15s ease !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.product-card-modern:hover {
+  transform: translateY(-4px) !important;
+  border-color: #CBD5E1 !important;
+  box-shadow: 0 12px 24px -4px rgba(0, 43, 127, 0.1), 0 4px 8px -2px rgba(0, 0, 0, 0.04) !important;
+}
+
+.product-card-media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background-color: var(--bg-subtle, #F8FAFC);
+  flex-shrink: 0;
+}
+
+.product-card-media img,
+.product-card-media video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.product-card-modern:hover .product-card-media img,
+.product-card-modern:hover .product-card-media video {
+  transform: scale(1.04);
+}
+
+.product-card-body {
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 0.35rem;
+  min-width: 0;
+  background-color: #FFFFFF;
+}
+
+@media (max-width: 640px) {
+  .product-card-body {
+    padding: 0.6rem 0.5rem;
+    gap: 0.25rem;
+  }
+}
+
+/* Modern Glass Cards */
 .glass-card {
-  background: rgba(255, 255, 255, 0.92) !important;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-radius: var(--radius-xl) !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.9) !important;
-  box-shadow: 0 14px 28px -4px rgba(0, 43, 127, 0.09), inset 3px 3px 6px rgba(255, 255, 255, 0.95), inset -3px -3px 6px rgba(0, 43, 127, 0.05) !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: var(--radius-lg) !important;
+  border: 1px solid #E2E8F0 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03) !important;
 }
 
 .glass-panel-dark {
-  background: rgba(0, 29, 89, 0.92) !important;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-radius: var(--radius-xl) !important;
-  border: 1.5px solid rgba(255, 199, 44, 0.35) !important;
-  box-shadow: 0 20px 40px rgba(0, 29, 89, 0.4), inset 2.5px 2.5px 5px rgba(255, 255, 255, 0.2), inset -3px -3px 6px rgba(0, 10, 35, 0.6) !important;
+  background: rgba(0, 29, 89, 0.95) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: var(--radius-lg) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 29, 89, 0.3) !important;
 }
 
 /* Segmented Control / Pill Tabs (Clay Puffy Pills) */
@@ -425,21 +533,18 @@ input[type="url"],
 .clean-textarea,
 textarea {
   width: 100%;
-  padding: 0.75rem 1.15rem;
-  border-radius: var(--radius-md) !important;
-  border: 1.5px solid #E2E8F0 !important;
-  background-color: #F8FAFC !important;
+  padding: 0.65rem 0.95rem;
+  border-radius: var(--radius-sm) !important;
+  border: 1px solid #CBD5E1 !important;
+  background-color: #FFFFFF !important;
   color: var(--text-primary) !important;
   font-size: 0.88rem !important;
   font-family: var(--font-sans) !important;
   outline: none !important;
-  box-shadow: inset 2.5px 2.5px 5px rgba(0, 43, 127, 0.07),
-              inset -2.5px -2.5px 5px rgba(255, 255, 255, 0.95),
-              0 1px 2px rgba(0, 0, 0, 0.02) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
   transition: border-color var(--transition-fast),
               box-shadow var(--transition-fast),
-              background-color var(--transition-fast),
-              transform var(--transition-fast) !important;
+              background-color var(--transition-fast) !important;
 }
 
 /* Hover State */
@@ -453,14 +558,12 @@ input[type="tel"]:hover,
 input[type="url"]:hover,
 .clean-textarea:hover,
 textarea:hover {
-  border-color: #CBD5E1 !important;
+  border-color: #94A3B8 !important;
   background-color: #FFFFFF !important;
-  box-shadow: inset 2px 2px 4.5px rgba(0, 43, 127, 0.09),
-              inset -2px -2px 4.5px rgba(255, 255, 255, 0.98),
-              0 2px 8px rgba(0, 43, 127, 0.04) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
 }
 
-/* Gorgeous Focus State — Radiant Glow & Tactile Clay Carve */
+/* Crisp Clean Focus State — No Jumping */
 .clean-input:focus,
 input[type="text"]:focus:not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]),
 input[type="search"]:focus,
@@ -473,11 +576,8 @@ input[type="url"]:focus,
 textarea:focus {
   background-color: #FFFFFF !important;
   border-color: var(--uc-blue) !important;
-  box-shadow: inset 2px 2px 4px rgba(0, 43, 127, 0.12),
-              inset -2px -2px 4px #FFFFFF,
-              0 0 0 3.5px rgba(0, 43, 127, 0.18),
-              0 4px 14px -2px rgba(0, 43, 127, 0.12) !important;
-  transform: translateY(-0.5px) !important;
+  box-shadow: 0 0 0 3px rgba(0, 43, 127, 0.12), 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+  transform: none !important;
 }
 
 /* Disabled State */
@@ -488,11 +588,11 @@ textarea:disabled {
   border-color: #E2E8F0 !important;
   color: #94A3B8 !important;
   cursor: not-allowed !important;
-  box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.05) !important;
+  box-shadow: none !important;
   opacity: 0.75 !important;
 }
 
-/* Placeholder Styling */
+/* Placeholder Styling — No Sliding/Translating */
 ::placeholder,
 .clean-input::placeholder,
 .clean-textarea::placeholder,
@@ -502,17 +602,17 @@ textarea::placeholder {
   font-weight: 450 !important;
   letter-spacing: 0.01em;
   opacity: 0.9 !important;
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition: opacity 0.2s ease;
 }
 
 .clean-input:focus::placeholder,
 input:focus::placeholder,
 textarea:focus::placeholder {
   opacity: 0.55 !important;
-  transform: translateX(3px);
+  transform: none !important;
 }
 
-/* Dedicated Search Fields (Pill shape, smooth hover & focus animation) */
+/* Dedicated Search Fields */
 .search-input,
 input[type="search"],
 .navbar-search-input,
@@ -524,10 +624,8 @@ input.navbar-search-input {
   padding: 0.6rem 1rem 0.6rem 2.85rem !important;
   font-size: 0.85rem !important;
   background-color: #F8FAFC !important;
-  border: 1.5px solid #E2E8F0 !important;
-  box-shadow: inset 2px 2px 5px rgba(0, 43, 127, 0.08),
-              inset -2px -2px 5px rgba(255, 255, 255, 0.95),
-              0 1px 3px rgba(0, 0, 0, 0.02) !important;
+  border: 1px solid #CBD5E1 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
 }
 
 .search-input:hover,
@@ -535,10 +633,8 @@ input[type="search"]:hover,
 .navbar-search-input:hover,
 .search-bar-wrapper input:hover {
   background-color: #FFFFFF !important;
-  border-color: #CBD5E1 !important;
-  box-shadow: inset 2px 2px 4px rgba(0, 43, 127, 0.10),
-              inset -2px -2px 4px #FFFFFF,
-              0 3px 10px rgba(0, 43, 127, 0.05) !important;
+  border-color: #94A3B8 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
 }
 
 .search-input:focus,
@@ -547,11 +643,92 @@ input[type="search"]:focus,
 .search-bar-wrapper input:focus {
   background-color: #FFFFFF !important;
   border-color: var(--uc-blue) !important;
-  box-shadow: inset 2px 2px 4px rgba(0, 43, 127, 0.12),
-              inset -2px -2px 4px #FFFFFF,
-              0 0 0 3.5px rgba(0, 43, 127, 0.18),
-              0 8px 24px -2px rgba(0, 43, 127, 0.15) !important;
-  transform: translateY(-0.5px) !important;
+  box-shadow: 0 0 0 3px rgba(0, 43, 127, 0.12) !important;
+  transform: none !important;
+}
+
+@media (max-width: 640px) {
+  .search-input,
+  .navbar-search-input,
+  .search-bar-wrapper input,
+  .search-bar-wrapper input[type="text"] {
+    padding: 0.45rem 0.75rem 0.45rem 2.2rem !important;
+    font-size: 0.78rem !important;
+  }
+  .search-bar-wrapper .search-icon {
+    left: 0.65rem !important;
+    width: 14px !important;
+    height: 14px !important;
+  }
+}
+
+/* =========================================================================
+   CUSTOM INPUT CONTROLS & BROWSER DEFAULT REMOVAL
+   ========================================================================= */
+
+/* 1. Remove Number Input Spinner Adjustment Arrows across all browsers */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0 !important;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield !important;
+  appearance: textfield !important;
+}
+
+/* 2. Custom Select Dropdowns (Remove OS default arrow, replace with sleek SVG chevron) */
+select,
+.clean-select {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.85rem center !important;
+  background-size: 16px 16px !important;
+  padding-right: 2.5rem !important;
+  cursor: pointer !important;
+}
+
+select::-ms-expand {
+  display: none;
+}
+
+/* 3. Remove Webkit Default Search Cancel & Clear Buttons */
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-results-button,
+input[type="search"]::-webkit-search-results-decoration {
+  display: none !important;
+  -webkit-appearance: none !important;
+}
+
+/* 4. Custom Clean Textarea */
+textarea,
+.clean-textarea {
+  resize: vertical;
+  min-height: 85px;
+  line-height: 1.5;
+}
+
+/* 5. Chrome / Edge Autofill Harmonization (Prevent harsh neon yellow / blue backgrounds) */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0px 1000px #FFFFFF inset !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* 6. Custom Checkbox & Radio Accents */
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--uc-blue) !important;
+  cursor: pointer;
 }
 
 /* Search Bar Wrapper & Icon Transitions */
@@ -604,25 +781,25 @@ input[type="search"]:focus,
   gap: 0.5rem;
   background-color: var(--uc-blue) !important;
   color: #FFFFFF !important;
-  padding: 0.7rem 1.45rem !important;
-  border-radius: var(--radius-lg) !important;
+  padding: 0.65rem 1.35rem !important;
+  border-radius: var(--radius-md) !important;
   font-size: 0.88rem !important;
-  font-weight: 700 !important;
-  border: 1px solid rgba(255, 255, 255, 0.25) !important;
-  box-shadow: 0 8px 18px -2px rgba(0, 43, 127, 0.35), 0 3px 6px -1px rgba(0, 43, 127, 0.2), inset 2px 2px 4px rgba(255, 255, 255, 0.45), inset -3px -3px 6px rgba(0, 18, 61, 0.6) !important;
-  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.15s ease !important;
+  font-weight: 600 !important;
+  border: 1px solid rgba(0, 43, 127, 0.2) !important;
+  box-shadow: 0 1px 3px rgba(0, 43, 127, 0.2), 0 1px 2px rgba(0, 0, 0, 0.06) !important;
+  transition: all var(--transition-fast) !important;
   cursor: pointer;
 }
 
 .btn-primary:hover {
   background-color: var(--uc-blue-light) !important;
-  transform: translateY(-2px) !important;
-  box-shadow: 0 12px 24px -3px rgba(0, 43, 127, 0.42), 0 4px 10px -1px rgba(0, 43, 127, 0.25), inset 2px 2px 5px rgba(255, 255, 255, 0.55), inset -3px -3px 6px rgba(0, 18, 61, 0.7) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 8px -1px rgba(0, 43, 127, 0.25), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
 }
 
 .btn-primary:active {
-  transform: translateY(2px) scale(0.97) !important;
-  box-shadow: 0 3px 6px -1px rgba(0, 43, 127, 0.3), inset 3px 3px 6px rgba(0, 18, 61, 0.7), inset -2px -2px 4px rgba(255, 255, 255, 0.25) !important;
+  transform: translateY(0) !important;
+  box-shadow: 0 1px 2px rgba(0, 43, 127, 0.2) !important;
 }
 
 .btn-gold {
@@ -630,27 +807,27 @@ input[type="search"]:focus,
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  background: linear-gradient(135deg, #FFC72C 0%, #E5A800 100%) !important;
+  background: linear-gradient(135deg, #FFC72C 0%, #F59E0B 100%) !important;
   color: #002B7F !important;
-  padding: 0.7rem 1.45rem !important;
-  border-radius: var(--radius-lg) !important;
+  padding: 0.65rem 1.35rem !important;
+  border-radius: var(--radius-md) !important;
   font-size: 0.88rem !important;
-  font-weight: 800 !important;
-  border: 1px solid rgba(255, 255, 255, 0.5) !important;
-  box-shadow: 0 8px 20px -2px rgba(229, 168, 0, 0.45), 0 3px 8px -1px rgba(229, 168, 0, 0.25), inset 2.5px 2.5px 5px rgba(255, 255, 255, 0.8), inset -3px -3px 6px rgba(180, 83, 9, 0.38) !important;
-  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.15s ease !important;
+  font-weight: 700 !important;
+  border: 1px solid rgba(245, 158, 11, 0.3) !important;
+  box-shadow: 0 1px 3px rgba(245, 158, 11, 0.25), 0 1px 2px rgba(0, 0, 0, 0.06) !important;
+  transition: all var(--transition-fast) !important;
   cursor: pointer;
 }
 
 .btn-gold:hover {
-  background: linear-gradient(135deg, #FFE082 0%, #FFC72C 100%) !important;
-  transform: translateY(-2px) !important;
-  box-shadow: 0 14px 28px -3px rgba(229, 168, 0, 0.5), 0 4px 10px -1px rgba(229, 168, 0, 0.3), inset 2.5px 2.5px 5px rgba(255, 255, 255, 0.9), inset -3px -3px 6px rgba(180, 83, 9, 0.45) !important;
+  background: linear-gradient(135deg, #FCD34D 0%, #F59E0B 100%) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 10px -1px rgba(245, 158, 11, 0.35) !important;
 }
 
 .btn-gold:active {
-  transform: translateY(2px) scale(0.97) !important;
-  box-shadow: 0 3px 6px -1px rgba(229, 168, 0, 0.35), inset 3px 3px 6px rgba(180, 83, 9, 0.5), inset -2px -2px 4px rgba(255, 255, 255, 0.4) !important;
+  transform: translateY(0) !important;
+  box-shadow: 0 1px 2px rgba(245, 158, 11, 0.2) !important;
 }
 
 .btn-secondary {
@@ -660,27 +837,27 @@ input[type="search"]:focus,
   gap: 0.5rem;
   background-color: #FFFFFF !important;
   color: var(--text-primary) !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.95) !important;
-  padding: 0.7rem 1.45rem !important;
-  border-radius: var(--radius-lg) !important;
+  border: 1px solid #CBD5E1 !important;
+  padding: 0.65rem 1.35rem !important;
+  border-radius: var(--radius-md) !important;
   font-size: 0.88rem !important;
-  font-weight: 700 !important;
-  box-shadow: 0 6px 16px -2px rgba(0, 43, 127, 0.08), 0 2px 6px rgba(0, 0, 0, 0.03), inset 2.5px 2.5px 5px rgba(255, 255, 255, 0.95), inset -2.5px -2.5px 5px rgba(0, 43, 127, 0.06) !important;
-  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.15s ease !important;
+  font-weight: 600 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+  transition: all var(--transition-fast) !important;
   cursor: pointer;
 }
 
 .btn-secondary:hover {
   background-color: #F8FAFC !important;
-  border-color: rgba(188, 209, 247, 0.6) !important;
+  border-color: #94A3B8 !important;
   color: var(--uc-blue) !important;
-  transform: translateY(-2px) !important;
-  box-shadow: 0 10px 22px -3px rgba(0, 43, 127, 0.12), inset 2.5px 2.5px 5px #FFFFFF, inset -2.5px -2.5px 5px rgba(0, 43, 127, 0.08) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06) !important;
 }
 
 .btn-secondary:active {
-  transform: translateY(1px) scale(0.98) !important;
-  box-shadow: 0 2px 4px rgba(0, 43, 127, 0.06), inset 3px 3px 5px rgba(0, 43, 127, 0.08), inset -2px -2px 4px #FFFFFF !important;
+  transform: translateY(0) !important;
+  box-shadow: none !important;
 }
 
 .btn-danger {
@@ -690,25 +867,25 @@ input[type="search"]:focus,
   gap: 0.5rem;
   background-color: var(--accent-red) !important;
   color: #FFFFFF !important;
-  padding: 0.7rem 1.45rem !important;
-  border-radius: var(--radius-lg) !important;
+  padding: 0.65rem 1.35rem !important;
+  border-radius: var(--radius-md) !important;
   font-size: 0.88rem !important;
-  font-weight: 700 !important;
-  border: 1px solid rgba(255, 255, 255, 0.25) !important;
-  box-shadow: 0 8px 18px -2px rgba(220, 38, 38, 0.35), 0 3px 6px -1px rgba(220, 38, 38, 0.2), inset 2px 2px 4px rgba(255, 255, 255, 0.45), inset -3px -3px 6px rgba(153, 27, 27, 0.55) !important;
-  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.15s ease !important;
+  font-weight: 600 !important;
+  border: 1px solid rgba(220, 38, 38, 0.2) !important;
+  box-shadow: 0 1px 3px rgba(220, 38, 38, 0.25) !important;
+  transition: all var(--transition-fast) !important;
   cursor: pointer;
 }
 
 .btn-danger:hover {
   background-color: #B91C1C !important;
-  transform: translateY(-2px) !important;
-  box-shadow: 0 12px 24px -3px rgba(220, 38, 38, 0.42), inset 2px 2px 5px rgba(255, 255, 255, 0.55), inset -3px -3px 6px rgba(153, 27, 27, 0.65) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 8px rgba(220, 38, 38, 0.3) !important;
 }
 
 .btn-danger:active {
-  transform: translateY(2px) scale(0.97) !important;
-  box-shadow: 0 3px 6px -1px rgba(220, 38, 38, 0.3), inset 3px 3px 6px rgba(153, 27, 27, 0.7), inset -2px -2px 4px rgba(255, 255, 255, 0.25) !important;
+  transform: translateY(0) !important;
+  box-shadow: 0 1px 2px rgba(220, 38, 38, 0.2) !important;
 }
 
 .btn-danger-outline {
@@ -718,12 +895,12 @@ input[type="search"]:focus,
   gap: 0.5rem;
   background-color: #FEF2F2 !important;
   color: var(--accent-red) !important;
-  border: 1.5px solid rgba(254, 202, 202, 0.9) !important;
-  padding: 0.7rem 1.45rem !important;
-  border-radius: var(--radius-lg) !important;
+  border: 1px solid #FECACA !important;
+  padding: 0.65rem 1.35rem !important;
+  border-radius: var(--radius-md) !important;
   font-size: 0.88rem !important;
-  font-weight: 700 !important;
-  box-shadow: 0 4px 10px rgba(220, 38, 38, 0.1), inset 2px 2px 4px rgba(255, 255, 255, 0.9), inset -2px -2px 4px rgba(220, 38, 38, 0.08) !important;
+  font-weight: 600 !important;
+  box-shadow: 0 1px 2px rgba(220, 38, 38, 0.05) !important;
   transition: all var(--transition-fast) !important;
   cursor: pointer;
 }
@@ -731,8 +908,8 @@ input[type="search"]:focus,
 .btn-danger-outline:hover {
   background-color: #FEE2E2 !important;
   border-color: var(--accent-red) !important;
-  transform: translateY(-2px) !important;
-  box-shadow: 0 8px 18px rgba(220, 38, 38, 0.2), inset 2px 2px 4px #FFFFFF, inset -2px -2px 4px rgba(220, 38, 38, 0.1) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.1) !important;
 }
 
 /* Campus Badge Color Codes */
@@ -760,19 +937,37 @@ input[type="search"]:focus,
   border: 1px solid #DDD6FE;
 }
 
-/* Grid Layouts */
+/* Grid Layouts - Strictly Grid, Never Stack */
 .grid-responsive-listings {
-  display: grid;
+  display: grid !important;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1.25rem;
   width: 100%;
+  min-width: 0;
 }
 
 .grid-responsive-wanted {
-  display: grid;
+  display: grid !important;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1.25rem;
   width: 100%;
+  min-width: 0;
+}
+
+.grid-responsive-proposals {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.15rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.grid-responsive-transactions {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 1.15rem;
+  width: 100%;
+  min-width: 0;
 }
 
 .touch-scroll-row {
@@ -847,12 +1042,14 @@ input[type="search"]:focus,
     display: flex !important;
   }
   .grid-responsive-listings {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.65rem;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.55rem !important;
   }
   .grid-responsive-wanted {
-    grid-template-columns: 1fr;
-    gap: 0.75rem;
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)) !important;
+    gap: 0.65rem !important;
   }
   .clean-card, .premium-card {
     border-radius: var(--radius-lg) !important;
@@ -1913,11 +2110,20 @@ input[type="search"]:focus,
   }
 
   .grid-responsive-listings {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
-    gap: 0.75rem !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.55rem !important;
   }
 
   .grid-responsive-wanted {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)) !important;
+    gap: 0.65rem !important;
+  }
+
+  .grid-responsive-proposals,
+  .grid-responsive-transactions {
+    display: grid !important;
     grid-template-columns: 1fr !important;
     gap: 0.75rem !important;
   }
@@ -2348,48 +2554,48 @@ textarea:focus,
 }
 
 /* =========================================================================
-   CLAYMORPHISM CORE UTILITY CLASSES & GLOBAL REINFORCEMENTS
+   CORE UTILITY CLASSES & GLOBAL REINFORCEMENTS
    ========================================================================= */
 
 .clay-surface {
   background-color: #FFFFFF !important;
-  border-radius: var(--radius-xl) !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.9) !important;
-  box-shadow: 0 12px 24px -4px rgba(0, 43, 127, 0.08), 0 4px 10px -2px rgba(0, 0, 0, 0.03), inset 3px 3px 6px rgba(255, 255, 255, 0.95), inset -3px -3px 6px rgba(0, 43, 127, 0.04) !important;
+  border-radius: var(--radius-lg) !important;
+  border: 1px solid #E2E8F0 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03) !important;
 }
 
 .clay-surface-interactive {
   background-color: #FFFFFF !important;
-  border-radius: var(--radius-xl) !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.9) !important;
-  box-shadow: 0 12px 24px -4px rgba(0, 43, 127, 0.08), 0 4px 10px -2px rgba(0, 0, 0, 0.03), inset 3px 3px 6px rgba(255, 255, 255, 0.95), inset -3px -3px 6px rgba(0, 43, 127, 0.04) !important;
+  border-radius: var(--radius-lg) !important;
+  border: 1px solid #E2E8F0 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03) !important;
   transition: transform var(--transition-normal), box-shadow var(--transition-normal), border-color var(--transition-normal) !important;
   cursor: pointer;
 }
 
 .clay-surface-interactive:hover {
-  transform: translateY(-4px) !important;
-  border-color: rgba(188, 209, 247, 0.8) !important;
-  box-shadow: 0 20px 36px -6px rgba(0, 43, 127, 0.14), 0 6px 14px -2px rgba(0, 0, 0, 0.05), inset 3px 3px 6px #FFFFFF, inset -3px -3px 6px rgba(0, 43, 127, 0.06) !important;
+  transform: translateY(-2px) !important;
+  border-color: #CBD5E1 !important;
+  box-shadow: 0 6px 12px -2px rgba(0, 43, 127, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04) !important;
 }
 
 .clay-pill {
   border-radius: var(--radius-full) !important;
-  box-shadow: 0 4px 10px -1px rgba(0, 43, 127, 0.08), inset 1.5px 1.5px 3px rgba(255, 255, 255, 0.9), inset -1.5px -1.5px 3px rgba(0, 43, 127, 0.04) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
 }
 
 .clay-dock {
   background-color: rgba(255, 255, 255, 0.96) !important;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-radius: var(--radius-2xl) !important;
-  border: 2px solid rgba(255, 255, 255, 0.95) !important;
-  box-shadow: 0 16px 36px -6px rgba(0, 43, 127, 0.14), inset 2.5px 2.5px 5px rgba(255, 255, 255, 1), inset -2.5px -2.5px 5px rgba(0, 43, 127, 0.04) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: var(--radius-xl) !important;
+  border: 1px solid #E2E8F0 !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1) !important;
 }
 
 .clay-input-inset {
-  background-color: #F8FAFC !important;
-  border-radius: var(--radius-md) !important;
-  border: 1.5px solid #E2E8F0 !important;
-  box-shadow: inset 2.5px 2.5px 5px rgba(0, 43, 127, 0.07), inset -2px -2px 5px rgba(255, 255, 255, 0.95), 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+  background-color: #FFFFFF !important;
+  border-radius: var(--radius-sm) !important;
+  border: 1px solid #CBD5E1 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
 }

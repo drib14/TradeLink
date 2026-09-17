@@ -101,6 +101,9 @@ const register = asyncHandler(async (req, res, next) => {
   });
 });
 
+// Precomputed bcrypt hash for constant-time comparison against timing attacks
+const DUMMY_HASH = '$2a$12$e8uq5e/jD/qE50Gv3hD.1e.W0a5vCjNfZg.HhC3aAfe7ZpM3s.zma';
+
 /**
  * Login student user (blocks administrator accounts from student portal)
  */
@@ -121,8 +124,21 @@ const login = asyncHandler(async (req, res, next) => {
       .first();
   }
 
+  // Timing attack mitigation: Run dummy comparison if user is not found
   if (!user) {
+    await bcrypt.compare(password, DUMMY_HASH);
     return next(new AppError('Invalid credentials.', 401));
+  }
+
+  // Account lockout protection: Check if locked due to 5+ failed attempts
+  if (user.locked_until && new Date(user.locked_until) > new Date()) {
+    const remainingMin = Math.max(1, Math.ceil((new Date(user.locked_until) - new Date()) / (60 * 1000)));
+    return next(
+      new AppError(
+        `Account temporarily locked due to consecutive failed login attempts. Please try again in ${remainingMin} minute(s).`,
+        423
+      )
+    );
   }
 
   // Guard: Administrator accounts must use the dedicated Admin Portal
@@ -146,12 +162,32 @@ const login = asyncHandler(async (req, res, next) => {
 
   const isMatch = await bcrypt.compare(password, user.password_hash);
   if (!isMatch) {
+    const attempts = (user.failed_login_attempts || 0) + 1;
+    if (attempts >= 5) {
+      const lockExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes lockout
+      await db('users').where({ id: user.id }).update({
+        failed_login_attempts: attempts,
+        locked_until: lockExpiry
+      });
+      return next(
+        new AppError(
+          'Account temporarily locked for 15 minutes due to 5 failed login attempts.',
+          423
+        )
+      );
+    }
+    await db('users').where({ id: user.id }).update({ failed_login_attempts: attempts });
     return next(new AppError('Invalid credentials.', 401));
   }
 
-  const { accessToken, refreshToken } = generateTokens(user.id, user.role, user.campus);
+  const tokenVersion = user.token_version || 1;
+  const { accessToken, refreshToken } = generateTokens(user.id, user.role, user.campus, tokenVersion);
   const refreshTokenHash = await hashCode(refreshToken);
-  await db('users').where({ id: user.id }).update({ refresh_token_hash: refreshTokenHash });
+  await db('users').where({ id: user.id }).update({
+    refresh_token_hash: refreshTokenHash,
+    failed_login_attempts: 0,
+    locked_until: null
+  });
 
   setRefreshTokenCookie(res, refreshToken);
 
@@ -194,7 +230,8 @@ const refreshToken = asyncHandler(async (req, res, next) => {
   }
 
   // Rotate tokens
-  const newTokens = generateTokens(user.id, user.role, user.campus);
+  const tokenVersion = user.token_version || 1;
+  const newTokens = generateTokens(user.id, user.role, user.campus, tokenVersion);
   const newHash = await hashCode(newTokens.refreshToken);
   await db('users').where({ id: user.id }).update({ refresh_token_hash: newHash });
 
@@ -214,7 +251,11 @@ const refreshToken = asyncHandler(async (req, res, next) => {
  */
 const logout = asyncHandler(async (req, res) => {
   if (req.user) {
-    await db('users').where({ id: req.user.id }).update({ refresh_token_hash: null });
+    const nextVersion = (req.user.token_version || 1) + 1;
+    await db('users').where({ id: req.user.id }).update({
+      refresh_token_hash: null,
+      token_version: nextVersion
+    });
   }
 
   res.clearCookie('refreshToken', { path: '/api' });
@@ -239,7 +280,7 @@ const forgotPassword = asyncHandler(async (req, res, next) => {
   const successResponse = () => {
     res.status(200).json({
       status: 'success',
-      message: 'If an account with that email exists, a verification code has been sent to the registered email address. Please check your inbox or spam folder.'
+      message: 'If an account with that email exists, a 6-digit verification code has been dispatched. Please check your inbox or spam folder.'
     });
   };
 
@@ -257,12 +298,13 @@ const forgotPassword = asyncHandler(async (req, res, next) => {
   // Generate 6-digit verification code directly
   const code = generate4DigitCode();
   const codeHash = await hashCode(code);
-  const expiry = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes validity
+  const expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes validity
 
-  // Save code hash directly to student account
+  // Save code hash directly to student account and reset failed attempts counter
   await db('users').where({ id: user.id }).update({
     reset_code_hash: codeHash,
-    reset_code_exp: expiry
+    reset_code_exp: expiry,
+    failed_reset_attempts: 0
   });
 
   // Record in password_reset_requests for compliance & logging
@@ -305,20 +347,48 @@ const resetPassword = asyncHandler(async (req, res, next) => {
   }
 
   if (!user.reset_code_hash || !user.reset_code_exp || new Date() > new Date(user.reset_code_exp)) {
-    return next(new AppError('Verification code has expired. Please request a new one.', 400));
+    return next(new AppError('Verification code has expired or is invalid. Please request a new one.', 400));
   }
 
   const isMatch = await verifyCode(code.trim(), user.reset_code_hash);
   if (!isMatch) {
-    return next(new AppError('Invalid verification code. Please check the 4-digit code in your email.', 400));
+    const attempts = (user.failed_reset_attempts || 0) + 1;
+    if (attempts >= 3) {
+      // Invalidate code after 3 wrong attempts
+      await db('users').where({ id: user.id }).update({
+        reset_code_hash: null,
+        reset_code_exp: null,
+        failed_reset_attempts: 0
+      });
+      return next(
+        new AppError(
+          'Invalid verification code. Maximum attempts exceeded (3/3). For security, this verification code has been invalidated. Please request a new code.',
+          400
+        )
+      );
+    }
+    await db('users').where({ id: user.id }).update({ failed_reset_attempts: attempts });
+    return next(
+      new AppError(
+        `Invalid verification code. You have ${3 - attempts} attempt(s) remaining.`,
+        400
+      )
+    );
   }
 
   const passwordHash = await bcrypt.hash(newPassword, 12);
+  const nextTokenVersion = (user.token_version || 1) + 1;
+
   await db('users').where({ id: user.id }).update({
     password_hash: passwordHash,
     reset_code_hash: null,
     reset_code_exp: null,
-    refresh_token_hash: null // Invalidate existing sessions for security
+    failed_reset_attempts: 0,
+    failed_login_attempts: 0,
+    locked_until: null,
+    token_version: nextTokenVersion,
+    password_changed_at: new Date(),
+    refresh_token_hash: null // Invalidate existing refresh token sessions
   });
 
   // Mark latest reset requests as completed

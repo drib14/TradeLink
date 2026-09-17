@@ -229,7 +229,7 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
               type="text"
               value={customDescription}
               onChange={(e) => setCustomDescription(e.target.value)}
-              placeholder="e.g. Casio FX-570ES Calculator + 2 notebooks"
+              placeholder="Item title or description"
               className="clean-input"
               required
             />
@@ -269,7 +269,7 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
               min="0"
               value={cashTopUp || ''}
               onChange={(e) => setCashTopUp(Math.max(0, Number(e.target.value)))}
-              placeholder="0 (e.g. 150 to balance the trade)"
+              placeholder="0"
               className="clean-input"
               style={{ paddingLeft: '1.75rem', fontWeight: 700 }}
             />

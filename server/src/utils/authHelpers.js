@@ -9,19 +9,19 @@ const env = require('../config/env');
  * @param {string} campus
  * @returns {{ accessToken: string, refreshToken: string }}
  */
-function generateTokens(userId, role, campus) {
+function generateTokens(userId, role, campus, tokenVersion = 1) {
   const isAdmin = role === 'admin';
   const accessSecret = isAdmin ? env.jwt.adminAccessSecret : env.jwt.accessSecret;
   const refreshSecret = isAdmin ? env.jwt.adminRefreshSecret : env.jwt.refreshSecret;
 
   const accessToken = jwt.sign(
-    { userId, role, campus, tokenType: isAdmin ? 'admin' : 'student' },
+    { userId, role, campus, tokenVersion: tokenVersion || 1, tokenType: isAdmin ? 'admin' : 'student' },
     accessSecret,
     { expiresIn: env.jwt.accessExpiresIn || '15m' }
   );
 
   const refreshToken = jwt.sign(
-    { userId, role, tokenType: isAdmin ? 'admin' : 'student' },
+    { userId, role, tokenVersion: tokenVersion || 1, tokenType: isAdmin ? 'admin' : 'student' },
     refreshSecret,
     { expiresIn: env.jwt.refreshExpiresIn || '7d' }
   );

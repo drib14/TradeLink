@@ -298,34 +298,36 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
                 key={req.id}
                 className="clean-card"
                 style={{
-                  padding: '1.25rem',
+                  padding: '1rem',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '0.75rem',
-                  borderTop: isCardExpired ? '3px solid #94A3B8' : isUrgent ? '3px solid #DC2626' : '3px solid #002B7F',
-                  opacity: isCardExpired ? 0.72 : 1,
+                  gap: '0.65rem',
+                  borderRadius: '14px',
+                  border: isCardExpired ? '1px dashed #CBD5E1' : '1px solid var(--border-subtle, #E2E8F0)',
                   backgroundColor: isCardExpired ? '#F8FAFC' : '#FFFFFF',
-                  border: isCardExpired ? '1px dashed #CBD5E1' : undefined
+                  opacity: isCardExpired ? 0.72 : 1,
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02)',
+                  transition: 'transform 0.2s ease, box-shadow 0.2s ease, border-color 0.15s ease'
                 }}
               >
                 {/* Top Meta Row */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.72rem', fontWeight: 800, color: 'var(--uc-blue)' }}>
-                    <MapPin size={12} />
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.35rem' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.72rem', fontWeight: 800, color: 'var(--uc-blue)' }}>
+                    <MapPin size={11} />
                     <span>{req.preferredCampus}</span>
                     <span style={{ color: 'var(--border-subtle)' }}>•</span>
-                    <span>{req.requesterCollege}</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>{req.requesterCollege}</span>
                   </div>
 
                   {isCardExpired ? (
-                    <span className="badge-pill" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', backgroundColor: '#F1F5F9', color: '#64748B', border: '1px solid #CBD5E1', fontWeight: 700 }}>
-                      <Clock size={11} /> Expired
+                    <span className="badge-pill" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', backgroundColor: '#F1F5F9', color: '#64748B', border: '1px solid #CBD5E1', fontSize: '0.65rem', fontWeight: 700 }}>
+                      <Clock size={10} /> Expired
                     </span>
                   ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
                       {timeLeft && (
-                        <span style={{ fontSize: '0.68rem', color: '#D97706', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '2px', backgroundColor: '#FFFBEB', padding: '2px 6px', borderRadius: '4px', border: '1px solid #FDE68A' }}>
-                          <Clock size={10} /> {timeLeft}
+                        <span style={{ fontSize: '0.66rem', color: '#D97706', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '2px', backgroundColor: '#FFFBEB', padding: '1px 5px', borderRadius: '4px', border: '1px solid #FDE68A' }}>
+                          <Clock size={9} /> {timeLeft}
                         </span>
                       )}
                       {urgencyBadge}
@@ -334,44 +336,42 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
                 </div>
 
                 {/* Title */}
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: isCardExpired ? '#64748B' : 'var(--text-primary)', lineHeight: 1.35 }}>
+                <h3 style={{ fontSize: '0.96rem', fontWeight: 800, color: isCardExpired ? '#64748B' : 'var(--text-primary)', lineHeight: 1.35, margin: 0 }}>
                   {req.itemTitle}
                 </h3>
 
                 {/* Description */}
-                <p style={{ fontSize: '0.82rem', color: isCardExpired ? '#94A3B8' : 'var(--text-secondary)', lineHeight: 1.5, flex: 1 }}>
+                <p style={{ fontSize: '0.8rem', color: isCardExpired ? '#94A3B8' : 'var(--text-secondary)', lineHeight: 1.45, flex: 1, margin: 0, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                   {req.description}
                 </p>
 
                 {/* Target Budget & Offers */}
-                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', backgroundColor: isCardExpired ? '#F1F5F9' : 'var(--bg-subtle)', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: isCardExpired ? '#F1F5F9' : 'var(--bg-subtle, #F8FAFC)', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border-subtle, #E2E8F0)' }}>
                   <div>
-                    <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>
+                    <span style={{ fontSize: '0.64rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>
                       Target Budget
                     </span>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 900, color: isCardExpired ? '#64748B' : 'var(--uc-blue)', fontFamily: 'var(--font-display)' }}>
+                    <div style={{ fontSize: '1.15rem', fontWeight: 900, color: isCardExpired ? '#64748B' : 'var(--uc-blue)', fontFamily: 'var(--font-display)' }}>
                       ₱{req.targetBudget.toLocaleString()}
                     </div>
                   </div>
 
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: isCardExpired ? '#94A3B8' : 'var(--accent-green)' }}>
-                    {req.offersCount} {req.offersCount === 1 ? 'student offered' : 'students offered'}
+                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: isCardExpired ? '#94A3B8' : 'var(--accent-green)' }}>
+                    {req.offersCount} {req.offersCount === 1 ? 'offer' : 'offers'}
                   </span>
                 </div>
 
                 {/* Requester Profile & Action */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: '1px solid var(--border-subtle)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '0.45rem', borderTop: '1px solid var(--border-subtle, #F1F5F9)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', overflow: 'hidden' }}>
                     <UserAvatar
                       src={req.requesterAvatar}
                       name={req.requesterName}
-                      size={28}
+                      size={24}
                     />
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.78rem', fontWeight: 700, color: isCardExpired ? '#64748B' : 'var(--text-primary)' }}>
-                        <span>{req.requesterName}</span>
-                        <VerifiedBadge size="xs" variant="green" showTooltip={false} />
-                      </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.74rem', fontWeight: 700, color: isCardExpired ? '#64748B' : 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <span>{req.requesterName}</span>
+                      <VerifiedBadge size="xs" variant="green" showTooltip={false} />
                     </div>
                   </div>
 
@@ -379,8 +379,8 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
                     <button
                       disabled
                       style={{
-                        padding: '0.45rem 0.85rem',
-                        fontSize: '0.78rem',
+                        padding: '0.4rem 0.65rem',
+                        fontSize: '0.75rem',
                         fontWeight: 700,
                         backgroundColor: '#E2E8F0',
                         color: '#64748B',
@@ -389,16 +389,16 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
                         cursor: 'not-allowed',
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '4px'
+                        gap: '3px'
                       }}
                     >
-                      <Clock size={13} /> Offers Closed
+                      <Clock size={11} /> Closed
                     </button>
                   ) : currentUser && req.requesterId === currentUser.id ? (
                     <button
                       onClick={() => onNavigate('profile')}
                       className="btn-secondary"
-                      style={{ padding: '0.45rem 0.85rem', fontSize: '0.78rem', fontWeight: 700 }}
+                      style={{ padding: '0.4rem 0.7rem', fontSize: '0.75rem', fontWeight: 700, borderRadius: '6px' }}
                     >
                       Your Request
                     </button>
@@ -406,9 +406,9 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
                     <button
                       onClick={() => handleRespond(req)}
                       className="btn-gold"
-                      style={{ padding: '0.45rem 0.85rem', fontSize: '0.78rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      style={{ padding: '0.42rem 0.75rem', fontSize: '0.76rem', fontWeight: 800, borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
                     >
-                      <MessageSquare size={13} /> I Have This!
+                      <MessageSquare size={12} /> Offer Item
                     </button>
                   )}
                 </div>

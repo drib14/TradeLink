@@ -239,7 +239,7 @@ async function uploadBuffer(buffer, originalFilename = 'file.jpg', mimeType = 'i
         folder: `tradelink/${safeFolder}`,
         public_id: uniqueId,
         resource_type: mediaType === 'video' ? 'video' : 'image',
-        moderation: 'aws_rek', // Enable AI moderation as specified in plan
+        ...(process.env.CLOUDINARY_MODERATION === 'true' ? { moderation: 'aws_rek' } : {}),
         transformation: mediaType === 'video' ? [] : [
           { quality: 'auto:good', fetch_format: 'auto' }
         ]

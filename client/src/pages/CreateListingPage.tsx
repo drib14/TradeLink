@@ -82,8 +82,8 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
   const [condition, setCondition] = useState<ConditionGrade>('Gently Used');
   const [quantity, setQuantity] = useState<number>(1);
   const [sellType, setSellType] = useState<'paid' | 'free'>('paid');
-  const [price, setPrice] = useState<number>(0);
-  const [originalSrp, setOriginalSrp] = useState<number>(0);
+  const [price, setPrice] = useState<number | ''>('');
+  const [originalSrp, setOriginalSrp] = useState<number | ''>('');
   const [swapPreference, setSwapPreference] = useState('');
   const [swapConditionNote, setSwapConditionNote] = useState('');
   const [customTagInput, setCustomTagInput] = useState('');
@@ -105,7 +105,7 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
     description.trim() ||
     images.length > 0 ||
     customTagInput.trim() ||
-    price > 0 ||
+    (Number(price) || 0) > 0 ||
     swapPreference.trim()
   );
 
@@ -157,7 +157,7 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
     }
     if (step === 3) {
       if (formMode === 'sell') {
-        if (sellType === 'paid' && price <= 0) {
+        if (sellType === 'paid' && (price === '' || Number(price) <= 0)) {
           showToast('Price Required', 'Please set a valid selling price in PHP or select Free Student Gift.', 'warning');
           return false;
         }
@@ -206,8 +206,9 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
           ? 'free_donation'
           : 'buy_sell';
 
-      const computedPrice = computedTradeMode === 'buy_sell' ? price : 0;
-      const computedSrp = computedTradeMode === 'buy_sell' ? (originalSrp > 0 ? originalSrp : price) : 0;
+      const computedPrice = computedTradeMode === 'buy_sell' ? (typeof price === 'number' ? price : 0) : 0;
+      const numSrp = typeof originalSrp === 'number' ? originalSrp : 0;
+      const computedSrp = computedTradeMode === 'buy_sell' ? (numSrp > 0 ? numSrp : computedPrice) : 0;
 
       const combinedSwapPreference =
         formMode === 'swap'
@@ -823,11 +824,11 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
                   </span>
                   <input
                     type="number"
-                    value={price || ''}
-                    onChange={(e) => setPrice(Math.max(0, parseFloat(e.target.value) || 0))}
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value === '' ? '' : Math.max(0, parseFloat(e.target.value) || 0))}
                     className="clean-input"
                     style={{ paddingLeft: '1.85rem', fontWeight: 800, fontSize: '1rem', color: 'var(--uc-blue)' }}
-                    placeholder="0"
+                    placeholder="0.00"
                     min="1"
                     required
                   />
@@ -844,11 +845,11 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
                   </span>
                   <input
                     type="number"
-                    value={originalSrp || ''}
-                    onChange={(e) => setOriginalSrp(Math.max(0, parseFloat(e.target.value) || 0))}
+                    value={originalSrp}
+                    onChange={(e) => setOriginalSrp(e.target.value === '' ? '' : Math.max(0, parseFloat(e.target.value) || 0))}
                     className="clean-input"
                     style={{ paddingLeft: '1.85rem', fontSize: '0.95rem' }}
-                    placeholder="e.g. 1500"
+                    placeholder="0.00"
                     min="0"
                   />
                 </div>
@@ -862,10 +863,10 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
           )}
 
           {/* Discount badge preview */}
-          {sellType === 'paid' && originalSrp > price && price > 0 && (
+          {sellType === 'paid' && Number(originalSrp) > Number(price) && Number(price) > 0 && (
             <div style={{ padding: '0.55rem 0.85rem', borderRadius: '8px', backgroundColor: '#ECFDF5', border: '1px solid #A7F3D0', color: '#065F46', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <CheckCircle2 size={16} />
-              <span>Great Student Deal: <strong>{Math.round(((originalSrp - price) / originalSrp) * 100)}% off</strong> original store price!</span>
+              <span>Great Student Deal: <strong>{Math.round(((Number(originalSrp) - Number(price)) / Number(originalSrp)) * 100)}% off</strong> original store price!</span>
             </div>
           )}
 
@@ -983,7 +984,7 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
               type="text"
               value={swapPreference}
               onChange={(e) => setSwapPreference(e.target.value)}
-              placeholder="e.g. Casio FX-991CW, BSN Scrubs (M), Drafting Table, or Open to any offer"
+              placeholder="Desired item"
               className="clean-input"
               style={{ fontSize: '0.86rem', fontWeight: 600 }}
               required
@@ -1028,7 +1029,7 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
               type="text"
               value={swapConditionNote}
               onChange={(e) => setSwapConditionNote(e.target.value)}
-              placeholder="e.g. Must be functional / Like New only / Minor highlights okay"
+              placeholder="Condition requirements"
               className="clean-input"
               style={{ fontSize: '0.84rem' }}
             />
@@ -1054,7 +1055,7 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
                     }
                   }
                 }}
-                placeholder={tags.length >= 10 ? 'Limit 10 tags reached' : 'Type keyword (e.g. barter, trade, med) and press Enter'}
+                placeholder={tags.length >= 10 ? 'Limit 10 tags reached' : 'Type keyword and press Enter'}
                 className="clean-input"
                 style={{ fontSize: '0.84rem' }}
               />
@@ -1125,17 +1126,17 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
             {/* Live Preview Card */}
             <div
               style={{
-                maxWidth: '340px',
+                maxWidth: '300px',
                 margin: '0 auto',
-                borderRadius: '16px',
-                border: '1.5px solid var(--border-subtle, #E2E8F0)',
+                borderRadius: '14px',
+                border: '1px solid var(--border-subtle, #E2E8F0)',
                 overflow: 'hidden',
                 backgroundColor: '#FFFFFF',
-                boxShadow: '0 8px 24px rgba(0, 43, 127, 0.08)'
+                boxShadow: '0 4px 16px rgba(0, 43, 127, 0.08)'
               }}
             >
               {/* Media preview */}
-              <div style={{ height: '200px', backgroundColor: '#0F172A', position: 'relative' }}>
+              <div style={{ width: '100%', aspectRatio: '1 / 1', backgroundColor: '#0F172A', position: 'relative', overflow: 'hidden' }}>
                 {images.length > 0 ? (
                   images[0].match(/\.(mp4|webm|mov|mkv)$/i) ? (
                     <video src={images[0]} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -1148,90 +1149,97 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
                   </div>
                 )}
                 {/* Trade Mode Pill */}
-                <div
+                <span
                   style={{
                     position: 'absolute',
-                    top: '10px',
-                    left: '10px',
-                    padding: '0.2rem 0.55rem',
+                    top: '8px',
+                    left: '8px',
+                    padding: '3px 8px',
                     borderRadius: '6px',
-                    backgroundColor: formMode === 'swap' ? 'var(--uc-blue)' : sellType === 'free' ? '#059669' : 'rgba(15, 23, 42, 0.85)',
-                    color: '#FFFFFF',
-                    fontSize: '0.7rem',
+                    backgroundColor: formMode === 'swap' ? '#002B7F' : sellType === 'free' ? '#059669' : 'rgba(15, 23, 42, 0.82)',
+                    color: formMode === 'swap' ? '#FFC72C' : '#FFFFFF',
+                    fontSize: '0.64rem',
                     fontWeight: 800,
                     textTransform: 'uppercase',
-                    backdropFilter: 'blur(4px)'
+                    backdropFilter: 'blur(4px)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    zIndex: 2
                   }}
                 >
-                  {formMode === 'swap' ? 'Barter Swap' : sellType === 'free' ? 'Free Gift' : 'For Sale'}
-                </div>
+                  {formMode === 'swap' ? 'SWAP' : sellType === 'free' ? 'FREE' : 'FOR SALE'}
+                </span>
                 {/* Campus Pill */}
-                <div
+                <span
                   style={{
                     position: 'absolute',
-                    bottom: '10px',
-                    left: '10px',
-                    padding: '0.2rem 0.55rem',
+                    bottom: '8px',
+                    right: '8px',
+                    padding: '2px 7px',
                     borderRadius: '6px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.94)',
                     color: 'var(--uc-blue)',
-                    fontSize: '0.7rem',
+                    fontSize: '0.64rem',
                     fontWeight: 800,
-                    display: 'flex',
+                    display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '3px'
+                    gap: '3px',
+                    backdropFilter: 'blur(4px)',
+                    zIndex: 2,
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.12)'
                   }}
                 >
-                  <MapPin size={11} /> {currentUser.campus}
-                </div>
+                  <MapPin size={10} /> {currentUser.campus}
+                </span>
               </div>
 
               {/* Card Body */}
-              <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>{category}</span>
-                  <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '0.15rem 0.45rem', borderRadius: '4px', backgroundColor: '#F1F5F9', color: '#475569' }}>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '0.1rem 0.4rem', borderRadius: '4px', backgroundColor: '#F1F5F9', color: '#475569' }}>
                     {condition}
                   </span>
                 </div>
 
-                <h4 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {title || 'Item Title Preview'}
                 </h4>
 
-                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '0.35rem' }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '0.25rem' }}>
                   <div>
                     {formMode === 'sell' ? (
                       sellType === 'paid' ? (
-                        <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--uc-blue)' }}>
-                          ₱{price.toLocaleString()}
+                        <span style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--uc-blue)' }}>
+                          ₱{(typeof price === 'number' ? price : 0).toLocaleString()}
                         </span>
                       ) : (
-                        <span style={{ fontSize: '1.1rem', fontWeight: 900, color: '#059669' }}>
-                          FREE (₱0)
+                        <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#059669' }}>
+                          FREE
                         </span>
                       )
                     ) : (
-                      <span style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--uc-blue)' }}>
+                      <span style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--uc-blue)' }}>
                         ⇄ Swap: {swapPreference || 'Open to offers'}
                       </span>
                     )}
                   </div>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                  <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
                     Qty: {quantity}
                   </span>
                 </div>
 
                 {/* Seller snippet */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', borderTop: '1px solid #F1F5F9', paddingTop: '0.6rem', marginTop: '0.25rem' }}>
-                  <div style={{ width: '22px', height: '22px', borderRadius: '50%', backgroundColor: 'var(--uc-blue-subtle)', color: 'var(--uc-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: 800 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', borderTop: '1px solid #F1F5F9', paddingTop: '0.4rem', marginTop: '0.15rem' }}>
+                  <div style={{ width: '18px', height: '18px', borderRadius: '50%', backgroundColor: 'var(--uc-blue-subtle)', color: 'var(--uc-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.68rem', fontWeight: 800 }}>
                     {currentUser.name.charAt(0)}
                   </div>
-                  <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                    {currentUser.name}
+                  <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                    {currentUser.name.split(' ')[0]}
                   </span>
-                  <span style={{ fontSize: '0.68rem', color: '#059669', fontWeight: 800, marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                    <Check size={11} />
+                  <span style={{ fontSize: '0.65rem', color: '#059669', fontWeight: 800, marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                    <Check size={10} />
                     <span>Verified</span>
                   </span>
                 </div>

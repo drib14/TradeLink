@@ -248,20 +248,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             flexShrink: 0
           }}
         >
-          {/* Subtle gold accent light */}
-          <div
-            style={{
-              position: 'absolute',
-              top: '-30px',
-              right: '-30px',
-              width: '120px',
-              height: '120px',
-              borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(255, 199, 44, 0.25) 0%, rgba(255, 199, 44, 0) 70%)',
-              pointerEvents: 'none'
-            }}
-          />
-
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Logo size="sm" showSubtitle={false} isDark={true} />
             <button
@@ -743,7 +729,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       type="email"
                       value={forgotEmail}
                       onChange={(e) => setForgotEmail(e.target.value)}
-                      placeholder="e.g. student@uc.edu.ph"
+                      placeholder="Email Address"
                       className="clean-input"
                       required
                       autoFocus
@@ -760,10 +746,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     {isSubmitting ? (
                       <>
                         <Loader2 size={16} className="spin-animation" />
-                        <span>Dispatching Verification Code...</span>
+                        <span>Sending Verification Code...</span>
                       </>
                     ) : (
-                      <span>Send Verification Code to Email</span>
+                      <span>Send Verification Code</span>
                     )}
                   </button>
 
@@ -798,11 +784,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <input
                   type="text"
                   value={resetCode}
-                  onChange={(e) => setResetCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                  placeholder="Code"
+                  onChange={(e) => setResetCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="Verification Code"
                   className="clean-input"
-                  maxLength={4}
-                  style={{ textAlign: 'center', fontSize: '1.3rem', letterSpacing: '0.3em', fontWeight: 800, color: 'var(--uc-blue)' }}
+                  maxLength={6}
+                  style={{ textAlign: 'center', fontSize: '1.2rem', letterSpacing: '0.25em', fontWeight: 800, color: 'var(--uc-blue)' }}
                   required
                   autoFocus
                   disabled={isSubmitting}

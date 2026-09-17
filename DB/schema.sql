@@ -102,16 +102,7 @@ CREATE TABLE `listings` (
   `original_srp` DECIMAL(10,2) DEFAULT NULL,
   `trade_mode` ENUM('buy_sell', 'swap', 'free_donation') NOT NULL DEFAULT 'buy_sell',
   `swap_preference` VARCHAR(255) DEFAULT NULL,
-  `category` ENUM(
-    'Textbooks & Reviewers',
-    'Uniforms & PE Attire',
-    'Medical & Nursing Gear',
-    'Engineering & Drafting Tools',
-    'Electronics & Calculators',
-    'College Merchandise & Lanyards',
-    'Musical Instruments',
-    'Free Student Donations'
-  ) NOT NULL,
+  `category` VARCHAR(100) NOT NULL,
   `condition` ENUM(
     'Brand New',
     'Like New',

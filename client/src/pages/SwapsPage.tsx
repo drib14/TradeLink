@@ -154,11 +154,11 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({
         </div>
       )}
 
-      {/* Tab 2: My Swap Proposals */}
+      {/* Tab 2: My Swap Proposals - Strictly Grid */}
       {activeTab === 'proposals' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div className="grid-responsive-proposals">
           {!currentUser ? (
-            <div className="clean-card" style={{ padding: '3.5rem 1.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+            <div className="clean-card" style={{ gridColumn: '1 / -1', padding: '3.5rem 1.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', borderRadius: '14px' }}>
               <div style={{ width: '54px', height: '54px', borderRadius: '50%', backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', color: 'var(--uc-blue, #002B7F)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <ArrowLeftRight size={26} />
               </div>
@@ -177,14 +177,14 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({
                     else onNavigate('home');
                   }}
                   className="btn-gold"
-                  style={{ padding: '0.65rem 1.5rem', fontSize: '0.85rem', fontWeight: 800 }}
+                  style={{ padding: '0.65rem 1.5rem', fontSize: '0.85rem', fontWeight: 800, borderRadius: '8px' }}
                 >
                   Sign In to TradeLink
                 </button>
                 <button
                   onClick={() => setActiveTab('catalog')}
                   className="btn-secondary"
-                  style={{ padding: '0.65rem 1.25rem', fontSize: '0.85rem', fontWeight: 700 }}
+                  style={{ padding: '0.65rem 1.25rem', fontSize: '0.85rem', fontWeight: 700, borderRadius: '8px' }}
                 >
                   Browse Available Swaps
                 </button>
@@ -199,16 +199,20 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({
                   key={swap.id}
                   className="clean-card"
                   style={{
-                    padding: '1.25rem',
+                    padding: '1rem',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '1rem'
+                    gap: '0.75rem',
+                    borderRadius: '14px',
+                    border: '1px solid var(--border-subtle, #E2E8F0)',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02)',
+                    transition: 'transform 0.2s ease, box-shadow 0.2s ease'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.4rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.78rem' }}>
                       <span style={{ fontWeight: 800, color: 'var(--uc-blue)' }}>
-                        {isReceiver ? 'Received Swap Proposal' : 'Your Sent Proposal'}
+                        {isReceiver ? 'Received Swap' : 'Sent Proposal'}
                       </span>
                       <span style={{ color: 'var(--border-subtle)' }}>•</span>
                       <span style={{ color: 'var(--text-muted)' }}>
@@ -218,9 +222,9 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({
 
                     <span
                       style={{
-                        fontSize: '0.72rem',
+                        fontSize: '0.68rem',
                         fontWeight: 800,
-                        padding: '0.2rem 0.6rem',
+                        padding: '0.15rem 0.55rem',
                         borderRadius: '6px',
                         backgroundColor:
                           swap.status === 'accepted'
@@ -250,11 +254,11 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({
                   <div
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                      gap: '1rem',
+                      gridTemplateColumns: '1fr',
+                      gap: '0.65rem',
                       alignItems: 'center',
                       backgroundColor: 'var(--bg-subtle, #F8FAFC)',
-                      padding: '1.15rem',
+                      padding: '0.85rem',
                       borderRadius: '10px',
                       border: '1px solid var(--border-subtle, #E2E8F0)'
                     }}

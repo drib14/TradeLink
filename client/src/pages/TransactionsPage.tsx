@@ -137,7 +137,7 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
   const completedCount = transactions.filter((t) => (t.buyerId === currentUser.id || t.sellerId === currentUser.id) && t.status === 'completed').length;
 
   return (
-    <div className="container page-enter" style={{ padding: '2rem 1.25rem 5rem 1.25rem', maxWidth: '960px' }}>
+    <div className="container page-enter" style={{ padding: '2rem 1.25rem 5rem 1.25rem', maxWidth: '1280px' }}>
       {/* Page Header */}
       <div style={{ marginBottom: '1.75rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
@@ -271,9 +271,9 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
           </button>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+        <div className="grid-responsive-transactions">
           {userTransactions.map((tx) => {
-            const isBuyer = tx.buyerId === currentUser.id;
+            const isBuyer = currentUser ? tx.buyerId === currentUser.id : false;
             const isPending = tx.status === 'pending';
             const isCompleted = tx.status === 'completed';
             const isCancelled = tx.status === 'cancelled';
@@ -293,11 +293,14 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
                 key={tx.id}
                 className="clean-card"
                 style={{
-                  padding: '1.15rem',
+                  padding: '1rem',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '0.85rem',
-                  transition: 'all 0.2s ease'
+                  gap: '0.75rem',
+                  borderRadius: '14px',
+                  border: '1px solid var(--border-subtle, #E2E8F0)',
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02)',
+                  transition: 'transform 0.2s ease, box-shadow 0.2s ease'
                 }}
               >
                 {/* Card Top: Reference + Status + Date */}
@@ -551,7 +554,7 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
         isOpen={Boolean(cancelPromptTx)}
         title="Cancel Order"
         message={`Please provide a reason for cancelling order ${cancelPromptTx?.referenceNo}:`}
-        placeholder="e.g. Agreed by mutual consent"
+        placeholder="Reason for cancellation"
         defaultValue="Agreed by mutual consent"
         confirmText="Cancel Order"
         cancelText="Keep Order"

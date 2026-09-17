@@ -138,7 +138,7 @@ export const FAQPage: React.FC<FAQPageProps> = ({ onNavigate }) => {
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search questions (e.g. security booth, handshake code, verification, gcash, swap)..."
+          placeholder="Search frequently asked questions..."
           style={{
             width: '100%',
             padding: '0.85rem 1rem 0.85rem 3rem',

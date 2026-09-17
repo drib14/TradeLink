@@ -172,7 +172,7 @@ export default function FlashMarketScreen() {
             <Text style={styles.inputLabel}>What item do you need? *</Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. Littmann Stethoscope or Drafting T-Square"
+              placeholder="Item name"
               placeholderTextColor="#94A3B8"
               value={itemTitle}
               onChangeText={setItemTitle}
@@ -181,7 +181,7 @@ export default function FlashMarketScreen() {
             <Text style={styles.inputLabel}>Target Budget (₱) *</Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. 1500"
+              placeholder="0.00"
               placeholderTextColor="#94A3B8"
               keyboardType="numeric"
               value={targetBudget}

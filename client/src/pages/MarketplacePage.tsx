@@ -4,7 +4,7 @@ import { FilterBar } from '../components/marketplace/FilterBar';
 import { ListingCard } from '../components/marketplace/ListingCard';
 import { SkeletonGrid } from '../components/common/SkeletonCard';
 import { Listing } from '../types';
-import { Plus, SearchX, RotateCcw, LayoutGrid, List, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, SearchX, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface MarketplacePageProps {
   onNavigate: (view: string, param?: any) => void;
@@ -24,7 +24,6 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
     clearFilters
   } = useMarket();
 
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [currentPage, setCurrentPage] = useState(1);
   const [isSimulatingLoading, setIsSimulatingLoading] = useState(true);
 
@@ -69,54 +68,6 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          {/* Grid vs List View Toggle */}
-          <div
-            style={{
-              display: 'inline-flex',
-              backgroundColor: 'var(--bg-subtle, #F1F5F9)',
-              borderRadius: '8px',
-              padding: '2px',
-              border: '1px solid var(--border-subtle, #E2E8F0)'
-            }}
-          >
-            <button
-              onClick={() => setViewMode('grid')}
-              style={{
-                border: 'none',
-                background: viewMode === 'grid' ? 'var(--bg-surface, #FFFFFF)' : 'transparent',
-                color: viewMode === 'grid' ? 'var(--uc-blue, #002B7F)' : 'var(--text-muted, #94A3B8)',
-                padding: '0.4rem 0.65rem',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                boxShadow: viewMode === 'grid' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                transition: 'all 0.15s ease'
-              }}
-              title="Grid View"
-            >
-              <LayoutGrid size={16} />
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              style={{
-                border: 'none',
-                background: viewMode === 'list' ? 'var(--bg-surface, #FFFFFF)' : 'transparent',
-                color: viewMode === 'list' ? 'var(--uc-blue, #002B7F)' : 'var(--text-muted, #94A3B8)',
-                padding: '0.4rem 0.65rem',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                boxShadow: viewMode === 'list' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                transition: 'all 0.15s ease'
-              }}
-              title="List View"
-            >
-              <List size={16} />
-            </button>
-          </div>
-
           <button
             onClick={() => onNavigate('create-listing')}
             className="btn-gold"
@@ -144,24 +95,16 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
         </div>
       )}
 
-      {/* Product Grid / Dynamic Skeletons / Empty State */}
+      {/* Product Grid / Dynamic Skeletons / Empty State - Strictly Grid */}
       {isSimulatingLoading ? (
         <SkeletonGrid count={8} />
       ) : filteredListings.length > 0 ? (
         <>
-          <div
-            className={viewMode === 'grid' ? 'grid-responsive-listings' : ''}
-            style={
-              viewMode === 'list'
-                ? { display: 'flex', flexDirection: 'column', gap: '0.85rem' }
-                : undefined
-            }
-          >
+          <div className="grid-responsive-listings">
             {paginatedListings.map((listing: Listing) => (
               <ListingCard
                 key={listing.id}
                 listing={listing}
-                layout={viewMode}
                 onClick={() => onNavigate('item-detail', { id: listing.id })}
               />
             ))}

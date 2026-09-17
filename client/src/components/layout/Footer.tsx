@@ -283,7 +283,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                         setFeedbackMessage('');
                       }
                     }}
-                    placeholder="Enter your student email..."
+                    placeholder="Email Address"
                     disabled={status === 'loading'}
                     required
                     style={{

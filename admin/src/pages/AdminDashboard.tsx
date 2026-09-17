@@ -1662,7 +1662,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
             <form onSubmit={handleAddKeyword} style={{ display: 'flex', gap: '0.5rem', maxWidth: '420px' }}>
               <input
                 type="text"
-                placeholder="Add prohibited term e.g. 'vape' or 'exam leak'..."
+                placeholder="Prohibited term"
                 value={newKeywordInput}
                 onChange={(e) => setNewKeywordInput(e.target.value)}
                 className="clean-input"
@@ -1885,7 +1885,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Excellent conduct / Disciplinary deduction"
+                  placeholder="Reason for adjustment"
                   value={repReason}
                   onChange={(e) => setRepReason(e.target.value)}
                   className="clean-input"
@@ -2559,7 +2559,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Guarded Trade Desk Schedule"
+                  placeholder="Announcement title"
                   value={newAnnTitle}
                   onChange={(e) => setNewAnnTitle(e.target.value)}
                   className="clean-input"
@@ -2743,7 +2743,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Official UC Engineering Drafting Board"
+                  placeholder="Listing title"
                   value={adminListingForm.title}
                   onChange={(e) => setAdminListingForm({ ...adminListingForm, title: e.target.value })}
                   className="clean-input"
@@ -2876,7 +2876,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 </label>
                 <input
                   type="url"
-                  placeholder="https://images.unsplash.com/... or hosted image"
+                  placeholder="Image URL"
                   value={adminListingForm.imageUrl}
                   onChange={(e) => setAdminListingForm({ ...adminListingForm, imageUrl: e.target.value })}
                   className="clean-input"

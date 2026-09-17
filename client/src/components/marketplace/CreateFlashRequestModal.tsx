@@ -20,7 +20,7 @@ export const CreateFlashRequestModal: React.FC<CreateFlashRequestModalProps> = (
 
   const [itemTitle, setItemTitle] = useState('');
   const [category, setCategory] = useState('Textbooks');
-  const [targetBudget, setTargetBudget] = useState(500);
+  const [targetBudget, setTargetBudget] = useState<number | ''>('');
   const [urgency, setUrgency] = useState<'Immediate / Urgent' | 'This Week' | 'Flexible'>('Immediate / Urgent');
   const [durationHours, setDurationHours] = useState<number>(24);
   const [preferredCampus, setPreferredCampus] = useState<Campus>(currentUser?.campus || 'UC Main');
@@ -36,12 +36,17 @@ export const CreateFlashRequestModal: React.FC<CreateFlashRequestModalProps> = (
       return;
     }
 
+    if (targetBudget === '' || Number(targetBudget) <= 0) {
+      showToast('Price Required', 'Please enter your target budget or price.', 'warning');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await addRequest({
         itemTitle: itemTitle.trim(),
         category,
-        targetBudget,
+        targetBudget: Number(targetBudget),
         urgency,
         durationHours,
         description: description.trim() || `Looking for ${itemTitle} in ${preferredCampus}.`,
@@ -51,6 +56,7 @@ export const CreateFlashRequestModal: React.FC<CreateFlashRequestModalProps> = (
       showToast('Flash Request Posted!', `"${itemTitle}" is now live on the Flash Market.`, 'success');
       onClose();
       setItemTitle('');
+      setTargetBudget('');
       setDescription('');
     } catch (err: any) {
       showToast('Posting Failed', err?.message || 'Unable to post flash request.', 'error');
@@ -150,7 +156,7 @@ export const CreateFlashRequestModal: React.FC<CreateFlashRequestModalProps> = (
               type="text"
               value={itemTitle}
               onChange={(e) => setItemTitle(e.target.value)}
-              placeholder="e.g. Nursing Scrub Set (Medium), CAS Reviewer..."
+              placeholder="Item name"
               className="clean-input"
               required
             />
@@ -181,10 +187,11 @@ export const CreateFlashRequestModal: React.FC<CreateFlashRequestModalProps> = (
               </label>
               <input
                 type="number"
-                min="0"
-                step="50"
+                min="1"
+                step="10"
                 value={targetBudget}
-                onChange={(e) => setTargetBudget(Number(e.target.value))}
+                onChange={(e) => setTargetBudget(e.target.value === '' ? '' : Math.max(0, Number(e.target.value)))}
+                placeholder="0.00"
                 className="clean-input"
                 required
               />

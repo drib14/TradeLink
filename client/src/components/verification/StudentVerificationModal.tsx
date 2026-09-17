@@ -571,7 +571,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
                   pattern="[0-9]*"
                   value={studentIdInput}
                   onChange={(e) => setStudentIdInput(e.target.value.replace(/\D/g, ''))}
-                  placeholder="e.g. 20240001"
+                  placeholder="ID Number"
                   className="clean-input"
                   maxLength={20}
                   required

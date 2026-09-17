@@ -140,7 +140,12 @@ async function autoInitDatabase() {
       }
     }
 
-    // 1e. Ensure newsletter_subscribers table exists
+    // 1e. Ensure listings.category is VARCHAR(100) to support all university categories
+    try {
+      await db.raw('ALTER TABLE `listings` MODIFY COLUMN `category` VARCHAR(100) NOT NULL;');
+    } catch (_) {}
+
+    // 1f. Ensure newsletter_subscribers table exists
     const hasNewsletterTable = await db.schema.hasTable('newsletter_subscribers').catch(() => false);
     if (!hasNewsletterTable) {
       await db.raw(`
@@ -155,6 +160,22 @@ async function autoInitDatabase() {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
       `).catch(() => {});
       logger.info('[DB Init] Created newsletter_subscribers table.');
+    }
+
+    // 1f. Ensure users table has advanced security authentication columns
+    const hasUsers = await db.schema.hasTable('users').catch(() => false);
+    if (hasUsers) {
+      const hasFailedAttempts = await db.schema.hasColumn('users', 'failed_login_attempts').catch(() => false);
+      if (!hasFailedAttempts) {
+        await db.schema.alterTable('users', (t) => {
+          t.integer('failed_login_attempts').unsigned().defaultTo(0);
+          t.datetime('locked_until').nullable();
+          t.integer('token_version').unsigned().defaultTo(1);
+          t.tinyint('failed_reset_attempts').unsigned().defaultTo(0);
+          t.datetime('password_changed_at').nullable();
+        }).catch(() => {});
+        logger.info('[DB Init] Added security auth columns to users table.');
+      }
     }
 
     // 2. Ensure Sole Administrator Account Exists: uc.tradelink@gmail.com | TradeLink@2026 | TradeLink Admin

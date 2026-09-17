@@ -1393,7 +1393,7 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
               </label>
               <input
                 type="text"
-                placeholder="e.g. Free after 3 PM near Main Quadrangle"
+                placeholder="Meetup preference"
                 value={buyNotes}
                 onChange={(e) => setBuyNotes(e.target.value)}
                 className="clean-input"

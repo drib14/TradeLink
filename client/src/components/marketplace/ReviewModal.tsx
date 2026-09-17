@@ -223,7 +223,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
               rows={3}
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder="e.g. Arrived 5 minutes early at Banilad canteen, item was clean and functioning perfectly!"
+              placeholder="Write your review..."
               className="clean-input"
               style={{ resize: 'none' }}
               required

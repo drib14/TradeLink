@@ -33,8 +33,8 @@ export const ListingCardSkeleton: React.FC = () => {
         backgroundColor: 'var(--bg-surface, #FFFFFF)'
       }}
     >
-      {/* Image Skeleton */}
-      <SkeletonBox height="185px" borderRadius="0" />
+      {/* Image Skeleton matching 1:1 ratio */}
+      <div className="skeleton" style={{ width: '100%', aspectRatio: '1 / 1', borderRadius: '0' }} />
 
       {/* Body Skeleton */}
       <div style={{ padding: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>

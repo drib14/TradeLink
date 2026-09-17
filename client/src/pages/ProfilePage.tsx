@@ -1257,29 +1257,37 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
             </button>
           </div>
           {userMeetups.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div className="grid-responsive-transactions">
               {userMeetups.map((m) => (
                 <div
                   key={m.id}
-                  className="card-interactive"
-                  style={{ display: 'flex', gap: '1rem', alignItems: 'center', padding: '1rem' }}
+                  className="clean-card card-interactive"
+                  style={{
+                    display: 'flex',
+                    gap: '0.85rem',
+                    alignItems: 'center',
+                    padding: '0.9rem 1rem',
+                    borderRadius: '14px',
+                    border: '1px solid var(--border-subtle, #E2E8F0)',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+                  }}
                   onClick={() => onNavigate('item-detail', { id: m.listingId })}
                 >
                   {m.listingImage && m.listingImage.trim() !== '' ? (
-                    <img src={m.listingImage} alt={m.listingTitle} style={{ width: '56px', height: '56px', borderRadius: '8px', objectFit: 'cover' }} />
+                    <img src={m.listingImage} alt={m.listingTitle} style={{ width: '56px', height: '56px', borderRadius: '10px', objectFit: 'cover', flexShrink: 0 }} />
                   ) : (
-                    <div style={{ width: '56px', height: '56px', borderRadius: '8px', backgroundColor: 'var(--bg-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+                    <div style={{ width: '56px', height: '56px', borderRadius: '10px', backgroundColor: 'var(--bg-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', flexShrink: 0 }}>
                       <ShoppingBag size={22} />
                     </div>
                   )}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)' }}>{m.listingTitle}</div>
-                    <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                      <MapPin size={12} style={{ display: 'inline', verticalAlign: 'middle' }} /> {m.landmarkSpot} • {m.status}
+                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.listingTitle}</div>
+                    <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                      <MapPin size={11} /> <span>{m.landmarkSpot}</span> • <span style={{ textTransform: 'capitalize' }}>{m.status}</span>
                     </div>
-                  </div>
-                  <div style={{ fontSize: '1rem', fontWeight: 800, color: m.buyerId === currentUser?.id ? 'var(--accent-red)' : 'var(--accent-green)' }}>
-                    ₱{m.finalPrice.toLocaleString()}
+                    <div style={{ fontSize: '0.95rem', fontWeight: 800, marginTop: '3px', color: m.buyerId === currentUser?.id ? 'var(--accent-red)' : 'var(--accent-green)' }}>
+                      ₱{m.finalPrice.toLocaleString()}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -1375,47 +1383,49 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           </div>
 
           {filteredReviews.length > 0 ? (
-            filteredReviews.map((rev) => (
-              <div key={rev.id} className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.65rem', borderRadius: '14px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                    <UserAvatar
-                      src={rev.reviewerAvatar}
-                      name={rev.reviewerName}
-                      size="sm"
-                    />
-                    <div>
-                      <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-primary)' }}>{rev.reviewerName}</div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                        {rev.reviewerCampus} • {new Date(rev.createdAt).toLocaleDateString()}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
+              {filteredReviews.map((rev) => (
+                <div key={rev.id} className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.65rem', borderRadius: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                      <UserAvatar
+                        src={rev.reviewerAvatar}
+                        name={rev.reviewerName}
+                        size="sm"
+                      />
+                      <div>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-primary)' }}>{rev.reviewerName}</div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                          {rev.reviewerCampus} • {new Date(rev.createdAt).toLocaleDateString()}
+                        </div>
                       </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', color: '#F59E0B' }}>
+                      {Array.from({ length: rev.rating }).map((_, i) => (
+                        <Star key={i} size={14} fill="#F59E0B" color="#F59E0B" />
+                      ))}
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', color: '#F59E0B' }}>
-                    {Array.from({ length: rev.rating }).map((_, i) => (
-                      <Star key={i} size={14} fill="#F59E0B" color="#F59E0B" />
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
+                    "{rev.comment}"
+                  </p>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.75rem', color: 'var(--text-muted)', paddingTop: '0.5rem', borderTop: '1px solid var(--border-subtle)', flexWrap: 'wrap' }}>
+                    <span>Item: <strong>{rev.itemTitle}</strong></span>
+                    <span>•</span>
+                    <span>Trade Type: <strong>{rev.tradeType}</strong></span>
+                    {rev.wasPunctual && <span style={{ color: 'var(--accent-green)', fontWeight: 700 }}>• Punctual Meetup</span>}
+                    {rev.traitBadges?.map((badge, idx) => (
+                      <span key={idx} style={{ backgroundColor: 'var(--bg-subtle)', padding: '0.15rem 0.45rem', borderRadius: '4px', fontSize: '0.7rem' }}>
+                        {badge}
+                      </span>
                     ))}
                   </div>
                 </div>
-
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
-                  "{rev.comment}"
-                </p>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.75rem', color: 'var(--text-muted)', paddingTop: '0.5rem', borderTop: '1px solid var(--border-subtle)', flexWrap: 'wrap' }}>
-                  <span>Item: <strong>{rev.itemTitle}</strong></span>
-                  <span>•</span>
-                  <span>Trade Type: <strong>{rev.tradeType}</strong></span>
-                  {rev.wasPunctual && <span style={{ color: 'var(--accent-green)', fontWeight: 700 }}>• Punctual Meetup</span>}
-                  {rev.traitBadges?.map((badge, idx) => (
-                    <span key={idx} style={{ backgroundColor: 'var(--bg-subtle)', padding: '0.15rem 0.45rem', borderRadius: '4px', fontSize: '0.7rem' }}>
-                      {badge}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))
+              ))}
+            </div>
           ) : (
             <div className="empty-state">
               <div className="empty-state-icon">
@@ -1434,7 +1444,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
       {(activeTab === 'flash' || activeTab === 'wanted') && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {userFlash.length > 0 ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
+            <div className="grid-responsive-wanted">
               {userFlash.map((w) => (
                 <div key={w.id} className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', borderRadius: '14px', borderLeft: '4px solid var(--uc-gold)' }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
@@ -1779,7 +1789,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 type="text"
                 value={editMeetupSpots}
                 onChange={(e) => setEditMeetupSpots(e.target.value)}
-                placeholder="e.g. Main Lobby Security Desk • CCS Study Lounge • Canteen 2"
+                placeholder="Preferred meetup locations"
                 className="clean-input"
               />
               <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>
@@ -1796,7 +1806,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                   type="text"
                   value={editTradingHours}
                   onChange={(e) => setEditTradingHours(e.target.value)}
-                  placeholder="e.g. Mon-Fri 12:00 PM - 5:30 PM"
+                  placeholder="Available hours"
                   className="clean-input"
                 />
               </div>
@@ -1809,7 +1819,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                   type="text"
                   value={editPaymentMethods}
                   onChange={(e) => setEditPaymentMethods(e.target.value)}
-                  placeholder="e.g. Cash on Handshake • GCash"
+                  placeholder="Payment methods"
                   className="clean-input"
                 />
               </div>

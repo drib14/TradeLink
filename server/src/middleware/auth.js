@@ -51,6 +51,11 @@ const authenticate = asyncHandler(async (req, res, next) => {
     return next(new AppError('This account has been suspended. Contact campus administration.', 403));
   }
 
+  // Token revocation check: if user changed password or revoked session, tokenVersion is bumped
+  if (decoded.tokenVersion && user.token_version && decoded.tokenVersion < user.token_version) {
+    return next(new AppError('Your session has expired or been revoked. Please log in again.', 401));
+  }
+
   req.user = user;
   next();
 });
@@ -118,6 +123,11 @@ const authenticateAdmin = asyncHandler(async (req, res, next) => {
 
   if (user.is_banned) {
     return next(new AppError('This administrator account has been deactivated.', 403));
+  }
+
+  // Token revocation check for administrators
+  if (decoded.tokenVersion && user.token_version && decoded.tokenVersion < user.token_version) {
+    return next(new AppError('Your administrative session has expired or been revoked. Please log in again.', 401));
   }
 
   req.user = user;

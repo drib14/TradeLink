@@ -357,7 +357,7 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
               </label>
               <input
                 type="text"
-                placeholder="e.g. Free after 3 PM near CCS building..."
+                placeholder="Meetup preference"
                 value={buyerNotes}
                 onChange={(e) => setBuyerNotes(e.target.value)}
                 className="clean-input"
