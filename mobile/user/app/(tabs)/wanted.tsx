@@ -18,15 +18,16 @@ import { useAuth } from '../../context/AuthContext';
 import { WantedRequest, Campus } from '../../types';
 import { CATEGORIES, CAMPUSES } from '../../constants';
 
-export default function WantedBoardScreen() {
-  const { wantedRequests, addWantedRequest } = useMarket();
+export default function FlashMarketScreen() {
+  const { flashRequests, wantedRequests, addFlashRequest, addWantedRequest } = useMarket();
+  const requests = flashRequests && flashRequests.length > 0 ? flashRequests : wantedRequests;
   const { currentUser } = useAuth();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [itemTitle, setItemTitle] = useState('');
   const [targetBudget, setTargetBudget] = useState('');
   const [category, setCategory] = useState(CATEGORIES[1]);
-  const [urgency, setUrgency] = useState<'Immediate / Urgent' | 'This Week' | 'Flexible'>('This Week');
+  const [urgency, setUrgency] = useState<'Immediate / Urgent' | 'This Week' | 'Flexible'>('Immediate / Urgent');
   const [description, setDescription] = useState('');
   const [preferredCampus, setPreferredCampus] = useState<Campus>(currentUser?.campus || 'UC Main');
 
@@ -40,7 +41,8 @@ export default function WantedBoardScreen() {
       return;
     }
 
-    addWantedRequest({
+    const postFn = addFlashRequest || addWantedRequest;
+    postFn({
       requesterId: currentUser?.id || 'user-alex',
       requesterName: currentUser?.name || 'Alex Rivera',
       requesterAvatar:
@@ -56,14 +58,14 @@ export default function WantedBoardScreen() {
       budgetMin: Number(targetBudget) * 0.8,
       tradeMode: 'BUY',
       urgency: urgency as any,
-      description: description.trim() || 'Posted on UC Wanted Board.',
+      description: description.trim() || 'Posted on UC Flash Market.',
     });
 
     setIsModalOpen(false);
     setItemTitle('');
     setTargetBudget('');
     setDescription('');
-    Alert.alert('Request Posted', 'Your wanted request is now live on the campus board!');
+    Alert.alert('Request Posted', 'Your urgent flash request is now live for campus peers!');
   };
 
   return (
@@ -73,8 +75,8 @@ export default function WantedBoardScreen() {
       {/* Screen Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerTitle}>Campus Wanted Board</Text>
-          <Text style={styles.headerSubtitle}>Looking to Buy (LTB) & Student Pasabuy</Text>
+          <Text style={styles.headerTitle}>⚡ Campus Flash Market</Text>
+          <Text style={styles.headerSubtitle}>Urgent Needs, Fast Barter & Peer Fulfillment</Text>
         </View>
 
         <TouchableOpacity
@@ -82,14 +84,14 @@ export default function WantedBoardScreen() {
           onPress={() => setIsModalOpen(true)}
           activeOpacity={0.8}
         >
-          <Ionicons name="add" size={16} color="#FFFFFF" />
-          <Text style={styles.postBtnText}>Post Request</Text>
+          <Ionicons name="flash" size={15} color="#FFFFFF" />
+          <Text style={styles.postBtnText}>Post Flash</Text>
         </TouchableOpacity>
       </View>
 
       {/* Requests List */}
       <FlatList
-        data={wantedRequests}
+        data={requests}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
@@ -161,7 +163,7 @@ export default function WantedBoardScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Post Wanted Request</Text>
+              <Text style={styles.modalTitle}>Post Urgent Flash Request</Text>
               <TouchableOpacity onPress={() => setIsModalOpen(false)}>
                 <Ionicons name="close" size={22} color="#64748B" />
               </TouchableOpacity>
@@ -170,7 +172,7 @@ export default function WantedBoardScreen() {
             <Text style={styles.inputLabel}>What item do you need? *</Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. Littmann Stethoscope or Drafting T-Square"
+              placeholder="Item name"
               placeholderTextColor="#94A3B8"
               value={itemTitle}
               onChangeText={setItemTitle}
@@ -179,7 +181,7 @@ export default function WantedBoardScreen() {
             <Text style={styles.inputLabel}>Target Budget (₱) *</Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. 1500"
+              placeholder="0.00"
               placeholderTextColor="#94A3B8"
               keyboardType="numeric"
               value={targetBudget}
@@ -227,7 +229,7 @@ export default function WantedBoardScreen() {
             />
 
             <TouchableOpacity style={styles.modalSubmitBtn} onPress={handleCreateRequest}>
-              <Text style={styles.modalSubmitBtnText}>Publish to Wanted Board</Text>
+              <Text style={styles.modalSubmitBtnText}>⚡ Publish to Flash Market</Text>
             </TouchableOpacity>
           </View>
         </View>

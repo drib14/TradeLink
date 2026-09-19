@@ -47,6 +47,7 @@ const NOTIFICATION_TYPES = [
   'swap',
   'meetup',
   'price_drop',
+  'flash_response',
   'wanted_response',
   'message',
   'system'

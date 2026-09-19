@@ -6,6 +6,8 @@ const upload = require('../middleware/upload');
 const AppError = require('../utils/AppError');
 const storageService = require('../services/storage.service');
 const asyncHandler = require('../utils/asyncHandler');
+const { uploadLimiter } = require('../middleware/rateLimiter');
+const { checkUploadQuota } = require('../middleware/uploadQuota');
 
 // Sub-routers
 const authRoutes = require('./auth.routes');
@@ -14,10 +16,12 @@ const listingsRoutes = require('./listings.routes');
 const swapsRoutes = require('./swaps.routes');
 const transactionsRoutes = require('./transactions.routes');
 const chatRoutes = require('./chat.routes');
-const wantedRoutes = require('./wanted.routes');
+const flashMarketRoutes = require('./flashMarket.routes');
+const wantedRoutes = flashMarketRoutes; // Compatibility alias
 const reviewsRoutes = require('./reviews.routes');
 const adminRoutes = require('./admin.routes');
 const adminAuthRoutes = require('./adminAuth.routes');
+const newsletterRoutes = require('./newsletter.routes');
 
 // System Health Check
 router.get('/health', async (req, res) => {
@@ -27,30 +31,48 @@ router.get('/health', async (req, res) => {
   });
 });
 
-// File / Media Upload endpoint (supports images and videos, streams to Cloudinary)
-router.post('/upload', authenticate, upload.any(), asyncHandler(async (req, res, next) => {
-  const file = (req.files && req.files[0]) || req.file;
-  if (!file) {
+// Media Upload status check
+router.get('/upload/status', authenticate, asyncHandler(async (req, res) => {
+  const status = await storageService.testCloudinaryConnection();
+  res.status(200).json({
+    status: 'success',
+    data: status
+  });
+}));
+
+// File / Media Upload endpoint (supports images and videos, streams directly to Cloudinary)
+router.post('/upload', authenticate, checkUploadQuota, uploadLimiter, upload.array('image', 5), asyncHandler(async (req, res, next) => {
+  const uploadedFiles = req.files && req.files.length > 0 ? req.files : (req.file ? [req.file] : []);
+  if (uploadedFiles.length === 0) {
     return next(new AppError('No file uploaded.', 400));
   }
 
   const folder = req.body.folder || req.query.folder || 'listings';
-  const result = await storageService.uploadBuffer(
-    file.buffer,
-    file.originalname,
-    file.mimetype,
-    folder
+  const uploadResults = await Promise.all(
+    uploadedFiles.map((f) =>
+      storageService.uploadBuffer(f.buffer, f.originalname, f.mimetype, folder)
+    )
   );
+
+  const primary = uploadResults[0];
 
   res.status(201).json({
     status: 'success',
     data: {
-      url: result.url,
-      key: result.key,
-      filename: result.filename,
-      mediaType: result.mediaType || 'image',
-      size: result.size,
-      storage: result.storage
+      url: primary.url,
+      key: primary.key,
+      filename: primary.filename,
+      mediaType: primary.mediaType || 'image',
+      size: primary.size,
+      storage: primary.storage,
+      files: uploadResults.map((r) => ({
+        url: r.url,
+        key: r.key,
+        filename: r.filename,
+        mediaType: r.mediaType || 'image',
+        size: r.size,
+        storage: r.storage
+      }))
     }
   });
 }));
@@ -63,9 +85,11 @@ router.use('/swaps', swapsRoutes);
 router.use('/transactions', transactionsRoutes);
 router.use('/meetups', transactionsRoutes); // Compatibility alias
 router.use('/chat', chatRoutes);
-router.use('/wanted', wantedRoutes);
+router.use('/flash-market', flashMarketRoutes);
+router.use('/wanted', flashMarketRoutes); // Compatibility alias
 router.use('/reviews', reviewsRoutes);
 router.use('/admin', adminRoutes);
 router.use('/admin-auth', adminAuthRoutes);
+router.use('/newsletter', newsletterRoutes);
 
 module.exports = router;

@@ -13,7 +13,8 @@
     "test:perf": "cross-env NODE_ENV=test jest efficiency scalability --runInBand",
     "migrate:latest": "knex migrate:latest",
     "migrate:rollback": "knex migrate:rollback",
-    "seed:run": "knex seed:run"
+    "seed:run": "knex seed:run",
+    "seed:clean": "node scripts/clean_seed_live_db.js"
   },
   "keywords": [
     "tradelink",
@@ -44,9 +45,11 @@
     "multer": "^1.4.5-lts.1",
     "mysql2": "^3.10.1",
     "nodemailer": "^6.9.14",
+    "sharp": "^0.35.4",
     "socket.io": "^4.7.5",
     "uuid": "^10.0.0",
     "winston": "^3.13.0",
+    "xss": "^1.0.15",
     "xss-clean": "^0.1.4"
   },
   "devDependencies": {

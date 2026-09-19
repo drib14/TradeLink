@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { adminService } from '../services/admin.service';
-import { Listing, WantedRequest, MeetupTransaction, VerificationRequest, TradeDispute, CampusAnnouncement, AdminAuditLog } from '../types';
+import { Listing, FlashRequest, WantedRequest, MeetupTransaction, VerificationRequest, TradeDispute, CampusAnnouncement, AdminAuditLog } from '../types';
 
 export interface FlaggedListingItem {
   id: string;
@@ -24,7 +24,8 @@ interface AdminContextType {
   disputes: TradeDispute[];
   allUsers: any[];
   listings: Listing[];
-  wantedRequests: WantedRequest[];
+  flashRequests: FlashRequest[];
+  wantedRequests: FlashRequest[];
   transactions: MeetupTransaction[];
   meetups: MeetupTransaction[];
   systemConfig: any;
@@ -36,8 +37,11 @@ interface AdminContextType {
   approveVerification: (requestId: string) => Promise<void>;
   rejectVerification: (requestId: string, reason?: string) => Promise<void>;
   resolveFlag: (flagId: string) => Promise<void>;
+  createListingByAdmin: (data: any) => Promise<void>;
+  updateListingByAdmin: (id: string, updates: any) => Promise<void>;
+  deleteListingByAdmin: (id: string) => Promise<void>;
   removeListingByAdmin: (flagId: string, listingId: string, reason?: string) => Promise<void>;
-  boostListingByAdmin: (listingId: string) => Promise<void>;
+  deleteFlashRequest: (requestId: string, reason?: string) => Promise<void>;
   removeWantedByAdmin: (wantedId: string, reason?: string) => Promise<void>;
   deleteWantedRequest: (wantedId: string, reason?: string) => Promise<void>;
   completeTransactionByAdmin: (transactionId: string) => Promise<void>;
@@ -73,7 +77,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [disputes, setDisputes] = useState<TradeDispute[]>([]);
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [listings, setListings] = useState<Listing[]>([]);
-  const [wantedRequests, setWantedRequests] = useState<WantedRequest[]>([]);
+  const [flashRequests, setFlashRequests] = useState<FlashRequest[]>([]);
   const [meetups, setMeetups] = useState<MeetupTransaction[]>([]);
   const [systemConfig, setSystemConfig] = useState<any>({});
   const [stats, setStats] = useState<any>({
@@ -100,7 +104,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         keywords,
         configData,
         listingsData,
-        wantedData,
+        flashData,
         meetupsData
       ] = await Promise.allSettled([
         adminService.getStats(),
@@ -113,7 +117,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         adminService.getKeywords(),
         adminService.getSystemConfig(),
         adminService.getListings(),
-        adminService.getWantedRequests(),
+        adminService.getFlashRequests(),
         adminService.getMeetups()
       ]);
 
@@ -127,7 +131,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (keywords.status === 'fulfilled') setProhibitedKeywords(keywords.value || []);
       if (configData.status === 'fulfilled') setSystemConfig(configData.value || {});
       if (listingsData.status === 'fulfilled') setListings(listingsData.value || []);
-      if (wantedData.status === 'fulfilled') setWantedRequests(wantedData.value || []);
+      if (flashData.status === 'fulfilled') setFlashRequests(flashData.value || []);
       if (meetupsData.status === 'fulfilled') setMeetups(meetupsData.value || []);
     } catch (e) {
       console.warn('Failed to load admin data:', e);
@@ -168,23 +172,35 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     fetchAdminData();
   };
 
-  const boostListingByAdmin = async (listingId: string) => {
-    setListings((prev) =>
-      prev.map((l) => (l.id === listingId ? { ...l, isBoosted: true, is_featured: true } : l))
-    );
-    await adminService.boostListing(listingId);
+  const createListingByAdmin = async (data: any) => {
+    const created = await adminService.createListing(data);
+    if (created) {
+      setListings((prev) => [created, ...prev]);
+    }
     fetchAdminData();
   };
 
-  const removeWantedByAdmin = async (wantedId: string, reason?: string) => {
-    await adminService.deleteWanted(wantedId, reason);
+  const updateListingByAdmin = async (id: string, updates: any) => {
+    const updated = await adminService.updateListing(id, updates);
+    if (updated) {
+      setListings((prev) => prev.map((l) => (l.id === id ? updated : l)));
+    }
     fetchAdminData();
   };
 
-  const deleteWantedRequest = async (wantedId: string, reason?: string) => {
-    await adminService.deleteWanted(wantedId, reason);
+  const deleteListingByAdmin = async (id: string) => {
+    setListings((prev) => prev.filter((l) => l.id !== id));
+    await adminService.deleteListing(id);
     fetchAdminData();
   };
+
+  const deleteFlashRequest = async (requestId: string, reason?: string) => {
+    await adminService.deleteFlashRequest(requestId, reason);
+    fetchAdminData();
+  };
+
+  const removeWantedByAdmin = deleteFlashRequest;
+  const deleteWantedRequest = deleteFlashRequest;
 
   const completeTransactionByAdmin = async (transactionId: string) => {
     await adminService.updateTransactionStatus(transactionId, 'completed');
@@ -289,7 +305,8 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         disputes,
         allUsers,
         listings,
-        wantedRequests,
+        flashRequests,
+        wantedRequests: flashRequests,
         transactions: meetups,
         meetups,
         systemConfig,
@@ -301,8 +318,11 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         approveVerification,
         rejectVerification,
         resolveFlag,
+        createListingByAdmin,
+        updateListingByAdmin,
+        deleteListingByAdmin,
         removeListingByAdmin,
-        boostListingByAdmin,
+        deleteFlashRequest,
         removeWantedByAdmin,
         deleteWantedRequest,
         completeTransactionByAdmin,

@@ -15,9 +15,8 @@ setInterval(() => {
 }, 10 * 60 * 1000);
 
 const CHALLENGE_ACTIONS = [
-  { id: 'blink_tilt', instruction: 'Blink twice & hold steady' },
-  { id: 'smile_center', instruction: 'Align face in center reticle' },
-  { id: 'turn_slight', instruction: 'Look straight at camera' }
+  { id: 'look_left', instruction: 'Slowly turn your head to the left', targetPose: 'left' },
+  { id: 'look_right', instruction: 'Slowly turn your head to the right', targetPose: 'right' }
 ];
 
 const FLASH_COLORS = [
@@ -47,7 +46,7 @@ function createSession(userId) {
   };
 
   const payloadStr = JSON.stringify(payload);
-  const secret = env.jwt.accessSecret || 'tradelink-verification-session-secret';
+  const secret = env.verificationSessionSecret || env.jwt.accessSecret;
   const signature = crypto.createHmac('sha256', secret).update(payloadStr).digest('hex');
   const sessionToken = `${Buffer.from(payloadStr).toString('base64url')}.${signature}`;
 
@@ -84,7 +83,7 @@ function validateAndConsumeSession(userId, sessionToken) {
     return { valid: false, reason: 'Invalid session token encoding.' };
   }
 
-  const secret = env.jwt.accessSecret || 'tradelink-verification-session-secret';
+  const secret = env.verificationSessionSecret || env.jwt.accessSecret;
   const expectedSignature = crypto.createHmac('sha256', secret).update(payloadStr).digest('hex');
 
   // Timing safe signature verification

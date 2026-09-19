@@ -3,7 +3,6 @@ import { useAdmin } from '../context/AdminContext';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import { useToast } from '../components/common/Toast';
 import { VerificationRequest, User, Listing, Campus, TradeDispute } from '../types';
-import { CAMPUS_MEETUP_SPOTS } from '../data/campusLocations';
 import {
   ShieldAlert,
   UserX,
@@ -19,7 +18,6 @@ import {
   Flame,
   Zap,
   MapPin,
-  Building2,
   BadgeCheck,
   TrendingUp,
   Plus,
@@ -35,10 +33,17 @@ import {
   Heart,
   ExternalLink,
   Filter,
-  Receipt
+  Receipt,
+  Edit3,
+  Clock,
+  Building2
 } from 'lucide-react';
 import { VerifiedBadge } from '../components/common/VerifiedBadge';
+import { ConfirmModal } from '../components/common/ConfirmModal';
 import { CampusBadge } from '../components/common/CampusBadge';
+import { UserAvatar } from '../components/common/UserAvatar';
+import { Logo } from '../components/common/Logo';
+import { TradeLinkIcon } from '../components/common/TradeLinkIcon';
 
 function formatRelativeTime(dateStr?: string) {
   if (!dateStr) return '';
@@ -87,10 +92,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     adjustUserTrustScore,
     allUsers,
     listings,
-    wantedRequests,
+    flashRequests = [],
+    wantedRequests = [],
     transactions = [],
     meetups,
-    boostListingByAdmin,
+    createListingByAdmin,
+    updateListingByAdmin,
+    deleteFlashRequest,
     removeWantedByAdmin,
     deleteWantedRequest,
     completeTransactionByAdmin,
@@ -110,11 +118,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     | 'scanner'
     | 'disputes'
     | 'reputation'
+    | 'flash-market'
     | 'wanted'
     | 'transactions'
     | 'meetups'
-    | 'landmarks'
-    | 'priceAdvisor'
     | 'announcements'
     | 'audit'
   >('overview');
@@ -126,7 +133,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   // Search and filters
   const [userSearch, setUserSearch] = useState('');
   const [userCampusFilter, setUserCampusFilter] = useState<string>('All');
-  const [verificationFilter, setVerificationFilter] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending');
+  const [verificationFilter, setVerificationFilter] = useState<'pending' | 'suspicious' | 'approved' | 'rejected' | 'all'>('pending');
 
   // Scanner Tool State
   const [newKeywordInput, setNewKeywordInput] = useState('');
@@ -141,14 +148,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   const [repDelta, setRepDelta] = useState<number>(10);
   const [repReason, setRepReason] = useState<string>('Exemplary honest trading & punctuality');
 
-  // Landmark Configurator State
-  const [landmarkCampusFilter, setLandmarkCampusFilter] = useState<string>('All');
-  const [activeLandmarks, setActiveLandmarks] = useState<Record<string, boolean>>(() => {
-    const map: Record<string, boolean> = {};
-    CAMPUS_MEETUP_SPOTS.forEach((s) => (map[s.id] = true));
-    return map;
-  });
-
   // Audit Log Filters
   const [auditTypeFilter, setAuditTypeFilter] = useState<string>('all');
   const [auditSearch, setAuditSearch] = useState<string>('');
@@ -159,6 +158,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   const [banReasonInput, setBanReasonInput] = useState('');
   const [rejectReqModal, setRejectReqModal] = useState<VerificationRequest | null>(null);
   const [rejectReasonInput, setRejectReasonInput] = useState('');
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [requestToDelete, setRequestToDelete] = useState<any | null>(null);
   const [isNewAnnModalOpen, setIsNewAnnModalOpen] = useState(false);
   const [newAnnTitle, setNewAnnTitle] = useState('');
   const [newAnnMessage, setNewAnnMessage] = useState('');
@@ -172,6 +173,105 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   const [listingCategoryFilter, setListingCategoryFilter] = useState<string>('All');
   const [listingDeleteModal, setListingDeleteModal] = useState<{ flagId?: string; listingId: string; title: string } | null>(null);
   const [visibleListingsCount, setVisibleListingsCount] = useState(25);
+
+  // Admin Create / Edit Listing States
+  const [isCreateListingModalOpen, setIsCreateListingModalOpen] = useState(false);
+  const [editingAdminListing, setEditingAdminListing] = useState<Listing | null>(null);
+  const [adminListingForm, setAdminListingForm] = useState({
+    title: '',
+    category: 'Electronics',
+    price: 0,
+    originalSrp: 0,
+    tradeMode: 'buy_sell' as 'buy_sell' | 'swap' | 'free_donation',
+    condition: 'Like New',
+    quantity: 1,
+    campus: 'UC Main',
+    status: 'active' as 'active' | 'sold',
+    description: '',
+    imageUrl: ''
+  });
+
+  const handleOpenCreateListing = () => {
+    setAdminListingForm({
+      title: '',
+      category: 'Electronics',
+      price: 0,
+      originalSrp: 0,
+      tradeMode: 'buy_sell',
+      condition: 'Like New',
+      quantity: 1,
+      campus: 'UC Main',
+      status: 'active',
+      description: '',
+      imageUrl: ''
+    });
+    setIsCreateListingModalOpen(true);
+  };
+
+  const handleOpenEditListing = (listing: Listing) => {
+    setEditingAdminListing(listing);
+    setAdminListingForm({
+      title: listing.title,
+      category: listing.category || 'Electronics',
+      price: listing.price || 0,
+      originalSrp: listing.originalSrp || 0,
+      tradeMode: listing.tradeMode || 'buy_sell',
+      condition: listing.condition || 'Like New',
+      quantity: listing.quantity !== undefined ? listing.quantity : 1,
+      campus: listing.sellerCampus || 'UC Main',
+      status: listing.status === 'sold' || listing.isSold ? 'sold' : 'active',
+      description: listing.description || '',
+      imageUrl: listing.images?.[0] || ''
+    });
+  };
+
+  const handleSaveCreateListing = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminListingForm.title.trim()) {
+      showToast('Validation Error', 'Listing title is required.', 'warning');
+      return;
+    }
+    try {
+      await createListingByAdmin({
+        title: adminListingForm.title.trim(),
+        category: adminListingForm.category,
+        price: Number(adminListingForm.price) || 0,
+        originalSrp: adminListingForm.originalSrp ? Number(adminListingForm.originalSrp) : undefined,
+        tradeMode: adminListingForm.tradeMode,
+        condition: adminListingForm.condition,
+        quantity: Number(adminListingForm.quantity) || 1,
+        description: adminListingForm.description.trim(),
+        images: adminListingForm.imageUrl.trim() ? [adminListingForm.imageUrl.trim()] : []
+      });
+      showToast('Listing Created', `Created official listing "${adminListingForm.title}".`, 'success');
+      setIsCreateListingModalOpen(false);
+    } catch (err: any) {
+      showToast('Creation Failed', err?.message || 'Failed to create listing.', 'error');
+    }
+  };
+
+  const handleSaveEditListing = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingAdminListing) return;
+    try {
+      await updateListingByAdmin(editingAdminListing.id, {
+        title: adminListingForm.title.trim(),
+        category: adminListingForm.category,
+        price: Number(adminListingForm.price) || 0,
+        originalSrp: adminListingForm.originalSrp ? Number(adminListingForm.originalSrp) : undefined,
+        tradeMode: adminListingForm.tradeMode,
+        condition: adminListingForm.condition,
+        quantity: Number(adminListingForm.quantity) || 0,
+        status: adminListingForm.status,
+        description: adminListingForm.description.trim(),
+        images: adminListingForm.imageUrl.trim() ? [adminListingForm.imageUrl.trim()] : editingAdminListing.images
+      });
+      showToast('Listing Updated', `"${adminListingForm.title}" updated successfully.`, 'success');
+      setEditingAdminListing(null);
+    } catch (err: any) {
+      showToast('Update Failed', err?.message || 'Failed to update listing.', 'error');
+    }
+  };
 
   const pendingRequests = verificationRequests.filter((r) => r.status === 'pending');
   const pendingFlags = flaggedListings.filter((f) => f.status === 'pending');
@@ -209,22 +309,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
           }}
         >
           {/* Header */}
-          <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.65rem' }}>
-            <div
-              style={{
-                width: '56px',
-                height: '56px',
-                borderRadius: '16px',
-                backgroundColor: '#EBF1FC',
-                border: '1.5px solid #BCD1F7',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#002B7F'
-              }}
-            >
-              <ShieldAlert size={30} />
-            </div>
+          <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.85rem' }}>
+            <Logo size="lg" showSubtitle={true} subtitleText="Administration & Safety Portal" />
 
             <div>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: '#002B7F', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', backgroundColor: '#EBF1FC', padding: '0.2rem 0.6rem', borderRadius: '6px' }}>
@@ -333,9 +419,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   };
 
   const handleDeleteUser = (user: User) => {
-    if (window.confirm(`Permanently delete ${user.name}'s account? This action cannot be undone.`)) {
-      deleteUserByAdmin(user.id);
-      showToast('Account Deleted', `${user.name} was removed from the database.`, 'info');
+    setUserToDelete(user);
+  };
+
+  const handleConfirmDeleteUser = () => {
+    if (userToDelete) {
+      deleteUserByAdmin(userToDelete.id);
+      showToast('Account Deleted', `${userToDelete.name} was removed from the database.`, 'info');
+      setUserToDelete(null);
+    }
+  };
+
+  const handleConfirmDeleteRequest = () => {
+    if (requestToDelete) {
+      if (deleteFlashRequest) {
+        deleteFlashRequest(requestToDelete.id, 'Moderator removed request');
+      } else {
+        removeWantedByAdmin(requestToDelete.id, 'Moderator removed request');
+      }
+      showToast('Flash Request Removed', `Removed "${requestToDelete.itemTitle}" from Flash Market.`, 'info');
+      setRequestToDelete(null);
     }
   };
 
@@ -360,11 +463,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
 
   const handleRemoveListing = (flagId: string, listingId: string, title: string) => {
     setListingDeleteModal({ flagId, listingId, title });
-  };
-
-  const handleBoostListing = (listing: Listing) => {
-    boostListingByAdmin(listing.id);
-    showToast('Boost Updated', `Hero carousel boost toggled for "${listing.title}".`, 'success');
   };
 
   // Scanner Tool Actions
@@ -497,15 +595,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   return (
     <div className="container" style={{ padding: '2rem 1.5rem 6rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
       {/* Top Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#002B7F', fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', backgroundColor: '#EBF1FC', padding: '0.25rem 0.65rem', borderRadius: '6px', border: '1px solid #BCD1F7' }}>
-            <ShieldAlert size={14} color="#002B7F" /> University of Cebu Moderation Desk
-          </div>
-          <h1 style={{ fontSize: '1.85rem', fontWeight: 900, color: '#0F172A', marginTop: '0.45rem', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}>
-            Campus Administration & Safety Center
-          </h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.25rem' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+          <TradeLinkIcon size={44} style={{ marginTop: '0.15rem' }} />
+          <div>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#002B7F', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', backgroundColor: '#EBF1FC', padding: '0.2rem 0.65rem', borderRadius: '6px', border: '1px solid #BCD1F7' }}>
+              <ShieldAlert size={13} color="#002B7F" /> University of Cebu Moderation Desk
+            </div>
+            <h1 style={{ fontSize: '1.85rem', fontWeight: 900, color: '#0F172A', marginTop: '0.35rem', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', lineHeight: 1.15 }}>
+              Campus Administration & Safety Center
+            </h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '0.82rem', color: '#64748B' }}>
               Logged in as: <strong style={{ color: '#002B7F' }}>{currentUser?.name || 'UC Admin Moderator'}</strong> ({currentUser?.email ? <code>{currentUser.email}</code> : 'Authenticated'})
             </span>
@@ -514,6 +614,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
             </span>
           </div>
         </div>
+      </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
           <button
@@ -569,10 +670,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
           { id: 'scanner', label: `Prohibited Scanner (${scannedViolations.length})`, icon: <Shield size={14} /> },
           { id: 'disputes', label: `Trade Disputes (${pendingDisputesCount})`, icon: <Scale size={14} /> },
           { id: 'reputation', label: 'Trust & Reputation', icon: <Award size={14} /> },
-          { id: 'wanted', label: `Wanted Board (${wantedRequests.length})`, icon: <Flame size={14} /> },
+          { id: 'flash-market', label: `Flash Market (${(flashRequests || wantedRequests).length})`, icon: <Zap size={14} /> },
           { id: 'transactions', label: `Transactions (${transactions.length})`, icon: <Receipt size={14} /> },
-          { id: 'landmarks', label: 'Guarded Hubs', icon: <Building2 size={14} /> },
-          { id: 'priceAdvisor', label: 'Price Compliance', icon: <DollarSign size={14} /> },
           { id: 'announcements', label: `Broadcasts (${announcements.length})`, icon: <Megaphone size={14} /> },
           { id: 'audit', label: `Audit Log (${auditLogs.length})`, icon: <History size={14} /> }
         ].map((tab) => {
@@ -684,7 +783,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     <th style={{ padding: '0.65rem 0.75rem' }}>Campus Hub</th>
                     <th style={{ padding: '0.65rem 0.75rem' }}>Registered Students</th>
                     <th style={{ padding: '0.65rem 0.75rem' }}>Active Listings</th>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>Wanted Requests</th>
+                    <th style={{ padding: '0.65rem 0.75rem' }}>Flash Requests</th>
                     <th style={{ padding: '0.65rem 0.75rem' }}>Verification Rate</th>
                   </tr>
                 </thead>
@@ -702,7 +801,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     const campusUsers = allUsers.filter((u) => u.campus === campus);
                     const campusVerified = campusUsers.filter((u) => u.isVerified);
                     const campusListings = listings.filter((l) => l.sellerCampus === campus);
-                    const campusWanted = wantedRequests.filter((w) => w.preferredCampus === campus);
+                    const campusFlash = (flashRequests.length > 0 ? flashRequests : wantedRequests).filter((w) => w.preferredCampus === campus);
                     const rate = campusUsers.length > 0 ? Math.round((campusVerified.length / campusUsers.length) * 100) : 0;
                     return (
                       <tr key={campus} style={{ borderBottom: '1px solid #F1F5F9' }}>
@@ -711,7 +810,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                         </td>
                         <td style={{ padding: '0.75rem', fontWeight: 700, color: '#0F172A' }}>{campusUsers.length}</td>
                         <td style={{ padding: '0.75rem', color: '#002B7F', fontWeight: 700 }}>{campusListings.length}</td>
-                        <td style={{ padding: '0.75rem', color: '#D97706', fontWeight: 700 }}>{campusWanted.length}</td>
+                        <td style={{ padding: '0.75rem', color: '#D97706', fontWeight: 700 }}>{campusFlash.length}</td>
                         <td style={{ padding: '0.75rem' }}>
                           <span style={{ fontWeight: 800, color: rate >= 50 ? '#059669' : '#D97706' }}>{rate}%</span>
                         </td>
@@ -731,32 +830,72 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
       {activeTab === 'verifications' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              {(['pending', 'approved', 'rejected', 'all'] as const).map((filter) => (
-                <button
-                  key={filter}
-                  onClick={() => setVerificationFilter(filter)}
-                  style={{
-                    padding: '0.4rem 0.85rem',
-                    borderRadius: '8px',
-                    fontSize: '0.78rem',
-                    fontWeight: verificationFilter === filter ? 800 : 600,
-                    backgroundColor: verificationFilter === filter ? '#002B7F' : '#F1F5F9',
-                    color: verificationFilter === filter ? '#FFFFFF' : '#475569',
-                    textTransform: 'capitalize'
-                  }}
-                >
-                  {filter}
-                </button>
-              ))}
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              {(['pending', 'suspicious', 'approved', 'rejected', 'all'] as const).map((filter) => {
+                const count = filter === 'suspicious'
+                  ? verificationRequests.filter((r) => r.isSuspicious && r.status === 'pending').length
+                  : filter === 'pending'
+                    ? verificationRequests.filter((r) => r.status === 'pending').length
+                    : filter === 'approved'
+                      ? verificationRequests.filter((r) => r.status === 'approved').length
+                      : filter === 'rejected'
+                        ? verificationRequests.filter((r) => r.status === 'rejected').length
+                        : verificationRequests.length;
+
+                return (
+                  <button
+                    key={filter}
+                    onClick={() => setVerificationFilter(filter)}
+                    style={{
+                      padding: '0.4rem 0.85rem',
+                      borderRadius: '8px',
+                      fontSize: '0.78rem',
+                      fontWeight: verificationFilter === filter ? 800 : 600,
+                      backgroundColor: verificationFilter === filter
+                        ? (filter === 'suspicious' ? '#DC2626' : '#002B7F')
+                        : '#F1F5F9',
+                      color: verificationFilter === filter ? '#FFFFFF' : '#475569',
+                      textTransform: 'capitalize',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.35rem'
+                    }}
+                  >
+                    <span>{filter}</span>
+                    <span style={{
+                      backgroundColor: verificationFilter === filter ? 'rgba(255,255,255,0.25)' : '#E2E8F0',
+                      padding: '1px 6px',
+                      borderRadius: '9999px',
+                      fontSize: '0.7rem'
+                    }}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
             {verificationRequests
-              .filter((r) => verificationFilter === 'all' || r.status === verificationFilter)
+              .filter((r) => {
+                if (verificationFilter === 'all') return true;
+                if (verificationFilter === 'suspicious') return r.isSuspicious && r.status === 'pending';
+                return r.status === verificationFilter;
+              })
               .map((req) => (
-                <div key={req.id} className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div
+                  key={req.id}
+                  className="clean-card"
+                  style={{
+                    padding: '1.25rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '1rem',
+                    border: req.isSuspicious && req.status === 'pending' ? '1.5px solid #FCA5A5' : undefined,
+                    backgroundColor: req.isSuspicious && req.status === 'pending' ? '#FFFDFD' : undefined
+                  }}
+                >
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                     <div>
                       <h4 style={{ fontSize: '0.98rem', fontWeight: 800, color: '#0F172A' }}>{req.userName}</h4>
@@ -766,6 +905,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                       </div>
                       <div style={{ fontSize: '0.75rem', color: '#002B7F', fontWeight: 700, marginTop: '0.25rem' }}>
                         ID: {req.studentIdNumber}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.35rem', flexWrap: 'wrap' }}>
+                        <span
+                          style={{
+                            fontSize: '0.68rem',
+                            fontWeight: 800,
+                            padding: '0.15rem 0.45rem',
+                            borderRadius: '6px',
+                            backgroundColor: (req.confidenceScore ?? 0) >= 90 ? '#ECFDF5' : '#FEF3C7',
+                            color: (req.confidenceScore ?? 0) >= 90 ? '#059669' : '#B45309',
+                            border: `1px solid ${(req.confidenceScore ?? 0) >= 90 ? '#A7F3D0' : '#FDE68A'}`
+                          }}
+                        >
+                          Confidence: {req.confidenceScore ?? 75}%
+                        </span>
+                        {req.isSuspicious && (
+                          <span
+                            style={{
+                              fontSize: '0.68rem',
+                              fontWeight: 800,
+                              padding: '0.15rem 0.45rem',
+                              borderRadius: '6px',
+                              backgroundColor: '#FEF2F2',
+                              color: '#DC2626',
+                              border: '1px solid #FECACA',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.25rem'
+                            }}
+                          >
+                            <AlertTriangle size={11} /> Suspicious Flag
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -783,6 +955,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                       {req.status}
                     </span>
                   </div>
+
+                  {/* Suspicious Reasons Diagnostic Box */}
+                  {req.isSuspicious && req.suspiciousReasons && req.suspiciousReasons.length > 0 && (
+                    <div
+                      style={{
+                        backgroundColor: '#FEF2F2',
+                        border: '1px solid #FCA5A5',
+                        borderRadius: '8px',
+                        padding: '0.5rem 0.75rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.25rem'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#B91C1C', fontSize: '0.72rem', fontWeight: 800 }}>
+                        <AlertTriangle size={12} />
+                        <span>Action Required: Suspicious Signals Flagged</span>
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '0.66rem', color: '#991B1B', lineHeight: 1.4 }}>
+                        {req.suspiciousReasons.map((reason, idx) => (
+                          <li key={idx}>{reason}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
 
                   {/* Side-by-Side ID & Biometric Selfie Preview */}
                   <div style={{ display: 'grid', gridTemplateColumns: req.selfiePhotoUrl ? '1fr 1fr' : '1fr', gap: '0.5rem' }}>
@@ -911,7 +1108,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 value={userSearch}
                 onChange={(e) => setUserSearch(e.target.value)}
                 className="clean-input"
-                style={{ paddingLeft: '2.25rem', fontSize: '0.82rem' }}
+                style={{ paddingLeft: '2.5rem', fontSize: '0.82rem' }}
               />
             </div>
 
@@ -960,7 +1157,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     <tr key={u.id} style={{ borderBottom: '1px solid #F1F5F9', backgroundColor: isUserBanned ? '#FEF2F2' : 'transparent' }}>
                       <td style={{ padding: '0.75rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                          <img src={u.avatar} alt={u.name} style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
+                          <UserAvatar src={u.avatar} name={u.name} size={36} />
                           <div>
                             <div style={{ fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                               <span>{u.name}</span>
@@ -981,9 +1178,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                       <td style={{ padding: '0.75rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                           <div style={{ flex: 1, width: '60px', height: '6px', backgroundColor: '#E2E8F0', borderRadius: '9999px', overflow: 'hidden' }}>
-                            <div style={{ width: `${u.trustScore || 60}%`, height: '100%', backgroundColor: (u.trustScore || 60) > 70 ? '#059669' : '#D97706' }} />
+                            <div style={{ width: `${Number(u.trustScore ?? 0)}%`, height: '100%', backgroundColor: Number(u.trustScore ?? 0) > 70 ? '#059669' : Number(u.trustScore ?? 0) > 0 ? '#D97706' : '#94A3B8' }} />
                           </div>
-                          <span style={{ fontWeight: 800, fontSize: '0.75rem' }}>{u.trustScore || 60}/100</span>
+                          <span style={{ fontWeight: 800, fontSize: '0.75rem' }}>{Number(u.trustScore ?? 0)}/100</span>
                         </div>
                       </td>
 
@@ -1142,9 +1339,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                   Marketplace Directory ({filteredAdminListings.length} / {listings.length} items)
                 </h3>
                 <p style={{ fontSize: '0.78rem', color: '#64748B', marginTop: '0.15rem' }}>
-                  Search and manage listings across all 8 UC campuses, toggle hero carousel boosts, or take down non-compliant items.
+                  Search and manage listings across all 8 UC campuses or take down non-compliant items.
                 </p>
               </div>
+
+              <button
+                onClick={handleOpenCreateListing}
+                className="btn-gold"
+                style={{ padding: '0.5rem 1rem', fontSize: '0.82rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+              >
+                <Plus size={14} /> Post Official Listing
+              </button>
             </div>
 
             {/* Filter Controls Bar */}
@@ -1161,7 +1366,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     setVisibleListingsCount(25);
                   }}
                   className="clean-input"
-                  style={{ paddingLeft: '2rem', fontSize: '0.82rem', height: '36px' }}
+                  style={{ paddingLeft: '2.25rem', fontSize: '0.82rem', height: '36px' }}
                 />
               </div>
 
@@ -1329,23 +1534,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                           <td style={{ padding: '0.75rem', textAlign: 'right' }}>
                             <div style={{ display: 'inline-flex', gap: '0.35rem', alignItems: 'center' }}>
                               <button
-                                onClick={() => handleBoostListing(l)}
-                                title={l.isBoosted ? 'Remove Boost' : 'Boost to Hero Carousel'}
+                                onClick={() => handleOpenEditListing(l)}
+                                title="Edit Listing Details"
                                 style={{
                                   padding: '0.35rem 0.6rem',
                                   borderRadius: '6px',
                                   fontSize: '0.72rem',
-                                  fontWeight: 800,
-                                  backgroundColor: l.isBoosted ? '#FFC72C' : '#F1F5F9',
+                                  fontWeight: 700,
+                                  backgroundColor: '#EBF1FC',
                                   color: '#002B7F',
-                                  border: 'none',
+                                  border: '1px solid #BCD1F7',
                                   cursor: 'pointer',
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   gap: '0.25rem'
                                 }}
                               >
-                                <Zap size={12} fill={l.isBoosted ? '#002B7F' : 'none'} /> {l.isBoosted ? 'Boosted' : 'Boost'}
+                                <Edit3 size={12} /> Edit
                               </button>
                               <button
                                 onClick={() => handleRemoveListing('direct', l.id, l.title)}
@@ -1448,7 +1653,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
             <form onSubmit={handleAddKeyword} style={{ display: 'flex', gap: '0.5rem', maxWidth: '420px' }}>
               <input
                 type="text"
-                placeholder="Add prohibited term e.g. 'vape' or 'exam leak'..."
+                placeholder="Prohibited term"
                 value={newKeywordInput}
                 onChange={(e) => setNewKeywordInput(e.target.value)}
                 className="clean-input"
@@ -1502,8 +1707,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                         <div style={{ fontSize: '0.75rem', color: '#64748B' }}>Seller: {listing.sellerName} ({listing.sellerCampus})</div>
                         <div style={{ marginTop: '0.35rem', display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
                           {matchedKeywords.map((kw) => (
-                            <span key={kw} style={{ fontSize: '0.68rem', fontWeight: 800, backgroundColor: '#DC2626', color: '#FFFFFF', padding: '0.15rem 0.4rem', borderRadius: '4px' }}>
-                              ⚠️ Matched: {kw}
+                            <span key={kw} style={{ fontSize: '0.68rem', fontWeight: 800, backgroundColor: '#DC2626', color: '#FFFFFF', padding: '0.15rem 0.4rem', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                              <AlertTriangle size={10} /> Matched: {kw}
                             </span>
                           ))}
                         </div>
@@ -1605,8 +1810,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                       </button>
                     </div>
                   ) : (
-                    <div style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 700 }}>
-                      ✓ Case Resolved ({disp.verdictAction?.toUpperCase()}): {disp.verdictNote}
+                    <div style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <Check size={12} /> Case Resolved ({disp.verdictAction?.toUpperCase()}): {disp.verdictNote}
                     </div>
                   )}
                 </div>
@@ -1671,7 +1876,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Excellent conduct / Disciplinary deduction"
+                  placeholder="Reason for adjustment"
                   value={repReason}
                   onChange={(e) => setRepReason(e.target.value)}
                   className="clean-input"
@@ -1699,17 +1904,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
               </h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 {allUsers
-                  .filter((u) => (u.trustScore || 80) >= 90)
+                  .filter((u) => Number(u.trustScore ?? 0) >= 90)
                   .map((u) => (
                     <div key={u.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0.65rem', borderRadius: '6px', backgroundColor: '#ECFDF5', fontSize: '0.8rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <img src={u.avatar} alt={u.name} style={{ width: '28px', height: '28px', borderRadius: '50%' }} />
+                        <UserAvatar src={u.avatar} name={u.name} size={28} />
                         <div>
                           <strong style={{ color: '#065F46' }}>{u.name}</strong>
                           <div style={{ fontSize: '0.7rem', color: '#64748B' }}>{u.campus}</div>
                         </div>
                       </div>
-                      <span style={{ fontWeight: 900, color: '#059669' }}>{u.trustScore || 90}/100</span>
+                      <span style={{ fontWeight: 900, color: '#059669' }}>{Number(u.trustScore ?? 0)}/100</span>
                     </div>
                   ))}
               </div>
@@ -1718,21 +1923,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
             {/* Low Trust Watchlist */}
             <div className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#DC2626', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <AlertTriangle size={16} /> Moderation Watchlist (Trust &lt; 75%)
+                <AlertTriangle size={16} /> Moderation Watchlist (Warnings / Low Trust)
               </h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 {allUsers
-                  .filter((u) => (u.trustScore || 80) < 75)
+                  .filter((u) => (u.warningsCount || 0) > 0 || (Number(u.trustScore ?? 0) < 75 && (u.completedTrades || 0) > 0))
                   .map((u) => (
                     <div key={u.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0.65rem', borderRadius: '6px', backgroundColor: '#FEF2F2', fontSize: '0.8rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <img src={u.avatar} alt={u.name} style={{ width: '28px', height: '28px', borderRadius: '50%' }} />
+                        <UserAvatar src={u.avatar} name={u.name} size={28} />
                         <div>
                           <strong style={{ color: '#991B1B' }}>{u.name}</strong>
                           <div style={{ fontSize: '0.7rem', color: '#64748B' }}>{u.campus} • {u.warningsCount || 0} Strikes</div>
                         </div>
                       </div>
-                      <span style={{ fontWeight: 900, color: '#DC2626' }}>{u.trustScore || 60}/100</span>
+                      <span style={{ fontWeight: 900, color: '#DC2626' }}>{Number(u.trustScore ?? 0)}/100</span>
                     </div>
                   ))}
               </div>
@@ -1742,11 +1947,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
       )}
 
       {/* =========================================================================
-          TAB 8: WANTED BOARD & PASABUY MODERATION
+          TAB 8: FLASH MARKET MODERATION
           ========================================================================= */}
-      {activeTab === 'wanted' && (
+      {(activeTab === 'flash-market' || activeTab === 'wanted') && (
         <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A' }}>Student Wanted & Pasabuy Requests ({wantedRequests.length})</h3>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Zap size={20} color="var(--uc-gold, #FFC72C)" />
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>
+                  Student Flash Market Requests ({(flashRequests.length > 0 ? flashRequests : wantedRequests).length})
+                </h3>
+              </div>
+              <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B' }}>
+                Rapid peer-to-peer campus broadcasts. Flash requests are lightweight text broadcasts without photo uploads.
+              </p>
+            </div>
+          </div>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
               <thead>
@@ -1754,38 +1971,67 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                   <th style={{ padding: '0.65rem 0.75rem' }}>Requested Item</th>
                   <th style={{ padding: '0.65rem 0.75rem' }}>Campus</th>
                   <th style={{ padding: '0.65rem 0.75rem' }}>Target Budget</th>
+                  <th style={{ padding: '0.65rem 0.75rem' }}>Urgency</th>
+                  <th style={{ padding: '0.65rem 0.75rem' }}>Status</th>
                   <th style={{ padding: '0.65rem 0.75rem' }}>Requester</th>
                   <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {wantedRequests.map((w) => (
-                  <tr key={w.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                    <td style={{ padding: '0.75rem' }}>
-                      <div style={{ fontWeight: 800, color: '#0F172A' }}>{w.itemTitle}</div>
-                      <div style={{ fontSize: '0.72rem', color: '#64748B' }}>{w.description}</div>
-                    </td>
-                    <td style={{ padding: '0.75rem' }}>
-                      <CampusBadge campus={w.preferredCampus} size="sm" />
-                    </td>
-                    <td style={{ padding: '0.75rem', fontWeight: 800, color: '#002B7F' }}>₱{w.targetBudget.toLocaleString()}</td>
-                    <td style={{ padding: '0.75rem', color: '#334155' }}>{w.requesterName}</td>
-                    <td style={{ padding: '0.75rem', textAlign: 'right' }}>
-                      <button
-                        onClick={() => {
-                          if (window.confirm(`Delete request "${w.itemTitle}"?`)) {
-                            removeWantedByAdmin(w.id, 'Moderator removed request');
-                            deleteWantedRequest(w.id);
-                            showToast('Deleted', 'Wanted post deleted.', 'info');
-                          }
-                        }}
-                        style={{ padding: '0.35rem 0.55rem', borderRadius: '6px', color: '#DC2626', backgroundColor: '#FEF2F2', border: '1px solid #FECACA' }}
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {(flashRequests.length > 0 ? flashRequests : wantedRequests).map((w) => {
+                  const isCardExpired = Boolean(w.isExpired || w.status === 'expired' || (w.expiresAt && new Date(w.expiresAt).getTime() <= Date.now()));
+                  return (
+                    <tr key={w.id} style={{ borderBottom: '1px solid #F1F5F9', opacity: isCardExpired ? 0.75 : 1 }}>
+                      <td style={{ padding: '0.75rem' }}>
+                        <div style={{ fontWeight: 800, color: '#0F172A' }}>{w.itemTitle}</div>
+                        <div style={{ fontSize: '0.72rem', color: '#64748B' }}>{w.description}</div>
+                      </td>
+                      <td style={{ padding: '0.75rem' }}>
+                        <CampusBadge campus={w.preferredCampus} size="sm" />
+                      </td>
+                      <td style={{ padding: '0.75rem', fontWeight: 800, color: '#002B7F' }}>₱{w.targetBudget.toLocaleString()}</td>
+                      <td style={{ padding: '0.75rem' }}>
+                        <span style={{
+                          display: 'inline-block',
+                          padding: '0.2rem 0.5rem',
+                          borderRadius: '4px',
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          backgroundColor: w.urgency === 'Immediate / Urgent' ? '#FEF2F2' : '#F1F5F9',
+                          color: w.urgency === 'Immediate / Urgent' ? '#DC2626' : '#475569'
+                        }}>
+                          {w.urgency || 'Standard'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '0.75rem' }}>
+                        {isCardExpired ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, backgroundColor: '#F1F5F9', color: '#64748B' }}>
+                            <Clock size={11} /> Expired
+                          </span>
+                        ) : (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, backgroundColor: '#ECFDF5', color: '#059669' }}>
+                            <Check size={11} /> Active
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ padding: '0.75rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                          <UserAvatar src={w.requesterAvatar} name={w.requesterName} size={24} />
+                          <span style={{ color: '#334155', fontWeight: 600 }}>{w.requesterName}</span>
+                        </div>
+                      </td>
+                      <td style={{ padding: '0.75rem', textAlign: 'right' }}>
+                        <button
+                          onClick={() => setRequestToDelete(w)}
+                          title="Remove Flash Request"
+                          style={{ padding: '0.35rem 0.55rem', borderRadius: '6px', color: '#DC2626', backgroundColor: '#FEF2F2', border: '1px solid #FECACA', cursor: 'pointer' }}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -1915,153 +2161,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
       )}
 
       {/* =========================================================================
-          TAB 10: GUARDED LANDMARK HUBS CONFIGURATOR
-          ========================================================================= */}
-      {activeTab === 'landmarks' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
-              <div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#002B7F', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <Building2 size={20} /> Guarded Campus Meetup Landmarks ({CAMPUS_MEETUP_SPOTS.length} Designated Spots)
-                </h3>
-                <p style={{ fontSize: '0.82rem', color: '#64748B', marginTop: '0.2rem' }}>
-                  Configure active security-supervised student trade rendezvous hubs across all 8 UC campuses.
-                </p>
-              </div>
-
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <select
-                  value={landmarkCampusFilter}
-                  onChange={(e) => setLandmarkCampusFilter(e.target.value)}
-                  style={{ padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.8rem' }}
-                >
-                  <option value="All">All Campuses</option>
-                  <option value="UC Main">UC Main</option>
-                  <option value="UC Banilad">UC Banilad</option>
-                  <option value="UC LM">UC LM</option>
-                  <option value="UC METC">UC METC</option>
-                  <option value="UC PRI">UC PRI</option>
-                  <option value="UC Pardo-Talisay">UC Pardo-Talisay</option>
-                  <option value="UC South Campus">UC South Campus</option>
-                  <option value="UC Medical Center">UC Medical Center</option>
-                </select>
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
-              {CAMPUS_MEETUP_SPOTS.filter(
-                (spot) => landmarkCampusFilter === 'All' || spot.campus === landmarkCampusFilter
-              ).map((spot) => {
-                const isSpotActive = activeLandmarks[spot.id] !== false;
-                return (
-                  <div key={spot.id} className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                      <CampusBadge campus={spot.campus as Campus} size="sm" />
-                      <button
-                        onClick={() => {
-                          setActiveLandmarks((prev) => ({ ...prev, [spot.id]: !isSpotActive }));
-                          showToast('Landmark Status', `${spot.name} is now ${!isSpotActive ? 'Active' : 'Disabled'}.`, 'info');
-                        }}
-                        style={{
-                          padding: '0.2rem 0.5rem',
-                          borderRadius: '4px',
-                          fontSize: '0.7rem',
-                          fontWeight: 800,
-                          backgroundColor: isSpotActive ? '#ECFDF5' : '#F1F5F9',
-                          color: isSpotActive ? '#059669' : '#64748B'
-                        }}
-                      >
-                        {isSpotActive ? '● Active Guard Hub' : '○ Offline'}
-                      </button>
-                    </div>
-
-                    <h4 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0F172A' }}>{spot.name}</h4>
-                    <p style={{ fontSize: '0.78rem', color: '#64748B' }}>{spot.locationDetails}</p>
-
-                    <div style={{ marginTop: 'auto', paddingTop: '0.5rem', borderTop: '1px solid #F1F5F9', fontSize: '0.72rem', color: '#002B7F', fontWeight: 700 }}>
-                      🕒 {spot.bestHours}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* =========================================================================
-          TAB 11: FAIR PRICE COMPLIANCE & GOUGING INSPECTOR
-          ========================================================================= */}
-      {activeTab === 'priceAdvisor' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#002B7F', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <DollarSign size={20} /> Campus Fair-Pricing & Anti-Gouging Inspector
-            </h3>
-            <p style={{ fontSize: '0.82rem', color: '#64748B' }}>
-              Automatically checks student listings against official SRP campus benchmarks to prevent uniform and textbook price gouging.
-            </p>
-
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
-                <thead>
-                  <tr style={{ borderBottom: '2px solid #E2E8F0', color: '#64748B' }}>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>Item</th>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>Campus</th>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>Listed Price</th>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>Original SRP</th>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>Pricing Evaluation</th>
-                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>Compliance Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {listings.map((l) => {
-                    const pctOfSrp = l.originalSrp > 0 ? Math.round((l.price / l.originalSrp) * 100) : 100;
-                    const isGouging = l.originalSrp > 0 && l.price > l.originalSrp * 0.9;
-                    return (
-                      <tr key={l.id} style={{ borderBottom: '1px solid #F1F5F9', backgroundColor: isGouging ? '#FFFBEB' : 'transparent' }}>
-                        <td style={{ padding: '0.75rem', fontWeight: 700, color: '#0F172A' }}>{l.title}</td>
-                        <td style={{ padding: '0.75rem' }}><CampusBadge campus={l.sellerCampus} size="sm" /></td>
-                        <td style={{ padding: '0.75rem', fontWeight: 800, color: '#002B7F' }}>₱{l.price.toLocaleString()}</td>
-                        <td style={{ padding: '0.75rem', color: '#64748B' }}>₱{l.originalSrp.toLocaleString()}</td>
-                        <td style={{ padding: '0.75rem' }}>
-                          <span
-                            style={{
-                              padding: '0.2rem 0.5rem',
-                              borderRadius: '4px',
-                              fontSize: '0.7rem',
-                              fontWeight: 800,
-                              backgroundColor: pctOfSrp <= 50 ? '#ECFDF5' : pctOfSrp <= 85 ? '#EBF1FC' : '#FEF2F2',
-                              color: pctOfSrp <= 50 ? '#059669' : pctOfSrp <= 85 ? '#002B7F' : '#DC2626'
-                            }}
-                          >
-                            {pctOfSrp <= 50 ? 'Great Bargain' : pctOfSrp <= 85 ? 'Fair Campus Price' : '⚠️ High / Review'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '0.75rem', textAlign: 'right' }}>
-                          <button
-                            onClick={() => {
-                              warnUserByAdmin(l.sellerId, `Pricing notice for "${l.title}". Please verify compliance with student affordability guidelines.`);
-                              showToast('Price Notice Sent', `Issued pricing notice to seller ${l.sellerName}.`, 'warning');
-                            }}
-                            style={{ padding: '0.35rem 0.65rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700, backgroundColor: '#FFFBEB', color: '#D97706', border: '1px solid #FDE68A' }}
-                          >
-                            Send Notice
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* =========================================================================
-          TAB 12: CAMPUS BROADCAST ANNOUNCEMENTS
+          TAB 11: CAMPUS BROADCAST ANNOUNCEMENTS
           ========================================================================= */}
       {activeTab === 'announcements' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -2313,15 +2413,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
               <button
                 onClick={() => handleConfirmDisputeVerdict('refund')}
-                style={{ padding: '0.55rem', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 800, backgroundColor: '#059669', color: '#FFFFFF' }}
+                style={{ padding: '0.55rem', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 800, backgroundColor: '#059669', color: '#FFFFFF', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
               >
-                ✓ Remedy / Refund
+                <Check size={13} />
+                <span>Remedy / Refund</span>
               </button>
               <button
                 onClick={() => handleConfirmDisputeVerdict('warning')}
-                style={{ padding: '0.55rem', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 800, backgroundColor: '#D97706', color: '#FFFFFF' }}
+                style={{ padding: '0.55rem', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 800, backgroundColor: '#D97706', color: '#FFFFFF', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
               >
-                ⚠️ Issue Strike Warning
+                <AlertTriangle size={13} />
+                <span>Issue Strike Warning</span>
               </button>
               <button
                 onClick={() => handleConfirmDisputeVerdict('dismissed')}
@@ -2448,7 +2550,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Guarded Trade Desk Schedule"
+                  placeholder="Announcement title"
                   value={newAnnTitle}
                   onChange={(e) => setNewAnnTitle(e.target.value)}
                   className="clean-input"
@@ -2598,6 +2700,385 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
           </div>
         </div>
       )}
+
+      {/* =========================================================================
+          MODALS: ADMIN CREATE OFFICIAL LISTING
+          ========================================================================= */}
+      {isCreateListingModalOpen && (
+        <div
+          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0, 29, 89, 0.65)', backdropFilter: 'blur(6px)', zIndex: 3200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
+          onClick={() => setIsCreateListingModalOpen(false)}
+        >
+          <div
+            style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', border: '1.5px solid #CBD5E1', width: '100%', maxWidth: '560px', maxHeight: '90vh', overflowY: 'auto', padding: '1.75rem', display: 'flex', flexDirection: 'column', gap: '1.1rem', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 900, color: '#002B7F', fontFamily: 'var(--font-display)', margin: 0 }}>
+                  Post Official Campus Listing
+                </h3>
+                <p style={{ fontSize: '0.78rem', color: '#64748B', margin: '0.2rem 0 0 0' }}>
+                  Create verified inventory items on behalf of UC Campus Hub
+                </p>
+              </div>
+              <button onClick={() => setIsCreateListingModalOpen(false)} style={{ color: '#64748B', background: 'none', border: 'none', cursor: 'pointer' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCreateListing} style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+                  Item Title *
+                </label>
+                <input
+                  type="text"
+                  placeholder="Listing title"
+                  value={adminListingForm.title}
+                  onChange={(e) => setAdminListingForm({ ...adminListingForm, title: e.target.value })}
+                  className="clean-input"
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+                    Category *
+                  </label>
+                  <select
+                    value={adminListingForm.category}
+                    onChange={(e) => setAdminListingForm({ ...adminListingForm, category: e.target.value })}
+                    className="clean-input"
+                  >
+                    <option value="Electronics">Electronics & Tech</option>
+                    <option value="Textbooks">Textbooks & Reviewers</option>
+                    <option value="Uniforms">Uniforms & Scrubs</option>
+                    <option value="Junior High">Junior High (JHS)</option>
+                    <option value="Senior High">Senior High (SHS)</option>
+                    <option value="Gaming">Gaming & PC Gear</option>
+                    <option value="Fashion">Fashion & Footwear</option>
+                    <option value="Music">Music & Audio</option>
+                    <option value="Dorm">Dorm & Living</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+                    Trade Mode *
+                  </label>
+                  <select
+                    value={adminListingForm.tradeMode}
+                    onChange={(e: any) => setAdminListingForm({ ...adminListingForm, tradeMode: e.target.value })}
+                    className="clean-input"
+                  >
+                    <option value="buy_sell">Buy & Sell</option>
+                    <option value="swap">Swap / Barter</option>
+                    <option value="free_donation">Free Donation</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+                    Price (₱)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={adminListingForm.price}
+                    onChange={(e) => setAdminListingForm({ ...adminListingForm, price: Number(e.target.value) })}
+                    className="clean-input"
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+                    Original SRP (₱)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={adminListingForm.originalSrp || ''}
+                    onChange={(e) => setAdminListingForm({ ...adminListingForm, originalSrp: Number(e.target.value) })}
+                    placeholder="Optional"
+                    className="clean-input"
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+                    Quantity
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={adminListingForm.quantity}
+                    onChange={(e) => setAdminListingForm({ ...adminListingForm, quantity: Math.max(1, Number(e.target.value)) })}
+                    className="clean-input"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+                    Condition *
+                  </label>
+                  <select
+                    value={adminListingForm.condition}
+                    onChange={(e) => setAdminListingForm({ ...adminListingForm, condition: e.target.value })}
+                    className="clean-input"
+                  >
+                    <option value="Brand New">Brand New</option>
+                    <option value="Like New">Like New</option>
+                    <option value="Lightly Used">Lightly Used</option>
+                    <option value="Well Used">Well Used</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+                    Campus Hub
+                  </label>
+                  <select
+                    value={adminListingForm.campus}
+                    onChange={(e) => setAdminListingForm({ ...adminListingForm, campus: e.target.value })}
+                    className="clean-input"
+                  >
+                    <option value="UC Main">UC Main</option>
+                    <option value="UC Banilad">UC Banilad</option>
+                    <option value="UC LM">UC LM</option>
+                    <option value="UC METC">UC METC</option>
+                    <option value="UC PRI">UC PRI</option>
+                    <option value="UC Pardo-Talisay">UC Pardo-Talisay</option>
+                    <option value="UC South Campus">UC South Campus</option>
+                    <option value="UC Medical Center">UC Medical Center</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+                  Image URL
+                </label>
+                <input
+                  type="url"
+                  placeholder="Image URL"
+                  value={adminListingForm.imageUrl}
+                  onChange={(e) => setAdminListingForm({ ...adminListingForm, imageUrl: e.target.value })}
+                  className="clean-input"
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+                  Description
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Provide specifications, pickup guidelines, and official verification details..."
+                  value={adminListingForm.description}
+                  onChange={(e) => setAdminListingForm({ ...adminListingForm, description: e.target.value })}
+                  className="clean-input"
+                  style={{ resize: 'vertical' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsCreateListingModalOpen(false)}
+                  className="btn-secondary"
+                  style={{ padding: '0.6rem 1.1rem', fontSize: '0.82rem' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  style={{ padding: '0.6rem 1.4rem', fontSize: '0.84rem', fontWeight: 800 }}
+                >
+                  Publish Official Listing
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODALS: ADMIN EDIT LISTING
+          ========================================================================= */}
+      {editingAdminListing && (
+        <div
+          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0, 29, 89, 0.65)', backdropFilter: 'blur(6px)', zIndex: 3200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
+          onClick={() => setEditingAdminListing(null)}
+        >
+          <div
+            style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', border: '1.5px solid #CBD5E1', width: '100%', maxWidth: '560px', maxHeight: '90vh', overflowY: 'auto', padding: '1.75rem', display: 'flex', flexDirection: 'column', gap: '1.1rem', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 900, color: '#002B7F', fontFamily: 'var(--font-display)', margin: 0 }}>
+                  Edit Marketplace Item
+                </h3>
+                <p style={{ fontSize: '0.78rem', color: '#64748B', margin: '0.2rem 0 0 0' }}>
+                  Admin override for listing #{editingAdminListing.id.slice(0, 8)}
+                </p>
+              </div>
+              <button onClick={() => setEditingAdminListing(null)} style={{ color: '#64748B', background: 'none', border: 'none', cursor: 'pointer' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditListing} style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+                  Item Title *
+                </label>
+                <input
+                  type="text"
+                  value={adminListingForm.title}
+                  onChange={(e) => setAdminListingForm({ ...adminListingForm, title: e.target.value })}
+                  className="clean-input"
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+                    Listing Status
+                  </label>
+                  <select
+                    value={adminListingForm.status}
+                    onChange={(e: any) => setAdminListingForm({ ...adminListingForm, status: e.target.value })}
+                    className="clean-input"
+                  >
+                    <option value="active">Active (Available)</option>
+                    <option value="sold">Sold / Completed</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+                    Category
+                  </label>
+                  <input
+                    type="text"
+                    value={adminListingForm.category}
+                    onChange={(e) => setAdminListingForm({ ...adminListingForm, category: e.target.value })}
+                    className="clean-input"
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+                    Price (₱)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={adminListingForm.price}
+                    onChange={(e) => setAdminListingForm({ ...adminListingForm, price: Number(e.target.value) })}
+                    className="clean-input"
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+                    Original SRP (₱)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={adminListingForm.originalSrp || ''}
+                    onChange={(e) => setAdminListingForm({ ...adminListingForm, originalSrp: Number(e.target.value) })}
+                    className="clean-input"
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+                    Stock Quantity
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={adminListingForm.quantity}
+                    onChange={(e) => setAdminListingForm({ ...adminListingForm, quantity: Math.max(0, Number(e.target.value)) })}
+                    className="clean-input"
+                  />
+                </div>
+              </div>
+
+
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
+                  Description
+                </label>
+                <textarea
+                  rows={3}
+                  value={adminListingForm.description}
+                  onChange={(e) => setAdminListingForm({ ...adminListingForm, description: e.target.value })}
+                  className="clean-input"
+                  style={{ resize: 'vertical' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setEditingAdminListing(null)}
+                  className="btn-secondary"
+                  style={{ padding: '0.6rem 1.1rem', fontSize: '0.82rem' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  style={{ padding: '0.6rem 1.4rem', fontSize: '0.84rem', fontWeight: 800 }}
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete User Confirm Modal */}
+      <ConfirmModal
+        isOpen={Boolean(userToDelete)}
+        title="Permanently Delete Account?"
+        message={`Are you sure you want to permanently delete ${userToDelete?.name}'s account? This will remove all their profile data and cannot be undone.`}
+        confirmText="Delete Account"
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={handleConfirmDeleteUser}
+        onCancel={() => setUserToDelete(null)}
+      />
+
+      {/* Delete Request Confirm Modal */}
+      <ConfirmModal
+        isOpen={Boolean(requestToDelete)}
+        title="Delete Post?"
+        message={`Are you sure you want to delete the request for "${requestToDelete?.itemTitle || 'this item'}"?`}
+        confirmText="Delete Request"
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={handleConfirmDeleteRequest}
+        onCancel={() => setRequestToDelete(null)}
+      />
     </div>
   );
 };

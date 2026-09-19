@@ -47,7 +47,6 @@ describe('Unit Test: Serializers & Data Sanitization', () => {
       condition: 'Like New',
       seller_id: 'usr_beatrice',
       preferred_meetup_spots: '["Main Library 3rd Floor", "Gate 1"]',
-      is_boosted: 1,
       is_sold: 0,
       views: 45
     };
@@ -60,7 +59,6 @@ describe('Unit Test: Serializers & Data Sanitization', () => {
     expect(serialized.id).toBe('list_123');
     expect(serialized.price).toBe(13500);
     expect(serialized.originalSrp).toBe(18990);
-    expect(serialized.isBoosted).toBe(true);
     expect(serialized.isSold).toBe(false);
     expect(Array.isArray(serialized.images)).toBe(true);
     expect(serialized.images.length).toBe(2);

@@ -12,6 +12,66 @@ function escapeLike(str) {
   return str.replace(/[%_]/g, '\\$&');
 }
 
+// In-memory cache to quickly avoid duplicate DB checks for repeat views in current process
+const viewCache = new Set();
+
+/**
+ * Records a unique view on a listing:
+ * - Excludes post owner from incrementing their own view count.
+ * - Deduplicates repeat views so user 1 viewing the item multiple times only counts as 1 view.
+ * - Persistently stores unique views in the listing_views table.
+ */
+async function recordUniqueView(listingId, req, listing) {
+  try {
+    // 1. Exclude the listing owner from incrementing views
+    if (req.user && listing && req.user.id === listing.seller_id) {
+      return false;
+    }
+
+    // 2. Identify viewer (authenticated user ID or anonymous client IP)
+    const viewerIdentifier = req.user?.id
+      ? `usr_${req.user.id}`
+      : `anon_${req.ip || req.headers['x-forwarded-for'] || 'anonymous'}`;
+
+    const cacheKey = `${listingId}:${viewerIdentifier}`;
+    if (viewCache.has(cacheKey)) {
+      return false;
+    }
+
+    // 3. Persistent deduplication in database
+    const hasTable = await db.schema.hasTable('listing_views').catch(() => false);
+    if (hasTable) {
+      const existing = await db('listing_views')
+        .where({ listing_id: listingId, viewer_identifier: viewerIdentifier })
+        .first();
+
+      if (existing) {
+        viewCache.add(cacheKey);
+        return false;
+      }
+
+      await db('listing_views').insert({
+        id: uuidv4(),
+        listing_id: listingId,
+        viewer_identifier: viewerIdentifier,
+        created_at: new Date()
+      }).catch(() => {});
+    }
+
+    viewCache.add(cacheKey);
+
+    // 4. Increment the listing's view counter
+    await db('listings').where({ id: listingId }).increment('views_count', 1);
+    if (listing && listing.views_count !== undefined) {
+      listing.views_count = (Number(listing.views_count) || 0) + 1;
+    }
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
+
 /**
  * List & search marketplace listings with multi-filter and pagination
  */
@@ -36,7 +96,7 @@ const getListings = asyncHandler(async (req, res) => {
   const parsedMax = Math.min(1000000, parseFloat(priceMax) || 100000);
 
   let query = db('listings')
-    .join('users as seller', 'listings.seller_id', 'seller.id')
+    .leftJoin('users as seller', 'listings.seller_id', 'seller.id')
     .select(
       'listings.*',
       'seller.name as seller_name',
@@ -46,7 +106,9 @@ const getListings = asyncHandler(async (req, res) => {
       'seller.is_verified as seller_is_verified',
       'seller.trust_score as seller_trust_score'
     )
-    .where('seller.is_banned', false);
+    .where((builder) => {
+      builder.whereNull('seller.is_banned').orWhere('seller.is_banned', false);
+    });
 
   // Filter: Status (default 'active', or specific status if not 'All')
   if (status && status !== 'All') {
@@ -77,17 +139,16 @@ const getListings = asyncHandler(async (req, res) => {
   // Filter: Price range
   query = query.whereBetween('listings.price', [parsedMin, parsedMax]);
 
-  // Search keyword across title, description, category, course_code, seller name with escaped wildcards
+  // Search keyword across title, description, category, seller name with escaped wildcards
   if (search && search.trim()) {
     const cleanSearch = escapeLike(search.trim());
     const q = `%${cleanSearch}%`;
     query = query.where((builder) => {
       builder
-        .whereILike('listings.title', q)
-        .orWhereILike('listings.description', q)
-        .orWhereILike('listings.category', q)
-        .orWhereILike('listings.course_code', q)
-        .orWhereILike('seller.name', q);
+        .where('listings.title', 'like', q)
+        .orWhere('listings.description', 'like', q)
+        .orWhere('listings.category', 'like', q)
+        .orWhere('seller.name', 'like', q);
     });
   }
 
@@ -153,13 +214,8 @@ const getListingById = asyncHandler(async (req, res, next) => {
     return next(new AppError('Listing not found.', 404));
   }
 
-  // Increment view counter safely for non-owners only (prevent self-inflation)
-  const isOwner = req.user && req.user.id === listing.seller_id;
-  if (!isOwner) {
-    try {
-      await db('listings').where({ id }).increment('views_count', 1);
-    } catch {}
-  }
+  // Record unique view: excludes owner and deduplicates repeat views
+  await recordUniqueView(id, req, listing);
 
   const media = await db('listing_media').where({ listing_id: id }).orderBy('display_order', 'asc');
 
@@ -189,14 +245,19 @@ const createListing = asyncHandler(async (req, res, next) => {
     quantity = 1,
     media = [],
     images = [],
-    courseCode
+    acceptedPaymentMethods
   } = req.body;
 
-  // Check prohibited keywords in title and description
+  // Unicode normalization (NFKC) prevents homoglyph bypasses of prohibited keywords
+  const cleanTitle = (title || '').normalize('NFKC').trim();
+  const cleanDesc = (description || '').normalize('NFKC').trim();
+  const cleanSwap = swapPreference ? swapPreference.normalize('NFKC').trim() : null;
+
+  // Check prohibited keywords in normalized title and description
   const prohibited = await db('prohibited_keywords').select('keyword');
-  const lowerText = `${title} ${description}`.toLowerCase();
+  const lowerText = `${cleanTitle} ${cleanDesc}`.toLowerCase();
   for (const item of prohibited) {
-    if (lowerText.includes(item.keyword.toLowerCase())) {
+    if (lowerText.includes(item.keyword.toLowerCase().normalize('NFKC'))) {
       return next(
         new AppError(
           `Listing contains prohibited keyword: "${item.keyword}". Restricted items or academic dishonesty materials are not permitted.`,
@@ -206,9 +267,26 @@ const createListing = asyncHandler(async (req, res, next) => {
     }
   }
 
-  // Prevent rapid double-click duplicate creation
+  // Support client idempotency key to prevent accidental duplicate charges/posts
+  const idempotencyKey = req.headers['x-idempotency-key'];
+  if (idempotencyKey) {
+    const existingListing = await db('listings')
+      .where({ seller_id: req.user.id, title: cleanTitle })
+      .andWhere('created_at', '>', new Date(Date.now() - 60000))
+      .first();
+    if (existingListing) {
+      const existingMedia = await db('listing_media').where({ listing_id: existingListing.id }).orderBy('display_order', 'asc');
+      return res.status(200).json({
+        status: 'success',
+        message: 'Listing retrieved (idempotent request).',
+        data: { listing: serializeListing(existingListing, existingMedia) }
+      });
+    }
+  }
+
+  // Prevent rapid duplicate creation (within 15 seconds)
   const recentDuplicate = await db('listings')
-    .where({ seller_id: req.user.id, title: title.trim(), status: 'active' })
+    .where({ seller_id: req.user.id, title: cleanTitle, status: 'active' })
     .andWhere('created_at', '>', new Date(Date.now() - 15000))
     .first();
 
@@ -216,29 +294,49 @@ const createListing = asyncHandler(async (req, res, next) => {
     return next(new AppError('A listing with this exact title was just published. Please wait before creating another.', 409));
   }
 
+  // Format acceptedPaymentMethods (store as comma-separated string)
+  let paymentMethodsStr = 'cash,gcash,maya';
+  if (Array.isArray(acceptedPaymentMethods) && acceptedPaymentMethods.length > 0) {
+    const validMethods = acceptedPaymentMethods.filter(m => ['cash', 'gcash', 'maya'].includes(String(m).toLowerCase()));
+    if (validMethods.length > 0) {
+      paymentMethodsStr = validMethods.join(',');
+    }
+  } else if (typeof acceptedPaymentMethods === 'string' && acceptedPaymentMethods.trim()) {
+    paymentMethodsStr = acceptedPaymentMethods.trim();
+  }
+
   const listingId = uuidv4();
   const newListing = {
     id: listingId,
     seller_id: req.user.id,
-    title: title.trim(),
-    description: description.trim(),
+    title: cleanTitle,
+    description: cleanDesc,
     price: parseFloat(price || 0),
     original_srp: originalSrp ? parseFloat(originalSrp) : null,
     trade_mode: tradeMode || 'buy_sell',
-    swap_preference: swapPreference ? swapPreference.trim() : null,
+    swap_preference: cleanSwap,
     category,
     condition: condition || 'Gently Used',
     campus: campus || req.user.campus || 'UC Main',
     department: department || req.user.college || null,
+    accepted_payment_methods: paymentMethodsStr,
     status: 'active',
     views_count: 1,
-    is_featured: false,
-    course_code: courseCode ? courseCode.trim().toUpperCase() : null
+    is_featured: false
   };
 
-  // Allow at least 5 media items (up to 10 for video product samples + photos)
+  // Cap at 5 media items to optimize storage and bandwidth usage
   const rawItems = (Array.isArray(media) && media.length > 0) ? media : (Array.isArray(images) ? images : []);
-  const cappedItems = rawItems.slice(0, 10);
+  const cappedItems = rawItems.slice(0, 5);
+
+  // Validate base64 payload size before uploading to prevent memory exhaustion
+  for (const item of cappedItems) {
+    const rawUrl = typeof item === 'string' ? item : (item.url || item.media_url || item.mediaUrl || '');
+    if (typeof rawUrl === 'string' && rawUrl.startsWith('data:') && rawUrl.length > 15 * 1024 * 1024) {
+      return next(new AppError('A media item exceeds maximum allowed size of 15MB.', 400));
+    }
+  }
+
   const resolvedMedia = await Promise.all(
     cappedItems.map(async (item, index) => {
       const rawUrl = typeof item === 'string' ? item : (item.url || item.media_url || item.mediaUrl || '');
@@ -308,16 +406,46 @@ const updateListing = asyncHandler(async (req, res, next) => {
   }
 
   const updates = {};
-  if (req.body.title) updates.title = req.body.title.trim();
-  if (req.body.description) updates.description = req.body.description.trim();
+  if (req.body.title) updates.title = req.body.title.normalize('NFKC').trim();
+  if (req.body.description) updates.description = req.body.description.normalize('NFKC').trim();
   if (req.body.price !== undefined) updates.price = Math.max(0, parseFloat(req.body.price) || 0);
   if (req.body.originalSrp !== undefined) updates.original_srp = parseFloat(req.body.originalSrp);
   if (req.body.tradeMode) updates.trade_mode = req.body.tradeMode;
-  if (req.body.swapPreference !== undefined) updates.swap_preference = req.body.swapPreference;
+  if (req.body.swapPreference !== undefined) updates.swap_preference = req.body.swapPreference ? req.body.swapPreference.normalize('NFKC').trim() : null;
   if (req.body.category) updates.category = req.body.category;
   if (req.body.condition) updates.condition = req.body.condition;
   if (req.body.campus) updates.campus = req.body.campus;
-  if (req.body.courseCode !== undefined) updates.course_code = req.body.courseCode ? req.body.courseCode.trim().toUpperCase() : null;
+  if (req.body.acceptedPaymentMethods !== undefined) {
+    if (Array.isArray(req.body.acceptedPaymentMethods)) {
+      const valid = req.body.acceptedPaymentMethods.filter(m => ['cash', 'gcash', 'maya'].includes(String(m).toLowerCase()));
+      if (valid.length > 0) {
+        updates.accepted_payment_methods = valid.join(',');
+      }
+    } else if (typeof req.body.acceptedPaymentMethods === 'string' && req.body.acceptedPaymentMethods.trim()) {
+      updates.accepted_payment_methods = req.body.acceptedPaymentMethods.trim();
+    }
+  }
+  if (req.body.quantity !== undefined) {
+    const q = Math.max(0, parseInt(req.body.quantity, 10) || 0);
+    updates.quantity = q;
+    if (q === 0 && !updates.status) updates.status = 'sold';
+  }
+
+  // Validate prohibited keywords in updated text
+  if (updates.title || updates.description) {
+    const prohibited = await db('prohibited_keywords').select('keyword');
+    const combinedText = `${updates.title || listing.title} ${updates.description || listing.description}`.toLowerCase();
+    for (const item of prohibited) {
+      if (combinedText.includes(item.keyword.toLowerCase().normalize('NFKC'))) {
+        return next(
+          new AppError(
+            `Listing update contains prohibited keyword: "${item.keyword}". Restricted items or academic dishonesty materials are not permitted.`,
+            400
+          )
+        );
+      }
+    }
+  }
 
   // Status check: regular users can only mark active or sold; admins can set any status
   if (req.body.status) {
@@ -326,11 +454,11 @@ const updateListing = asyncHandler(async (req, res, next) => {
     }
     updates.status = req.body.status;
   }
-  if (req.body.isSold) updates.status = 'sold';
-
-  // Only admins can modify is_featured / isBoosted via update
-  if (req.user.role === 'admin' && (req.body.isFeatured !== undefined || req.body.isBoosted !== undefined)) {
-    updates.is_featured = Boolean(req.body.isFeatured ?? req.body.isBoosted);
+  if (req.body.isSold !== undefined) {
+    updates.status = req.body.isSold ? 'sold' : 'active';
+    if (!req.body.isSold && updates.quantity === undefined && listing.quantity === 0) {
+      updates.quantity = 1;
+    }
   }
 
   await db.transaction(async (trx) => {
@@ -340,7 +468,13 @@ const updateListing = asyncHandler(async (req, res, next) => {
 
     const rawMedia = Array.isArray(req.body.media) ? req.body.media : (Array.isArray(req.body.images) ? req.body.images : null);
     if (rawMedia) {
-      const cappedMedia = rawMedia.slice(0, 10);
+      const cappedMedia = rawMedia.slice(0, 5);
+      for (const item of cappedMedia) {
+        const rawUrl = typeof item === 'string' ? item : (item.url || item.media_url || item.mediaUrl || '');
+        if (typeof rawUrl === 'string' && rawUrl.startsWith('data:') && rawUrl.length > 15 * 1024 * 1024) {
+          return next(new AppError('A media item exceeds maximum allowed size of 15MB.', 400));
+        }
+      }
       const resolvedMedia = await Promise.all(
         cappedMedia.map(async (item, index) => {
           const rawUrl = typeof item === 'string' ? item : (item.url || item.media_url || item.mediaUrl || '');
@@ -361,6 +495,15 @@ const updateListing = asyncHandler(async (req, res, next) => {
           };
         })
       );
+
+      // Clean up replaced media files from Cloudinary to prevent orphaned asset leak
+      const existingMedia = await trx('listing_media').where({ listing_id: id });
+      const newUrls = new Set(resolvedMedia.map(m => m.media_url));
+      const toDelete = existingMedia.filter(m => !newUrls.has(m.media_url));
+      for (const oldItem of toDelete) {
+        await storageService.deleteFile(oldItem.media_url);
+      }
+
       await trx('listing_media').where({ listing_id: id }).delete();
       if (resolvedMedia.length > 0) {
         await trx('listing_media').insert(resolvedMedia);
@@ -375,7 +518,7 @@ const updateListing = asyncHandler(async (req, res, next) => {
 });
 
 /**
- * Delete a listing
+ * Delete a listing (with foreign key safe soft-delete / archiving if transacted)
  */
 const deleteListing = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
@@ -387,6 +530,21 @@ const deleteListing = asyncHandler(async (req, res, next) => {
 
   if (listing.seller_id !== req.user.id && req.user.role !== 'admin') {
     return next(new AppError('You are not authorized to delete this listing.', 403));
+  }
+
+  // Check if foreign key references exist in transactions or swaps to prevent DB foreign key constraint errors
+  const hasTransactions = await db('transactions').where({ listing_id: id }).first();
+  const hasSwaps = await db('swaps').where(builder => {
+    builder.where({ proposer_listing_id: id }).orWhere({ receiver_listing_id: id });
+  }).first();
+
+  if (hasTransactions || hasSwaps) {
+    // Soft-delete / archive to preserve history without foreign key failure
+    await db('listings').where({ id }).update({ status: 'archived', updated_at: new Date() });
+    return res.status(200).json({
+      status: 'success',
+      message: 'Listing archived (historical transaction records preserved).'
+    });
   }
 
   // Clean up listing media from storage
@@ -409,30 +567,7 @@ const deleteListing = asyncHandler(async (req, res, next) => {
 });
 
 /**
- * Boost a listing
- */
-const boostListing = asyncHandler(async (req, res, next) => {
-  const { id } = req.params;
-  const listing = await db('listings').where({ id }).first();
-
-  if (!listing) {
-    return next(new AppError('Listing not found.', 404));
-  }
-
-  if (listing.seller_id !== req.user.id && req.user.role !== 'admin') {
-    return next(new AppError('You are not authorized to boost this listing.', 403));
-  }
-
-  await db('listings').where({ id }).update({ is_featured: true });
-
-  res.status(200).json({
-    status: 'success',
-    message: 'Listing boosted successfully.'
-  });
-});
-
-/**
- * Mark a listing as sold / out of stock
+ * Mark a listing as sold or reactivate listing
  */
 const markAsSold = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
@@ -446,11 +581,22 @@ const markAsSold = asyncHandler(async (req, res, next) => {
     return next(new AppError('You are not authorized to modify this listing.', 403));
   }
 
-  await db('listings').where({ id }).update({ status: 'sold' });
+  const isSold = req.body.isSold !== undefined ? Boolean(req.body.isSold) : true;
+  const newStatus = isSold ? 'sold' : 'active';
+  const updates = { status: newStatus, updated_at: new Date() };
+
+  if (isSold) {
+    updates.quantity = 0;
+  } else if (listing.quantity === 0) {
+    updates.quantity = 1;
+  }
+
+  await db('listings').where({ id }).update(updates);
 
   res.status(200).json({
     status: 'success',
-    message: 'Listing marked as sold.'
+    message: isSold ? 'Listing marked as sold.' : 'Listing reactivated.',
+    data: { status: newStatus }
   });
 });
 
@@ -494,13 +640,33 @@ const reportListing = asyncHandler(async (req, res, next) => {
   });
 });
 
+/**
+ * Increment view count (dedicated endpoint)
+ */
+const viewListing = asyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+  const listing = await db('listings').where({ id }).first();
+
+  if (!listing) {
+    return next(new AppError('Listing not found.', 404));
+  }
+
+  // Record unique view: excludes owner and deduplicates repeat views
+  await recordUniqueView(id, req, listing);
+
+  res.status(200).json({
+    status: 'success',
+    message: 'View recorded.'
+  });
+});
+
 module.exports = {
   getListings,
   getListingById,
   createListing,
   updateListing,
   deleteListing,
-  boostListing,
   markAsSold,
-  reportListing
+  reportListing,
+  viewListing
 };

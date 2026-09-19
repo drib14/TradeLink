@@ -1,12 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { Listing, Campus, TradeMode, ConditionGrade, WantedRequest, Conversation } from '../types';
+import { Listing, Campus, TradeMode, ConditionGrade, FlashRequest, WantedRequest, Conversation } from '../types';
 import { mobileListingsService } from '../services/listings.service';
-import { mobileWantedService, mobileChatService } from '../services/wanted.service';
+import { mobileFlashMarketService, mobileWantedService, mobileChatService } from '../services/flashMarket.service';
 
 interface MarketContextType {
   listings: Listing[];
   favorites: string[];
-  wantedRequests: WantedRequest[];
+  flashRequests: FlashRequest[];
+  wantedRequests: FlashRequest[];
   conversations: Conversation[];
   isLoading: boolean;
   selectedCampus: 'All' | Campus;
@@ -29,9 +30,9 @@ interface MarketContextType {
   deleteListing: (id: string) => Promise<void>;
   toggleFavorite: (id: string) => Promise<void>;
   isFavorite: (id: string) => boolean;
-  boostListing: (id: string) => Promise<void>;
   markAsSold: (id: string, isSold: boolean) => Promise<void>;
   incrementViews: (id: string) => void;
+  addFlashRequest: (data: Partial<FlashRequest>) => Promise<FlashRequest | null>;
   addWantedRequest: (data: Partial<WantedRequest>) => Promise<WantedRequest | null>;
   addMessageToConversation: (convId: string, message: string) => void;
   clearFilters: () => void;
@@ -43,7 +44,7 @@ const MarketContext = createContext<MarketContextType | undefined>(undefined);
 export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [listings, setListings] = useState<Listing[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
-  const [wantedRequests, setWantedRequests] = useState<WantedRequest[]>([]);
+  const [flashRequests, setFlashRequests] = useState<FlashRequest[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -60,7 +61,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const refreshListings = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [fetchedListings, fetchedWanted, fetchedFavs, fetchedConvs] = await Promise.allSettled([
+      const [fetchedListings, fetchedFlash, fetchedFavs, fetchedConvs] = await Promise.allSettled([
         mobileListingsService.getListings({
           campus: selectedCampus,
           category: selectedCategory,
@@ -71,7 +72,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           priceMin: priceRange[0],
           priceMax: priceRange[1],
         }),
-        mobileWantedService.getWantedRequests({ campus: selectedCampus }),
+        mobileFlashMarketService.getFlashRequests({ campus: selectedCampus }),
         mobileListingsService.getFavorites(),
         mobileChatService.getConversations(),
       ]);
@@ -79,8 +80,8 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (fetchedListings.status === 'fulfilled') {
         setListings(fetchedListings.value || []);
       }
-      if (fetchedWanted.status === 'fulfilled') {
-        setWantedRequests(fetchedWanted.value || []);
+      if (fetchedFlash.status === 'fulfilled') {
+        setFlashRequests(fetchedFlash.value || []);
       }
       if (fetchedFavs.status === 'fulfilled') {
         setFavorites(fetchedFavs.value || []);
@@ -188,15 +189,6 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return favorites.includes(id);
   };
 
-  const boostListing = async (id: string) => {
-    try {
-      await mobileListingsService.boostListing(id);
-      setListings((prev) => prev.map((l) => (l.id === id ? { ...l, isBoosted: true } : l)));
-    } catch (err) {
-      console.warn('Failed to boost listing:', err);
-    }
-  };
-
   const markAsSold = async (id: string, isSold: boolean) => {
     try {
       await mobileListingsService.markAsSold(id, isSold);
@@ -206,15 +198,31 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  const incrementViews = (_id: string) => {
-    // Handled automatically on detail fetch by backend
+  const incrementViews = (id: string) => {
+    setListings((prev) =>
+      prev.map((l) => (l.id === id ? { ...l, views: (l.views || 0) + 1 } : l))
+    );
+  };
+
+  const addFlashRequest = async (data: Partial<FlashRequest>): Promise<FlashRequest | null> => {
+    try {
+      const created = await mobileWantedService.createFlashRequest(data);
+      if (created) {
+        setFlashRequests((prev) => [created, ...prev]);
+        return created;
+      }
+      return null;
+    } catch (err) {
+      console.warn('Failed to create flash request:', err);
+      return null;
+    }
   };
 
   const addWantedRequest = async (data: Partial<WantedRequest>): Promise<WantedRequest | null> => {
     try {
       const created = await mobileWantedService.createWantedRequest(data);
       if (created) {
-        setWantedRequests((prev) => [created, ...prev]);
+        setFlashRequests((prev) => [created, ...prev]);
         return created;
       }
       return null;
@@ -228,7 +236,11 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setConversations((prev) =>
       prev.map((c) =>
         c.id === convId
-          ? { ...c, lastMessage: message, lastMessageTimestamp: new Date().toISOString() }
+          ? {
+              ...c,
+              lastMessage: message,
+              lastMessageTimestamp: 'Just now',
+            }
           : c
       )
     );
@@ -239,9 +251,9 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       value={{
         listings,
         favorites,
-        wantedRequests,
+        flashRequests,
+        wantedRequests: flashRequests,
         conversations,
-        isLoading,
         selectedCampus,
         selectedCategory,
         selectedTradeMode,
@@ -249,6 +261,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         searchQuery,
         sortBy,
         priceRange,
+        isLoading,
         setSelectedCampus,
         setSelectedCategory,
         setSelectedTradeMode,
@@ -262,9 +275,9 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         deleteListing,
         toggleFavorite,
         isFavorite,
-        boostListing,
         markAsSold,
         incrementViews,
+        addFlashRequest,
         addWantedRequest,
         addMessageToConversation,
         clearFilters,

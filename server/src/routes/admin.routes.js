@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/admin.controller');
-const { authenticate } = require('../middleware/auth');
-const { requireRole } = require('../middleware/rbac');
+const { authenticateAdmin } = require('../middleware/auth');
 const decodeParams = require('../middleware/decodeParams');
 const validate = require('../middleware/validate');
+const validateUUID = require('../middleware/validateUUID');
 const {
   createAnnouncementSchema,
   banUserSchema,
@@ -12,7 +12,9 @@ const {
   adjustTrustScoreSchema,
   resolveDisputeSchema,
   addKeywordSchema,
-  updateSystemConfigSchema
+  updateSystemConfigSchema,
+  adminCreateListingSchema,
+  adminUpdateListingSchema
 } = require('../validations/admin.validation');
 
 decodeParams.bindRouter(router);
@@ -21,26 +23,32 @@ decodeParams.bindRouter(router);
 router.get('/announcements', adminController.getAnnouncements);
 router.get('/config', adminController.getSystemConfig);
 
-// All protected admin routes require authentication and admin role
-router.use(authenticate, requireRole('admin'));
+// All protected admin routes strictly require dedicated administrator authentication
+router.use(authenticateAdmin);
 
 // Stats & Overview
 router.get('/stats', adminController.getStats);
 
+// Listings Full Admin CRUD
+router.get('/listings', adminController.getAllListingsAdmin);
+router.post('/listings', validate(adminCreateListingSchema), adminController.createListingAdmin);
+router.put('/listings/:id', validateUUID('id'), validate(adminUpdateListingSchema), adminController.updateListingAdmin);
+router.delete('/listings/:id', validateUUID('id'), adminController.deleteListingAdmin);
+
 // Student Verifications
 router.get('/verifications', adminController.getVerifications);
-router.patch('/verifications/:id/approve', adminController.approveVerification);
-router.patch('/verifications/:id/reject', adminController.rejectVerification);
+router.patch('/verifications/:id/approve', validateUUID('id'), adminController.approveVerification);
+router.patch('/verifications/:id/reject', validateUUID('id'), adminController.rejectVerification);
 
 // Password Reset Requests (Admin Confirmation / Refusal)
 router.get('/password-resets', adminController.getPasswordResetRequests);
-router.patch('/password-resets/:id/approve', adminController.approvePasswordReset);
-router.patch('/password-resets/:id/reject', adminController.rejectPasswordReset);
+router.patch('/password-resets/:id/approve', validateUUID('id'), adminController.approvePasswordReset);
+router.patch('/password-resets/:id/reject', validateUUID('id'), adminController.rejectPasswordReset);
 
 // Flagged Listings
 router.get('/flags', adminController.getFlaggedListings);
-router.patch('/flags/:id/resolve', adminController.resolveFlag);
-router.delete('/flags/:id/remove', adminController.removeListingByAdmin);
+router.patch('/flags/:id/resolve', validateUUID('id'), adminController.resolveFlag);
+router.delete('/flags/:id/remove', validateUUID('id'), adminController.removeListingByAdmin);
 
 // Trade Disputes
 router.get('/disputes', adminController.getDisputes);

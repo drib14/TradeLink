@@ -8,10 +8,11 @@ import { Campus, Listing } from '../types';
 import {
   ArrowRight,
   Bookmark,
-  Flame,
+  Zap,
   ArrowLeftRight,
-  MapPin,
-  ShoppingBag
+  ShoppingBag,
+  Building2,
+  X
 } from 'lucide-react';
 
 interface HomePageProps {
@@ -20,18 +21,22 @@ interface HomePageProps {
 }
 
 export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenChat: _onOpenChat }) => {
-  const { listings, isLoading, setSelectedCampus, favorites } = useMarket();
-  const [activeFeedTab, setActiveFeedTab] = useState<'all' | 'featured' | 'swaps' | 'free'>('all');
+  const { listings, isLoading, selectedCampus, setSelectedCampus, favorites } = useMarket();
+  const [activeFeedTab, setActiveFeedTab] = useState<'all' | 'swaps' | 'free'>('all');
 
   const handleCampusSelect = (campus: Campus | 'ALL') => {
     setSelectedCampus(campus === 'ALL' ? 'All' : campus);
     onNavigate('marketplace');
   };
 
-  // Filter listings based on active tab
+  // Filter listings based on active tab and selected campus
   const displayedListings = listings.filter((l: Listing) => {
     if (l.isSold) return false;
-    if (activeFeedTab === 'featured') return l.isBoosted;
+    if (selectedCampus !== 'All') {
+      const matchSellerCampus = l.sellerCampus && l.sellerCampus.toLowerCase().includes(selectedCampus.toLowerCase());
+      const matchItemCampus = (l as any).campus && (l as any).campus.toLowerCase().includes(selectedCampus.toLowerCase());
+      if (!matchSellerCampus && !matchItemCampus) return false;
+    }
     if (activeFeedTab === 'swaps') return l.tradeMode === 'swap';
     if (activeFeedTab === 'free') return l.tradeMode === 'free_donation';
     return true;
@@ -67,15 +72,15 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenChat: _onO
 
           <div
             className="clean-card card-interactive"
-            onClick={() => onNavigate('wanted')}
+            onClick={() => onNavigate('flash-market')}
             style={{ padding: '1rem 1.15rem', display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}
           >
-            <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--accent-red-subtle, #FEF2F2)', color: 'var(--accent-red)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Flame size={18} />
+            <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--color-danger-subtle, #FEF2F2)', color: 'var(--color-danger, #DC2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Zap size={18} />
             </div>
             <div>
-              <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)' }}>Wanted Board</div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Student LTB requests</div>
+              <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)' }}>Flash Market</div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Urgent campus requests</div>
             </div>
           </div>
 
@@ -90,20 +95,6 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenChat: _onO
             <div>
               <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)' }}>Direct Swaps</div>
               <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Barter gear & textbooks</div>
-            </div>
-          </div>
-
-          <div
-            className="clean-card card-interactive"
-            onClick={() => onNavigate('campus-map')}
-            style={{ padding: '1rem 1.15rem', display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}
-          >
-            <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--accent-green-subtle, #ECFDF5)', color: 'var(--accent-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <MapPin size={18} />
-            </div>
-            <div>
-              <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)' }}>Guarded Hubs</div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>8 campus meetup zones</div>
             </div>
           </div>
         </div>
@@ -122,45 +113,94 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenChat: _onO
             </p>
           </div>
 
-          {/* Clean Segmented Tab Control */}
-          <div
-            className="touch-scroll-row"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.35rem',
-              backgroundColor: 'var(--bg-subtle)',
-              padding: '3px',
-              borderRadius: '10px',
-              border: '1px solid var(--border-subtle)'
-            }}
-          >
-            {[
-              { id: 'all', label: 'All Items' },
-              { id: 'featured', label: 'Featured Deals' },
-              { id: 'swaps', label: 'Swaps' },
-              { id: 'free', label: 'Free Items' }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveFeedTab(tab.id as any)}
+          {/* Controls: Segmented Feed Tab + On-Page Campus Dropdown */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+            {/* Campus Dropdown Filter */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <select
+                value={selectedCampus}
+                onChange={(e) => setSelectedCampus(e.target.value as any)}
+                className="clean-input"
                 style={{
-                  padding: '0.35rem 0.85rem',
-                  borderRadius: '7px',
                   fontSize: '0.78rem',
-                  fontWeight: activeFeedTab === tab.id ? 800 : 600,
-                  backgroundColor: activeFeedTab === tab.id ? 'var(--bg-surface)' : 'transparent',
-                  color: activeFeedTab === tab.id ? 'var(--uc-blue)' : 'var(--text-secondary)',
-                  boxShadow: activeFeedTab === tab.id ? 'var(--shadow-sm)' : 'none',
-                  border: 'none',
+                  fontWeight: 700,
+                  padding: '0.4rem 2rem 0.4rem 0.75rem',
                   cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  transition: 'all 0.15s ease'
+                  height: '36px',
+                  borderRadius: '10px'
                 }}
+                aria-label="Filter feed by campus"
               >
-                {tab.label}
-              </button>
-            ))}
+                <option value="All">🏫 All Campuses</option>
+                <option value="UC Main">UC Main</option>
+                <option value="UC Banilad">UC Banilad</option>
+                <option value="UC LM">UC LM</option>
+                <option value="UC METC">UC METC</option>
+                <option value="UC Pardo-Talisay">UC Pardo-Talisay</option>
+                <option value="UC South Campus">UC South Campus</option>
+                <option value="UC Medical Center">UC Medical Center</option>
+                <option value="UC PRI">UC PRI</option>
+              </select>
+
+              {selectedCampus !== 'All' && (
+                <button
+                  onClick={() => setSelectedCampus('All')}
+                  className="btn-neutral"
+                  style={{
+                    padding: '0.35rem 0.6rem',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    height: '36px',
+                    borderRadius: '10px'
+                  }}
+                  title="Clear campus filter"
+                >
+                  <X size={13} />
+                  <span>Reset</span>
+                </button>
+              )}
+            </div>
+
+            {/* Clean Segmented Tab Control */}
+            <div
+              className="touch-scroll-row"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                backgroundColor: 'var(--bg-subtle)',
+                padding: '3px',
+                borderRadius: '10px',
+                border: '1px solid var(--border-subtle)',
+                height: '36px'
+              }}
+            >
+              {[
+                { id: 'all', label: 'All Items' },
+                { id: 'swaps', label: 'Swaps' },
+                { id: 'free', label: 'Free Items' }
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveFeedTab(tab.id as any)}
+                  style={{
+                    padding: '0.35rem 0.85rem',
+                    borderRadius: '7px',
+                    fontSize: '0.78rem',
+                    fontWeight: activeFeedTab === tab.id ? 800 : 600,
+                    backgroundColor: activeFeedTab === tab.id ? 'var(--bg-surface)' : 'transparent',
+                    color: activeFeedTab === tab.id ? 'var(--uc-blue)' : 'var(--text-secondary)',
+                    boxShadow: activeFeedTab === tab.id ? 'var(--shadow-sm)' : 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -182,14 +222,29 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenChat: _onO
           <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
             <ShoppingBag size={40} style={{ margin: '0 auto 0.75rem', opacity: 0.4 }} />
             <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>No Listings Found</h3>
-            <p style={{ fontSize: '0.85rem', marginTop: '0.25rem' }}>Be the first student to post an item in this category!</p>
-            <button
-              onClick={() => onNavigate('create-listing')}
-              className="btn-primary"
-              style={{ marginTop: '1rem', padding: '0.55rem 1.25rem', fontSize: '0.85rem' }}
-            >
-              Post an Item
-            </button>
+            <p style={{ fontSize: '0.85rem', marginTop: '0.25rem' }}>
+              {selectedCampus !== 'All'
+                ? `No items currently found for ${selectedCampus}. Try selecting All Campuses or post the first one!`
+                : 'Be the first student to post an item in this category!'}
+            </p>
+            <div style={{ display: 'flex', gap: '0.65rem', justifyContent: 'center', marginTop: '1rem', flexWrap: 'wrap' }}>
+              {selectedCampus !== 'All' && (
+                <button
+                  onClick={() => setSelectedCampus('All')}
+                  className="btn-secondary"
+                  style={{ padding: '0.55rem 1.25rem', fontSize: '0.85rem' }}
+                >
+                  Show All Campuses
+                </button>
+              )}
+              <button
+                onClick={() => onNavigate('create-listing')}
+                className="btn-primary"
+                style={{ padding: '0.55rem 1.25rem', fontSize: '0.85rem' }}
+              >
+                Post an Item
+              </button>
+            </div>
           </div>
         )}
 

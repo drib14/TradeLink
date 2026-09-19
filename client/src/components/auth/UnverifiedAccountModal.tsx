@@ -36,7 +36,7 @@ export const UnverifiedAccountModal: React.FC<UnverifiedAccountModalProps> = ({
         {/* Header with UC Gradient */}
         <div
           style={{
-            background: 'linear-gradient(135deg, #002B7F 0%, #0A1931 100%)',
+            backgroundColor: '#002B7F',
             padding: '1.5rem',
             position: 'relative',
             color: '#FFFFFF'
@@ -131,7 +131,7 @@ export const UnverifiedAccountModal: React.FC<UnverifiedAccountModalProps> = ({
                 </li>
                 <li style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700 }}>
                   <CheckCircle2 size={13} />
-                  <span>Handshake QR security codes</span>
+                  <span>Encrypted campus chat & protection</span>
                 </li>
               </ul>
             </div>

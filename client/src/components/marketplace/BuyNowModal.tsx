@@ -1,19 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Listing } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { useChat } from '../../context/ChatContext';
 import { useToast } from '../common/Toast';
 import { VerifiedBadge } from '../common/VerifiedBadge';
 import { UserAvatar } from '../common/UserAvatar';
+import { PaymentMethodSelector } from '../common/PaymentLogos';
 import {
   X,
   ShieldCheck,
-  CreditCard,
-  Banknote,
   CheckCircle2,
   ShoppingBag,
   MessageSquare,
-  Sparkles,
   Lock
 } from 'lucide-react';
 
@@ -36,8 +34,23 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
   const { createDirectOrder, openChatWithSeller } = useChat();
   const { showToast } = useToast();
 
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'gcash' | 'maya'>('cash');
+  const availableMethods = (listing.acceptedPaymentMethods && listing.acceptedPaymentMethods.length > 0)
+    ? listing.acceptedPaymentMethods
+    : (['cash', 'gcash', 'maya'] as ('cash' | 'gcash' | 'maya')[]);
+
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'gcash' | 'maya'>(
+    availableMethods[0] || 'cash'
+  );
+
+  useEffect(() => {
+    if (availableMethods.length > 0 && !availableMethods.includes(paymentMethod)) {
+      setPaymentMethod(availableMethods[0]);
+    }
+  }, [availableMethods, paymentMethod]);
+
   const [buyerNotes, setBuyerNotes] = useState('');
+  const maxQuantity = listing.quantity !== undefined && listing.quantity > 0 ? listing.quantity : 1;
+  const [orderQuantity, setOrderQuantity] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmedTransaction, setConfirmedTransaction] = useState<any>(null);
 
@@ -69,7 +82,7 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
             To protect buyers and sellers across all UC campuses, placing direct purchase orders requires official student ID verification.
           </p>
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
-            <button onClick={onClose} className="btn-secondary" style={{ flex: 1 }}>Cancel</button>
+            <button onClick={onClose} className="btn-neutral" style={{ flex: 1 }}>Cancel</button>
             <button
               onClick={() => {
                 onClose();
@@ -96,8 +109,10 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
       const tx = await createDirectOrder({
         listing,
         paymentMethod,
-        notes: buyerNotes.trim()
-      });
+        notes: `Qty: ${orderQuantity}${buyerNotes.trim() ? ` — ${buyerNotes.trim()}` : ''}`,
+        quantity: orderQuantity,
+        amount: listing.price * orderQuantity
+      } as any);
 
       setConfirmedTransaction(tx);
       showToast(
@@ -256,51 +271,72 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
                     {listing.sellerIsVerified && <VerifiedBadge size="xs" variant="green" />}
                   </div>
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                    {listing.sellerCampus} • Trust Score: {listing.sellerTrustScore}/100
+                    {listing.sellerCampus} • {listing.rating ? `★ ${Number(listing.rating).toFixed(1)} rating` : 'Verified Student'}
                   </span>
                 </div>
               </div>
             </div>
 
+            {/* Quantity Stepper if more than 1 */}
+            {maxQuantity > 1 && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.65rem 0.85rem',
+                  backgroundColor: 'var(--bg-subtle)',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-subtle)'
+                }}
+              >
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                    Quantity to Buy
+                  </label>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                    {maxQuantity} available in stock
+                  </span>
+                </div>
+                <div style={{ display: 'inline-flex', alignItems: 'center', border: '1.5px solid var(--border-subtle)', borderRadius: '6px', overflow: 'hidden', backgroundColor: '#FFFFFF' }}>
+                  <button
+                    type="button"
+                    onClick={() => setOrderQuantity((prev) => Math.max(1, prev - 1))}
+                    style={{ width: '32px', height: '32px', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '1rem', color: 'var(--text-primary)' }}
+                  >
+                    −
+                  </button>
+                  <span style={{ width: '36px', textAlign: 'center', fontWeight: 800, fontSize: '0.88rem', color: 'var(--uc-blue)' }}>
+                    {orderQuantity}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setOrderQuantity((prev) => Math.min(maxQuantity, prev + 1))}
+                    style={{ width: '32px', height: '32px', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '1rem', color: 'var(--text-primary)' }}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Payment Method Selection */}
             {!isFree && (
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                  Preferred Payment Settlement
-                </label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
-                  {[
-                    { id: 'cash', label: 'Cash on Deal', icon: <Banknote size={16} /> },
-                    { id: 'gcash', label: 'GCash', icon: <CreditCard size={16} /> },
-                    { id: 'maya', label: 'Maya / Bank', icon: <CreditCard size={16} /> }
-                  ].map((p) => {
-                    const isSelected = paymentMethod === p.id;
-                    return (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => setPaymentMethod(p.id as any)}
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          gap: '0.35rem',
-                          padding: '0.75rem 0.5rem',
-                          borderRadius: '8px',
-                          border: isSelected ? '2px solid var(--uc-blue)' : '1px solid var(--border-subtle)',
-                          backgroundColor: isSelected ? 'var(--uc-blue-subtle)' : 'var(--bg-surface)',
-                          color: isSelected ? 'var(--uc-blue)' : 'var(--text-secondary)',
-                          cursor: 'pointer',
-                          fontWeight: isSelected ? 800 : 600,
-                          fontSize: '0.75rem'
-                        }}
-                      >
-                        {p.icon}
-                        <span>{p.label}</span>
-                      </button>
-                    );
-                  })}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.45rem' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                    Accepted Settlement Method
+                  </label>
+                  <span style={{ fontSize: '0.68rem', color: '#059669', fontWeight: 800, backgroundColor: '#ECFDF5', padding: '1px 6px', borderRadius: '4px', border: '1px solid #A7F3D0' }}>
+                    0% Processing Fee
+                  </span>
                 </div>
+                <PaymentMethodSelector
+                  selected={paymentMethod}
+                  onSelect={(method) => setPaymentMethod(method)}
+                  disabled={isSubmitting}
+                  availableMethods={availableMethods}
+                />
               </div>
             )}
 
@@ -311,7 +347,7 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
               </label>
               <input
                 type="text"
-                placeholder="e.g. Free after 3 PM near CCS building..."
+                placeholder="Meetup preference"
                 value={buyerNotes}
                 onChange={(e) => setBuyerNotes(e.target.value)}
                 className="clean-input"
@@ -330,7 +366,7 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="btn-secondary"
+                className="btn-neutral"
                 style={{ flex: 1, padding: '0.75rem' }}
               >
                 Cancel
@@ -341,8 +377,14 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
                 className="btn-gold"
                 style={{ flex: 2, padding: '0.75rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
               >
-                <Sparkles size={16} />
-                <span>{isSubmitting ? 'Placing Order...' : isFree ? 'Claim Free Donation' : `Confirm Order • ₱${listing.price.toLocaleString()}`}</span>
+                <ShoppingBag size={16} />
+                <span>
+                  {isSubmitting
+                    ? 'Placing Order...'
+                    : isFree
+                    ? 'Claim Free Donation'
+                    : `Confirm Order • ₱${(listing.price * orderQuantity).toLocaleString()}${orderQuantity > 1 ? ` (${orderQuantity} items)` : ''}`}
+                </span>
               </button>
             </div>
           </form>

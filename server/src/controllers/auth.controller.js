@@ -6,8 +6,9 @@ const env = require('../config/env');
 const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
 const { serializeUser } = require('../serializers/userSerializer');
-const { hashCode, verifyCode } = require('../utils/generateCode');
+const { generate4DigitCode, hashCode, verifyCode } = require('../utils/generateCode');
 const { generateTokens, setRefreshTokenCookie } = require('../utils/authHelpers');
+const emailService = require('../services/email.service');
 
 /**
  * Register a new student account
@@ -29,14 +30,16 @@ const register = asyncHandler(async (req, res, next) => {
   const existingEmail = await db('users')
     .whereRaw('LOWER(email) = ?', [email.toLowerCase().trim()])
     .first();
+
   if (existingEmail) {
-    return next(new AppError('Email address is already in use.', 409));
+    return next(new AppError('Email is already registered.', 409));
   }
 
   // Check if student ID already registered
   const existingStudentId = await db('users')
     .where({ student_id: studentId.trim() })
     .first();
+
   if (existingStudentId) {
     return next(new AppError('Student ID is already registered.', 409));
   }
@@ -44,7 +47,7 @@ const register = asyncHandler(async (req, res, next) => {
   const passwordHash = await bcrypt.hash(password, 12);
   const userId = uuidv4();
   const isVerified = false;
-  const trustScore = 60;
+  const trustScore = 0;
 
   const newUser = {
     id: userId,
@@ -60,10 +63,10 @@ const register = asyncHandler(async (req, res, next) => {
     is_verified: isVerified,
     id_photo_url: idPhotoUrl || null,
     trust_score: trustScore,
-    rating: 5.0,
+    rating: 0.0,
     total_reviews: 0,
     completed_trades: 0,
-    punctuality_rate: 100,
+    punctuality_rate: 0,
     bio: `Student at ${campus} - ${college.trim()}.`,
     is_pro_merchant: false,
     is_banned: false
@@ -98,20 +101,44 @@ const register = asyncHandler(async (req, res, next) => {
   });
 });
 
+// Precomputed bcrypt hash for constant-time comparison against timing attacks
+const DUMMY_HASH = '$2a$12$e8uq5e/jD/qE50Gv3hD.1e.W0a5vCjNfZg.HhC3aAfe7ZpM3s.zma';
+
 /**
  * Login student user (blocks administrator accounts from student portal)
  */
 const login = asyncHandler(async (req, res, next) => {
   const { studentId, idNumber, emailOrStudentId, identifier, email, password } = req.body;
-  const cleanQuery = (studentId || idNumber || emailOrStudentId || identifier || email || '').trim();
+  const rawQuery = (studentId || idNumber || emailOrStudentId || identifier || email || '').trim();
+  const cleanDigits = rawQuery.replace(/\D/g, '');
 
-  const user = await db('users')
-    .where({ student_id: cleanQuery })
-    .orWhereRaw('LOWER(email) = ?', [cleanQuery.toLowerCase()])
+  let user = await db('users')
+    .where({ student_id: rawQuery })
+    .orWhereRaw('LOWER(email) = ?', [rawQuery.toLowerCase()])
     .first();
 
+  if (!user && cleanDigits.length >= 6) {
+    user = await db('users')
+      .where({ student_id: cleanDigits })
+      .orWhereRaw("REPLACE(REPLACE(student_id, '-', ''), ' ', '') = ?", [cleanDigits])
+      .first();
+  }
+
+  // Timing attack mitigation: Run dummy comparison if user is not found
   if (!user) {
+    await bcrypt.compare(password, DUMMY_HASH);
     return next(new AppError('Invalid credentials.', 401));
+  }
+
+  // Account lockout protection: Check if locked due to 5+ failed attempts
+  if (user.locked_until && new Date(user.locked_until) > new Date()) {
+    const remainingMin = Math.max(1, Math.ceil((new Date(user.locked_until) - new Date()) / (60 * 1000)));
+    return next(
+      new AppError(
+        `Account temporarily locked due to consecutive failed login attempts. Please try again in ${remainingMin} minute(s).`,
+        423
+      )
+    );
   }
 
   // Guard: Administrator accounts must use the dedicated Admin Portal
@@ -135,12 +162,32 @@ const login = asyncHandler(async (req, res, next) => {
 
   const isMatch = await bcrypt.compare(password, user.password_hash);
   if (!isMatch) {
+    const attempts = (user.failed_login_attempts || 0) + 1;
+    if (attempts >= 5) {
+      const lockExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes lockout
+      await db('users').where({ id: user.id }).update({
+        failed_login_attempts: attempts,
+        locked_until: lockExpiry
+      });
+      return next(
+        new AppError(
+          'Account temporarily locked for 15 minutes due to 5 failed login attempts.',
+          423
+        )
+      );
+    }
+    await db('users').where({ id: user.id }).update({ failed_login_attempts: attempts });
     return next(new AppError('Invalid credentials.', 401));
   }
 
-  const { accessToken, refreshToken } = generateTokens(user.id, user.role, user.campus);
+  const tokenVersion = user.token_version || 1;
+  const { accessToken, refreshToken } = generateTokens(user.id, user.role, user.campus, tokenVersion);
   const refreshTokenHash = await hashCode(refreshToken);
-  await db('users').where({ id: user.id }).update({ refresh_token_hash: refreshTokenHash });
+  await db('users').where({ id: user.id }).update({
+    refresh_token_hash: refreshTokenHash,
+    failed_login_attempts: 0,
+    locked_until: null
+  });
 
   setRefreshTokenCookie(res, refreshToken);
 
@@ -183,7 +230,8 @@ const refreshToken = asyncHandler(async (req, res, next) => {
   }
 
   // Rotate tokens
-  const newTokens = generateTokens(user.id, user.role, user.campus);
+  const tokenVersion = user.token_version || 1;
+  const newTokens = generateTokens(user.id, user.role, user.campus, tokenVersion);
   const newHash = await hashCode(newTokens.refreshToken);
   await db('users').where({ id: user.id }).update({ refresh_token_hash: newHash });
 
@@ -203,7 +251,11 @@ const refreshToken = asyncHandler(async (req, res, next) => {
  */
 const logout = asyncHandler(async (req, res) => {
   if (req.user) {
-    await db('users').where({ id: req.user.id }).update({ refresh_token_hash: null });
+    const nextVersion = (req.user.token_version || 1) + 1;
+    await db('users').where({ id: req.user.id }).update({
+      refresh_token_hash: null,
+      token_version: nextVersion
+    });
   }
 
   res.clearCookie('refreshToken', { path: '/api' });
@@ -214,7 +266,7 @@ const logout = asyncHandler(async (req, res) => {
 });
 
 /**
- * Request password reset (Student flow: registered for campus administrator review)
+ * Request password reset (Direct email flow: no admin permission required)
  */
 const forgotPassword = asyncHandler(async (req, res, next) => {
   const { email } = req.body;
@@ -223,88 +275,127 @@ const forgotPassword = asyncHandler(async (req, res, next) => {
   }
 
   const cleanEmail = email.toLowerCase().trim();
+
+  // Always return success to prevent account enumeration
+  const successResponse = () => {
+    res.status(200).json({
+      status: 'success',
+      message: 'If an account with that email exists, a 6-digit verification code has been dispatched. Please check your inbox or spam folder.'
+    });
+  };
+
   const user = await db('users').whereRaw('LOWER(email) = ?', [cleanEmail]).first();
 
   if (!user) {
-    return next(new AppError('No registered account found with that email address. Please check your email or register.', 404));
+    return successResponse();
   }
 
   // Guard: Administrator accounts must use the admin portal forgot password flow
   if (user.role === 'admin') {
-    return next(
-      new AppError(
-        'Administrator accounts must request password reset via the TradeLink Administration Portal.',
-        403
-      )
-    );
+    return successResponse();
   }
 
-  // Check if a reset request is already pending admin review
-  const existingPending = await db('password_reset_requests')
-    .where({ user_id: user.id, status: 'pending' })
-    .first();
+  // Generate 6-digit verification code directly
+  const code = generate4DigitCode();
+  const codeHash = await hashCode(code);
+  const expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes validity
 
-  if (existingPending) {
-    return res.status(200).json({
-      status: 'success',
-      message: 'A password reset request for this account is already pending administrator confirmation. Please wait for an administrator to review it.',
-      data: {
-        requestId: existingPending.id,
-        status: 'pending'
-      }
-    });
-  }
+  // Save code hash directly to student account and reset failed attempts counter
+  await db('users').where({ id: user.id }).update({
+    reset_code_hash: codeHash,
+    reset_code_exp: expiry,
+    failed_reset_attempts: 0
+  });
 
+  // Record in password_reset_requests for compliance & logging
   const requestId = uuidv4();
   await db('password_reset_requests').insert({
     id: requestId,
     user_id: user.id,
     email: user.email,
-    status: 'pending'
-  });
+    status: 'sent',
+    code_hash: codeHash,
+    code_exp: expiry,
+    reviewed_at: new Date(),
+    admin_note: 'Direct email dispatch (no admin approval required)'
+  }).catch(() => {});
 
-  res.status(200).json({
-    status: 'success',
-    message: 'Password reset request submitted successfully. It has been sent to campus administration for approval. Once approved, your verification code will be sent to your registered email.',
-    data: {
-      requestId,
-      status: 'pending'
-    }
-  });
+  // Send verification code directly to student's email
+  try {
+    await emailService.sendPasswordResetEmail(user.email, code, user.name, req);
+  } catch (err) {
+    console.error('[AUTH] Failed to send password reset email:', err.message);
+  }
+
+  return successResponse();
 });
 
 /**
- * Reset password with admin-approved verification code
+ * Reset password with verification code
  */
 const resetPassword = asyncHandler(async (req, res, next) => {
   const { email, code, newPassword } = req.body;
 
-  const user = await db('users').whereRaw('LOWER(email) = ?', [email.toLowerCase().trim()]).first();
+  if (!email || !code || !newPassword) {
+    return next(new AppError('Email, verification code, and new password are required.', 400));
+  }
+
+  const cleanEmail = email.toLowerCase().trim();
+  const user = await db('users').whereRaw('LOWER(email) = ?', [cleanEmail]).first();
   if (!user) {
     return next(new AppError('Account not found.', 404));
   }
 
   if (!user.reset_code_hash || !user.reset_code_exp || new Date() > new Date(user.reset_code_exp)) {
-    return next(new AppError('Verification code has expired or has not been approved by administration. Please request a new one.', 400));
+    return next(new AppError('Verification code has expired or is invalid. Please request a new one.', 400));
   }
 
-  const isMatch = await verifyCode(code, user.reset_code_hash);
+  const isMatch = await verifyCode(code.trim(), user.reset_code_hash);
   if (!isMatch) {
-    return next(new AppError('Invalid verification code.', 400));
+    const attempts = (user.failed_reset_attempts || 0) + 1;
+    if (attempts >= 3) {
+      // Invalidate code after 3 wrong attempts
+      await db('users').where({ id: user.id }).update({
+        reset_code_hash: null,
+        reset_code_exp: null,
+        failed_reset_attempts: 0
+      });
+      return next(
+        new AppError(
+          'Invalid verification code. Maximum attempts exceeded (3/3). For security, this verification code has been invalidated. Please request a new code.',
+          400
+        )
+      );
+    }
+    await db('users').where({ id: user.id }).update({ failed_reset_attempts: attempts });
+    return next(
+      new AppError(
+        `Invalid verification code. You have ${3 - attempts} attempt(s) remaining.`,
+        400
+      )
+    );
   }
 
   const passwordHash = await bcrypt.hash(newPassword, 12);
+  const nextTokenVersion = (user.token_version || 1) + 1;
+
   await db('users').where({ id: user.id }).update({
     password_hash: passwordHash,
     reset_code_hash: null,
     reset_code_exp: null,
-    refresh_token_hash: null // Invalidate existing sessions for security
+    failed_reset_attempts: 0,
+    failed_login_attempts: 0,
+    locked_until: null,
+    token_version: nextTokenVersion,
+    password_changed_at: new Date(),
+    refresh_token_hash: null // Invalidate existing refresh token sessions
   });
 
-  // Mark latest approved request as completed
+  // Mark latest reset requests as completed
   await db('password_reset_requests')
-    .where({ user_id: user.id, status: 'approved' })
-    .update({ status: 'completed' });
+    .where({ user_id: user.id })
+    .update({ status: 'completed' })
+    .catch(() => {});
 
   res.status(200).json({
     status: 'success',

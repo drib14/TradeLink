@@ -38,6 +38,24 @@ async function autoInitDatabase() {
       }
     }
 
+    // 1a. Ensure 'users' table has token_version and auth hardening columns
+    const hasUsers = await db.schema.hasTable('users');
+    if (hasUsers) {
+      const hasTokenVersion = await db.schema.hasColumn('users', 'token_version').catch(() => false);
+      if (!hasTokenVersion) {
+        await db.schema.alterTable('users', (t) => {
+          t.integer('failed_login_attempts').unsigned().notNullable().defaultTo(0);
+          t.dateTime('locked_until').nullable();
+          t.integer('token_version').unsigned().notNullable().defaultTo(1);
+          t.tinyint('failed_reset_attempts').unsigned().notNullable().defaultTo(0);
+          t.dateTime('password_changed_at').nullable();
+        }).catch((err) => {
+          logger.warn(`[DB Init] Could not alter users table: ${err.message}`);
+        });
+        logger.info('[DB Init] Added token_version and auth hardening columns to users table.');
+      }
+    }
+
     // 1b. Ensure password_reset_requests table exists
     const hasPasswordResetTable = await db.schema.hasTable('password_reset_requests');
     if (!hasPasswordResetTable) {
@@ -62,21 +80,224 @@ async function autoInitDatabase() {
       logger.info('[DB Init] Created password_reset_requests table.');
     }
 
-    // 2. Ensure Default Administrator Account Exists (uc.tradelink@gmail.com / TradeLink@2026)
-    const adminEmail = 'uc.tradelink@gmail.com';
+    // 1c. Ensure flash_requests table and conversation foreign keys exist
+    const hasFlash = await db.schema.hasTable('flash_requests').catch(() => false);
+    const hasWanted = await db.schema.hasTable('wanted_requests').catch(() => false);
+    if (hasWanted && !hasFlash) {
+      await db.schema.renameTable('wanted_requests', 'flash_requests').catch(() => {});
+      logger.info('[DB Init] Renamed wanted_requests to flash_requests.');
+    } else if (!hasFlash) {
+      await db.raw(`
+        CREATE TABLE IF NOT EXISTS \`flash_requests\` (
+          \`id\` VARCHAR(36) NOT NULL PRIMARY KEY,
+          \`requester_id\` VARCHAR(36) NOT NULL,
+          \`item_name\` VARCHAR(150) NOT NULL,
+          \`category\` VARCHAR(50) NOT NULL,
+          \`target_campus\` VARCHAR(50) NOT NULL,
+          \`urgency\` VARCHAR(50) NOT NULL DEFAULT 'flexible',
+          \`budget_range\` VARCHAR(50) DEFAULT NULL,
+          \`notes\` TEXT DEFAULT NULL,
+          \`status\` ENUM('open', 'fulfilled', 'cancelled', 'expired') NOT NULL DEFAULT 'open',
+          \`offers_count\` INT UNSIGNED NOT NULL DEFAULT 0,
+          \`duration_hours\` INT NOT NULL DEFAULT 24,
+          \`expires_at\` DATETIME DEFAULT NULL,
+          \`created_at\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          \`updated_at\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          INDEX \`idx_flash_requester\` (\`requester_id\`),
+          INDEX \`idx_flash_campus\` (\`target_campus\`),
+          INDEX \`idx_flash_status\` (\`status\`),
+          CONSTRAINT \`fk_flash_user\` FOREIGN KEY (\`requester_id\`) REFERENCES \`users\` (\`id\`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      `).catch(() => {});
+      logger.info('[DB Init] Created flash_requests table.');
+    }
+
+    // Ensure expires_at and duration_hours exist on flash_requests
+    const hasExpiresCol = await db.schema.hasColumn('flash_requests', 'expires_at').catch(() => false);
+    if (!hasExpiresCol) {
+      await db.schema.alterTable('flash_requests', (t) => {
+        t.datetime('expires_at').nullable();
+        t.integer('duration_hours').defaultTo(24);
+      }).catch(() => {});
+    }
+
+    // Ensure flash_request_id exists on conversations
+    const hasConvFlashCol = await db.schema.hasColumn('conversations', 'flash_request_id').catch(() => false);
+    if (!hasConvFlashCol) {
+      await db.schema.alterTable('conversations', (t) => {
+        t.string('flash_request_id', 36).nullable();
+        t.index('flash_request_id', 'idx_conv_flash');
+      }).catch(() => {});
+    }
+
+    // Ensure flash_request_id exists on messages
+    const hasMsgFlashCol = await db.schema.hasColumn('messages', 'flash_request_id').catch(() => false);
+    if (!hasMsgFlashCol) {
+      await db.schema.alterTable('messages', (t) => {
+        t.string('flash_request_id', 36).nullable();
+        t.index('flash_request_id', 'idx_msg_flash');
+      }).catch(() => {});
+    }
+
+    // 1d. Ensure accepted_payment_methods exists on listings table
+    const hasListingsTable = await db.schema.hasTable('listings').catch(() => false);
+    if (hasListingsTable) {
+      const hasAcceptedPaymentMethods = await db.schema.hasColumn('listings', 'accepted_payment_methods').catch(() => false);
+      if (!hasAcceptedPaymentMethods) {
+        await db.schema.alterTable('listings', (t) => {
+          t.string('accepted_payment_methods', 255).notNullable().defaultTo('cash,gcash,maya');
+        }).catch((err) => {
+          logger.warn(`[DB Init] Could not alter listings table: ${err.message}`);
+        });
+        logger.info('[DB Init] Added accepted_payment_methods column to listings table.');
+      }
+    }
+
+    // 1d. Ensure verification_requests columns exist for automated approval and fraud analysis
+    const hasVerifTable = await db.schema.hasTable('verification_requests').catch(() => false);
+    if (hasVerifTable) {
+      const hasConfidenceCol = await db.schema.hasColumn('verification_requests', 'confidence_score').catch(() => false);
+      if (!hasConfidenceCol) {
+        await db.schema.alterTable('verification_requests', (t) => {
+          t.integer('confidence_score').defaultTo(0);
+          t.boolean('is_suspicious').defaultTo(false);
+          t.text('suspicious_reasons').nullable();
+          t.text('credential_diagnostics').nullable();
+          t.string('id_photo_hash', 64).nullable();
+          t.string('selfie_photo_hash', 64).nullable();
+          t.string('verification_method', 50).defaultTo('automated');
+          t.index('is_suspicious', 'idx_verif_suspicious');
+        }).catch(() => {});
+        logger.info('[DB Init] Enhanced verification_requests table with automated confidence and fraud detection columns.');
+      }
+    }
+
+    // 1e. Ensure listings.category is VARCHAR(100) to support all university categories
+    try {
+      await db.raw('ALTER TABLE `listings` MODIFY COLUMN `category` VARCHAR(100) NOT NULL;');
+    } catch (_) {}
+
+    // 1f. Ensure newsletter_subscribers table exists
+    const hasNewsletterTable = await db.schema.hasTable('newsletter_subscribers').catch(() => false);
+    if (!hasNewsletterTable) {
+      await db.raw(`
+        CREATE TABLE IF NOT EXISTS \`newsletter_subscribers\` (
+          \`id\` VARCHAR(36) NOT NULL PRIMARY KEY,
+          \`email\` VARCHAR(150) NOT NULL UNIQUE,
+          \`status\` ENUM('active', 'unsubscribed') NOT NULL DEFAULT 'active',
+          \`ip_address\` VARCHAR(45) DEFAULT NULL,
+          \`created_at\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          INDEX \`idx_newsletter_email\` (\`email\`),
+          INDEX \`idx_newsletter_status\` (\`status\`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      `).catch(() => {});
+      logger.info('[DB Init] Created newsletter_subscribers table.');
+    }
+
+    // 1g. Ensure listing_views table exists for persistent unique view tracking
+    const hasListingViewsTable = await db.schema.hasTable('listing_views').catch(() => false);
+    if (!hasListingViewsTable) {
+      await db.raw(`
+        CREATE TABLE IF NOT EXISTS \`listing_views\` (
+          \`id\` VARCHAR(36) NOT NULL PRIMARY KEY,
+          \`listing_id\` VARCHAR(36) NOT NULL,
+          \`viewer_identifier\` VARCHAR(128) NOT NULL,
+          \`created_at\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE KEY \`uniq_listing_viewer\` (\`listing_id\`, \`viewer_identifier\`),
+          INDEX \`idx_listing_views_listing\` (\`listing_id\`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      `).catch(() => {});
+      logger.info('[DB Init] Created listing_views table for persistent deduplicated view counting.');
+    }
+
+    // 1h. Ensure flash_requests.image_url exists
+    const hasFlashImageCol = await db.schema.hasColumn('flash_requests', 'image_url').catch(() => false);
+    if (!hasFlashImageCol) {
+      await db.schema.alterTable('flash_requests', (t) => {
+        t.string('image_url', 500).nullable();
+      }).catch(() => {});
+      logger.info('[DB Init] Added image_url column to flash_requests table.');
+    }
+
+    // Self-healing: Backfill missing or null flash_requests images with high-resolution academic photos
+    try {
+      const emptyImageRequests = await db('flash_requests')
+        .whereNull('image_url')
+        .orWhere('image_url', '')
+        .select('id', 'item_name', 'category');
+
+      for (const req of emptyImageRequests) {
+        let fallbackImage = 'https://images.unsplash.com/photo-1594980596870-8aa52a78d8cd?auto=format&fit=crop&w=800&q=80';
+        const nameLower = (req.item_name || '').toLowerCase();
+        const catLower = (req.category || '').toLowerCase();
+
+        if (nameLower.includes('calculator') || catLower.includes('calculator')) {
+          fallbackImage = 'https://images.unsplash.com/photo-1594980596870-8aa52a78d8cd?auto=format&fit=crop&w=800&q=80';
+        } else if (nameLower.includes('uniform') || nameLower.includes('epaulette') || catLower.includes('uniform')) {
+          fallbackImage = nameLower.includes('marine') || nameLower.includes('epaulette')
+            ? 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=800&q=80'
+            : 'https://images.unsplash.com/photo-1523381294911-8d3cead13475?auto=format&fit=crop&w=800&q=80';
+        } else if (nameLower.includes('medical') || nameLower.includes('stethoscope') || catLower.includes('medical')) {
+          fallbackImage = 'https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?auto=format&fit=crop&w=800&q=80';
+        } else if (nameLower.includes('drafting') || nameLower.includes('square') || catLower.includes('architecture') || catLower.includes('engineering')) {
+          fallbackImage = 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80';
+        } else if (nameLower.includes('notes') || nameLower.includes('book') || catLower.includes('textbook')) {
+          fallbackImage = 'https://images.unsplash.com/photo-1532012164546-f432f2e3777a?auto=format&fit=crop&w=800&q=80';
+        }
+
+        await db('flash_requests').where({ id: req.id }).update({ image_url: fallbackImage });
+      }
+      if (emptyImageRequests.length > 0) {
+        logger.info(`[DB Init] Backfilled realistic academic images for ${emptyImageRequests.length} flash request(s).`);
+      }
+    } catch (backfillErr) {
+      logger.warn(`[DB Init] Flash image backfill notice: ${backfillErr.message}`);
+    }
+
+    // 1i. Ensure listings rating and total_reviews columns exist
+    const hasListingRatingCol = await db.schema.hasColumn('listings', 'rating').catch(() => false);
+    if (!hasListingRatingCol) {
+      await db.schema.alterTable('listings', (t) => {
+        t.decimal('rating', 2, 1).defaultTo(0.0);
+        t.integer('total_reviews').unsigned().defaultTo(0);
+      }).catch(() => {});
+      logger.info('[DB Init] Added rating and total_reviews columns to listings table.');
+    }
+
+    // 1j. Ensure reviews.listing_id column exists
+    const hasReviewListingCol = await db.schema.hasColumn('reviews', 'listing_id').catch(() => false);
+    if (!hasReviewListingCol) {
+      await db.schema.alterTable('reviews', (t) => {
+        t.string('listing_id', 36).nullable();
+        t.index('listing_id', 'idx_reviews_listing');
+      }).catch(() => {});
+      logger.info('[DB Init] Added listing_id column to reviews table.');
+    }
+
+
+    // 2. Ensure Sole Administrator Account Exists: uc.tradelink@gmail.com | TradeLink@2026 | TradeLink Admin
     const adminPassword = 'TradeLink@2026';
     const adminPasswordHash = await bcrypt.hash(adminPassword, 10);
 
-    const existingAdmin = await db('users').where({ email: adminEmail }).first();
+    // Remove legacy or alternative admin accounts
+    await db('users').where({ email: 'admin@uc.edu.ph' }).del().catch(() => {});
+    await db('users').where({ id: 'user-admin' }).whereNot({ email: 'uc.tradelink@gmail.com' }).del().catch(() => {});
 
-    if (!existingAdmin) {
-      // Remove any previous legacy user-admin ID if email differed
-      await db('users').where({ id: 'user-admin' }).del().catch(() => {});
-
+    const existingAdmin = await db('users').where({ email: 'uc.tradelink@gmail.com' }).first();
+    if (existingAdmin) {
+      await db('users').where({ id: existingAdmin.id }).update({
+        name: 'TradeLink Admin',
+        password_hash: adminPasswordHash,
+        role: 'admin',
+        is_banned: false,
+        is_verified: true
+      });
+      logger.info(`[DB Init] Synchronized credentials for admin account [${existingAdmin.email}]`);
+    } else {
       await db('users').insert({
-        id: 'user-admin',
-        name: 'UC Administrator',
-        email: adminEmail,
+        id: 'user-admin-main',
+        name: 'TradeLink Admin',
+        email: 'uc.tradelink@gmail.com',
         student_id: 'ADMIN001',
         password_hash: adminPasswordHash,
         role: 'admin',
@@ -91,21 +312,11 @@ async function autoInitDatabase() {
         total_reviews: 0,
         completed_trades: 0,
         punctuality_rate: 100,
-        bio: 'Official TradeLink Campus Moderation & Safety Desk. Verified student marketplace.',
+        bio: 'Official TradeLink Administration & Moderation Desk.',
         is_pro_merchant: false,
         is_banned: false
       });
-      logger.info(`[DB Init] Created default administrator: ${adminEmail}`);
-    } else {
-      // Ensure password_hash is valid bcrypt for TradeLink@2026
-      const isMatch = await bcrypt.compare(adminPassword, existingAdmin.password_hash);
-      if (!isMatch) {
-        await db('users').where({ id: existingAdmin.id }).update({
-          password_hash: adminPasswordHash,
-          role: 'admin'
-        });
-        logger.info(`[DB Init] Synchronized admin credentials for ${adminEmail}`);
-      }
+      logger.info('[DB Init] Created administrator: uc.tradelink@gmail.com');
     }
 
     // 3. Ensure Default System Configuration Exists
@@ -118,8 +329,9 @@ async function autoInitDatabase() {
           config_value: JSON.stringify({
             maintenanceMode: false,
             maxListingPrice: 50000,
-            maxImagesPerListing: 5,
+            maxImagesPerListing: 10,
             swapModeEnabled: true,
+            flashMarketEnabled: true,
             wantedBoardEnabled: true,
             freeDonationEnabled: true,
             maxListingsPerUser: 20
@@ -139,7 +351,7 @@ async function autoInitDatabase() {
           {
             id: 'ann-1',
             title: 'Guarded Meetup Reminder',
-            message: 'Always meet inside official UC campus security gates during daytime hours. Inspect items before scanning the Handshake QR code.',
+            message: 'Always meet inside official UC campus security gates during daytime hours. Inspect items before completing the transaction.',
             campus: 'All',
             type: 'alert',
             author_id: 'user-admin',
@@ -187,13 +399,26 @@ async function autoInitDatabase() {
       const flagCount = await db('feature_flags').count('id as count').first();
       if (Number(flagCount?.count || 0) === 0) {
         await db('feature_flags').insert([
-          { id: 'ff-1', name: 'Price Advisor AI', description: 'Enable AI-powered pricing suggestions', enabled: true },
+          { id: 'ff-1', name: 'Campus Fair Price Guide', description: 'Standard campus student resale valuation', enabled: true },
           { id: 'ff-2', name: 'Campus Map', description: 'Interactive campus meetup map', enabled: true },
           { id: 'ff-3', name: 'Pro Merchant Badge', description: 'Allow pro merchant status for top sellers', enabled: true },
           { id: 'ff-4', name: 'Dark Mode', description: 'Dark mode toggle for all users', enabled: true }
         ]);
         logger.info('[DB Init] Seeded default feature flags.');
       }
+    }
+
+    // 7. Normalize all zero-transaction user stats to 0, 0.0, and 0%
+    if (hasUsersTable) {
+      await db('users')
+        .where('completed_trades', 0)
+        .where('total_reviews', 0)
+        .update({
+          trust_score: 0,
+          rating: 0.0,
+          punctuality_rate: 0
+        })
+        .catch(() => {});
     }
 
     logger.info('[DB Init] Database is fully synchronized.');

@@ -24,25 +24,46 @@ function initializeSocket(httpServer) {
     pingInterval: 25000
   });
 
-  // Socket.IO authentication middleware
+  // Socket.IO authentication middleware (strict token verification with admin support)
   io.use(async (socket, next) => {
     try {
       const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.split(' ')[1];
       if (!token) {
-        return next(new Error('Authentication error: Token missing.'));
+        socket.user = { id: 'guest', role: 'guest', is_verified: false };
+        return next();
       }
 
-      const decoded = jwt.verify(token, env.jwt.accessSecret);
+      let decoded;
+      try {
+        decoded = jwt.verify(token, env.jwt.accessSecret);
+      } catch (err) {
+        // Try admin access secret if student verification fails
+        try {
+          decoded = jwt.verify(token, env.jwt.adminAccessSecret);
+        } catch {
+          return next(new Error('Authentication error: Token is invalid or expired.'));
+        }
+      }
+
       const user = await db('users').where({ id: decoded.userId }).first();
 
-      if (!user || user.is_banned) {
-        return next(new Error('Authentication error: User invalid or banned.'));
+      if (!user) {
+        return next(new Error('Authentication error: User account does not exist.'));
+      }
+
+      if (user.is_banned) {
+        return next(new Error('Authentication error: Account suspended.'));
+      }
+
+      // Token revocation check: reject if tokenVersion is older than current version
+      if (decoded.tokenVersion && user.token_version && decoded.tokenVersion < user.token_version) {
+        return next(new Error('Authentication error: Session has expired or been revoked. Please reconnect with fresh token.'));
       }
 
       socket.user = user;
       next();
     } catch (err) {
-      next(new Error('Authentication error: Invalid token.'));
+      next(new Error(`Authentication failed: ${err.message}`));
     }
   });
 

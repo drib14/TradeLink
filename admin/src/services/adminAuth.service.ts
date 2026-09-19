@@ -32,7 +32,7 @@ export const adminAuthService = {
 
   async getMe(): Promise<User | null> {
     try {
-      const res = await api.get<{ user: any }>('/auth/me');
+      const res = await api.get<{ user: any }>('/admin-auth/me');
       if (res.data?.user?.role === 'admin') {
         return res.data.user;
       }

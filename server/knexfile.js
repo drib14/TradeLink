@@ -10,7 +10,13 @@ const getSslConfig = () => {
 const buildConnection = (defaultDbName = 'tradelink_db_test') => {
   const ssl = getSslConfig();
   if (process.env.DATABASE_URL) {
-    return ssl ? { uri: process.env.DATABASE_URL, ssl } : process.env.DATABASE_URL;
+    const connObj = {
+      uri: process.env.DATABASE_URL,
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 10000
+    };
+    if (ssl) connObj.ssl = ssl;
+    return connObj;
   }
   return {
     host: process.env.DB_HOST || 'localhost',
@@ -20,6 +26,8 @@ const buildConnection = (defaultDbName = 'tradelink_db_test') => {
     database: process.env.DB_NAME || defaultDbName,
     charset: 'utf8mb4',
     timezone: '+00:00',
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 10000,
     ssl
   };
 };
@@ -29,7 +37,7 @@ module.exports = {
     client: 'mysql2',
     connection: buildConnection('tradelink_db'),
     pool: {
-      min: 2,
+      min: 0,
       max: 10,
       acquireTimeoutMillis: 30000,
       createTimeoutMillis: 30000,

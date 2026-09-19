@@ -6,6 +6,7 @@ import { useToast } from '../components/common/Toast';
 import { ListingCard } from '../components/marketplace/ListingCard';
 import { SwapProposalModal } from '../components/marketplace/SwapProposalModal';
 import { Listing, SwapOffer } from '../types';
+import { formatRelativeTime } from '../utils/date';
 import {
   ArrowLeftRight,
   Plus,
@@ -16,7 +17,8 @@ import {
   Clock,
   MessageSquare,
   ShoppingBag,
-  MapPin
+  MapPin,
+  X
 } from 'lucide-react';
 
 interface SwapsPageProps {
@@ -32,15 +34,23 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({
   onOpenAuth,
   onOpenVerification
 }) => {
-  const { listings } = useMarket();
+  const { listings, selectedCampus, setSelectedCampus } = useMarket();
   const { currentUser, isAuthenticated } = useAuth();
-  const { swaps, respondToSwap } = useChat();
+  const { swaps, respondToSwap, openChatForSwap } = useChat();
   const { showToast } = useToast();
 
   const [activeTab, setActiveTab] = useState<'catalog' | 'proposals'>('catalog');
   const [selectedTargetForSwap, setSelectedTargetForSwap] = useState<Listing | null>(null);
 
-  const swapListings = listings.filter((l: Listing) => l.tradeMode === 'swap' && !l.isSold);
+  const swapListings = listings.filter((l: Listing) => {
+    if (l.tradeMode !== 'swap' || l.isSold) return false;
+    if (selectedCampus !== 'All') {
+      const matchSellerCampus = l.sellerCampus && l.sellerCampus.toLowerCase().includes(selectedCampus.toLowerCase());
+      const matchItemCampus = (l as any).campus && (l as any).campus.toLowerCase().includes(selectedCampus.toLowerCase());
+      if (!matchSellerCampus && !matchItemCampus) return false;
+    }
+    return true;
+  });
   const mySwaps = currentUser
     ? swaps.filter(
         (s: SwapOffer) => s.targetSellerId === currentUser.id || s.offererId === currentUser.id
@@ -78,7 +88,7 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({
         </div>
 
         <button
-          onClick={() => onNavigate('create-listing')}
+          onClick={() => onNavigate('create-listing', { mode: 'swap' })}
           className="btn-gold"
           style={{ padding: '0.55rem 1.25rem', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
         >
@@ -87,25 +97,73 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({
         </button>
       </div>
 
-      {/* Segmented Control Tabs */}
-      <div style={{ display: 'inline-flex', backgroundColor: 'var(--bg-subtle, #F1F5F9)', padding: '3px', borderRadius: 'var(--radius-full)', alignSelf: 'flex-start', border: '1px solid var(--border-subtle, #CBD5E1)' }}>
-        <button
-          onClick={() => setActiveTab('catalog')}
-          className={`segmented-tab ${activeTab === 'catalog' ? 'active' : ''}`}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
-        >
-          <ArrowLeftRight size={14} style={{ flexShrink: 0 }} />
-          <span>Available Swaps ({swapListings.length})</span>
-        </button>
+      {/* Toolbar: Segmented Tabs + On-Page Campus Dropdown */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.85rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'inline-flex', backgroundColor: 'var(--bg-subtle, #F1F5F9)', padding: '3px', borderRadius: 'var(--radius-full)', border: '1px solid var(--border-subtle, #CBD5E1)', height: '36px' }}>
+          <button
+            onClick={() => setActiveTab('catalog')}
+            className={`segmented-tab ${activeTab === 'catalog' ? 'active' : ''}`}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+          >
+            <ArrowLeftRight size={14} style={{ flexShrink: 0 }} />
+            <span>Available Swaps ({swapListings.length})</span>
+          </button>
 
-        <button
-          onClick={() => setActiveTab('proposals')}
-          className={`segmented-tab ${activeTab === 'proposals' ? 'active' : ''}`}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
-        >
-          <Clock size={14} style={{ flexShrink: 0 }} />
-          <span>My Proposals ({mySwaps.length})</span>
-        </button>
+          <button
+            onClick={() => setActiveTab('proposals')}
+            className={`segmented-tab ${activeTab === 'proposals' ? 'active' : ''}`}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+          >
+            <Clock size={14} style={{ flexShrink: 0 }} />
+            <span>My Proposals ({mySwaps.length})</span>
+          </button>
+        </div>
+
+        {/* Campus Filter Dropdown */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <select
+            value={selectedCampus}
+            onChange={(e) => setSelectedCampus(e.target.value as any)}
+            className="clean-input"
+            style={{
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              padding: '0.4rem 2rem 0.4rem 0.75rem',
+              cursor: 'pointer',
+              height: '36px',
+              borderRadius: '10px'
+            }}
+            aria-label="Filter swaps by campus"
+          >
+            <option value="All">🏫 All Campuses</option>
+            <option value="UC Main">UC Main</option>
+            <option value="UC Banilad">UC Banilad</option>
+            <option value="UC LM">UC LM</option>
+            <option value="UC METC">UC METC</option>
+            <option value="UC Pardo-Talisay">UC Pardo-Talisay</option>
+            <option value="UC South Campus">UC South Campus</option>
+            <option value="UC Medical Center">UC Medical Center</option>
+            <option value="UC PRI">UC PRI</option>
+          </select>
+
+          {selectedCampus !== 'All' && (
+            <button
+              onClick={() => setSelectedCampus('All')}
+              className="btn-neutral"
+              style={{
+                padding: '0.35rem 0.6rem',
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                height: '36px',
+                borderRadius: '10px'
+              }}
+              title="Clear campus filter"
+            >
+              <X size={13} />
+              <span>Reset</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Tab 1: Swap Catalog */}
@@ -145,20 +203,31 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({
           ) : (
             <div className="empty-state">
               <h3 className="empty-state-title">No items currently listed for swap</h3>
-              <p className="empty-state-desc">Post an item and choose Swap mode to initiate student peer barter.</p>
-              <button onClick={() => onNavigate('create-listing')} className="btn-primary" style={{ marginTop: '0.75rem' }}>
-                Post a Swap Item
-              </button>
+              <p className="empty-state-desc">
+                {selectedCampus !== 'All'
+                  ? `No swap listings found for ${selectedCampus}. Try selecting All Campuses or post the first swap!`
+                  : 'Post an item with the Swap Item Form to initiate student peer barter.'}
+              </p>
+              <div style={{ display: 'flex', gap: '0.65rem', justifyContent: 'center', marginTop: '0.75rem', flexWrap: 'wrap' }}>
+                {selectedCampus !== 'All' && (
+                  <button onClick={() => setSelectedCampus('All')} className="btn-secondary">
+                    Show All Campuses
+                  </button>
+                )}
+                <button onClick={() => onNavigate('create-listing', { mode: 'swap' })} className="btn-primary">
+                  Post a Swap Item
+                </button>
+              </div>
             </div>
           )}
         </div>
       )}
 
-      {/* Tab 2: My Swap Proposals */}
+      {/* Tab 2: My Swap Proposals - Strictly Grid */}
       {activeTab === 'proposals' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div className="grid-responsive-proposals">
           {!currentUser ? (
-            <div className="clean-card" style={{ padding: '3.5rem 1.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+            <div className="clean-card" style={{ gridColumn: '1 / -1', padding: '3.5rem 1.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', borderRadius: '14px' }}>
               <div style={{ width: '54px', height: '54px', borderRadius: '50%', backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', color: 'var(--uc-blue, #002B7F)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <ArrowLeftRight size={26} />
               </div>
@@ -177,14 +246,14 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({
                     else onNavigate('home');
                   }}
                   className="btn-gold"
-                  style={{ padding: '0.65rem 1.5rem', fontSize: '0.85rem', fontWeight: 800 }}
+                  style={{ padding: '0.65rem 1.5rem', fontSize: '0.85rem', fontWeight: 800, borderRadius: '8px' }}
                 >
                   Sign In to TradeLink
                 </button>
                 <button
                   onClick={() => setActiveTab('catalog')}
                   className="btn-secondary"
-                  style={{ padding: '0.65rem 1.25rem', fontSize: '0.85rem', fontWeight: 700 }}
+                  style={{ padding: '0.65rem 1.25rem', fontSize: '0.85rem', fontWeight: 700, borderRadius: '8px' }}
                 >
                   Browse Available Swaps
                 </button>
@@ -199,28 +268,32 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({
                   key={swap.id}
                   className="clean-card"
                   style={{
-                    padding: '1.25rem',
+                    padding: '1rem',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '1rem'
+                    gap: '0.75rem',
+                    borderRadius: '14px',
+                    border: '1px solid var(--border-subtle, #E2E8F0)',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02)',
+                    transition: 'transform 0.2s ease, box-shadow 0.2s ease'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.4rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.78rem' }}>
                       <span style={{ fontWeight: 800, color: 'var(--uc-blue)' }}>
-                        {isReceiver ? 'Received Swap Proposal' : 'Your Sent Proposal'}
+                        {isReceiver ? 'Received Swap' : 'Sent Proposal'}
                       </span>
                       <span style={{ color: 'var(--border-subtle)' }}>•</span>
                       <span style={{ color: 'var(--text-muted)' }}>
-                        {new Date(swap.createdAt).toLocaleDateString()}
+                        {formatRelativeTime(swap.createdAt)}
                       </span>
                     </div>
 
                     <span
                       style={{
-                        fontSize: '0.72rem',
+                        fontSize: '0.68rem',
                         fontWeight: 800,
-                        padding: '0.2rem 0.6rem',
+                        padding: '0.15rem 0.55rem',
                         borderRadius: '6px',
                         backgroundColor:
                           swap.status === 'accepted'
@@ -250,11 +323,11 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({
                   <div
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                      gap: '1rem',
+                      gridTemplateColumns: '1fr',
+                      gap: '0.65rem',
                       alignItems: 'center',
                       backgroundColor: 'var(--bg-subtle, #F8FAFC)',
-                      padding: '1.15rem',
+                      padding: '0.85rem',
                       borderRadius: '10px',
                       border: '1px solid var(--border-subtle, #E2E8F0)'
                     }}
@@ -333,15 +406,18 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({
                       </button>
                       <button
                         onClick={() => respondToSwap(swap.id, 'declined')}
-                        className="btn-secondary"
-                        style={{ padding: '0.45rem 1rem', fontSize: '0.8rem', color: '#DC2626', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                        className="btn-danger-outline"
+                        style={{ padding: '0.45rem 1rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
                       >
                         <XCircle size={14} style={{ flexShrink: 0 }} />
                         <span>Decline</span>
                       </button>
                       <button
-                        onClick={onOpenChat}
-                        style={{ marginLeft: 'auto', fontSize: '0.8rem', color: '#002B7F', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.35rem', cursor: 'pointer' }}
+                        onClick={async () => {
+                          await openChatForSwap(swap);
+                          onOpenChat();
+                        }}
+                        style={{ marginLeft: 'auto', fontSize: '0.8rem', color: '#002B7F', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.35rem', cursor: 'pointer', background: 'none', border: 'none' }}
                       >
                         <MessageSquare size={14} style={{ flexShrink: 0 }} />
                         <span>Open Chat</span>
@@ -354,14 +430,27 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({
                       <div style={{ fontSize: '0.8rem', color: 'var(--accent-green, #059669)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
                         <CheckCircle size={15} /> Swap terms accepted! Schedule a campus meeting spot.
                       </div>
-                      <button
-                        onClick={() => onNavigate('meetups')}
-                        className="btn-primary"
-                        style={{ padding: '0.45rem 1rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-                      >
-                        <MapPin size={14} />
-                        <span>Go to Meetup Coordinator</span>
-                      </button>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button
+                          onClick={async () => {
+                            await openChatForSwap(swap);
+                            onOpenChat();
+                          }}
+                          className="btn-primary"
+                          style={{ padding: '0.45rem 1rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                        >
+                          <MessageSquare size={14} />
+                          <span>Coordinate in Chat</span>
+                        </button>
+                        <button
+                          onClick={() => onNavigate('meetups')}
+                          className="btn-secondary"
+                          style={{ padding: '0.45rem 1rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                        >
+                          <MapPin size={14} />
+                          <span>Orders</span>
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>

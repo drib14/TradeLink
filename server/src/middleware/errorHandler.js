@@ -6,18 +6,29 @@ const errorHandler = (err, req, res, next) => {
   let message = err.message || 'Internal Server Error';
   let status = err.status || 'error';
 
-  // Handle MySQL errors
-  // Handle MySQL duplicate errors securely without exposing column internals
+  // Handle MySQL errors securely — never expose column names or raw SQL
   if (err.code === 'ER_DUP_ENTRY') {
     statusCode = 409;
     status = 'fail';
-    if (err.sqlMessage && err.sqlMessage.includes('email')) {
+    // Provide user-friendly messages without exposing schema internals
+    const sqlMsg = (err.sqlMessage || '').toLowerCase();
+    if (sqlMsg.includes('email')) {
       message = 'An account with this email address already exists.';
-    } else if (err.sqlMessage && err.sqlMessage.includes('student_id')) {
+    } else if (sqlMsg.includes('student_id')) {
       message = 'An account with this ID number is already registered.';
+    } else if (sqlMsg.includes('keyword')) {
+      message = 'This keyword already exists in the prohibited list.';
     } else {
       message = 'A record with this information already exists.';
     }
+  } else if (err.code === 'ER_DATA_TOO_LONG') {
+    statusCode = 400;
+    status = 'fail';
+    message = 'One or more fields exceed the maximum allowed length.';
+  } else if (err.code === 'ER_NO_REFERENCED_ROW_2' || err.code === 'ER_NO_REFERENCED_ROW') {
+    statusCode = 400;
+    status = 'fail';
+    message = 'Referenced record does not exist.';
   }
 
   // Handle JWT specific errors
@@ -36,29 +47,29 @@ const errorHandler = (err, req, res, next) => {
     statusCode = 400;
     status = 'fail';
     if (err.code === 'LIMIT_FILE_SIZE') {
-      message = `Uploaded file exceeds maximum allowed size of ${env.upload.maxSizeMB}MB.`;
+      message = `Uploaded file exceeds maximum allowed size of ${env.upload.maxSizeMB || 15}MB.`;
+    } else if (err.code === 'LIMIT_FILE_COUNT') {
+      message = 'Too many files uploaded in a single request (maximum 5 files).';
+    } else if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+      message = 'Unexpected file field in upload payload.';
     }
   }
 
   // Log error stack securely for server-side debugging
   if (statusCode === 500) {
-    logger.error(`[Unhandled Error] ${req.method} ${req.originalUrl}: %s`, err.stack || err.message);
+    logger.error(`[Unhandled Error] [${req.id || 'no-id'}] ${req.method} ${req.originalUrl}: %s`, err.stack || err.message);
     if (env.env === 'production') {
       message = 'An unexpected server error occurred. Please try again later.';
     }
   } else {
-    logger.warn(`[Client Error ${statusCode}] ${req.method} ${req.originalUrl}: ${message}`);
+    logger.warn(`[Client Error ${statusCode}] [${req.id || 'no-id'}] ${req.method} ${req.originalUrl}: ${message}`);
   }
 
   const responseBody = {
     status,
-    message
+    message,
+    ...(req.id ? { requestId: req.id } : {})
   };
-
-  // Only expose detailed validation schema errors in non-production
-  if (err.errors && env.env !== 'production') {
-    responseBody.errors = err.errors;
-  }
 
   res.status(statusCode).json(responseBody);
 };

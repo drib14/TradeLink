@@ -4,6 +4,10 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/common/Toast';
 import { Transaction } from '../types';
 import { TransactionReceiptModal } from '../components/marketplace/TransactionReceiptModal';
+import { ConfirmModal } from '../components/common/ConfirmModal';
+import { PromptModal } from '../components/common/PromptModal';
+import { PaymentMethodBadge } from '../components/common/PaymentLogos';
+import { formatRelativeTime } from '../utils/date';
 import {
   FileText,
   Clock,
@@ -18,7 +22,8 @@ import {
   ArrowUpRight,
   Check,
   Ban,
-  Filter
+  Filter,
+  X
 } from 'lucide-react';
 
 interface TransactionsPageProps {
@@ -27,7 +32,7 @@ interface TransactionsPageProps {
 }
 
 export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, onOpenChat }) => {
-  const { transactions, completeTransaction, cancelTransaction, openChatWithSeller } = useChat();
+  const { transactions, completeTransaction, cancelTransaction, openChatWithSeller, openChatForTransaction } = useChat();
   const { currentUser, isAuthenticated } = useAuth();
   const { showToast } = useToast();
 
@@ -36,6 +41,8 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedReceiptTx, setSelectedReceiptTx] = useState<Transaction | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [confirmCompleteTx, setConfirmCompleteTx] = useState<Transaction | null>(null);
+  const [cancelPromptTx, setCancelPromptTx] = useState<Transaction | null>(null);
 
   if (!isAuthenticated || !currentUser) {
     return (
@@ -85,45 +92,46 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
     return true;
   });
 
-  const handleComplete = async (tx: Transaction) => {
-    if (window.confirm(`Confirm order settlement for "${tx.listingTitle}"?`)) {
-      setActionLoadingId(tx.id);
-      try {
-        await completeTransaction(tx.id);
-        showToast('Transaction Completed!', `Order ${tx.referenceNo} marked as complete.`, 'success');
-      } catch (err: any) {
-        showToast('Failed to Complete', err?.message || 'Unable to update transaction.', 'error');
-      } finally {
-        setActionLoadingId(null);
-      }
+  const handleComplete = (tx: Transaction) => {
+    setConfirmCompleteTx(tx);
+  };
+
+  const handleConfirmComplete = async () => {
+    if (!confirmCompleteTx) return;
+    const tx = confirmCompleteTx;
+    setActionLoadingId(tx.id);
+    try {
+      await completeTransaction(tx.id);
+      showToast('Transaction Completed!', `Order ${tx.referenceNo} marked as complete.`, 'success');
+      setConfirmCompleteTx(null);
+    } catch (err: any) {
+      showToast('Failed to Complete', err?.message || 'Unable to update transaction.', 'error');
+    } finally {
+      setActionLoadingId(null);
     }
   };
 
-  const handleCancel = async (tx: Transaction) => {
-    const reason = window.prompt('Reason for order cancellation (optional):', 'Agreed by mutual consent');
-    if (reason !== null) {
-      setActionLoadingId(tx.id);
-      try {
-        await cancelTransaction(tx.id, reason.trim() || undefined);
-        showToast('Order Cancelled', `Order ${tx.referenceNo} was cancelled.`, 'info');
-      } catch (err: any) {
-        showToast('Failed to Cancel', err?.message || 'Unable to cancel transaction.', 'error');
-      } finally {
-        setActionLoadingId(null);
-      }
+  const handleCancel = (tx: Transaction) => {
+    setCancelPromptTx(tx);
+  };
+
+  const handleConfirmCancel = async (reason: string) => {
+    if (!cancelPromptTx) return;
+    const tx = cancelPromptTx;
+    setActionLoadingId(tx.id);
+    try {
+      await cancelTransaction(tx.id, reason.trim() || undefined);
+      showToast('Order Cancelled', `Order ${tx.referenceNo} was cancelled.`, 'info');
+      setCancelPromptTx(null);
+    } catch (err: any) {
+      showToast('Failed to Cancel', err?.message || 'Unable to cancel transaction.', 'error');
+    } finally {
+      setActionLoadingId(null);
     }
   };
 
-  const handleOpenChat = (tx: Transaction) => {
-    openChatWithSeller({
-      id: tx.listingId,
-      title: tx.listingTitle,
-      sellerId: tx.sellerId,
-      sellerName: tx.sellerName,
-      price: tx.amount,
-      images: tx.listingImage ? [tx.listingImage] : [],
-      tradeMode: tx.tradeMode
-    } as any);
+  const handleOpenChat = async (tx: Transaction) => {
+    await openChatForTransaction(tx);
     onOpenChat();
   };
 
@@ -131,7 +139,7 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
   const completedCount = transactions.filter((t) => (t.buyerId === currentUser.id || t.sellerId === currentUser.id) && t.status === 'completed').length;
 
   return (
-    <div className="container page-enter" style={{ padding: '2rem 1.25rem 5rem 1.25rem', maxWidth: '960px' }}>
+    <div className="container page-enter" style={{ padding: '2rem 1.25rem 5rem 1.25rem', maxWidth: '1280px' }}>
       {/* Page Header */}
       <div style={{ marginBottom: '1.75rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
@@ -237,7 +245,7 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by reference code (TL-2026-XXXX), item title, or student name..."
             className="clean-input"
-            style={{ paddingLeft: '2.1rem', fontSize: '0.82rem' }}
+            style={{ paddingLeft: '2.5rem', fontSize: '0.82rem' }}
           />
         </div>
       </div>
@@ -265,9 +273,9 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
           </button>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+        <div className="grid-responsive-transactions">
           {userTransactions.map((tx) => {
-            const isBuyer = tx.buyerId === currentUser.id;
+            const isBuyer = currentUser ? tx.buyerId === currentUser.id : false;
             const isPending = tx.status === 'pending';
             const isCompleted = tx.status === 'completed';
             const isCancelled = tx.status === 'cancelled';
@@ -278,20 +286,21 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
               ? { bg: '#FDE8E8', text: '#9B1C1C', icon: <XCircle size={14} /> }
               : { bg: '#FEF08A', text: '#854D0E', icon: <Clock size={14} /> };
 
-            const formattedDate = tx.createdAt
-              ? new Date(tx.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-              : '';
+            const formattedDate = formatRelativeTime(tx.createdAt);
 
             return (
               <div
                 key={tx.id}
                 className="clean-card"
                 style={{
-                  padding: '1.15rem',
+                  padding: '1rem',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '0.85rem',
-                  transition: 'all 0.2s ease'
+                  gap: '0.75rem',
+                  borderRadius: '14px',
+                  border: '1px solid var(--border-subtle, #E2E8F0)',
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02)',
+                  transition: 'transform 0.2s ease, box-shadow 0.2s ease'
                 }}
               >
                 {/* Card Top: Reference + Status + Date */}
@@ -377,8 +386,10 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
                         <>Buyer: <strong style={{ color: 'var(--text-primary)' }}>{tx.buyerName}</strong></>
                       )}
                     </div>
-                    <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.25rem', fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
-                      <span>Payment: <strong style={{ textTransform: 'uppercase' }}>{tx.paymentMethod}</strong></span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginTop: '0.25rem', fontSize: '0.74rem', color: 'var(--text-secondary)', flexWrap: 'wrap' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        Payment: <PaymentMethodBadge method={tx.paymentMethod} size="xs" />
+                      </span>
                       <span>•</span>
                       <span>Status: <strong style={{ color: tx.paymentStatus === 'paid' ? '#059669' : '#D97706', textTransform: 'capitalize' }}>{tx.paymentStatus}</strong></span>
                     </div>
@@ -390,6 +401,79 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
                       {tx.tradeMode === 'free_donation' ? 'FREE' : `₱${(tx.amount || 0).toLocaleString()}`}
                     </div>
                   </div>
+                </div>
+
+                {/* Campus Order Lifecycle Timeline */}
+                <div style={{ display: 'flex', alignItems: 'center', width: '100%', padding: '0.6rem 0.5rem', backgroundColor: 'var(--bg-subtle, #F8FAFC)', borderRadius: '8px', border: '1px solid var(--border-subtle, #F1F5F9)' }}>
+                  {[
+                    { num: 1, label: 'Order Placed' },
+                    { num: 2, label: 'Chat Agreed' },
+                    { num: 3, label: 'Meetup Handover' },
+                    { num: 4, label: isCancelled ? 'Cancelled' : 'Settled' }
+                  ].map((step, idx) => {
+                    const isDone = isCompleted || (isPending && idx < 2);
+                    const isCurrent = (isPending && idx === 2) || (isCancelled && idx === 3);
+                    const isStepCancelled = isCancelled && idx === 3;
+
+                    return (
+                      <React.Fragment key={step.num}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem', flex: 1, minWidth: 0 }}>
+                          <div
+                            style={{
+                              width: '20px',
+                              height: '20px',
+                              borderRadius: '50%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '0.64rem',
+                              fontWeight: 900,
+                              backgroundColor: isStepCancelled
+                                ? '#DC2626'
+                                : isDone
+                                ? 'var(--accent-green, #059669)'
+                                : isCurrent
+                                ? 'var(--uc-blue, #002B7F)'
+                                : 'var(--border-subtle, #CBD5E1)',
+                              color: isDone || isCurrent || isStepCancelled ? '#FFFFFF' : 'var(--text-muted)'
+                            }}
+                          >
+                            {isStepCancelled ? <X size={10} strokeWidth={3} /> : isDone ? <Check size={10} strokeWidth={3} /> : step.num}
+                          </div>
+                          <span
+                            style={{
+                              fontSize: '0.65rem',
+                              fontWeight: isCurrent || isDone ? 700 : 500,
+                              color: isStepCancelled
+                                ? '#DC2626'
+                                : isDone
+                                ? 'var(--accent-green, #059669)'
+                                : isCurrent
+                                ? 'var(--uc-blue, #002B7F)'
+                                : 'var(--text-muted)',
+                              textAlign: 'center',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              width: '100%'
+                            }}
+                          >
+                            {step.label}
+                          </span>
+                        </div>
+                        {idx < 3 && (
+                          <div
+                            style={{
+                              height: '2px',
+                              flex: 0.6,
+                              backgroundColor: isDone ? 'var(--accent-green, #059669)' : 'var(--border-subtle, #E2E8F0)',
+                              marginBottom: '0.85rem'
+                            }}
+                          />
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
                 </div>
 
                 {/* Card Bottom: Action Buttons */}
@@ -427,15 +511,22 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
                         <span>Cancel</span>
                       </button>
 
-                      <button
-                        onClick={() => handleComplete(tx)}
-                        disabled={actionLoadingId === tx.id}
-                        className="btn-primary"
-                        style={{ padding: '0.4rem 0.95rem', fontSize: '0.76rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-                      >
-                        <Check size={13} />
-                        <span>Mark Completed</span>
-                      </button>
+                      {!isBuyer ? (
+                        <button
+                          onClick={() => handleComplete(tx)}
+                          disabled={actionLoadingId === tx.id}
+                          className="btn-primary"
+                          style={{ padding: '0.4rem 0.95rem', fontSize: '0.76rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                        >
+                          <Check size={13} />
+                          <span>Mark Completed</span>
+                        </button>
+                      ) : (
+                        <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', backgroundColor: 'var(--bg-subtle)', padding: '0.35rem 0.65rem', borderRadius: '6px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                          <Clock size={12} />
+                          <span>Awaiting Seller Completion</span>
+                        </span>
+                      )}
                     </>
                   )}
                 </div>
@@ -453,6 +544,33 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
           transaction={selectedReceiptTx}
         />
       )}
+
+      {/* Settlement Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(confirmCompleteTx)}
+        title="Confirm Order Settlement"
+        message={`Confirm order settlement for "${confirmCompleteTx?.listingTitle}"? This will complete the transaction and release funds.`}
+        confirmText="Complete Settlement"
+        cancelText="Keep Open"
+        variant="primary"
+        isLoading={actionLoadingId === confirmCompleteTx?.id}
+        onConfirm={handleConfirmComplete}
+        onCancel={() => setConfirmCompleteTx(null)}
+      />
+
+      {/* Cancellation Prompt Modal */}
+      <PromptModal
+        isOpen={Boolean(cancelPromptTx)}
+        title="Cancel Order"
+        message={`Please provide a reason for cancelling order ${cancelPromptTx?.referenceNo}:`}
+        placeholder="Reason for cancellation"
+        defaultValue="Agreed by mutual consent"
+        confirmText="Cancel Order"
+        cancelText="Keep Order"
+        isLoading={actionLoadingId === cancelPromptTx?.id}
+        onSubmit={handleConfirmCancel}
+        onCancel={() => setCancelPromptTx(null)}
+      />
     </div>
   );
 };

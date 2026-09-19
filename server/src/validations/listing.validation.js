@@ -1,11 +1,23 @@
 const Joi = require('joi');
-const { CONDITIONS, TRADE_MODES } = require('../config/constants');
+const { CONDITIONS, TRADE_MODES, CATEGORIES, CAMPUSES } = require('../config/constants');
+
+const mediaItemSchema = Joi.alternatives().try(
+  Joi.string().uri().allow(''),
+  Joi.object({
+    url: Joi.string().required(),
+    mediaType: Joi.string().valid('image', 'video').default('image'),
+    thumbnailUrl: Joi.string().uri().allow('', null).optional()
+  })
+);
 
 const createListingSchema = Joi.object({
-  title: Joi.string().trim().min(5).max(200).required().messages({
-    'string.min': 'Listing title must be at least 5 characters long.',
-    'string.empty': 'Listing title is required.'
-  }),
+  title: Joi.string().trim().min(5).max(200).required()
+    .pattern(/^[^<>]*$/, 'no HTML tags')
+    .messages({
+      'string.min': 'Listing title must be at least 5 characters long.',
+      'string.empty': 'Listing title is required.',
+      'string.pattern.name': 'Listing title must not contain HTML tags.'
+    }),
   description: Joi.string().trim().min(10).max(5000).required().messages({
     'string.min': 'Description must be at least 10 characters long.',
     'string.empty': 'Description is required.'
@@ -14,40 +26,48 @@ const createListingSchema = Joi.object({
   originalSrp: Joi.number().min(0).max(200000).default(0),
   tradeMode: Joi.string().valid(...TRADE_MODES).required(),
   swapPreference: Joi.string().trim().max(300).allow('', null),
-  category: Joi.string().trim().min(2).max(100).required(),
+  category: Joi.string().valid(...CATEGORIES).required().messages({
+    'any.only': 'Please select a valid category from the approved list.'
+  }),
   condition: Joi.string().valid(...CONDITIONS).required(),
   quantity: Joi.number().integer().min(1).max(999).default(1),
   tags: Joi.array().items(Joi.string().trim().max(50)).max(10).default([]),
-  images: Joi.array().items(Joi.string()).min(1).max(5).required().messages({
-    'array.min': 'At least one listing photo is required.',
-    'array.max': 'A maximum of 5 photos are allowed per listing.'
-  }),
+  media: Joi.array().items(mediaItemSchema).min(1).max(5).optional(),
+  images: Joi.array().items(Joi.string()).min(1).max(5).optional(),
   preferredMeetupSpots: Joi.array().items(Joi.string().trim().max(200)).default([]),
   customMeetupSpot: Joi.string().trim().max(200).allow('', null),
-  courseCode: Joi.string().trim().max(30).allow('', null)
+  campus: Joi.string().valid(...CAMPUSES).allow('', null),
+  department: Joi.string().trim().max(100).allow('', null),
+  acceptedPaymentMethods: Joi.array().items(Joi.string().valid('cash', 'gcash', 'maya')).default(['cash', 'gcash', 'maya'])
+}).or('media', 'images').messages({
+  'object.missing': 'At least one listing photo is required (provide media or images).'
 });
 
 const updateListingSchema = Joi.object({
-  title: Joi.string().trim().min(5).max(200),
+  title: Joi.string().trim().min(5).max(200)
+    .pattern(/^[^<>]*$/, 'no HTML tags'),
   description: Joi.string().trim().min(10).max(5000),
   price: Joi.number().min(0).max(100000),
   originalSrp: Joi.number().min(0).max(200000),
   tradeMode: Joi.string().valid(...TRADE_MODES),
   swapPreference: Joi.string().trim().max(300).allow('', null),
-  category: Joi.string().trim().min(2).max(100),
+  category: Joi.string().valid(...CATEGORIES),
   condition: Joi.string().valid(...CONDITIONS),
   quantity: Joi.number().integer().min(0).max(999),
   tags: Joi.array().items(Joi.string().trim().max(50)).max(10),
-  images: Joi.array().items(Joi.string()).min(1).max(5),
+  media: Joi.array().items(mediaItemSchema).max(5),
+  images: Joi.array().items(Joi.string()).max(5),
   preferredMeetupSpots: Joi.array().items(Joi.string().trim().max(200)),
   customMeetupSpot: Joi.string().trim().max(200).allow('', null),
-  courseCode: Joi.string().trim().max(30).allow('', null),
+  campus: Joi.string().valid(...CAMPUSES).allow('', null),
+  department: Joi.string().trim().max(100).allow('', null),
+  acceptedPaymentMethods: Joi.array().items(Joi.string().valid('cash', 'gcash', 'maya')),
   status: Joi.string().valid('active', 'sold'),
   isSold: Joi.boolean()
 });
 
 const queryListingsSchema = Joi.object({
-  campus: Joi.string().trim().allow('All', ''),
+  campus: Joi.string().valid('All', '', ...CAMPUSES).default('All'),
   category: Joi.string().trim().allow('All', ''),
   tradeMode: Joi.string().valid('All', ...TRADE_MODES).default('All'),
   condition: Joi.string().valid('All', ...CONDITIONS).default('All'),

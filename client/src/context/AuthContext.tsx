@@ -17,7 +17,13 @@ interface AuthContextType {
   resetPassword: (email: string, code: string, newPassword: string) => Promise<{ success: boolean; message: string }>;
   logout: () => void;
   updateProfile: (data: Partial<User>) => void;
-  submitIdVerification: (studentIdNumber: string, idPhotoUrl: string, selfiePhotoUrl?: string, sessionToken?: string) => Promise<void>;
+  submitIdVerification: (
+    studentIdNumber: string,
+    idPhotoUrl: string,
+    selfiePhotoUrl?: string,
+    sessionToken?: string,
+    telemetry?: any
+  ) => Promise<any>;
   refreshCurrentUser: () => Promise<void>;
   getVerificationSession: () => Promise<{ sessionToken: string; challengeAction: { id: string; instruction: string }; flashColor: string; expiresAt: number }>;
   getVerificationStatus: () => Promise<any>;
@@ -165,23 +171,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [currentUser]);
 
-  const submitIdVerification = useCallback(async (studentIdNumber: string, idPhotoUrl: string, selfiePhotoUrl?: string, sessionToken?: string) => {
-    const cleanId = studentIdNumber.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-    await usersService.submitIdVerification(cleanId, idPhotoUrl, selfiePhotoUrl, sessionToken);
+  const submitIdVerification = useCallback(
+    async (
+      studentIdNumber: string,
+      idPhotoUrl: string,
+      selfiePhotoUrl?: string,
+      sessionToken?: string,
+      telemetry?: any
+    ) => {
+      const cleanId = studentIdNumber.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+      const res = await usersService.submitIdVerification(cleanId, idPhotoUrl, selfiePhotoUrl, sessionToken, telemetry);
+
+    const isAutoApproved = Boolean(res?.autoApproved || res?.data?.autoApproved);
 
     if (currentUser) {
       const updated: User = {
         ...currentUser,
         studentId: cleanId,
         idPhotoUrl,
-        isVerified: false,
-        verificationStatus: 'pending'
+        isVerified: isAutoApproved,
+        verificationStatus: isAutoApproved ? 'verified' : 'pending',
+        trustScore: isAutoApproved ? Math.min(100, (currentUser.trustScore || 0) + 25) : currentUser.trustScore
       };
       setCurrentUser(updated);
       setUsers((prev) => prev.map((u) => (u.id === currentUser.id ? updated : u)));
     }
 
     await refreshCurrentUser();
+    return res;
   }, [currentUser, refreshCurrentUser]);
 
   const getVerificationSession = useCallback(async () => {

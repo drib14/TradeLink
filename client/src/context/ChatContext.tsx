@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
-import { Conversation, Message, SwapOffer, Transaction, Listing, Campus, TradeMode } from '../types';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { Conversation, Message, SwapOffer, Transaction, Listing } from '../types';
 import { useAuth } from './AuthContext';
 import { chatService } from '../services/chat.service';
+import { socketService } from '../services/socket.service';
 
 interface ChatContextType {
   conversations: Conversation[];
@@ -12,17 +13,26 @@ interface ChatContextType {
   meetups: Transaction[]; // Backward compatibility alias
   unreadTotal: number;
   isLoading: boolean;
+  typingUsers: string[];
   setActiveConversationId: (id: string | null) => void;
-  openChatWithSeller: (listing: Listing) => void;
+  openChatWithSeller: (listing: Listing, initialMessage?: string) => Promise<string | void>;
+  openChatWithUser: (user: { id: string; name: string; avatar?: string; campus?: string }, initialMessage?: string) => Promise<string | void>;
+  openChatForFlash: (flash: { id: string; requesterId: string; itemTitle?: string; itemName?: string; targetBudget?: number }, offerMessage?: string) => Promise<string | void>;
+  openChatForWanted: (wanted: { id: string; requesterId: string; itemName?: string; itemTitle?: string; targetBudget?: number }, offerMessage?: string) => Promise<string | void>;
+  openChatForTransaction: (tx: Transaction) => Promise<string | void>;
+  openChatForSwap: (swap: SwapOffer) => Promise<string | void>;
   sendMessage: (
     text: string,
     isSystem?: boolean,
     swapOfferId?: string,
     transactionId?: string,
+    wantedRequestId?: string,
     mediaUrl?: string | null,
     mediaType?: 'image' | 'video' | null
   ) => Promise<void>;
   sendMediaMessage: (file: File, caption?: string) => Promise<void>;
+  sendMeetupLocation: (spot: string) => Promise<void>;
+  sendTypingStatus: (isTyping: boolean) => void;
   proposeSwap: (params: {
     targetListing: Listing;
     offeredListingId?: string;
@@ -34,12 +44,22 @@ interface ChatContextType {
   respondToSwap: (swapId: string, status: 'accepted' | 'declined') => Promise<void>;
   createDirectOrder: (params: {
     listing: Listing;
-    paymentMethod?: 'cash' | 'gcash' | 'maya';
+    paymentMethod?: 'cash' | 'gcash' | 'maya' | 'free';
     notes?: string;
   }) => Promise<Transaction>;
   completeTransaction: (transactionId: string) => Promise<void>;
   cancelTransaction: (transactionId: string, reason?: string) => Promise<void>;
-  // Legacy aliases for backward compatibility
+  submitTradeReview: (params: {
+    transactionId: string;
+    targetUserId: string;
+    rating: number;
+    comment?: string;
+    itemTitle?: string;
+    tradeType?: string;
+    wasPunctual?: boolean;
+    traitBadges?: string[];
+  }) => Promise<void>;
+  // Legacy aliases
   scheduleMeetup?: (params: any) => Promise<any>;
   completeMeetupWithCode?: (meetupId: string, code: string) => Promise<{ success: boolean; message: string }>;
   updateMeetupStatus?: (meetupId: string, status: any) => Promise<void>;
@@ -57,8 +77,11 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [messages, setMessages] = useState<Message[]>([]);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [typingMap, setTypingMap] = useState<Record<string, string[]>>({});
 
-  // Sync with API when authenticated
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 1. Initial full state refresh from API
   const refreshAll = useCallback(async () => {
     if (!isAuthenticated) return;
     setIsLoading(true);
@@ -89,20 +112,112 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refreshAll();
   }, [refreshAll]);
 
-  // Fetch messages when active conversation changes
+  // 2. Setup Socket.IO connection & event handlers
+  useEffect(() => {
+    if (!isAuthenticated || !currentUser) {
+      socketService.disconnect();
+      return;
+    }
+
+    socketService.connect();
+
+    const unsubMsg = socketService.onMessage((newMsg: any) => {
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === newMsg.id)) return prev;
+        return [...prev, newMsg];
+      });
+
+      setConversations((prev) => {
+        const found = prev.find((c) => c.id === newMsg.conversationId);
+        if (!found) {
+          refreshAll();
+          return prev;
+        }
+        return prev.map((c) => {
+          if (c.id === newMsg.conversationId) {
+            const isSelf = newMsg.senderId === currentUser.id;
+            const isCurrentlyOpen = activeConvId === newMsg.conversationId;
+            return {
+              ...c,
+              lastMessage: newMsg.content,
+              lastMessageTimestamp: 'Just now',
+              unreadCount: isSelf || isCurrentlyOpen ? 0 : (c.unreadCount || 0) + 1
+            };
+          }
+          return c;
+        });
+      });
+    });
+
+    const unsubTyping = socketService.onTyping(({ conversationId, userId, userName, isTyping }) => {
+      if (userId === currentUser.id) return;
+      setTypingMap((prev) => {
+        const current = prev[conversationId] || [];
+        if (isTyping) {
+          if (!current.includes(userName)) {
+            return { ...prev, [conversationId]: [...current, userName] };
+          }
+        } else {
+          return { ...prev, [conversationId]: current.filter((u) => u !== userName) };
+        }
+        return prev;
+      });
+    });
+
+    const unsubRead = socketService.onRead(({ conversationId }) => {
+      setMessages((prev) =>
+        prev.map((m) => (m.conversationId === conversationId ? { ...m, isRead: true } : m))
+      );
+    });
+
+    const unsubDeal = socketService.onDealUpdated(() => {
+      refreshAll();
+      if (activeConvId) {
+        chatService.getMessages(activeConvId).then((refreshed) => {
+          setMessages((prev) => {
+            const others = prev.filter((m) => m.conversationId !== activeConvId);
+            return [...others, ...refreshed];
+          });
+        }).catch(() => {});
+      }
+    });
+
+    return () => {
+      unsubMsg();
+      unsubTyping();
+      unsubRead();
+      unsubDeal();
+    };
+  }, [isAuthenticated, currentUser, activeConvId, refreshAll]);
+
+  // 3. Fetch messages when active conversation changes
   useEffect(() => {
     if (!activeConvId) return;
-    chatService.getMessages(activeConvId).then((serverMsgs) => {
-      if (serverMsgs && serverMsgs.length > 0) {
-        setMessages((prev) => {
-          const otherMsgs = prev.filter((m) => m.conversationId !== activeConvId);
-          return [...otherMsgs, ...serverMsgs];
-        });
-      }
-    }).catch(() => {});
+
+    socketService.joinConversation(activeConvId);
+    socketService.markRead(activeConvId);
+    chatService.markConversationAsRead(activeConvId).catch(() => {});
+
+    chatService
+      .getMessages(activeConvId)
+      .then((serverMsgs) => {
+        if (serverMsgs) {
+          setMessages((prev) => {
+            const otherMsgs = prev.filter((m) => m.conversationId !== activeConvId);
+            return [...otherMsgs, ...serverMsgs];
+          });
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      socketService.leaveConversation(activeConvId);
+    };
   }, [activeConvId]);
 
-  const activeConversation = conversations.find((c) => c.id === activeConvId) || null;
+  const activeConversation = useMemo(() => {
+    return conversations.find((c) => c.id === activeConvId) || null;
+  }, [conversations, activeConvId]);
 
   const activeMessages = useMemo(() => {
     if (!activeConvId) return [];
@@ -113,6 +228,11 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
   }, [conversations]);
 
+  const typingUsers = useMemo(() => {
+    if (!activeConvId) return [];
+    return typingMap[activeConvId] || [];
+  }, [typingMap, activeConvId]);
+
   const setActiveConversationId = (id: string | null) => {
     setActiveConvId(id);
     if (id) {
@@ -122,68 +242,178 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const openChatWithSeller = async (listing: Listing) => {
-    if (!currentUser) return;
-    const existing = conversations.find(
-      (c) =>
-        c.listingId === listing.id &&
-        c.participantIds.includes(currentUser.id) &&
-        c.participantIds.includes(listing.sellerId)
-    );
+  const sendTypingStatus = (isTyping: boolean) => {
+    if (!activeConvId) return;
+    socketService.sendTyping(activeConvId, isTyping);
 
-    if (existing) {
-      setActiveConvId(existing.id);
-      return;
+    if (isTyping) {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = setTimeout(() => {
+        socketService.sendTyping(activeConvId, false);
+      }, 3000);
     }
-
-    const newConvId = `conv-${Date.now()}`;
-    const initialMsg: Message = {
-      id: `msg-${Date.now()}`,
-      conversationId: newConvId,
-      senderId: currentUser.id,
-      receiverId: listing.sellerId,
-      content: `Hi ${listing.sellerName}! I am interested in your item: "${listing.title}". Where and when can we meet to transact?`,
-      timestamp: 'Just now',
-      isSystemMessage: false
-    };
-
-    const firstImg = (listing.media && listing.media[0]?.url) || (listing.images && listing.images[0]) || '';
-    const newConv: Conversation = {
-      id: newConvId,
-      listingId: listing.id,
-      listingTitle: listing.title,
-      listingImage: firstImg,
-      participantIds: [currentUser.id, listing.sellerId],
-      otherParticipant: {
-        id: listing.sellerId,
-        name: listing.sellerName,
-        avatar: listing.sellerAvatar,
-        campus: listing.sellerCampus,
-        college: listing.sellerCollege,
-        isVerified: listing.sellerIsVerified
-      },
-      lastMessage: initialMsg.content,
-      lastMessageTimestamp: 'Just now',
-      unreadCount: 0
-    };
-
-    setConversations((prev) => [newConv, ...prev]);
-    setMessages((prev) => [...prev, initialMsg]);
-    setActiveConvId(newConvId);
-
-    chatService.sendMessage({
-      conversationId: newConvId,
-      receiverId: listing.sellerId,
-      listingId: listing.id,
-      content: initialMsg.content
-    }).catch(() => {});
   };
 
+  // Open Chat for Listing
+  const openChatWithSeller = async (listing: Listing, initialMessage?: string): Promise<string | void> => {
+    if (!currentUser) return;
+    const defaultMsg = initialMessage || `Hi ${listing.sellerName}! I'm interested in your "${listing.title}". Where and when can we meet on campus?`;
+
+    try {
+      const conv = await chatService.getOrCreateConversation({
+        targetUserId: listing.sellerId,
+        listingId: listing.id,
+        initialMessage: defaultMsg
+      });
+
+      setConversations((prev) => {
+        const exists = prev.some((c) => c.id === conv.id);
+        if (exists) {
+          return prev.map((c) => (c.id === conv.id ? { ...c, ...conv } : c));
+        }
+        return [conv, ...prev];
+      });
+
+      setActiveConversationId(conv.id);
+      return conv.id;
+    } catch {
+      // Fallback local open
+      const existing = conversations.find(
+        (c) => c.listingId === listing.id && c.participantIds.includes(listing.sellerId)
+      );
+      if (existing) {
+        setActiveConversationId(existing.id);
+        return existing.id;
+      }
+    }
+  };
+
+  // Open Direct Chat with Student User
+  const openChatWithUser = async (
+    targetUser: { id: string; name: string; avatar?: string; campus?: string },
+    initialMessage?: string
+  ): Promise<string | void> => {
+    if (!currentUser) return;
+    try {
+      const conv = await chatService.getOrCreateConversation({
+        targetUserId: targetUser.id,
+        initialMessage: initialMessage || `Hi ${targetUser.name}! Let's connect on TradeLink.`
+      });
+
+      setConversations((prev) => {
+        const exists = prev.some((c) => c.id === conv.id);
+        if (exists) {
+          return prev.map((c) => (c.id === conv.id ? { ...c, ...conv } : c));
+        }
+        return [conv, ...prev];
+      });
+
+      setActiveConversationId(conv.id);
+      return conv.id;
+    } catch {
+      // Handled
+    }
+  };
+
+  // Open Chat for Flash Request
+  const openChatForFlash = async (
+    flash: { id: string; requesterId: string; itemTitle?: string; itemName?: string; targetBudget?: number },
+    offerMessage?: string
+  ): Promise<string | void> => {
+    if (!currentUser) return;
+    const title = flash.itemTitle || flash.itemName || 'Requested Item';
+    const defaultMsg = offerMessage || `[Flash Request Offer] Hi! I have "${title}" available on campus for your target budget of ₱${flash.targetBudget || 0}. Let's chat here to arrange a quick meetup!`;
+
+    try {
+      const conv = await chatService.getOrCreateConversation({
+        targetUserId: flash.requesterId,
+        flashRequestId: flash.id,
+        wantedId: flash.id,
+        initialMessage: defaultMsg
+      });
+
+      setConversations((prev) => {
+        const exists = prev.some((c) => c.id === conv.id);
+        if (exists) {
+          return prev.map((c) => (c.id === conv.id ? { ...c, ...conv } : c));
+        }
+        return [conv, ...prev];
+      });
+
+      setActiveConversationId(conv.id);
+      return conv.id;
+    } catch {
+      // Handled
+    }
+  };
+
+  // Backward compatibility alias
+  const openChatForWanted = async (
+    wanted: { id: string; requesterId: string; itemName?: string; itemTitle?: string; targetBudget?: number },
+    offerMessage?: string
+  ): Promise<string | void> => {
+    return openChatForFlash(wanted, offerMessage);
+  };
+
+  // Open Chat for existing Transaction
+  const openChatForTransaction = async (tx: Transaction): Promise<string | void> => {
+    if (!currentUser) return;
+    const targetUserId = tx.buyerId === currentUser.id ? tx.sellerId : tx.buyerId;
+
+    try {
+      const conv = await chatService.getOrCreateConversation({
+        targetUserId,
+        listingId: tx.listingId
+      });
+
+      setConversations((prev) => {
+        const exists = prev.some((c) => c.id === conv.id);
+        if (exists) {
+          return prev.map((c) => (c.id === conv.id ? { ...c, ...conv } : c));
+        }
+        return [conv, ...prev];
+      });
+
+      setActiveConversationId(conv.id);
+      return conv.id;
+    } catch {
+      // Handled
+    }
+  };
+
+  // Open Chat for existing Swap Offer
+  const openChatForSwap = async (swap: SwapOffer): Promise<string | void> => {
+    if (!currentUser) return;
+    const targetUserId = swap.offererId === currentUser.id ? swap.targetSellerId : swap.offererId;
+
+    try {
+      const conv = await chatService.getOrCreateConversation({
+        targetUserId,
+        listingId: swap.targetListingId
+      });
+
+      setConversations((prev) => {
+        const exists = prev.some((c) => c.id === conv.id);
+        if (exists) {
+          return prev.map((c) => (c.id === conv.id ? { ...c, ...conv } : c));
+        }
+        return [conv, ...prev];
+      });
+
+      setActiveConversationId(conv.id);
+      return conv.id;
+    } catch {
+      // Handled
+    }
+  };
+
+  // Send Message
   const sendMessage = async (
     text: string,
     isSystem = false,
     swapOfferId?: string,
     transactionId?: string,
+    wantedRequestId?: string,
     mediaUrl?: string | null,
     mediaType?: 'image' | 'video' | null
   ) => {
@@ -193,10 +423,11 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       activeConversation.participantIds.find((id) => id !== currentUser.id) ||
       activeConversation.otherParticipant.id;
 
-    const summaryContent = text.trim() || (mediaType === 'video' ? '📹 Video attachment' : '📷 Image attachment');
+    const summaryContent = text.trim() || (mediaType === 'video' ? '[Video Attachment]' : '[Image Attachment]');
 
+    const tempId = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`;
     const newMsg: Message = {
-      id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
+      id: tempId,
       conversationId: activeConversation.id,
       senderId: currentUser.id,
       receiverId,
@@ -205,6 +436,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isSystemMessage: isSystem,
       swapOfferId,
       transactionId,
+      wantedRequestId,
       mediaUrl,
       mediaType
     };
@@ -218,22 +450,36 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       )
     );
 
-    await chatService.sendMessage({
-      conversationId: activeConversation.id,
-      receiverId,
-      content: summaryContent,
-      isSystemMessage: isSystem,
-      swapOfferId,
-      transactionId,
-      mediaUrl,
-      mediaType
-    });
+    // Send via REST + WebSocket
+    try {
+      const sent = await chatService.sendMessage({
+        conversationId: activeConversation.id,
+        receiverId,
+        content: summaryContent,
+        isSystemMessage: isSystem,
+        swapOfferId,
+        transactionId,
+        wantedRequestId,
+        mediaUrl,
+        mediaType
+      });
+
+      // Replace temp message with server message
+      setMessages((prev) => prev.map((m) => (m.id === tempId ? sent : m)));
+    } catch (err) {
+      console.error('Failed to send message:', err);
+    }
   };
 
   const sendMediaMessage = async (file: File, caption?: string) => {
     if (!activeConversation || !currentUser) return;
     const uploaded = await chatService.uploadMedia(file);
-    await sendMessage(caption || '', false, undefined, undefined, uploaded.url, uploaded.mediaType);
+    await sendMessage(caption || '', false, undefined, undefined, undefined, uploaded.url, uploaded.mediaType);
+  };
+
+  const sendMeetupLocation = async (spot: string) => {
+    if (!activeConversation) return;
+    await sendMessage(`Proposed Campus Meetup Zone: Let's meet at "${spot}". What time works best for you?`);
   };
 
   const proposeSwap = async (params: {
@@ -251,24 +497,29 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const payload = {
       targetListingId: params.targetListing.id,
       offeredListingId: params.offeredListingId,
+      offeredItemTitle: params.offeredListingTitle,
+      offeredImage: params.offeredListingImage,
       offeredDescription: params.offeredDescription,
       cashTopUp: params.cashTopUp
     };
 
     const created = await chatService.proposeSwap(payload);
     setSwaps((prev) => [created, ...prev]);
-    openChatWithSeller(params.targetListing);
+
+    // Open chat with seller and auto-switch
+    await openChatWithSeller(params.targetListing);
     return created;
   };
 
   const respondToSwap = async (swapId: string, status: 'accepted' | 'declined') => {
     setSwaps((prev) => prev.map((s) => (s.id === swapId ? { ...s, status } : s)));
-    await chatService.respondToSwap(swapId, status === 'accepted' ? 'accept' : 'decline');
+    await chatService.respondToSwap(swapId, status);
+    refreshAll();
   };
 
   const createDirectOrder = async (params: {
     listing: Listing;
-    paymentMethod?: 'cash' | 'gcash' | 'maya';
+    paymentMethod?: 'cash' | 'gcash' | 'maya' | 'free';
     notes?: string;
   }): Promise<Transaction> => {
     if (!currentUser) {
@@ -277,23 +528,14 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const created = await chatService.createTransaction({
       listingId: params.listing.id,
+      sellerId: params.listing.sellerId,
+      amount: params.listing.price,
       paymentMethod: params.paymentMethod || 'cash',
       notes: params.notes
     });
 
     setTransactions((prev) => [created, ...prev]);
-
-    // Open chat and notify seller
-    openChatWithSeller(params.listing);
-    setTimeout(() => {
-      sendMessage(
-        `🎉 I have confirmed an order for "${params.listing.title}" (Ref: ${created.referenceNo || 'Pending'}). Let's chat here to arrange where and when we can meet up on campus!`,
-        true,
-        undefined,
-        created.id
-      );
-    }, 400);
-
+    await openChatWithSeller(params.listing);
     return created;
   };
 
@@ -313,6 +555,27 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refreshAll();
   };
 
+  const submitTradeReview = async (params: {
+    transactionId: string;
+    targetUserId: string;
+    rating: number;
+    comment?: string;
+    itemTitle?: string;
+    tradeType?: string;
+    wasPunctual?: boolean;
+    traitBadges?: string[];
+  }) => {
+    await chatService.submitReview(params);
+    if (activeConversation) {
+      await sendMessage(
+        `⭐ Left a ${params.rating}-Star Review: "${params.comment || 'Smooth and hassle-free campus trade!'}" Thank you!`,
+        true,
+        undefined,
+        params.transactionId
+      );
+    }
+  };
+
   return (
     <ChatContext.Provider
       value={{
@@ -324,15 +587,24 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         meetups: transactions,
         unreadTotal,
         isLoading,
+        typingUsers,
         setActiveConversationId,
         openChatWithSeller,
+        openChatWithUser,
+        openChatForFlash,
+        openChatForWanted,
+        openChatForTransaction,
+        openChatForSwap,
         sendMessage,
         sendMediaMessage,
+        sendMeetupLocation,
+        sendTypingStatus,
         proposeSwap,
         respondToSwap,
         createDirectOrder,
         completeTransaction,
         cancelTransaction,
+        submitTradeReview,
         // Legacy stubs
         scheduleMeetup: async (p: any) => createDirectOrder({ listing: p.listing, notes: p.notes }),
         completeMeetupWithCode: async (id: string) => {

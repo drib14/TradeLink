@@ -12,6 +12,8 @@ export const HASH_PREFIXES = {
   swap: 'swp_',
   verification: 'vfy_',
   dispute: 'dsp_',
+  conversation: 'cnv_',
+  flash: 'fls_',
   generic: 'tl_'
 } as const;
 

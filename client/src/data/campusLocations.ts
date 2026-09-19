@@ -361,6 +361,6 @@ export const SAFE_MEETUP_CHECKLIST = [
   'Meet at designated inside campus security desks OR verified high-traffic public spots (malls, cafes, food courts).',
   'Verify the other student wears their UC ID or has the Gold Verified Student Badge.',
   'Always inspect the physical item condition thoroughly before completing the transaction.',
-  'Exchange 4-digit handshake codes or scan the Handshake QR Code to finalize the trade and earn reputation score.',
+  'Confirm item satisfaction in person before the seller marks the transaction as complete, then submit an authentic product review.',
   'Never agree to meet in unmonitored private alleys or remote off-grid zones.'
 ];

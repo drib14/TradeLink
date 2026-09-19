@@ -72,12 +72,77 @@ const favoriteToggleLimiter = rateLimit({
   legacyHeaders: false
 });
 
+// Reset code verification limiter (anti-brute-force on 6-digit codes)
+const resetCodeLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // max 5 code verification attempts per 15 minutes
+  message: {
+    status: 'fail',
+    message: 'Too many verification code attempts. Please wait 15 minutes before trying again.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// Upload endpoint rate limiter (prevent storage abuse)
+const uploadLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 30, // max 30 uploads per hour per IP
+  message: {
+    status: 'fail',
+    message: 'Upload limit reached. Please wait before uploading more files.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// Listing view count limiter (prevents automated view inflation)
+const viewListingLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 30, // max 30 view recordings per minute per IP
+  message: {
+    status: 'fail',
+    message: 'Too many view requests. Please slow down.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// Admin authentication limiter (strict anti-brute-force)
+const adminAuthLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // max 5 attempts per IP
+  message: {
+    status: 'fail',
+    message: 'Too many admin authentication attempts. Access locked for 15 minutes.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// Chat message rate limiter (REST path — WebSocket has its own limiter)
+const chatMessageLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 60, // max 60 messages per minute
+  message: {
+    status: 'fail',
+    message: 'Message rate limit exceeded. Please slow down.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
 module.exports = {
   authLimiter,
   passwordResetLimiter,
   apiLimiter,
   createListingLimiter,
   reportListingLimiter,
-  favoriteToggleLimiter
+  favoriteToggleLimiter,
+  resetCodeLimiter,
+  uploadLimiter,
+  viewListingLimiter,
+  adminAuthLimiter,
+  chatMessageLimiter
 };
 

@@ -14,10 +14,14 @@ const registerSchema = Joi.object({
     'string.email': 'Please provide a valid email address.',
     'string.empty': 'Email is required.'
   }),
-  password: Joi.string().min(6).max(100).required().messages({
-    'string.min': 'Password must be at least 6 characters long.',
-    'string.empty': 'Password is required.'
-  }),
+  password: Joi.string().min(8).max(100)
+    .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+    .required()
+    .messages({
+      'string.min': 'Password must be at least 8 characters long.',
+      'string.pattern.base': 'Password must contain at least one uppercase letter, one lowercase letter, and one number.',
+      'string.empty': 'Password is required.'
+    }),
   campus: Joi.string().valid(...CAMPUSES).required().messages({
     'any.only': 'Please select a valid University of Cebu campus.'
   }),
@@ -53,12 +57,16 @@ const forgotPasswordSchema = Joi.object({
 
 const resetPasswordSchema = Joi.object({
   email: Joi.string().trim().email().required(),
-  code: Joi.string().trim().length(4).required().messages({
-    'string.length': 'Verification code must be 4 digits.'
+  code: Joi.string().trim().length(6).required().messages({
+    'string.length': 'Verification code must be 6 digits.'
   }),
-  newPassword: Joi.string().min(6).max(100).required().messages({
-    'string.min': 'New password must be at least 6 characters.'
-  })
+  newPassword: Joi.string().min(8).max(100)
+    .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+    .required()
+    .messages({
+      'string.min': 'New password must be at least 8 characters.',
+      'string.pattern.base': 'Password must contain at least one uppercase letter, one lowercase letter, and one number.'
+    })
 });
 
 const updateProfileSchema = Joi.object({
@@ -70,10 +78,44 @@ const updateProfileSchema = Joi.object({
   yearLevel: Joi.string().trim().max(50)
 });
 
+const adminLoginSchema = Joi.object({
+  email: Joi.string().trim().required().messages({
+    'string.empty': 'Administrator email or ID is required.'
+  }),
+  password: Joi.string().required().messages({
+    'string.empty': 'Administrator password is required.'
+  })
+});
+
+const adminForgotPasswordSchema = Joi.object({
+  email: Joi.string().trim().email().required().messages({
+    'string.email': 'Please enter a valid administrator email address.',
+    'string.empty': 'Administrator email is required.'
+  })
+});
+
+const adminResetPasswordSchema = Joi.object({
+  email: Joi.string().trim().email().required(),
+  code: Joi.string().trim().length(6).required().messages({
+    'string.length': 'Verification code must be 6 digits.'
+  }),
+  newPassword: Joi.string().min(10).max(100)
+    .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])/)
+    .required()
+    .messages({
+      'string.min': 'Admin password must be at least 10 characters long.',
+      'string.pattern.base': 'Admin password must contain at least one uppercase letter, one lowercase letter, one number, and one special symbol.'
+    })
+});
+
 module.exports = {
   registerSchema,
   loginSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
-  updateProfileSchema
+  updateProfileSchema,
+  adminLoginSchema,
+  adminForgotPasswordSchema,
+  adminResetPasswordSchema
 };
+

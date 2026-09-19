@@ -3,6 +3,7 @@ const AppError = require('../../utils/AppError');
 const asyncHandler = require('../../utils/asyncHandler');
 const { serializeUser } = require('../../serializers/userSerializer');
 const { logAdminAction } = require('./verification.controller');
+const storageService = require('../../services/storage.service');
 
 /**
  * Get flagged listings
@@ -106,7 +107,33 @@ const removeListingByAdmin = asyncHandler(async (req, res, next) => {
     });
   }
 
-  await db('listings').where({ id: listingId }).delete();
+  // Check if foreign key references exist in transactions or swaps
+  const hasTransactions = await db('transactions').where({ listing_id: listingId }).first();
+  const hasSwaps = await db('swaps').where(builder => {
+    builder.where({ proposer_listing_id: listingId }).orWhere({ receiver_listing_id: listingId });
+  }).first();
+
+  if (hasTransactions || hasSwaps) {
+    await db('listings').where({ id: listingId }).update({ status: 'archived', updated_at: new Date() });
+    await logAdminAction(req.user, 'Archived Listing', 'listing', listingId, `Reason: ${reason}`, req);
+    return res.status(200).json({
+      status: 'success',
+      message: 'Listing archived (historical transaction records preserved).'
+    });
+  }
+
+  // Clean up listing media files from Cloudinary storage
+  const listingMedia = await db('listing_media').where({ listing_id: listingId });
+  for (const m of listingMedia) {
+    await storageService.deleteFile(m.media_url);
+  }
+
+  await db.transaction(async (trx) => {
+    await trx('listing_media').where({ listing_id: listingId }).delete();
+    await trx('flagged_listings').where({ listing_id: listingId }).delete();
+    await trx('listings').where({ id: listingId }).delete();
+  });
+
   await logAdminAction(req.user, 'Deleted Listing', 'listing', listingId, `Reason: ${reason}`, req);
 
   res.status(200).json({
@@ -233,9 +260,9 @@ const getAllUsers = asyncHandler(async (req, res) => {
     const q = `%${search.trim().toLowerCase()}%`;
     query = query.where((builder) => {
       builder
-        .whereILike('name', q)
-        .orWhereILike('email', q)
-        .orWhereILike('student_id', q);
+        .where('name', 'like', q)
+        .orWhere('email', 'like', q)
+        .orWhere('student_id', 'like', q);
     });
   }
 
@@ -261,6 +288,14 @@ const banUser = asyncHandler(async (req, res, next) => {
   const target = await db('users').where({ id }).first();
   if (!target) {
     return next(new AppError('User not found.', 404));
+  }
+
+  if (target.id === req.user.id) {
+    return next(new AppError('You cannot ban your own administrative account.', 400));
+  }
+
+  if (target.email === 'uc.tradelink@gmail.com') {
+    return next(new AppError('The root administrator account cannot be banned.', 403));
   }
 
   await db('users').where({ id }).update({
@@ -365,7 +400,37 @@ const deleteUser = asyncHandler(async (req, res, next) => {
     return next(new AppError('User not found.', 404));
   }
 
-  await db('users').where({ id }).delete();
+  if (target.id === req.user.id) {
+    return next(new AppError('You cannot delete your own administrative account.', 400));
+  }
+
+  if (target.email === 'uc.tradelink@gmail.com') {
+    return next(new AppError('The root administrator account cannot be deleted.', 403));
+  }
+
+  // Clean up user's listing media from Cloudinary storage
+  const userListings = await db('listings').where({ seller_id: id }).select('id');
+  const listingIds = userListings.map(l => l.id);
+  if (listingIds.length > 0) {
+    const media = await db('listing_media').whereIn('listing_id', listingIds);
+    for (const m of media) {
+      await storageService.deleteFile(m.media_url);
+    }
+  }
+
+  if (target.avatar_url) {
+    await storageService.deleteFile(target.avatar_url);
+  }
+
+  await db.transaction(async (trx) => {
+    if (listingIds.length > 0) {
+      await trx('listing_media').whereIn('listing_id', listingIds).delete();
+      await trx('flagged_listings').whereIn('listing_id', listingIds).delete();
+      await trx('listings').whereIn('id', listingIds).delete();
+    }
+    await trx('users').where({ id }).delete();
+  });
+
   await logAdminAction(req.user, 'Deleted User Account', 'user', id, `Deleted user ${target.name}`, req);
 
   res.status(200).json({
@@ -403,6 +468,14 @@ const demoteAdmin = asyncHandler(async (req, res, next) => {
 
   if (!target) {
     return next(new AppError('User not found.', 404));
+  }
+
+  if (target.id === req.user.id) {
+    return next(new AppError('You cannot demote your own administrative account.', 400));
+  }
+
+  if (target.email === 'uc.tradelink@gmail.com') {
+    return next(new AppError('The root administrator account cannot be demoted.', 403));
   }
 
   await db('users').where({ id }).update({ role: 'student' });

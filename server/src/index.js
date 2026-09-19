@@ -20,11 +20,14 @@ const initializeSocket = require('./socket');
 const storageService = require('./services/storage.service');
 const { autoInitDatabase } = require('./config/dbInit');
 
+const { v4: uuidv4 } = require('uuid');
+const { csrfProtection, getCsrfToken } = require('./middleware/csrfProtection');
+
 const app = express();
 const server = http.createServer(app);
 
-// Enable trust proxy for IP detection across network interfaces, LAN, and proxies
-app.set('trust proxy', true);
+// Enable trust proxy — trust only the first proxy (prevents IP spoofing for rate limiters)
+app.set('trust proxy', 1);
 
 // 1. Security Headers (Helmet)
 app.use(
@@ -36,43 +39,66 @@ app.use(
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["*"],
+        imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "https:"],
+        connectSrc: ["'self'", "https://res.cloudinary.com", "wss:", "ws:"],
         fontSrc: ["'self'", "https:", "data:"],
         objectSrc: ["'none'"],
         upgradeInsecureRequests: []
+      }
+    },
+    permissionsPolicy: {
+      features: {
+        camera: ["'self'"],
+        microphone: ["'none'"],
+        geolocation: ["'none'"],
+        payment: ["'none'"]
       }
     }
   })
 );
 
-// 2. CORS
+// 2. Request Correlation ID
+app.use((req, res, next) => {
+  req.id = req.headers['x-request-id'] || uuidv4();
+  res.setHeader('X-Request-ID', req.id);
+  next();
+});
+
+// 3. CORS
 app.use(cors(corsOptions));
 
-// 3. Request Logging
+// 4. Request Logging
 app.use(requestLogger);
 
-// 4. Body Parsers & Cookie Parser
+// 5. Body Parsers & Signed Cookie Parser
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use(cookieParser());
+app.use(cookieParser(env.cookieSecret));
 
-// 5. Data Sanitization & HTTP Parameter Pollution Protection
+// 6. Data Sanitization & HTTP Parameter Pollution Protection
 app.use(sanitizeInput);
 app.use(hpp());
 
-// 6. General API Rate Limiting
+// 7. General API Rate Limiting
 app.use('/api', apiLimiter);
 
-// 7. Static Uploads Folder
-app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')));
+// 8. Static Uploads Folder (with nosniff to prevent MIME-type sniffing attacks)
+app.use('/uploads', (req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Content-Security-Policy', "default-src 'none'");
+  next();
+}, express.static(path.resolve(__dirname, '../uploads')));
 
-// 8. Root Health Check Route
+// 9. Root Health Check Route
 app.get('/', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
-// 9. Mount Main API Routes
+// 10. CSRF Token Endpoint & Double-Submit Protection
+app.get('/api/csrf-token', getCsrfToken);
+app.use('/api', csrfProtection);
+
+// 11. Mount Main API Routes
 app.use('/api', apiRoutes);
 
 // 10. Handle 404 for Unmatched Routes

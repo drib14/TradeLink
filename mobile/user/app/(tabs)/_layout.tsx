@@ -70,13 +70,13 @@ export default function TabLayout() {
         }}
       />
 
-      {/* 4. Wanted Board Tab */}
+      {/* 4. Flash Market Tab */}
       <Tabs.Screen
         name="wanted"
         options={{
-          title: 'Wanted',
+          title: '⚡ Flash',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'flame' : 'flame-outline'} size={22} color={color} />
+            <Ionicons name={focused ? 'flash' : 'flash-outline'} size={22} color={color} />
           ),
         }}
       />

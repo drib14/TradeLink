@@ -1,5 +1,15 @@
-import React, { useState } from 'react';
-import { HelpCircle, ChevronDown, ChevronUp, ChevronLeft } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import {
+  HelpCircle,
+  ChevronDown,
+  ChevronUp,
+  ChevronLeft,
+  Search,
+  Mail,
+  ShieldCheck,
+  CheckCircle2,
+  Lock
+} from 'lucide-react';
 
 interface FAQPageProps {
   onNavigate: (view: string, param?: any) => void;
@@ -8,54 +18,88 @@ interface FAQPageProps {
 interface FAQItem {
   question: string;
   answer: string;
-  category: 'General' | 'Buying & Selling' | 'Meetups & Safety' | 'Senior High';
+  category: 'Meetups & Safety' | 'Orders & Reviews' | 'Buying & Swapping' | 'Student Verification';
+  badge?: string;
 }
 
 export const FAQPage: React.FC<FAQPageProps> = ({ onNavigate }) => {
   const [openIdx, setOpenIdx] = useState<number | null>(0);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   const faqs: FAQItem[] = [
     {
-      category: 'General',
-      question: 'Who can register and trade on TradeLink?',
-      answer: 'TradeLink is open to all enrolled University of Cebu students across all 8 official campuses—including Junior High School (Grades 7–10), Senior High School (STEM, ABM, HUMSS, TVL/GAS), College undergraduates, maritime cadets, and medical students.'
+      category: 'Meetups & Safety',
+      badge: 'Campus Rule',
+      question: 'Where do trades take place, and can we meet outside campus?',
+      answer: 'All trades must take place strictly inside designated, guarded University of Cebu security booths during daytime hours (7:00 AM – 6:00 PM). Never agree to meet in boarding houses, private dorm rooms, or secluded spots. Meeting at campus security gates ensures physical safety, CCTV coverage, and honest exchanges for both parties.'
+    },
+    {
+      category: 'Orders & Reviews',
+      badge: 'Core Protocol',
+      question: 'How do order completion and product reviews work?',
+      answer: 'Once you meet at the designated campus guard desk and physically inspect the item, the seller marks the transaction as complete in TradeLink. Afterwards, buyers can submit an authentic 1 to 5 star product review with detailed feedback to help fellow students assess item quality.'
     },
     {
       category: 'Meetups & Safety',
-      question: 'How does the 4-Digit Handshake / QR Code verification work?',
-      answer: 'When a buyer clicks "Buy Now", an encrypted 4-digit code and Handshake QR Code are generated. During the physical meetup inside the campus guard station, the buyer shows their QR code or gives the 4-digit code to the seller after inspecting the item. Once entered, both students receive +10 Campus Trust Score points!'
-    },
-    {
-      category: 'Buying & Selling',
-      question: 'Are there any transaction or listing fees on TradeLink?',
-      answer: 'No! TradeLink is 100% free for University of Cebu students. We do not charge fees or take commissions from student trades.'
-    },
-    {
-      category: 'Buying & Selling',
-      question: 'Can I sell items other than textbooks and uniforms?',
-      answer: 'Yes! While designed for academic life, students can list and swap anything they want—smartphones, laptops, iPads, sneakers, dorm mini-fridges, musical instruments, gaming gear, calculators, and tools.'
-    },
-    {
-      category: 'Senior High',
-      question: 'Can Senior High School students use TradeLink?',
-      answer: 'Absolutely! Senior High students from UC Main, UC Banilad, UC LM, UC PRI, UC South Campus, UC Pardo-Talisay, and UC METC can buy and sell SHS track reviewers, textbooks, uniforms, and calculators safely.'
+      badge: 'Payment Safety',
+      question: 'How should I pay for items? Is advance payment allowed?',
+      answer: 'Both physical cash and in-person GCash/Maya transfers are accepted. However, you must NEVER send money in advance prior to the physical campus meetup. If paying via GCash, transfer the funds in front of the campus guard desk only after thoroughly inspecting the item.'
     },
     {
       category: 'Meetups & Safety',
-      question: 'Where do meetups take place?',
-      answer: 'All meetups must occur strictly within designated campus security hubs (such as UC Main Sanciangko Gate, UC Banilad Cuenco Station, UC LM Innovation Lobby, UC METC Muster Station, UC PRI High School Gate, UC PT Talisay Booth, UC South Campus Lobby, or UCMC Hospital Atrium).'
+      badge: 'Inspection Rights',
+      question: 'What happens if an item is damaged or the student does not show up?',
+      answer: 'You have zero obligation to accept an item that does not match its listing photos or description—simply decline the trade before the order is finalized. For meetups, wait 10 to 15 minutes at the security desk. If the other student fails to arrive without notice, you can safely cancel. Repeated unexcused no-shows trigger automatic penalties and account suspension.'
+    },
+    {
+      category: 'Student Verification',
+      badge: 'Security System',
+      question: 'How does the Student Verification System work, and how fast is approval?',
+      answer: 'TradeLink uses a secure 3-step verification system requiring your physical UC Student ID card and a live webcam biometric selfie with anti-spoofing challenge actions. Submissions with clear credentials and valid liveness verification (>90% confidence score) are automatically approved instantly. Submissions with blur, mismatched credentials, or suspicious signals are held for manual campus administrator review.'
+    },
+    {
+      category: 'Buying & Swapping',
+      badge: 'Direct Barter',
+      question: 'How do peer item swaps (barter trades) work without money?',
+      answer: 'On items marked "Open to Swap", click "Propose Swap" to select an item from your own active listings to offer in exchange. You and the other student can agree on a straight 1:1 trade, or an uneven trade with a cash difference. Meet at the campus security gate, inspect both items, and the seller finalizes the barter.'
+    },
+    {
+      category: 'Buying & Swapping',
+      badge: 'Zero Fees',
+      question: 'Are there any platform fees or commissions on student sales?',
+      answer: 'None at all. TradeLink is 100% free for all University of Cebu students across all 8 campus branches. There are zero listing fees, zero transaction cuts, and zero commissions. 100% of the agreed amount stays between you and your fellow student.'
+    },
+    {
+      category: 'Meetups & Safety',
+      badge: 'Dispute & Reports',
+      question: 'How do I report scam attempts, abusive behavior, or meetup disputes?',
+      answer: 'Click the "Report" button inside the peer chat or on any item listing. You can also contact our student safety desk directly at uc.tradelink@gmail.com. Campus security administrators review flagged accounts and reports within 24 hours to suspend fraudulent or abusive users.'
     }
   ];
 
-  const categories = ['All', 'General', 'Buying & Selling', 'Meetups & Safety', 'Senior High'];
+  const categories = [
+    'All',
+    'Meetups & Safety',
+    'Orders & Reviews',
+    'Buying & Swapping',
+    'Student Verification'
+  ];
 
-  const filteredFAQs = selectedCategory === 'All'
-    ? faqs
-    : faqs.filter((f) => f.category === selectedCategory);
+  const filteredFAQs = useMemo(() => {
+    return faqs.filter((f) => {
+      const matchesCategory = selectedCategory === 'All' || f.category === selectedCategory;
+      const matchesQuery =
+        !searchQuery.trim() ||
+        f.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        f.answer.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        f.category.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesCategory && matchesQuery;
+    });
+  }, [selectedCategory, searchQuery]);
 
   return (
-    <div className="container" style={{ maxWidth: '860px', padding: '2rem 1.5rem 5rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+    <div className="container" style={{ maxWidth: '880px', padding: '2rem 1.5rem 5rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       {/* Header */}
       <div>
         <button
@@ -67,30 +111,75 @@ export const FAQPage: React.FC<FAQPageProps> = ({ onNavigate }) => {
             color: '#64748B',
             fontSize: '0.82rem',
             fontWeight: 600,
-            marginBottom: '0.5rem'
+            marginBottom: '0.5rem',
+            cursor: 'pointer',
+            background: 'none',
+            border: 'none',
+            padding: 0
           }}
         >
           <ChevronLeft size={16} /> Back to Home
         </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--uc-blue)', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          <HelpCircle size={15} /> Student Knowledge Base
+          <HelpCircle size={15} /> Student Help Center
         </div>
-        <h1 style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--text-primary)', marginTop: '0.25rem', fontFamily: 'var(--font-display)' }}>
+        <h1 style={{ fontSize: '2.1rem', fontWeight: 900, color: 'var(--text-primary)', marginTop: '0.25rem', fontFamily: 'var(--font-display)' }}>
           Frequently Asked Questions
         </h1>
-        <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-          Everything you need to know about buying, selling, swapping, and safe meetups on campus.
+        <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6, marginTop: '0.35rem' }}>
+          Essential answers on campus security booth meetups, order completion, payment safety, student verification, and item swaps.
         </p>
       </div>
 
-      {/* Category Pills */}
+      {/* Search Bar */}
+      <div style={{ position: 'relative' }}>
+        <Search size={18} color="#94A3B8" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search frequently asked questions..."
+          style={{
+            width: '100%',
+            padding: '0.85rem 1rem 0.85rem 3rem',
+            borderRadius: '10px',
+            border: '1.5px solid var(--border-subtle)',
+            backgroundColor: 'var(--bg-surface)',
+            color: 'var(--text-primary)',
+            fontSize: '0.9rem',
+            outline: 'none',
+            boxSizing: 'border-box'
+          }}
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery('')}
+            style={{
+              position: 'absolute',
+              right: '1rem',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'none',
+              border: 'none',
+              color: '#94A3B8',
+              cursor: 'pointer',
+              fontSize: '0.8rem',
+              fontWeight: 700
+            }}
+          >
+            Clear
+          </button>
+        )}
+      </div>
+
+      {/* Category Filter Pills */}
       <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '4px' }}>
         {categories.map((cat) => (
           <button
             key={cat}
             onClick={() => setSelectedCategory(cat)}
             style={{
-              padding: '0.45rem 0.95rem',
+              padding: '0.5rem 1rem',
               borderRadius: '9999px',
               fontSize: '0.8rem',
               fontWeight: selectedCategory === cat ? 800 : 600,
@@ -98,7 +187,8 @@ export const FAQPage: React.FC<FAQPageProps> = ({ onNavigate }) => {
               color: selectedCategory === cat ? '#FFFFFF' : 'var(--text-secondary)',
               border: selectedCategory === cat ? '1.5px solid var(--uc-blue)' : '1px solid var(--border-subtle)',
               whiteSpace: 'nowrap',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
             }}
           >
             {cat}
@@ -107,49 +197,122 @@ export const FAQPage: React.FC<FAQPageProps> = ({ onNavigate }) => {
       </div>
 
       {/* Accordion FAQ List */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-        {filteredFAQs.map((faq, idx) => {
-          const isOpen = openIdx === idx;
-          return (
-            <div
-              key={idx}
-              className="clean-card"
-              style={{
-                overflow: 'hidden',
-                transition: 'all 0.15s ease',
-                padding: 0
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => setOpenIdx(isOpen ? null : idx)}
+      {filteredFAQs.length === 0 ? (
+        <div className="clean-card" style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+          <p style={{ fontSize: '0.95rem', fontWeight: 600 }}>No matching questions found for "{searchQuery}".</p>
+          <p style={{ fontSize: '0.82rem', marginTop: '0.35rem' }}>
+            Need direct help? Contact our student helpdesk at{' '}
+            <a href="mailto:uc.tradelink@gmail.com" style={{ color: 'var(--uc-blue)', fontWeight: 700 }}>
+              uc.tradelink@gmail.com
+            </a>
+          </p>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+          {filteredFAQs.map((faq, idx) => {
+            const isOpen = openIdx === idx;
+            return (
+              <div
+                key={idx}
+                className="clean-card"
                 style={{
-                  width: '100%',
-                  padding: '1.15rem 1.25rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  backgroundColor: isOpen ? 'var(--bg-subtle)' : 'transparent',
-                  color: 'var(--text-primary)',
-                  fontSize: '0.95rem',
-                  fontWeight: 700,
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  border: 'none'
+                  overflow: 'hidden',
+                  transition: 'all 0.15s ease',
+                  padding: 0,
+                  border: isOpen ? '1.5px solid var(--uc-blue)' : '1px solid var(--border-subtle)'
                 }}
               >
-                <span>{faq.question}</span>
-                {isOpen ? <ChevronUp size={18} color="var(--uc-blue)" /> : <ChevronDown size={18} color="var(--text-muted)" />}
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setOpenIdx(isOpen ? null : idx)}
+                  style={{
+                    width: '100%',
+                    padding: '1.15rem 1.25rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    backgroundColor: isOpen ? 'var(--bg-subtle)' : 'transparent',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.95rem',
+                    fontWeight: 700,
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    border: 'none',
+                    gap: '0.75rem'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <span>{faq.question}</span>
+                    {faq.badge && (
+                      <span
+                        style={{
+                          fontSize: '0.68rem',
+                          fontWeight: 800,
+                          backgroundColor: 'var(--uc-gold-light, #FEF3C7)',
+                          color: '#92400E',
+                          padding: '0.15rem 0.5rem',
+                          borderRadius: '9999px',
+                          textTransform: 'uppercase'
+                        }}
+                      >
+                        {faq.badge}
+                      </span>
+                    )}
+                  </div>
+                  {isOpen ? (
+                    <ChevronUp size={18} color="var(--uc-blue)" style={{ flexShrink: 0 }} />
+                  ) : (
+                    <ChevronDown size={18} color="var(--text-muted)" style={{ flexShrink: 0 }} />
+                  )}
+                </button>
 
-              {isOpen && (
-                <div style={{ padding: '0 1.25rem 1.25rem 1.25rem', color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.6, backgroundColor: 'var(--bg-subtle)', borderTop: '1px solid var(--border-subtle)' }}>
-                  {faq.answer}
-                </div>
-              )}
-            </div>
-          );
-        })}
+                {isOpen && (
+                  <div
+                    style={{
+                      padding: '0 1.25rem 1.25rem 1.25rem',
+                      color: 'var(--text-secondary)',
+                      fontSize: '0.86rem',
+                      lineHeight: 1.65,
+                      backgroundColor: 'var(--bg-subtle)',
+                      borderTop: '1px solid var(--border-subtle)'
+                    }}
+                  >
+                    {faq.answer}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Support Card */}
+      <div
+        className="clean-card"
+        style={{
+          padding: '1.75rem',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          textAlign: 'center',
+          gap: '0.75rem',
+          backgroundColor: 'var(--bg-subtle)'
+        }}
+      >
+        <Mail size={24} color="var(--uc-blue)" />
+        <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+          Have an urgent question or meetup dispute?
+        </h4>
+        <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', maxWidth: '520px' }}>
+          Our campus moderation board and security liaisons are ready to assist with account verification, trade disputes, or safety concerns.
+        </p>
+        <a
+          href="mailto:uc.tradelink@gmail.com"
+          className="btn-primary"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', padding: '0.65rem 1.35rem', textDecoration: 'none' }}
+        >
+          <Mail size={16} /> Contact Support: uc.tradelink@gmail.com
+        </a>
       </div>
     </div>
   );

@@ -3,13 +3,13 @@ const emailService = require('../../src/services/email.service');
 
 describe('Unit Test: Admin-Approved Password Reset & Code Generation', () => {
   describe('Cryptographic Code Generation & Verification', () => {
-    it('should generate a 4-digit numeric string between 1000 and 9999', () => {
+    it('should generate a 6-digit numeric string between 100000 and 999999', () => {
       for (let i = 0; i < 20; i++) {
         const code = generate4DigitCode();
-        expect(code).toMatch(/^\d{4}$/);
+        expect(code).toMatch(/^\d{6}$/);
         const num = parseInt(code, 10);
-        expect(num).toBeGreaterThanOrEqual(1000);
-        expect(num).toBeLessThan(10000);
+        expect(num).toBeGreaterThanOrEqual(100000);
+        expect(num).toBeLessThan(1000000);
       }
     });
 

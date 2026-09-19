@@ -10,14 +10,14 @@ interface MarketContextType {
   isOffline: boolean;
   selectedCampus: 'All' | Campus;
   selectedCategory: string;
-  selectedTradeMode: 'All' | TradeMode;
+  selectedTradeMode: 'All' | TradeMode | 'flash_only';
   selectedCondition: 'All' | ConditionGrade;
   searchQuery: string;
   sortBy: 'recent' | 'price_low' | 'price_high' | 'trust_high' | 'views_high';
   priceRange: [number, number];
   setSelectedCampus: (campus: 'All' | Campus) => void;
   setSelectedCategory: (category: string) => void;
-  setSelectedTradeMode: (mode: 'All' | TradeMode) => void;
+  setSelectedTradeMode: (mode: 'All' | TradeMode | 'flash_only') => void;
   setSelectedCondition: (condition: 'All' | ConditionGrade) => void;
   setSearchQuery: (query: string) => void;
   setSortBy: (sort: 'recent' | 'price_low' | 'price_high' | 'trust_high' | 'views_high') => void;
@@ -27,8 +27,8 @@ interface MarketContextType {
   updateListing: (id: string, updates: Partial<Listing>) => Promise<void>;
   deleteListing: (id: string) => Promise<void>;
   toggleFavorite: (id: string) => void;
-  boostListing: (id: string) => Promise<void>;
   markAsSold: (id: string, isSold: boolean) => Promise<void>;
+  updateListingQuantity: (id: string, quantity: number) => Promise<void>;
   incrementViews: (id: string) => void;
   clearFilters: () => void;
   refreshListings: () => Promise<void>;
@@ -45,7 +45,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Filter States
   const [selectedCampus, setSelectedCampus] = useState<'All' | Campus>('All');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
-  const [selectedTradeMode, setSelectedTradeMode] = useState<'All' | TradeMode>('All');
+  const [selectedTradeMode, setSelectedTradeMode] = useState<'All' | TradeMode | 'flash_only'>('All');
   const [selectedCondition, setSelectedCondition] = useState<'All' | ConditionGrade>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'recent' | 'price_low' | 'price_high' | 'trust_high' | 'views_high'>('recent');
@@ -112,9 +112,8 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           const matchTitle = item.title.toLowerCase().includes(q);
           const matchDesc = item.description.toLowerCase().includes(q);
           const matchSeller = item.sellerName.toLowerCase().includes(q);
-          const matchCourse = item.courseCode?.toLowerCase().includes(q);
           const matchTag = item.tags?.some((t) => t.toLowerCase().includes(q));
-          if (!matchTitle && !matchDesc && !matchSeller && !matchCourse && !matchTag) {
+          if (!matchTitle && !matchDesc && !matchSeller && !matchTag) {
             return false;
           }
         }
@@ -122,8 +121,6 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       })
       .sort((a, b) => {
         if (sortBy === 'recent') {
-          if (a.isBoosted && !b.isBoosted) return -1;
-          if (!a.isBoosted && b.isBoosted) return 1;
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         }
         if (sortBy === 'price_low') {
@@ -169,14 +166,20 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
   };
 
-  const boostListing = async (id: string) => {
-    setListings((prev) => prev.map((l) => (l.id === id ? { ...l, isBoosted: true } : l)));
-    await listingsService.boostListing(id);
-  };
-
   const markAsSold = async (id: string, isSold: boolean) => {
     setListings((prev) => prev.map((l) => (l.id === id ? { ...l, isSold } : l)));
     await listingsService.markAsSold(id, isSold);
+  };
+
+  const updateListingQuantity = async (id: string, quantity: number) => {
+    setListings((prev) =>
+      prev.map((item) =>
+        item.id === id
+          ? { ...item, quantity, isSold: quantity === 0 }
+          : item
+      )
+    );
+    await listingsService.updateListingQuantity(id, quantity);
   };
 
   const incrementViews = (id: string) => {
@@ -210,8 +213,8 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         updateListing,
         deleteListing,
         toggleFavorite,
-        boostListing,
         markAsSold,
+        updateListingQuantity,
         incrementViews,
         clearFilters,
         refreshListings

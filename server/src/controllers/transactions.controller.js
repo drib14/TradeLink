@@ -2,8 +2,8 @@ const { v4: uuidv4 } = require('uuid');
 const db = require('../config/db');
 const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
-const { recalculateUserStats } = require('../services/trustScore.service');
 const { serializeTransaction } = require('../serializers');
+const emailService = require('../services/email.service');
 
 /**
  * Generates a human-friendly unique reference code e.g. TL-2026-B8A2
@@ -15,6 +15,91 @@ function generateReferenceNo() {
     rand += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return `TL-2026-${rand}`;
+}
+
+/**
+ * Post a transaction update or card into the conversation thread
+ */
+async function syncTransactionToChat({
+  listingId,
+  buyerId,
+  sellerId,
+  transactionId,
+  referenceNo,
+  content,
+  isSystem = false,
+  io = null
+}) {
+  try {
+    const userA = buyerId < sellerId ? buyerId : sellerId;
+    const userB = buyerId < sellerId ? sellerId : buyerId;
+
+    let conv = await db('conversations')
+      .where({ user_one_id: userA, user_two_id: userB, listing_id: listingId })
+      .first();
+
+    if (!conv) {
+      const convId = uuidv4();
+      conv = {
+        id: convId,
+        listing_id: listingId,
+        user_one_id: userA,
+        user_two_id: userB,
+        last_message: content,
+        last_message_at: new Date()
+      };
+      await db('conversations').insert(conv);
+    } else {
+      await db('conversations').where({ id: conv.id }).update({
+        last_message: content,
+        last_message_at: new Date()
+      });
+    }
+
+    const msgId = uuidv4();
+    const newMsg = {
+      id: msgId,
+      conversation_id: conv.id,
+      sender_id: buyerId,
+      receiver_id: sellerId,
+      content,
+      is_read: false,
+      is_system_message: Boolean(isSystem),
+      transaction_id: transactionId,
+      created_at: new Date()
+    };
+    await db('messages').insert(newMsg);
+
+    if (io) {
+      const tx = await db('transactions').where({ id: transactionId }).first();
+      io.to(`conv:${conv.id}`).emit('chat:message', {
+        id: msgId,
+        conversationId: conv.id,
+        senderId: newMsg.sender_id,
+        receiverId: newMsg.receiver_id,
+        content,
+        isRead: false,
+        isSystemMessage: newMsg.is_system_message,
+        transactionId,
+        transaction: tx ? {
+          id: tx.id,
+          referenceNo: tx.reference_no,
+          amount: parseFloat(tx.amount || 0),
+          paymentMethod: tx.payment_method,
+          status: tx.status
+        } : null,
+        timestamp: newMsg.created_at.toISOString()
+      });
+
+      io.to(`conv:${conv.id}`).emit('chat:deal_updated', {
+        transactionId,
+        referenceNo,
+        status: tx ? tx.status : 'updated'
+      });
+    }
+  } catch (err) {
+    console.error('Failed to sync transaction to chat:', err);
+  }
 }
 
 /**
@@ -128,8 +213,8 @@ const createTransaction = asyncHandler(async (req, res, next) => {
   } = req.body;
 
   const targetListingId = listingId;
-  const targetSellerId = sellerId;
-  const targetBuyerId = buyerId || req.user.id;
+  // SECURITY: Always use the authenticated user as buyer — never trust client-supplied buyerId
+  const targetBuyerId = req.user.id;
   const targetAmount = parseFloat(amount ?? finalPrice ?? 0);
 
   const listing = await db('listings').where({ id: targetListingId }).first();
@@ -137,7 +222,13 @@ const createTransaction = asyncHandler(async (req, res, next) => {
     return next(new AppError('Listing not found.', 404));
   }
 
-  if (targetBuyerId === targetSellerId) {
+  // SECURITY: Validate sellerId matches the listing's actual owner
+  const actualSellerId = listing.seller_id;
+  if (sellerId && sellerId !== actualSellerId) {
+    return next(new AppError('Seller ID does not match the listing owner.', 400));
+  }
+
+  if (targetBuyerId === actualSellerId) {
     return next(new AppError('You cannot create a transaction with yourself.', 400));
   }
 
@@ -164,7 +255,7 @@ const createTransaction = asyncHandler(async (req, res, next) => {
     id: txId,
     reference_no: referenceNo,
     listing_id: targetListingId,
-    seller_id: targetSellerId,
+    seller_id: actualSellerId,
     buyer_id: targetBuyerId,
     swap_offer_id: swapOfferId || null,
     trade_mode: tradeMode || listing.trade_mode || 'buy_sell',
@@ -181,6 +272,38 @@ const createTransaction = asyncHandler(async (req, res, next) => {
     await trx('listings').where({ id: targetListingId }).update({ status: 'reserved' });
   });
 
+  // Sync to chat conversation
+  const io = req.app.get('io');
+  const dealMessageContent = `[Confirmed Deal] Reference ${referenceNo} for ₱${targetAmount.toLocaleString()} (${paymentMethod.toUpperCase()}). Let's coordinate meetup location and time right here!`;
+  await syncTransactionToChat({
+    listingId: targetListingId,
+    buyerId: targetBuyerId,
+    sellerId: actualSellerId,
+    transactionId: txId,
+    referenceNo,
+    content: dealMessageContent,
+    isSystem: false,
+    io
+  });
+
+  // Asynchronously dispatch transaction confirmation emails (non-blocking)
+  (async () => {
+    try {
+      const [buyerUser, sellerUser] = await Promise.all([
+        db('users').where({ id: targetBuyerId }).first(),
+        db('users').where({ id: actualSellerId }).first()
+      ]);
+      if (buyerUser && sellerUser) {
+        await Promise.allSettled([
+          emailService.sendOrderPlacedBuyerEmail(buyerUser, sellerUser, newTx, listing, req),
+          emailService.sendNewOrderSellerEmail(sellerUser, buyerUser, newTx, listing, req)
+        ]);
+      }
+    } catch (emailErr) {
+      console.error('[TRANSACTION EMAIL] Error dispatching order confirmation emails:', emailErr.message);
+    }
+  })();
+
   const media = await db('listing_media').where({ listing_id: targetListingId }).first();
   const serialized = serializeTransaction(newTx, media?.media_url || '');
 
@@ -189,7 +312,7 @@ const createTransaction = asyncHandler(async (req, res, next) => {
     message: `Transaction ${referenceNo} created successfully. Coordinate meeting details with the student directly in chat!`,
     data: {
       transaction: serialized,
-      meetup: serialized // Compatibility alias
+      meetup: serialized
     }
   });
 });
@@ -205,8 +328,9 @@ const completeTransaction = asyncHandler(async (req, res, next) => {
     return next(new AppError('Transaction not found.', 404));
   }
 
-  if (req.user.id !== tx.seller_id && req.user.id !== tx.buyer_id && req.user.role !== 'admin') {
-    return next(new AppError('Unauthorized to complete this transaction.', 403));
+  // Only the seller or an administrator can mark the transaction as completed
+  if (req.user.id !== tx.seller_id && req.user.role !== 'admin') {
+    return next(new AppError('Only the seller can mark this transaction as completed.', 403));
   }
 
   if (tx.status === 'completed') {
@@ -224,9 +348,37 @@ const completeTransaction = asyncHandler(async (req, res, next) => {
     await trx('listings').where({ id: tx.listing_id }).update({ status: 'sold' });
   });
 
-  // Recalculate trust scores for both student participants
-  await recalculateUserStats(tx.seller_id);
-  await recalculateUserStats(tx.buyer_id);
+  // Sync completion system event to chat
+  const io = req.app.get('io');
+  await syncTransactionToChat({
+    listingId: tx.listing_id,
+    buyerId: tx.buyer_id,
+    sellerId: tx.seller_id,
+    transactionId: tx.id,
+    referenceNo: tx.reference_no,
+    content: `[Deal Completed] Reference ${tx.reference_no} is officially COMPLETED! Thank you for trading safely on campus. The buyer can now submit a product review for this item.`,
+    isSystem: true,
+    io
+  });
+
+  // Asynchronously dispatch completion emails
+  (async () => {
+    try {
+      const [buyerUser, sellerUser, listing] = await Promise.all([
+        db('users').where({ id: tx.buyer_id }).first(),
+        db('users').where({ id: tx.seller_id }).first(),
+        db('listings').where({ id: tx.listing_id }).first()
+      ]);
+      if (buyerUser && sellerUser && listing) {
+        await Promise.allSettled([
+          emailService.sendOrderStatusUpdateEmail(buyerUser, sellerUser, tx, listing, 'completed', '', req),
+          emailService.sendOrderStatusUpdateEmail(sellerUser, buyerUser, tx, listing, 'completed', '', req)
+        ]);
+      }
+    } catch (emailErr) {
+      console.error('[TRANSACTION EMAIL] Error dispatching completion emails:', emailErr.message);
+    }
+  })();
 
   res.status(200).json({
     status: 'success',
@@ -242,7 +394,7 @@ const completeTransaction = asyncHandler(async (req, res, next) => {
  */
 const cancelTransaction = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
-  const { reason = 'Cancelled by user' } = req.body;
+  const { reason = 'Cancelled by mutual agreement' } = req.body;
 
   const tx = await db('transactions').where({ id }).first();
   if (!tx) {
@@ -266,6 +418,38 @@ const cancelTransaction = asyncHandler(async (req, res, next) => {
       await trx('listings').where({ id: tx.listing_id }).update({ status: 'active' });
     }
   });
+
+  // Sync cancellation system event to chat
+  const io = req.app.get('io');
+  await syncTransactionToChat({
+    listingId: tx.listing_id,
+    buyerId: tx.buyer_id,
+    sellerId: tx.seller_id,
+    transactionId: tx.id,
+    referenceNo: tx.reference_no,
+    content: `[Deal Cancelled] Order ${tx.reference_no} was CANCELLED (${reason.trim()}). The item has been re-listed on the campus catalog.`,
+    isSystem: true,
+    io
+  });
+
+  // Asynchronously dispatch cancellation emails
+  (async () => {
+    try {
+      const [buyerUser, sellerUser, listing] = await Promise.all([
+        db('users').where({ id: tx.buyer_id }).first(),
+        db('users').where({ id: tx.seller_id }).first(),
+        db('listings').where({ id: tx.listing_id }).first()
+      ]);
+      if (buyerUser && sellerUser && listing) {
+        await Promise.allSettled([
+          emailService.sendOrderStatusUpdateEmail(buyerUser, sellerUser, tx, listing, 'cancelled', reason.trim(), req),
+          emailService.sendOrderStatusUpdateEmail(sellerUser, buyerUser, tx, listing, 'cancelled', reason.trim(), req)
+        ]);
+      }
+    } catch (emailErr) {
+      console.error('[TRANSACTION EMAIL] Error dispatching cancellation emails:', emailErr.message);
+    }
+  })();
 
   res.status(200).json({
     status: 'success',

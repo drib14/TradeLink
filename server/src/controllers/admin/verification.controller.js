@@ -41,7 +41,9 @@ const getVerifications = asyncHandler(async (req, res) => {
       'users.college as user_college'
     );
 
-  if (status) {
+  if (status === 'suspicious') {
+    query = query.where('verification_requests.is_suspicious', true);
+  } else if (status) {
     query = query.where('verification_requests.status', status);
   }
 
@@ -50,21 +52,42 @@ const getVerifications = asyncHandler(async (req, res) => {
     .limit(parsedLimit)
     .offset(offset);
 
-  const formatted = requests.map((r) => ({
-    id: r.id,
-    userId: r.user_id,
-    userName: r.user_name,
-    userEmail: r.user_email,
-    studentIdNumber: r.student_id_number,
-    campus: r.user_campus || 'UC Main',
-    college: r.user_college || 'General Student',
-    idCardImageUrl: r.id_photo_url || r.id_card_image_url || '',
-    selfiePhotoUrl: r.selfie_photo_url || null,
-    status: r.status,
-    rejectionReason: r.rejection_reason || null,
-    submittedAt: r.created_at || r.submitted_at,
-    reviewedAt: r.reviewed_at
-  }));
+  const formatted = requests.map((r) => {
+    let suspiciousReasons = [];
+    let credentialDiagnostics = null;
+    try {
+      if (r.suspicious_reasons) {
+        suspiciousReasons = typeof r.suspicious_reasons === 'string' ? JSON.parse(r.suspicious_reasons) : r.suspicious_reasons;
+      }
+    } catch {}
+    try {
+      if (r.credential_diagnostics) {
+        credentialDiagnostics = typeof r.credential_diagnostics === 'string' ? JSON.parse(r.credential_diagnostics) : r.credential_diagnostics;
+      }
+    } catch {}
+
+    return {
+      id: r.id,
+      userId: r.user_id,
+      userName: r.user_name,
+      userEmail: r.user_email,
+      studentIdNumber: r.student_id_number,
+      campus: r.user_campus || 'UC Main',
+      college: r.user_college || 'General Student',
+      idCardImageUrl: r.id_photo_url || r.id_card_image_url || '',
+      selfiePhotoUrl: r.selfie_photo_url || null,
+      status: r.status,
+      confidenceScore: r.confidence_score ?? (r.status === 'approved' ? 95 : 70),
+      isSuspicious: Boolean(r.is_suspicious),
+      suspiciousReasons,
+      credentialDiagnostics,
+      verificationMethod: r.verification_method || 'automated',
+      rejectionReason: r.rejection_reason || null,
+      reviewedBy: r.reviewed_by || null,
+      submittedAt: r.created_at || r.submitted_at,
+      reviewedAt: r.reviewed_at
+    };
+  });
 
   res.status(200).json({
     status: 'success',

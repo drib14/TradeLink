@@ -111,7 +111,7 @@ export default function MarketplaceScreen() {
       {isSortOpen && (
         <View style={styles.sortMenu}>
           {[
-            { id: 'recent', label: '⚡ Newest & Boosted' },
+            { id: 'recent', label: '⚡ Newest' },
             { id: 'price_low', label: '📉 Price: Low to High' },
             { id: 'price_high', label: '📈 Price: High to Low' },
             { id: 'trust_high', label: '⭐ Seller Trust Rating' },

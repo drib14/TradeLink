@@ -136,7 +136,7 @@ export interface Listing {
   favoritesCount?: number;
 }
 
-export interface WantedRequest {
+export interface FlashRequest {
   id: string;
   requesterId: string;
   requesterName: string;
@@ -157,6 +157,8 @@ export interface WantedRequest {
   status: 'OPEN' | 'FULFILLED' | 'CANCELLED' | 'open' | 'fulfilled' | 'cancelled';
   preferredCampus?: Campus;
 }
+
+export type WantedRequest = FlashRequest;
 
 export interface Message {
   id: string;

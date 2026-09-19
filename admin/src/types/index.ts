@@ -37,6 +37,9 @@ export type ConditionGrade =
   | 'Brand New' 
   | 'Like New' 
   | 'Gently Used' 
+  | 'Lightly Used'
+  | 'Well Used'
+  | 'Heavily Used'
   | 'Fair / Academic Usable';
 
 export interface User {
@@ -125,7 +128,7 @@ export interface AdminAuditLog {
   id: string;
   adminName: string;
   action: string;
-  targetType: 'user' | 'listing' | 'verification' | 'wanted' | 'meetup' | 'announcement' | 'dispute' | 'system';
+  targetType: 'user' | 'listing' | 'verification' | 'flash' | 'wanted' | 'meetup' | 'announcement' | 'dispute' | 'system';
   targetId: string;
   details: string;
   timestamp: string;
@@ -159,11 +162,11 @@ export interface Listing {
   sellerCollege: College;
   sellerIsVerified: boolean;
   sellerTrustScore: number;
-  isBoosted: boolean;
+  isBoosted?: boolean;
+  is_featured?: boolean;
   isSold: boolean;
   status?: 'active' | 'sold' | string;
   quantity: number;
-  courseCode?: string;
   createdAt: string;
   views: number;
 }
@@ -262,6 +265,13 @@ export interface VerificationRequest {
   idCardImageUrl: string;
   selfiePhotoUrl?: string;
   status: 'pending' | 'approved' | 'rejected';
+  confidenceScore?: number;
+  isSuspicious?: boolean;
+  suspiciousReasons?: string[];
+  credentialDiagnostics?: any;
+  verificationMethod?: string;
+  rejectionReason?: string | null;
+  reviewedBy?: string | null;
   submittedAt: string;
   reviewedAt?: string;
 }
@@ -298,7 +308,7 @@ export interface Review {
   createdAt: string;
 }
 
-export interface WantedRequest {
+export interface FlashRequest {
   id: string;
   requesterId: string;
   requesterName: string;
@@ -311,17 +321,22 @@ export interface WantedRequest {
   urgency: 'Immediate / Urgent' | 'This Week' | 'Flexible';
   description: string;
   preferredCampus: Campus;
-  status: 'open' | 'fulfilled';
+  status: 'open' | 'fulfilled' | 'cancelled' | 'expired';
   offersCount: number;
+  durationHours?: number;
+  expiresAt?: string;
+  isExpired?: boolean;
   createdAt: string;
 }
+
+export type WantedRequest = FlashRequest;
 
 export interface AppNotification {
   id: string;
   userId: string;
   title: string;
   message: string;
-  type: 'swap' | 'meetup' | 'price_drop' | 'wanted_response' | 'system';
+  type: 'swap' | 'meetup' | 'price_drop' | 'flash_response' | 'wanted_response' | 'system';
   isRead: boolean;
   linkView?: string;
   linkParams?: any;
@@ -335,14 +350,6 @@ export interface ToastNotification {
   message: string;
 }
 
-export interface PriceEstimationResult {
-  recommendedMin: number;
-  recommendedMax: number;
-  recommendedAverage: number;
-  dealRating: 'Super Bargain' | 'Fair Campus Price' | 'Slightly High' | 'Overpriced';
-  estimatedSavingsPct: number;
-  reasoning: string;
-}
 
 export interface FeatureFlag {
   id: string;
@@ -361,6 +368,7 @@ export interface SystemConfig {
   maxListingPrice?: number;
   maxImagesPerListing?: number;
   swapModeEnabled?: boolean;
+  flashMarketEnabled?: boolean;
   wantedBoardEnabled?: boolean;
   freeDonationEnabled?: boolean;
   maxListingsPerUser?: number;

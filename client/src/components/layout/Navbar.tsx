@@ -18,7 +18,10 @@ import {
   User,
   Receipt,
   Settings,
-  Shield
+  Shield,
+  Zap,
+  Clock,
+  Check
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -100,16 +103,17 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header
+      className="sticky-top-nav"
       style={{
-        backgroundColor: 'rgba(255, 255, 255, 0.92)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        borderBottom: '1.5px solid var(--border-subtle, #E2E8F0)',
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        borderBottom: '1.5px solid rgba(255, 255, 255, 0.85)',
         position: 'sticky',
         top: 0,
-        zIndex: 50,
+        zIndex: 100,
         width: '100%',
-        boxShadow: '0 2px 8px -2px rgba(0, 43, 127, 0.05)',
+        boxShadow: '0 8px 24px -4px rgba(0, 43, 127, 0.08), inset 0 -1px 0 rgba(0, 43, 127, 0.03)',
         transition: 'all 0.2s ease'
       }}
     >
@@ -146,19 +150,25 @@ export const Navbar: React.FC<NavbarProps> = ({
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
+                justifyContent: 'space-between',
+                width: '175px',
                 gap: '0.4rem',
                 backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)',
-                border: '1.5px solid var(--uc-blue-border, #BCD1F7)',
-                padding: '0.4rem 0.85rem',
-                borderRadius: '8px',
+                border: '1px solid var(--border-subtle, #CBD5E1)',
+                padding: '0.45rem 0.85rem',
+                borderRadius: '10px',
                 fontSize: '0.82rem',
                 fontWeight: 700,
                 color: 'var(--uc-blue, #002B7F)',
                 cursor: 'pointer',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
                 transition: 'all 0.15s ease'
               }}
+              title={selectedCampus === 'All' ? 'All UC Campuses' : selectedCampus}
             >
-              <span>{selectedCampus === 'All' ? 'All UC Campuses' : selectedCampus}</span>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, textAlign: 'left' }}>
+                {selectedCampus === 'All' ? 'All UC Campuses' : selectedCampus}
+              </span>
               <ChevronDown size={14} style={{ flexShrink: 0 }} />
             </button>
 
@@ -166,15 +176,15 @@ export const Navbar: React.FC<NavbarProps> = ({
               <div
                 style={{
                   position: 'absolute',
-                  top: 'calc(100% + 6px)',
+                  top: 'calc(100% + 8px)',
                   left: 0,
-                  backgroundColor: 'var(--bg-surface, #FFFFFF)',
-                  border: '1.5px solid var(--uc-blue-border, #BCD1F7)',
-                  borderRadius: '10px',
-                  boxShadow: '0 12px 28px rgba(0, 43, 127, 0.12)',
+                  backgroundColor: '#FFFFFF',
+                  border: '1px solid var(--border-subtle, #E2E8F0)',
+                  borderRadius: '12px',
+                  boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05)',
                   width: '220px',
                   zIndex: 60,
-                  padding: '0.4rem',
+                  padding: '0.5rem',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '0.2rem'
@@ -211,11 +221,11 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Center: Search Input (Available to All Visitors) */}
-        <div style={{ flex: 1, minWidth: 0, maxWidth: '400px', position: 'relative' }}>
+        <div className="search-bar-wrapper" style={{ flex: 1, minWidth: 0, maxWidth: '440px' }}>
           <Search
-            size={15}
-            color="var(--text-muted, #64748B)"
-            style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
+            size={16}
+            className="search-icon"
+            style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', zIndex: 2 }}
           />
           <input
             type="text"
@@ -227,31 +237,26 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onNavigate('marketplace');
               }
             }}
-            className="clean-input"
+            className="clean-input search-input navbar-search-input"
             style={{
-              padding: '0.5rem 0.85rem 0.5rem 2.35rem',
-              backgroundColor: 'var(--bg-subtle, #F8FAFC)',
-              fontSize: '0.84rem'
+              paddingLeft: '2.85rem',
+              paddingRight: searchQuery ? '2.4rem' : '1rem'
             }}
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
+              className="search-clear-btn"
               style={{
                 position: 'absolute',
                 right: '0.75rem',
                 top: '50%',
                 transform: 'translateY(-50%)',
-                color: 'var(--text-muted, #64748B)',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
+                zIndex: 2
               }}
+              title="Clear search"
             >
-              <X size={14} />
+              <X size={13} />
             </button>
           )}
         </div>
@@ -277,19 +282,23 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
 
             <button
-              onClick={() => onNavigate('wanted')}
+              onClick={() => onNavigate('flash-market')}
               style={{
                 padding: '0.45rem 0.75rem',
                 borderRadius: '8px',
                 fontSize: '0.84rem',
-                fontWeight: currentView === 'wanted' ? 800 : 600,
-                color: currentView === 'wanted' ? 'var(--uc-blue, #002B7F)' : 'var(--text-secondary, #475569)',
-                backgroundColor: currentView === 'wanted' ? 'var(--uc-blue-subtle, #EBF1FC)' : 'transparent',
+                fontWeight: currentView === 'flash-market' || currentView === 'wanted' ? 800 : 600,
+                color: currentView === 'flash-market' || currentView === 'wanted' ? 'var(--uc-blue, #002B7F)' : 'var(--text-secondary, #475569)',
+                backgroundColor: currentView === 'flash-market' || currentView === 'wanted' ? 'var(--uc-blue-subtle, #EBF1FC)' : 'transparent',
                 border: 'none',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px'
               }}
             >
-              Wanted
+              <Zap size={14} />
+              <span>Flash Market</span>
             </button>
 
             <button
@@ -328,60 +337,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                   {pendingSwapsCount}
                 </span>
               )}
-            </button>
-
-            <button
-              onClick={handleTransactionsClick}
-              style={{
-                position: 'relative',
-                padding: '0.45rem 0.75rem',
-                borderRadius: '8px',
-                fontSize: '0.84rem',
-                fontWeight: currentView === 'transactions' ? 800 : 600,
-                color: currentView === 'transactions' ? 'var(--uc-blue, #002B7F)' : 'var(--text-secondary, #475569)',
-                backgroundColor: currentView === 'transactions' ? 'var(--uc-blue-subtle, #EBF1FC)' : 'transparent',
-                border: 'none',
-                cursor: 'pointer'
-              }}
-            >
-              <span>Transactions</span>
-              {pendingTransactionsCount > 0 && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: '2px',
-                    right: '2px',
-                    backgroundColor: '#059669',
-                    color: '#FFFFFF',
-                    fontSize: '0.6rem',
-                    fontWeight: 800,
-                    width: '15px',
-                    height: '15px',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  {pendingTransactionsCount}
-                </span>
-              )}
-            </button>
-
-            <button
-              onClick={() => onNavigate('campus-map')}
-              style={{
-                padding: '0.45rem 0.75rem',
-                borderRadius: '8px',
-                fontSize: '0.84rem',
-                fontWeight: currentView === 'campus-map' ? 800 : 600,
-                color: currentView === 'campus-map' ? 'var(--uc-blue, #002B7F)' : 'var(--text-secondary, #475569)',
-                backgroundColor: currentView === 'campus-map' ? 'var(--uc-blue-subtle, #EBF1FC)' : 'transparent',
-                border: 'none',
-                cursor: 'pointer'
-              }}
-            >
-              Landmarks
             </button>
           </div>
 
@@ -476,46 +431,44 @@ export const Navbar: React.FC<NavbarProps> = ({
                   )}
                 </button>
 
-                {/* User Dropdown Menu */}
+                {/* User Dropdown Menu (Spacious & Uncompressed) */}
                 {isUserMenuOpen && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: 'calc(100% + 8px)',
-                      right: 0,
-                      width: '260px',
-                      backgroundColor: 'var(--bg-surface, #FFFFFF)',
-                      borderRadius: '12px',
-                      border: '1.5px solid var(--border-subtle, #BCD1F7)',
-                      boxShadow: '0 12px 30px rgba(0, 43, 127, 0.15)',
-                      zIndex: 100,
-                      overflow: 'hidden',
-                      padding: '0.5rem',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '0.2rem',
-                      animation: 'slideDown 0.2s ease-out'
-                    }}
-                  >
-                    <div style={{ padding: '0.55rem 0.75rem', borderBottom: '1px solid var(--border-subtle, #F1F5F9)' }}>
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-                        <span style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary, #002B7F)' }}>
-                          {currentUser.name}
+                  <div className="dropdown-menu-user" role="menu">
+                    {/* User Identity Card */}
+                    <div className="dropdown-user-card">
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
+                          <span style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-primary, #0F172A)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {currentUser.name}
+                          </span>
+                          {currentUser.isVerified && (
+                            <VerifiedBadge size="xs" variant="green" showTooltip={false} />
+                          )}
+                        </div>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--uc-blue)', backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', padding: '2px 6px', borderRadius: '4px', flexShrink: 0 }}>
+                          {currentUser.campus}
                         </span>
-                        {currentUser.isVerified && (
-                          <VerifiedBadge size="xs" variant="green" showTooltip={false} />
-                        )}
-                      </div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted, #64748B)', marginTop: '2px' }}>
-                        {currentUser.campus} • ID: {currentUser.studentId}
                       </div>
 
-                      {!currentUser.isVerified && (
+                      <div style={{ fontSize: '0.74rem', color: 'var(--text-muted, #64748B)' }}>
+                        Student ID: <strong>{currentUser.studentId}</strong>
+                      </div>
+
+                      {/* Verification Status Banner */}
+                      {currentUser.isVerified ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.72rem', fontWeight: 800, color: 'var(--accent-green, #059669)', backgroundColor: 'var(--accent-green-subtle, #ECFDF5)', padding: '0.35rem 0.6rem', borderRadius: '6px' }}>
+                          <Check size={13} /> Official UC Peer Verified
+                        </div>
+                      ) : (
                         (!currentUser.isVerified && (currentUser.verificationStatus === 'pending' || !!currentUser.idPhotoUrl)) ? (
-                          <div style={{ backgroundColor: 'rgba(0, 43, 127, 0.06)', border: '1px solid rgba(0, 43, 127, 0.15)', borderRadius: '8px', padding: '0.45rem 0.6rem', marginTop: '0.4rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--uc-blue)' }}>
-                              ⏳ Verification Pending
-                            </span>
+                          <div style={{ backgroundColor: 'rgba(0, 43, 127, 0.06)', border: '1px solid rgba(0, 43, 127, 0.15)', borderRadius: '8px', padding: '0.5rem 0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--uc-blue)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                <Clock size={12} style={{ flexShrink: 0 }} />
+                                <span>Verification In Review</span>
+                              </span>
+                              <span style={{ fontSize: '0.66rem', color: 'var(--text-muted)' }}>Estimated: 1–3 business days</span>
+                            </div>
                             <button
                               type="button"
                               onClick={() => {
@@ -523,23 +476,24 @@ export const Navbar: React.FC<NavbarProps> = ({
                                 onNavigate('profile');
                               }}
                               style={{
-                                fontSize: '0.68rem',
+                                fontSize: '0.7rem',
                                 fontWeight: 800,
                                 color: 'var(--uc-blue)',
-                                backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)',
+                                backgroundColor: '#FFFFFF',
                                 border: '1px solid var(--uc-blue-border, #BCD1F7)',
-                                borderRadius: '4px',
-                                padding: '2px 8px',
-                                cursor: 'pointer'
+                                borderRadius: '6px',
+                                padding: '3px 10px',
+                                cursor: 'pointer',
+                                flexShrink: 0
                               }}
                             >
                               Status
                             </button>
                           </div>
                         ) : (
-                          <div style={{ backgroundColor: 'rgba(255, 199, 44, 0.15)', border: '1px solid rgba(229, 168, 0, 0.3)', borderRadius: '8px', padding: '0.45rem 0.6rem', marginTop: '0.4rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#B45309' }}>
-                              Unverified Account
+                          <div style={{ backgroundColor: 'rgba(255, 199, 44, 0.15)', border: '1px solid rgba(229, 168, 0, 0.35)', borderRadius: '8px', padding: '0.5rem 0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#B45309' }}>
+                              Unverified Student
                             </span>
                             <button
                               type="button"
@@ -547,15 +501,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                                 setIsUserMenuOpen(false);
                                 if (onOpenVerification) onOpenVerification();
                               }}
+                              className="btn-gold"
                               style={{
-                                fontSize: '0.68rem',
+                                fontSize: '0.7rem',
                                 fontWeight: 800,
-                                color: '#002B7F',
-                                backgroundColor: '#FFC72C',
-                                border: 'none',
-                                borderRadius: '4px',
-                                padding: '2px 8px',
-                                cursor: 'pointer'
+                                padding: '3px 10px',
+                                borderRadius: '6px',
+                                flexShrink: 0
                               }}
                             >
                               Verify Now
@@ -565,17 +517,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                       )}
                     </div>
 
-                    {/* Admin Moderation Desk */}
+                    {/* Admin Moderation Desk (if admin) */}
                     {(isAdmin || currentUser.role === 'admin') && (
                       <button
                         onClick={() => {
                           setIsUserMenuOpen(false);
-                          onNavigate('admin');
+                          window.open('http://localhost:5174', '_blank') || (window.location.href = 'http://localhost:5174');
                         }}
                         className="dropdown-item"
                         style={{ backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', color: 'var(--uc-blue, #002B7F)', fontWeight: 700 }}
                       >
-                        <Shield size={15} color="var(--uc-blue, #002B7F)" style={{ flexShrink: 0 }} />
+                        <Shield size={16} color="var(--uc-blue, #002B7F)" style={{ flexShrink: 0 }} />
                         <span>Admin Moderation Desk</span>
                       </button>
                     )}
@@ -588,8 +540,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                       }}
                       className="dropdown-item"
                     >
-                      <User size={15} color="var(--uc-blue, #002B7F)" style={{ flexShrink: 0 }} />
-                      <span>My Profile & Listings</span>
+                      <User size={16} color="var(--uc-blue, #002B7F)" style={{ flexShrink: 0 }} />
+                      <span>My Profile</span>
                     </button>
 
                     {/* 2. Transaction History */}
@@ -600,11 +552,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                       }}
                       className="dropdown-item"
                     >
-                      <Receipt size={15} color="#059669" style={{ flexShrink: 0 }} />
+                      <Receipt size={16} color="#059669" style={{ flexShrink: 0 }} />
                       <span>Transaction History</span>
                     </button>
 
-                    {/* 4. Settings */}
+                    {/* 3. Settings */}
                     <button
                       onClick={() => {
                         setIsUserMenuOpen(false);
@@ -612,19 +564,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                       }}
                       className="dropdown-item"
                     >
-                      <Settings size={15} color="var(--text-secondary)" style={{ flexShrink: 0 }} />
+                      <Settings size={16} color="var(--text-secondary)" style={{ flexShrink: 0 }} />
                       <span>Settings & Privacy</span>
                     </button>
 
                     <div className="dropdown-divider" />
 
-                    {/* 5. Logout */}
+                    {/* 4. Logout */}
                     <button
                       onClick={handleLogout}
                       className="dropdown-item"
                       style={{ color: '#DC2626' }}
                     >
-                      <LogOut size={15} color="#DC2626" style={{ flexShrink: 0 }} />
+                      <LogOut size={16} color="#DC2626" style={{ flexShrink: 0 }} />
                       <span>Log Out</span>
                     </button>
                   </div>

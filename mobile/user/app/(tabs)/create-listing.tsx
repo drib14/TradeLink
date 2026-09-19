@@ -126,7 +126,6 @@ export default function CreateListingScreen() {
         sellerTrustScore: currentUser.trustScore || 100,
         preferredMeetupSpots: meetupSpot.trim() ? [meetupSpot.trim()] : ['Main Campus Entrance / Guard Desk'],
         customMeetupSpot: meetupSpot.trim() || undefined,
-        isBoosted: false,
       });
 
       if (newListing) {
@@ -249,7 +248,7 @@ export default function CreateListingScreen() {
           </View>
           <TextInput
             style={styles.input}
-            placeholder="e.g. Casio fx-991ES Plus PRC Calculator"
+            placeholder="Item title"
             placeholderTextColor="#94A3B8"
             maxLength={200}
             value={title}
@@ -282,7 +281,7 @@ export default function CreateListingScreen() {
                 <Text style={styles.sectionLabel}>Selling Price (₱) *</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="e.g. 650"
+                  placeholder="0.00"
                   placeholderTextColor="#94A3B8"
                   keyboardType="numeric"
                   value={price}
@@ -293,7 +292,7 @@ export default function CreateListingScreen() {
                 <Text style={styles.sectionLabel}>Original Brand SRP (₱)</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="e.g. 1200"
+                  placeholder="0.00"
                   placeholderTextColor="#94A3B8"
                   keyboardType="numeric"
                   value={originalSrp}
@@ -315,7 +314,7 @@ export default function CreateListingScreen() {
             <Text style={styles.sectionLabel}>What would you like to swap for? *</Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. Keychron keyboard or Casio calculator + cash"
+              placeholder="Desired item"
               placeholderTextColor="#94A3B8"
               value={swapPreference}
               onChangeText={setSwapPreference}
@@ -369,7 +368,7 @@ export default function CreateListingScreen() {
           <Text style={styles.sectionLabel}>Preferred Meetup Zone / Landmark</Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g. Main Library 3rd floor / Gate 1 Guard Post"
+            placeholder="Meetup location"
             placeholderTextColor="#94A3B8"
             value={meetupSpot}
             onChangeText={setMeetupSpot}

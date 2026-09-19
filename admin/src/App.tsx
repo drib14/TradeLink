@@ -3,7 +3,10 @@ import { ToastProvider, useToast } from './components/common/Toast';
 import { AdminAuthProvider, useAdminAuth } from './context/AdminAuthContext';
 import { AdminProvider } from './context/AdminContext';
 import { AdminDashboard } from './pages/AdminDashboard';
-import { ShieldAlert, LogIn, KeyRound, ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
+import { CookieConsent } from './components/common/CookieConsent';
+import { ShieldAlert, LogIn, KeyRound, Loader2, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { Logo } from './components/common/Logo';
+import { TradeLinkIcon } from './components/common/TradeLinkIcon';
 
 const AdminAuthGate: React.FC = () => {
   const { login, forgotPassword, resetPassword, isLoading } = useAdminAuth();
@@ -65,7 +68,9 @@ const AdminAuthGate: React.FC = () => {
         showToast('Password Reset', 'Your administrator password has been updated. Please sign in.', 'success');
         setIsForgotOpen(false);
         setForgotStep('request');
-        setPasswordInput(newPassword);
+        setResetCode('');
+        setNewPassword('');
+        setPasswordInput('');
       } else {
         showToast('Reset Failed', res.message, 'error');
       }
@@ -100,47 +105,55 @@ const AdminAuthGate: React.FC = () => {
         }}
       >
         {/* Header Badge & Brand */}
-        <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.65rem' }}>
-          <div
-            style={{
-              width: '58px',
-              height: '58px',
-              borderRadius: '16px',
-              backgroundColor: '#002B7F',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#FFC72C',
-              boxShadow: '0 8px 20px rgba(0, 43, 127, 0.25)'
-            }}
-          >
-            <ShieldAlert size={32} />
-          </div>
+        <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.85rem' }}>
+          <Logo size="lg" showSubtitle={true} subtitleText="Administration & Safety Portal" />
 
           <div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: '#002B7F', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', backgroundColor: 'rgba(0, 43, 127, 0.08)', padding: '0.2rem 0.65rem', borderRadius: '6px' }}>
-              Restricted Campus Portal
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: '#002B7F', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', backgroundColor: '#EBF1FC', padding: '0.25rem 0.65rem', borderRadius: '6px', border: '1px solid #BCD1F7' }}>
+              <ShieldCheck size={13} color="#002B7F" /> Restricted Campus Portal
             </div>
-            <h1 style={{ fontSize: '1.45rem', fontWeight: 900, color: '#0F172A', marginTop: '0.45rem', margin: '0.45rem 0 0 0' }}>
-              University of Cebu Admin
+            <h1 style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0F172A', marginTop: '0.55rem', margin: '0.55rem 0 0 0' }}>
+              University of Cebu Moderation Desk
             </h1>
-            <p style={{ fontSize: '0.82rem', color: '#64748B', marginTop: '0.25rem', margin: '0.25rem 0 0 0' }}>
-              Sign in with your official administrator email to access KYC queues, student moderation, and campus safety desks.
+            <p style={{ fontSize: '0.82rem', color: '#64748B', marginTop: '0.3rem', margin: '0.3rem 0 0 0', lineHeight: 1.45 }}>
+              Sign in with your administrator email or ID to access KYC queues, student moderation, and campus safety desks.
             </p>
+          </div>
+
+          {/* Security Notice */}
+          <div
+            style={{
+              backgroundColor: '#F8FAFC',
+              border: '1px solid #E2E8F0',
+              borderRadius: '12px',
+              padding: '0.75rem 1rem',
+              width: '100%',
+              textAlign: 'left',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.65rem',
+              fontSize: '0.76rem',
+              color: '#475569'
+            }}
+          >
+            <ShieldAlert size={18} color="#002B7F" style={{ flexShrink: 0 }} />
+            <span>
+              Authorized University of Cebu personnel only. All access attempts and administrative modifications are cryptographically logged for security auditing.
+            </span>
           </div>
         </div>
 
         {/* Login Form */}
         <form onSubmit={handleLoginSubmit} autoComplete="off" style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 800, color: '#334155', marginBottom: '0.35rem' }}>
-              Administrator Email
+            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+              ID Number or Email
             </label>
             <input
-              type="email"
+              type="text"
               value={emailInput}
               onChange={(e) => setEmailInput(e.target.value)}
-              placeholder="Enter administrator email"
+              placeholder="ID Number or Email"
               autoComplete="off"
               autoCorrect="off"
               autoCapitalize="off"
@@ -152,7 +165,7 @@ const AdminAuthGate: React.FC = () => {
 
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: 800, color: '#334155' }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155' }}>
                 Password
               </label>
               <button
@@ -171,7 +184,7 @@ const AdminAuthGate: React.FC = () => {
               type="password"
               value={passwordInput}
               onChange={(e) => setPasswordInput(e.target.value)}
-              placeholder="Enter administrator password"
+              placeholder="Password"
               autoComplete="new-password"
               className="clean-input"
               required
@@ -185,14 +198,13 @@ const AdminAuthGate: React.FC = () => {
             style={{
               padding: '0.85rem',
               width: '100%',
-              fontWeight: 800,
+              fontWeight: 700,
               fontSize: '0.9rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '0.5rem',
-              borderRadius: '12px',
-              boxShadow: '0 4px 14px rgba(0, 43, 127, 0.25)'
+              borderRadius: '10px'
             }}
           >
             {isSubmitting ? (
@@ -208,25 +220,6 @@ const AdminAuthGate: React.FC = () => {
             )}
           </button>
         </form>
-
-        {/* Switch to Student Portal */}
-        <div style={{ textAlign: 'center', paddingTop: '0.75rem', borderTop: '1px solid #F1F5F9' }}>
-          <a
-            href="http://localhost:5173"
-            style={{
-              fontSize: '0.82rem',
-              color: '#64748B',
-              fontWeight: 700,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              textDecoration: 'none'
-            }}
-          >
-            <ArrowLeft size={14} />
-            <span>Back to Student Marketplace</span>
-          </a>
-        </div>
       </div>
 
       {/* Forgot Password Modal */}
@@ -236,10 +229,10 @@ const AdminAuthGate: React.FC = () => {
           onClick={() => setIsForgotOpen(false)}
         >
           <div
-            style={{ backgroundColor: '#FFFFFF', borderRadius: '20px', padding: '2rem', maxWidth: '420px', width: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+            style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', padding: '2rem', maxWidth: '420px', width: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem', border: '1px solid #E2E8F0', boxShadow: '0 20px 40px -15px rgba(0, 43, 127, 0.2)' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#002B7F', fontWeight: 900, fontSize: '1.15rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#002B7F', fontWeight: 800, fontSize: '1.15rem' }}>
               <KeyRound size={22} color="#FFC72C" />
               <span>Admin Password Recovery</span>
             </div>
@@ -247,17 +240,17 @@ const AdminAuthGate: React.FC = () => {
             {forgotStep === 'request' ? (
               <form onSubmit={handleRequestResetCode} autoComplete="off" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <p style={{ fontSize: '0.82rem', color: '#64748B', margin: 0, lineHeight: 1.5 }}>
-                  Enter your registered administrator email address. A 4-digit verification code will be sent directly to your inbox.
+                  Enter your registered administrator email address. A 6-digit verification code will be sent directly to your inbox.
                 </p>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#334155', marginBottom: '0.35rem' }}>
-                    Administrator Email
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                    Email Address
                   </label>
                   <input
                     type="email"
                     value={forgotEmail}
                     onChange={(e) => setForgotEmail(e.target.value)}
-                    placeholder="Enter administrator email"
+                    placeholder="Email Address"
                     autoComplete="off"
                     className="clean-input"
                     required
@@ -267,7 +260,7 @@ const AdminAuthGate: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setIsForgotOpen(false)}
-                    style={{ flex: 1, padding: '0.75rem', borderRadius: '10px', fontSize: '0.84rem', fontWeight: 700, backgroundColor: '#F1F5F9', border: 'none', cursor: 'pointer' }}
+                    style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', fontSize: '0.84rem', fontWeight: 600, backgroundColor: '#F1F5F9', border: '1px solid #E2E8F0', cursor: 'pointer' }}
                   >
                     Cancel
                   </button>
@@ -275,7 +268,7 @@ const AdminAuthGate: React.FC = () => {
                     type="submit"
                     disabled={isResetting}
                     className="btn-primary"
-                    style={{ flex: 1.5, padding: '0.75rem', borderRadius: '10px', fontSize: '0.84rem', fontWeight: 800 }}
+                    style={{ flex: 1.5, padding: '0.75rem', borderRadius: '8px', fontSize: '0.84rem', fontWeight: 700 }}
                   >
                     {isResetting ? 'Sending...' : 'Send Reset Code'}
                   </button>
@@ -284,32 +277,33 @@ const AdminAuthGate: React.FC = () => {
             ) : (
               <form onSubmit={handleCompletePasswordReset} autoComplete="off" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <p style={{ fontSize: '0.82rem', color: '#64748B', margin: 0, lineHeight: 1.5 }}>
-                  Enter the 4-digit code sent to <strong>{forgotEmail}</strong> and your new password.
+                  Enter the 6-digit code sent to <strong>{forgotEmail}</strong> and your new password.
                 </p>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#334155', marginBottom: '0.35rem' }}>
-                    4-Digit Code
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                    Verification Code
                   </label>
                   <input
                     type="text"
-                    maxLength={4}
+                    maxLength={6}
                     value={resetCode}
-                    onChange={(e) => setResetCode(e.target.value.replace(/\D/g, ''))}
-                    placeholder="e.g. 1234"
+                    onChange={(e) => setResetCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="Verification Code"
                     autoComplete="off"
                     className="clean-input"
+                    style={{ textAlign: 'center', letterSpacing: '0.2em', fontSize: '1.1rem', fontWeight: 700 }}
                     required
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#334155', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
                     New Password
                   </label>
                   <input
                     type="password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Min. 6 characters"
+                    placeholder="New Password"
                     autoComplete="new-password"
                     className="clean-input"
                     required
@@ -364,6 +358,7 @@ export const App: React.FC = () => {
     <ToastProvider>
       <AdminAuthProvider>
         <AdminAppContent />
+        <CookieConsent />
       </AdminAuthProvider>
     </ToastProvider>
   );

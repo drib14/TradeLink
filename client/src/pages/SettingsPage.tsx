@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/common/Toast';
 import { UserAvatar } from '../components/common/UserAvatar';
@@ -13,7 +13,8 @@ import {
   Save,
   ToggleLeft,
   ToggleRight,
-  LogOut
+  LogOut,
+  Check
 } from 'lucide-react';
 
 interface SettingsPageProps {
@@ -27,6 +28,36 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate, onOpenAu
 
   const [activeSection, setActiveSection] = useState<'account' | 'notifications' | 'privacy' | 'data'>('account');
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  // Account settings
+  const [nameInput, setNameInput] = useState(currentUser?.name || '');
+  const [bioInput, setBioInput] = useState(currentUser?.bio || '');
+  const [avatarInput, setAvatarInput] = useState(currentUser?.avatar || '');
+  const [collegeInput, setCollegeInput] = useState<College>(currentUser?.college || 'CCS');
+  const [yearLevelInput, setYearLevelInput] = useState(currentUser?.yearLevel || '2nd Year College');
+
+  // Notification prefs
+  const [notifSwaps, setNotifSwaps] = useState(true);
+  const [notifMeetups, setNotifMeetups] = useState(true);
+  const [notifPriceDrops, setNotifPriceDrops] = useState(true);
+  const [notifWanted, setNotifWanted] = useState(true);
+  const [notifSystem, setNotifSystem] = useState(true);
+
+  // Privacy settings
+  const [showCampus, setShowCampus] = useState(true);
+  const [showOnline, setShowOnline] = useState(true);
+  const [profilePublic, setProfilePublic] = useState(true);
+
+  // Keep input fields synchronized whenever currentUser updates
+  useEffect(() => {
+    if (currentUser) {
+      setNameInput(currentUser.name || '');
+      setBioInput(currentUser.bio || '');
+      setAvatarInput(currentUser.avatar || '');
+      setCollegeInput(currentUser.college || 'CCS');
+      setYearLevelInput(currentUser.yearLevel || '2nd Year College');
+    }
+  }, [currentUser]);
 
   if (!currentUser) {
     return (
@@ -66,25 +97,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate, onOpenAu
       </div>
     );
   }
-
-  // Account settings
-  const [nameInput, setNameInput] = useState(currentUser?.name || '');
-  const [bioInput, setBioInput] = useState(currentUser?.bio || '');
-  const [avatarInput, setAvatarInput] = useState(currentUser?.avatar || '');
-  const [collegeInput, setCollegeInput] = useState<College>(currentUser?.college || 'CCS');
-  const [yearLevelInput, setYearLevelInput] = useState(currentUser?.yearLevel || '2nd Year College');
-
-  // Notification prefs
-  const [notifSwaps, setNotifSwaps] = useState(true);
-  const [notifMeetups, setNotifMeetups] = useState(true);
-  const [notifPriceDrops, setNotifPriceDrops] = useState(true);
-  const [notifWanted, setNotifWanted] = useState(true);
-  const [notifSystem, setNotifSystem] = useState(true);
-
-  // Privacy settings
-  const [showCampus, setShowCampus] = useState(true);
-  const [showOnline, setShowOnline] = useState(true);
-  const [profilePublic, setProfilePublic] = useState(true);
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
@@ -255,8 +267,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate, onOpenAu
                       Clear Photo & Use Name Initials
                     </button>
                   ) : (
-                    <div style={{ marginTop: '0.35rem', fontSize: '0.72rem', color: 'var(--accent-green, #059669)', fontWeight: 700 }}>
-                      ✓ Dynamic Name Initials Active
+                    <div style={{ marginTop: '0.35rem', fontSize: '0.72rem', color: 'var(--accent-green, #059669)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                      <Check size={12} />
+                      <span>Dynamic Name Initials Active</span>
                     </div>
                   )}
                 </div>
@@ -379,7 +392,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate, onOpenAu
               <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Notification Preferences</h3>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Choose what alerts you receive via in-app notifications.</p>
               <ToggleSwitch on={notifSwaps} onToggle={() => setNotifSwaps(!notifSwaps)} label="Swap Proposals & Offers" description="Instant notifications when peers offer barter trades for your items" />
-              <ToggleSwitch on={notifMeetups} onToggle={() => setNotifMeetups(!notifMeetups)} label="Meetup Schedule Reminders" description="Alerts for scheduled campus handshakes and 4-digit verification codes" />
+              <ToggleSwitch on={notifMeetups} onToggle={() => setNotifMeetups(!notifMeetups)} label="Meetup Schedule Reminders" description="Alerts for scheduled campus meetups and transaction updates" />
               <ToggleSwitch on={notifPriceDrops} onToggle={() => setNotifPriceDrops(!notifPriceDrops)} label="Saved Item Price Drops" description="Get notified when bookmarked items have their price reduced" />
               <ToggleSwitch on={notifWanted} onToggle={() => setNotifWanted(!notifWanted)} label="Wanted Board Item Matches" description="Alerts when items matching your requested wanted items are posted" />
               <ToggleSwitch on={notifSystem} onToggle={() => setNotifSystem(!notifSystem)} label="Campus Safety & System Alerts" description="Official University of Cebu safety and platform announcements" />

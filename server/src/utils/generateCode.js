@@ -2,11 +2,12 @@ const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 
 /**
- * Generates a cryptographically secure 4-digit code (e.g. 1000 - 9999)
- * @returns {string} 4-digit numeric code
+ * Generates a cryptographically secure 6-digit code (e.g. 100000 - 999999)
+ * Name kept for backward compatibility but now generates 6-digit codes.
+ * @returns {string} 6-digit numeric code
  */
 function generate4DigitCode() {
-  return crypto.randomInt(1000, 10000).toString();
+  return crypto.randomInt(100000, 1000000).toString();
 }
 
 /**
