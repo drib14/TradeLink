@@ -55,6 +55,10 @@ const config = {
 
   clientUrl: process.env.CLIENT_URL || 'http://localhost:5173',
   adminUrl: process.env.ADMIN_URL || 'http://localhost:5174',
+  appUrl: process.env.APP_URL || process.env.CLIENT_URL || 'http://localhost:5173',
+  adminAppUrl: process.env.ADMIN_APP_URL || process.env.ADMIN_URL || 'http://localhost:5174',
+  cookieSameSite: process.env.COOKIE_SAME_SITE || (envMode === 'production' ? 'none' : 'lax'),
+  allowVercelPreviews: process.env.ALLOW_VERCEL_PREVIEWS === 'true',
 
   email: {
     host: process.env.SMTP_HOST || 'smtp.gmail.com',

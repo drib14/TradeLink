@@ -3,6 +3,7 @@ const db = require('../config/db');
 const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
 const { serializeTransaction } = require('../serializers');
+const emailService = require('../services/email.service');
 
 /**
  * Generates a human-friendly unique reference code e.g. TL-2026-B8A2
@@ -285,6 +286,24 @@ const createTransaction = asyncHandler(async (req, res, next) => {
     io
   });
 
+  // Asynchronously dispatch transaction confirmation emails (non-blocking)
+  (async () => {
+    try {
+      const [buyerUser, sellerUser] = await Promise.all([
+        db('users').where({ id: targetBuyerId }).first(),
+        db('users').where({ id: actualSellerId }).first()
+      ]);
+      if (buyerUser && sellerUser) {
+        await Promise.allSettled([
+          emailService.sendOrderPlacedBuyerEmail(buyerUser, sellerUser, newTx, listing, req),
+          emailService.sendNewOrderSellerEmail(sellerUser, buyerUser, newTx, listing, req)
+        ]);
+      }
+    } catch (emailErr) {
+      console.error('[TRANSACTION EMAIL] Error dispatching order confirmation emails:', emailErr.message);
+    }
+  })();
+
   const media = await db('listing_media').where({ listing_id: targetListingId }).first();
   const serialized = serializeTransaction(newTx, media?.media_url || '');
 
@@ -342,6 +361,25 @@ const completeTransaction = asyncHandler(async (req, res, next) => {
     io
   });
 
+  // Asynchronously dispatch completion emails
+  (async () => {
+    try {
+      const [buyerUser, sellerUser, listing] = await Promise.all([
+        db('users').where({ id: tx.buyer_id }).first(),
+        db('users').where({ id: tx.seller_id }).first(),
+        db('listings').where({ id: tx.listing_id }).first()
+      ]);
+      if (buyerUser && sellerUser && listing) {
+        await Promise.allSettled([
+          emailService.sendOrderStatusUpdateEmail(buyerUser, sellerUser, tx, listing, 'completed', '', req),
+          emailService.sendOrderStatusUpdateEmail(sellerUser, buyerUser, tx, listing, 'completed', '', req)
+        ]);
+      }
+    } catch (emailErr) {
+      console.error('[TRANSACTION EMAIL] Error dispatching completion emails:', emailErr.message);
+    }
+  })();
+
   res.status(200).json({
     status: 'success',
     message: 'Transaction marked as completed! Thank you for trading safely on TradeLink.',
@@ -393,6 +431,25 @@ const cancelTransaction = asyncHandler(async (req, res, next) => {
     isSystem: true,
     io
   });
+
+  // Asynchronously dispatch cancellation emails
+  (async () => {
+    try {
+      const [buyerUser, sellerUser, listing] = await Promise.all([
+        db('users').where({ id: tx.buyer_id }).first(),
+        db('users').where({ id: tx.seller_id }).first(),
+        db('listings').where({ id: tx.listing_id }).first()
+      ]);
+      if (buyerUser && sellerUser && listing) {
+        await Promise.allSettled([
+          emailService.sendOrderStatusUpdateEmail(buyerUser, sellerUser, tx, listing, 'cancelled', reason.trim(), req),
+          emailService.sendOrderStatusUpdateEmail(sellerUser, buyerUser, tx, listing, 'cancelled', reason.trim(), req)
+        ]);
+      }
+    } catch (emailErr) {
+      console.error('[TRANSACTION EMAIL] Error dispatching cancellation emails:', emailErr.message);
+    }
+  })();
 
   res.status(200).json({
     status: 'success',

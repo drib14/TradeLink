@@ -36,10 +36,13 @@ function generateTokens(userId, role, campus, tokenVersion = 1) {
  */
 function setRefreshTokenCookie(res, refreshToken) {
   const isProduction = env.isProduction || env.env === 'production';
+  const sameSiteSetting = (process.env.COOKIE_SAME_SITE || (isProduction ? 'none' : 'lax')).toLowerCase();
+  const secureSetting = isProduction || sameSiteSetting === 'none';
+
   res.cookie('refreshToken', refreshToken, {
     httpOnly: true,
-    secure: isProduction,
-    sameSite: isProduction ? 'strict' : 'lax',
+    secure: secureSetting,
+    sameSite: sameSiteSetting,
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     path: '/api'
   });

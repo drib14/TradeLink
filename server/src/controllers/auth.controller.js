@@ -322,7 +322,7 @@ const forgotPassword = asyncHandler(async (req, res, next) => {
 
   // Send verification code directly to student's email
   try {
-    await emailService.sendPasswordResetEmail(user.email, code, user.name);
+    await emailService.sendPasswordResetEmail(user.email, code, user.name, req);
   } catch (err) {
     console.error('[AUTH] Failed to send password reset email:', err.message);
   }

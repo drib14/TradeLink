@@ -132,7 +132,7 @@ const approvePasswordReset = asyncHandler(async (req, res, next) => {
   });
 
   // Dispatch email via Gmail SMTP
-  const emailResult = await sendPasswordResetApprovedEmail(user.email, code, user.name);
+  const emailResult = await sendPasswordResetApprovedEmail(user.email, code, user.name, req);
 
   // Log action in audit logs
   await logAdminAction(
@@ -188,7 +188,7 @@ const rejectPasswordReset = asyncHandler(async (req, res, next) => {
 
   // Dispatch rejection notification email
   if (userEmail) {
-    await sendPasswordResetRejectedEmail(userEmail, userName, reason.trim());
+    await sendPasswordResetRejectedEmail(userEmail, userName, reason.trim(), req);
   }
 
   await logAdminAction(

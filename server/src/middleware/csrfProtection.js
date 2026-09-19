@@ -14,12 +14,15 @@ function csrfProtection(req, res, next) {
 
   // 1. Ensure an XSRF-TOKEN cookie exists
   let token = req.cookies && req.cookies['XSRF-TOKEN'];
+  const sameSiteSetting = (process.env.COOKIE_SAME_SITE || (isProduction ? 'none' : 'lax')).toLowerCase();
+  const secureSetting = isProduction || sameSiteSetting === 'none';
+
   if (!token) {
     token = crypto.randomBytes(32).toString('hex');
     res.cookie('XSRF-TOKEN', token, {
       httpOnly: false, // Must be readable by client JS to copy into X-XSRF-TOKEN header
-      secure: isProduction,
-      sameSite: isProduction ? 'strict' : 'lax',
+      secure: secureSetting,
+      sameSite: sameSiteSetting,
       path: '/'
     });
   }
@@ -56,13 +59,16 @@ function csrfProtection(req, res, next) {
  */
 function getCsrfToken(req, res) {
   const isProduction = env.isProduction || env.env === 'production';
+  const sameSiteSetting = (process.env.COOKIE_SAME_SITE || (isProduction ? 'none' : 'lax')).toLowerCase();
+  const secureSetting = isProduction || sameSiteSetting === 'none';
+
   let token = req.cookies && req.cookies['XSRF-TOKEN'];
   if (!token) {
     token = crypto.randomBytes(32).toString('hex');
     res.cookie('XSRF-TOKEN', token, {
       httpOnly: false,
-      secure: isProduction,
-      sameSite: isProduction ? 'strict' : 'lax',
+      secure: secureSetting,
+      sameSite: sameSiteSetting,
       path: '/'
     });
   }

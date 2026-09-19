@@ -44,6 +44,6 @@ npx knex seed:run
 
 | Role | ID Number | Email | Password | Campus | Notes |
 |---|---|---|---|---|---|
-| **Admin** | `000001` | `admin@uc.edu.ph` | `AdminUC` | UC Main | Full campus moderation & administration desk |
+| **Admin** | `ADMIN001` | `uc.tradelink@gmail.com` | `TradeLink@2026` | UC Main | Official campus moderation & safety administration desk |
 
-*Note: Students register their own personal emails and log in with their Student ID.*
+*Note: Clean seed contains ONLY this administrator. Real students register and verify their accounts through the onboarding and eKYC verification flows.*
