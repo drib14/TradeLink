@@ -220,30 +220,30 @@ export const TermsPrivacyPage: React.FC<TermsPrivacyPageProps> = ({ onNavigate, 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <div className="clean-card" style={{ padding: '1.5rem', backgroundColor: '#FEF3C7', border: '1px solid #FDE68A' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#B45309', fontWeight: 800, fontSize: '0.82rem', textTransform: 'uppercase' }}>
-              <AlertTriangle size={16} /> Mandatory Safety Rule
+              <AlertTriangle size={16} /> Community Safety Policy
             </div>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#92400E', marginTop: '0.25rem' }}>
-              Campus-Only Daytime Meetup Policy
+              Daytime Public Meetup Guidelines
             </h3>
             <p style={{ fontSize: '0.85rem', color: '#78350F', lineHeight: 1.6, marginTop: '0.35rem' }}>
-              All transactions arranged through TradeLink must take place inside official, guarded University of Cebu security checkpoints between <strong>7:00 AM and 6:00 PM</strong>. Never agree to meet in unmonitored off-campus alleys, private boarding houses, or secluded locations.
+              All transactions arranged through TradeLink should take place in public, student-accessible locations between <strong>7:00 AM and 6:30 PM</strong>. Buyers and sellers freely decide and agree on their meetup point (e.g. campus library, canteen, or nearby public hubs). Never agree to meet in unmonitored off-campus alleys, private boarding houses, or secluded spots.
             </p>
           </div>
 
           <div className="clean-card" style={{ padding: '1.5rem' }}>
             <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--uc-blue)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-              <MapPin size={18} /> Official Guarded Meetup Checkpoints (All 8 Campuses)
+              <MapPin size={18} /> Recommended Campus Meetup Hubs (All 8 Campuses)
             </h4>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.75rem', marginTop: '0.5rem' }}>
               {[
-                { name: 'UC Main Campus', loc: 'Main Sanciangko Gate Security Desk & Student Lounge' },
-                { name: 'UC Banilad Campus', loc: 'Cuenco Avenue Main Gate Guard Booth & Canteen Lobby' },
-                { name: 'UC Lapu-Lapu Mandaue (LM)', loc: 'AC Cortes Entrance Lobby Guard Station' },
-                { name: 'UC METC (Mambaling)', loc: 'Alumnos Muster Deck Security Station' },
-                { name: 'UC PRI (Private High)', loc: 'High School Gate 1 Guard Post' },
-                { name: 'UC Pardo-Talisay', loc: 'Bulacao Main Gate Security Station' },
-                { name: 'UC South Campus', loc: 'Sanciangko South Entrance Guard Post' },
-                { name: 'UC Medical Center (UCMC)', loc: 'Hospital Main Entrance Lobby Security Desk' }
+                { name: 'UC Main Campus', loc: 'Main Entrance Lobby & Library Reading Lounge' },
+                { name: 'UC Banilad Campus', loc: 'Canteen Atrium & Open Courtyard Benches' },
+                { name: 'UC Lapu-Lapu Mandaue (LM)', loc: 'Innovation Lobby & Engineering Plaza' },
+                { name: 'UC METC (Mambaling)', loc: 'Cadet Muster Deck & Student Center' },
+                { name: 'UC PRI (Private High)', loc: 'High School Gate & Gymnasium Bleachers' },
+                { name: 'UC Pardo-Talisay', loc: 'Student Pavilion & Main Entrance Lounge' },
+                { name: 'UC South Campus', loc: 'South Campus Quadrangle & SHS Lobby' },
+                { name: 'UC Medical Center (UCMC)', loc: 'Hospital Main Atrium Lobby & Med Student Lounge' }
               ].map((c) => (
                 <div key={c.name} style={{ backgroundColor: 'var(--bg-subtle)', padding: '0.85rem', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
                   <div style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--text-primary)' }}>{c.name}</div>
@@ -258,9 +258,9 @@ export const TermsPrivacyPage: React.FC<TermsPrivacyPageProps> = ({ onNavigate, 
               <CheckCircle2 size={18} /> 5-Step In-Person Inspection Protocol
             </h4>
             <ol style={{ paddingLeft: '1.25rem', fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-              <li><strong>Verify in Daylight:</strong> Meet at the scheduled campus guard desk while security guards are on active duty.</li>
+              <li><strong>Verify in Daylight:</strong> Meet during daylight hours in a visible, agreed-upon public area.</li>
               <li><strong>Physical Inspection:</strong> Carefully inspect textbook pages, uniform sizing, or electronic equipment functionality.</li>
-              <li><strong>Confirm Payment:</strong> Exchange physical cash or verified student e-wallet (GCash) payment in front of the counter.</li>
+              <li><strong>Confirm Payment:</strong> Settle payment via Cash, GCash, Maya, or Bank Transfer in person after inspecting the item.</li>
               <li><strong>Finalize Order:</strong> The seller marks the order as complete in TradeLink once both peers confirm the exchange.</li>
               <li><strong>Submit Product Review:</strong> Leave an authentic product rating and review to guide future student peers.</li>
             </ol>

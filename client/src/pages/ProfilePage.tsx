@@ -51,7 +51,18 @@ import {
 } from 'lucide-react';
 import { StudentVerificationModal } from '../components/verification/StudentVerificationModal';
 import { maskStudentId } from '../utils/security';
-import { PaymentMethodBadge, CashLogo, GCashLogo, MayaLogo } from '../components/common/PaymentLogos';
+import { PaymentMethodBadge, CashLogo, GCashLogo, MayaLogo, BankTransferLogo, PaymentMethodCheckboxGroup } from '../components/common/PaymentLogos';
+
+const parsePaymentMethods = (str?: string): ('cash' | 'gcash' | 'maya' | 'bank_transfer')[] => {
+  if (!str) return ['cash', 'gcash', 'maya', 'bank_transfer'];
+  const methods: ('cash' | 'gcash' | 'maya' | 'bank_transfer')[] = [];
+  const lower = str.toLowerCase();
+  if (lower.includes('cash')) methods.push('cash');
+  if (lower.includes('gcash')) methods.push('gcash');
+  if (lower.includes('maya')) methods.push('maya');
+  if (lower.includes('bank') || lower.includes('transfer')) methods.push('bank_transfer');
+  return methods.length > 0 ? methods : ['cash', 'gcash', 'maya', 'bank_transfer'];
+};
 
 interface ProfilePageProps {
   userId?: string;
@@ -133,7 +144,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   const [editYearLevel, setEditYearLevel] = useState(targetUser?.yearLevel || '2nd Year College');
   const [editMeetupSpots, setEditMeetupSpots] = useState(targetUser?.preferredMeetupSpots || '');
   const [editTradingHours, setEditTradingHours] = useState(targetUser?.tradingHours || '');
-  const [editPaymentMethods, setEditPaymentMethods] = useState(targetUser?.paymentMethods || '');
+  const [editPaymentMethods, setEditPaymentMethods] = useState<('cash' | 'gcash' | 'maya' | 'bank_transfer')[]>(
+    parsePaymentMethods(targetUser?.paymentMethods)
+  );
 
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
   const [isPendingInfoModalOpen, setIsPendingInfoModalOpen] = useState(false);
@@ -150,7 +163,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
       setEditYearLevel(targetUser.yearLevel || '2nd Year College');
       setEditMeetupSpots(targetUser.preferredMeetupSpots || '');
       setEditTradingHours(targetUser.tradingHours || '');
-      setEditPaymentMethods(targetUser.paymentMethods || '');
+      setEditPaymentMethods(parsePaymentMethods(targetUser.paymentMethods));
     }
   }, [targetUser]);
 
@@ -246,7 +259,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
       yearLevel: editYearLevel,
       preferredMeetupSpots: editMeetupSpots.trim(),
       tradingHours: editTradingHours.trim(),
-      paymentMethods: editPaymentMethods.trim()
+      paymentMethods: editPaymentMethods.join(', ')
     });
     setIsEditProfileModalOpen(false);
     showToast('Profile Updated', 'Your profile details and trading preferences have been saved.', 'success');
@@ -594,7 +607,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
             ) : (
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary, #334155)', lineHeight: 1.5, margin: 0 }}>
-                  {targetUser.bio || 'University of Cebu student active in verified campus marketplace exchanges and textbook swaps.'}
+                  {targetUser.bio || 'Verified student active in campus marketplace exchanges, course gear, and textbook swaps.'}
                 </p>
                 {isSelf && (
                   <button
@@ -742,13 +755,13 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
             </div>
           </div>
 
-          {/* Safe Meetup Zones */}
+          {/* Preferred Meetup Spots */}
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.65rem' }}>
             <div style={{ color: 'var(--accent-green, #059669)', marginTop: '2px' }}><ShieldCheck size={16} /></div>
             <div>
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Safe Meetup Zones</div>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Preferred Meetup Spots</div>
               <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px', lineHeight: 1.4 }}>
-                {targetUser.preferredMeetupSpots || 'Main Lobby Security Desk • CCS Study Lounge • Campus Canteen 2'}
+                {targetUser.preferredMeetupSpots || 'Campus Canteen • Library Entrance • Student Study Lounge • Flexible peer location'}
               </div>
             </div>
           </div>
@@ -764,19 +777,20 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
             </div>
           </div>
 
-          {/* Payment / Barter Options */}
+          {/* Payment Preferences */}
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.65rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '3px', marginTop: '2px' }}>
               <CashLogo size={16} />
               <GCashLogo size={16} />
               <MayaLogo size={16} />
+              <BankTransferLogo size={16} />
             </div>
             <div>
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Accepted Settlements</div>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Payment Preferences</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', marginTop: '4px' }}>
-                <PaymentMethodBadge method="cash" size="xs" />
-                <PaymentMethodBadge method="gcash" size="xs" />
-                <PaymentMethodBadge method="maya" size="xs" />
+                {parsePaymentMethods(targetUser.paymentMethods).map((method) => (
+                  <PaymentMethodBadge key={method} method={method} size="xs" />
+                ))}
               </div>
             </div>
           </div>
@@ -1848,32 +1862,30 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
-                  Available Trading Hours
-                </label>
-                <input
-                  type="text"
-                  value={editTradingHours}
-                  onChange={(e) => setEditTradingHours(e.target.value)}
-                  placeholder="Available hours"
-                  className="clean-input"
-                />
-              </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
+                Available Trading Hours
+              </label>
+              <input
+                type="text"
+                value={editTradingHours}
+                onChange={(e) => setEditTradingHours(e.target.value)}
+                placeholder="e.g. Mon – Fri: 11:30 AM – 5:30 PM (Between classes)"
+                className="clean-input"
+              />
+            </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
-                  Accepted Payment Options
-                </label>
-                <input
-                  type="text"
-                  value={editPaymentMethods}
-                  onChange={(e) => setEditPaymentMethods(e.target.value)}
-                  placeholder="Payment methods"
-                  className="clean-input"
-                />
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
+                Payment Preferences (Cash, e-Wallets & Bank Transfer)
+              </label>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.55rem' }}>
+                Select the payment methods you accept for trades. Card payments are excluded as transactions are settled directly peer-to-peer.
               </div>
+              <PaymentMethodCheckboxGroup
+                selectedMethods={editPaymentMethods}
+                onChange={setEditPaymentMethods}
+              />
             </div>
           </div>
 

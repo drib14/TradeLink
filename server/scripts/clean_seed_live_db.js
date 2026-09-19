@@ -92,8 +92,12 @@ async function main() {
     }
 
     console.log('\n--- Seeding Administrator Account ONLY ---');
-    // Bcrypt 12 salt rounds for TradeLink@2026
-    const adminPasswordHash = await bcrypt.hash('TradeLink@2026', 12);
+    const adminEmail = process.env.ADMIN_SEED_EMAIL || 'uc.tradelink@gmail.com';
+    const adminPassword = process.env.ADMIN_SEED_PASSWORD || 'TradeLink@2026';
+    const adminName = process.env.ADMIN_SEED_NAME || 'TradeLink Moderation Team';
+
+    // Bcrypt 12 salt rounds
+    const adminPasswordHash = await bcrypt.hash(adminPassword, 12);
 
     await connection.query(`
       INSERT INTO \`users\` (
@@ -102,14 +106,14 @@ async function main() {
         \`completed_trades\`, \`punctuality_rate\`, \`bio\`, \`is_pro_merchant\`, \`is_banned\`, \`token_version\`
       ) VALUES (
         'user-admin',
-        'UC Campus Moderation',
-        'uc.tradelink@gmail.com',
+        ?,
+        ?,
         'ADMIN001',
         ?,
         'admin',
         'UC Main',
         'CCS',
-        'Faculty / Staff',
+        'Staff',
         'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
         1,
         'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80',
@@ -118,25 +122,25 @@ async function main() {
         0,
         0,
         100,
-        'Official University of Cebu Campus Moderation & Safety Desk. Direct peer-to-peer student verification.',
+        'TradeLink Community Moderation Desk. Direct peer-to-peer student verification and trust enforcement.',
         0,
         0,
         1
       )
-    `, [adminPasswordHash]);
-    console.log('✓ Administrator account seeded: uc.tradelink@gmail.com (ADMIN001)');
+    `, [adminName, adminEmail, adminPasswordHash]);
+    console.log(`✓ Administrator account seeded: ${adminEmail} (ADMIN001)`);
 
     console.log('\n--- Seeding Baseline Announcements & Prohibited Keywords ---');
     await connection.query(`
       INSERT INTO \`announcements\` (\`id\`, \`title\`, \`message\`, \`campus\`, \`type\`, \`author_id\`, \`author_name\`, \`is_active\`) VALUES
-      ('ann-1', 'Official Campus Safety Trading Protocol', 'All student exchanges must be scheduled at guarded campus hubs (canteen, campus library entrance, or student center) during operational school hours. Always inspect items before concluding transactions.', 'All', 'alert', 'user-admin', 'UC Moderation Desk', 1),
-      ('ann-2', 'Midterm Examination Academic Resource Desk Active', 'Students seeking calculators, reviewers, and engineering supplies can use Flash Market for urgent same-day peer requests across all 8 University of Cebu campuses.', 'All', 'info', 'user-admin', 'UC Moderation Desk', 1),
-      ('ann-3', 'High School Textbook & PE Gear Swap Portal Live', 'TradeLink now fully supports textbook exchanges for UC PRI and UC South Campus basic education students with zero platform fees.', 'UC PRI', 'info', 'user-admin', 'Campus Coordinator', 1)
+      ('ann-1', 'Campus Safety & Meetup Guidelines', 'Schedule handovers in well-lit public campus spots (canteen, library entrance, or student lounge) during daylight hours. Always physically inspect items before finalizing payment or barter.', 'All', 'alert', 'user-admin', 'TradeLink Team', 1),
+      ('ann-2', 'Academic Resource Desk Active', 'Need calculators, reviewers, or course essentials urgently? Use Flash Market to post instant same-day peer requests to students on your campus.', 'All', 'info', 'user-admin', 'TradeLink Team', 1),
+      ('ann-3', 'Textbook & Gear Swap Portal Live', 'TradeLink now fully supports direct item-for-item swaps and textbook exchanges with zero platform fees.', 'All', 'info', 'user-admin', 'TradeLink Team', 1)
     `);
 
     await connection.query(`
       INSERT INTO \`admin_audit_logs\` (\`id\`, \`admin_id\`, \`admin_name\`, \`action\`, \`target_type\`, \`target_id\`, \`details\`, \`ip_address\`) VALUES
-      ('log-1', 'user-admin', 'UC Campus Moderation', 'Platform Initialized', 'system', 'system', 'Production safety desk and KYC verification queues initialized for University of Cebu network.', '127.0.0.1')
+      ('log-1', 'user-admin', 'TradeLink Moderation', 'Platform Initialized', 'system', 'system', 'Production safety desk and KYC verification queues initialized.', '127.0.0.1')
     `);
 
     await connection.query(`

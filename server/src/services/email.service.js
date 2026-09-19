@@ -28,7 +28,7 @@ const TRADELINK_LOGO_SVG = `
   <path d="M13 22l6 6 6-6" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
   <text x="46" y="20" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="900" fill="#002B7F" letter-spacing="-0.5">Trade</text>
   <text x="100" y="20" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="900" fill="#FFC72C" letter-spacing="-0.5">Link</text>
-  <text x="46" y="34" font-family="Arial, Helvetica, sans-serif" font-size="9.5" font-weight="600" fill="#64748B" letter-spacing="0.5">University of Cebu</text>
+  <text x="46" y="34" font-family="Arial, Helvetica, sans-serif" font-size="9.5" font-weight="600" fill="#64748B" letter-spacing="0.5">Student Marketplace</text>
 </svg>
 `;
 
@@ -302,8 +302,9 @@ async function sendPasswordResetApprovedEmail(toEmail, code, userName = 'Student
  */
 async function sendPasswordResetRejectedEmail(toEmail, userName = 'Student', reason = '', req = null) {
   const appUrl = getAppBaseUrl(req);
-  const subject = `[TradeLink UC] Password Reset Request Status`;
-  const text = `Hello ${userName},\n\nYour password reset request was reviewed by campus administration and was not approved.\n\nReason: ${reason || 'Identity verification could not be confirmed.'}\n\nVisit TradeLink: ${appUrl}\nIf you believe this is an error, please visit the campus moderation desk or contact uc.tradelink@gmail.com with your Student ID.\n\nBest regards,\nUniversity of Cebu TradeLink Administration Team`;
+  const supportEmail = process.env.SUPPORT_EMAIL || 'support@tradelink.ph';
+  const subject = `[TradeLink] Password Reset Request Status`;
+  const text = `Hello ${userName},\n\nYour password reset request was reviewed by campus administration and was not approved.\n\nReason: ${reason || 'Identity verification could not be confirmed.'}\n\nVisit TradeLink: ${appUrl}\nIf you believe this is an error, please contact support at ${supportEmail}.\n\nBest regards,\nTradeLink Marketplace Team`;
 
   const bodyContent = `
     <div style="text-align: center; margin-bottom: 16px;">
@@ -318,11 +319,11 @@ async function sendPasswordResetRejectedEmail(toEmail, userName = 'Student', rea
     ${reason ? `<div style="background-color: #FFF5F5; border-left: 4px solid #E02424; padding: 12px 16px; border-radius: 4px; margin: 0 0 16px 0; color: #771D1D; font-size: 14px;"><strong>Admin Note:</strong> ${reason}</div>` : ''}
     <div style="text-align: center; margin: 20px 0;">
       <a href="${appUrl}" target="_blank" style="display: inline-block; background-color: #002B7F; color: #FFFFFF; font-size: 13px; font-weight: bold; text-decoration: none; padding: 10px 22px; border-radius: 8px;">
-        Visit TradeLink UC
+        Visit TradeLink
       </a>
     </div>
     <p style="font-size: 13px; color: #64748B; margin: 0; line-height: 1.5;">
-      If you require assistance regaining access to your student account, please visit the campus moderation desk or email <a href="mailto:uc.tradelink@gmail.com" style="color: #002B7F; font-weight: bold;">uc.tradelink@gmail.com</a> with proof of enrollment.
+      If you require assistance regaining access to your student account, please contact us at <a href="mailto:${supportEmail}" style="color: #002B7F; font-weight: bold;">${supportEmail}</a> with proof of enrollment.
     </p>
   `;
 
@@ -335,8 +336,8 @@ async function sendPasswordResetRejectedEmail(toEmail, userName = 'Student', rea
  */
 async function sendAdminPasswordResetEmail(toEmail, code, req = null) {
   const adminUrl = getAdminBaseUrl(req);
-  const subject = `[TradeLink UC] Administrator Password Reset - Code: ${code}`;
-  const text = `TradeLink Administration Portal\n\nYour administrator password reset verification code is: ${code}\n\nThis code will expire in 30 minutes.\n\nOpen Administration Portal:\n${adminUrl}\n\nIf you did not request this, your account may be compromised. Please secure your account immediately.\n\nTradeLink UC Administration`;
+  const subject = `[TradeLink] Administrator Password Reset - Code: ${code}`;
+  const text = `TradeLink Administration Portal\n\nYour administrator password reset verification code is: ${code}\n\nThis code will expire in 30 minutes.\n\nOpen Administration Portal:\n${adminUrl}\n\nIf you did not request this, your account may be compromised. Please secure your account immediately.\n\nTradeLink Administration`;
 
   const bodyContent = `
     <div style="text-align: center; margin-bottom: 16px;">
@@ -385,8 +386,8 @@ async function sendOrderPlacedBuyerEmail(buyer, seller, transaction, listing, re
     ? 'Barter / Item Swap'
     : `₱${parseFloat(transaction.amount || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
 
-  const subject = `[TradeLink UC] Order Confirmation #${refNo} — ${listing.title}`;
-  const text = `Hello ${buyer.name},\n\nYour order #${refNo} for "${listing.title}" has been created!\nSeller: ${seller.name} (${listing.campus})\nTotal: ${formattedAmount}\nPayment Method: ${formatPaymentMethodLabel(transaction.payment_method)}\n\nView deal details and coordinate safe handover:\n${ctaUrl}\n\nTrade safely on campus,\nUniversity of Cebu TradeLink Team`;
+  const subject = `[TradeLink] Order Confirmation #${refNo} — ${listing.title}`;
+  const text = `Hello ${buyer.name},\n\nYour order #${refNo} for "${listing.title}" has been created!\nSeller: ${seller.name} (${listing.campus})\nTotal: ${formattedAmount}\nPayment Method: ${formatPaymentMethodLabel(transaction.payment_method)}\n\nView deal details and coordinate safe handover:\n${ctaUrl}\n\nTrade safely on campus,\nTradeLink Marketplace Team`;
 
   const bodyContent = `
     <div style="text-align: center; margin-bottom: 16px;">
@@ -396,7 +397,7 @@ async function sendOrderPlacedBuyerEmail(buyer, seller, transaction, listing, re
     </div>
     <p style="color: #334155; font-size: 15px; margin: 0 0 12px 0;">Hello <strong>${buyer.name}</strong>,</p>
     <p style="color: #475569; font-size: 14px; line-height: 1.6; margin: 0 0 18px 0;">
-      Your order has been initiated on TradeLink! Please coordinate meeting time and guarded location (e.g. campus canteen or library entrance) with the seller.
+      Your order has been initiated on TradeLink! Please coordinate meeting time and a convenient campus spot (e.g. campus canteen, library entrance, or student lounge) with the seller.
     </p>
     <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 18px; margin: 0 0 20px 0;">
       <table style="width: 100%; font-size: 13px; color: #334155;" cellspacing="0" cellpadding="4">
@@ -451,8 +452,8 @@ async function sendNewOrderSellerEmail(seller, buyer, transaction, listing, req 
     ? 'Barter / Item Swap'
     : `₱${parseFloat(transaction.amount || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
 
-  const subject = `[TradeLink UC] New Order Received #${refNo} — ${listing.title}`;
-  const text = `Hello ${seller.name},\n\nA fellow student (${buyer.name}) has placed an order for your listing: "${listing.title}".\nReference No: #${refNo}\nAmount: ${formattedAmount}\nPayment: ${formatPaymentMethodLabel(transaction.payment_method)}\n\nOpen chat and coordinate meetup:\n${ctaUrl}\n\nTradeLink UC`;
+  const subject = `[TradeLink] New Order Received #${refNo} — ${listing.title}`;
+  const text = `Hello ${seller.name},\n\nA fellow student (${buyer.name}) has placed an order for your listing: "${listing.title}".\nReference No: #${refNo}\nAmount: ${formattedAmount}\nPayment: ${formatPaymentMethodLabel(transaction.payment_method)}\n\nOpen chat and coordinate meetup:\n${ctaUrl}\n\nTradeLink Team`;
 
   const bodyContent = `
     <div style="text-align: center; margin-bottom: 16px;">
@@ -513,8 +514,8 @@ async function sendOrderStatusUpdateEmail(targetUser, otherUser, transaction, li
   const textColor = isCompleted ? '#03543F' : '#9B1C1C';
   const titleText = isCompleted ? 'Deal Successfully Completed' : 'Order Cancelled';
 
-  const subject = `[TradeLink UC] Order #${refNo} Status: ${status.toUpperCase()} — ${listing.title}`;
-  const text = `Hello ${targetUser.name},\n\nOrder #${refNo} for "${listing.title}" is now marked as ${status.toUpperCase()}.\n${reason ? `Note: ${reason}\n` : ''}\nView details on TradeLink:\n${ctaUrl}\n\nUniversity of Cebu TradeLink Team`;
+  const subject = `[TradeLink] Order #${refNo} Status: ${status.toUpperCase()} — ${listing.title}`;
+  const text = `Hello ${targetUser.name},\n\nOrder #${refNo} for "${listing.title}" is now marked as ${status.toUpperCase()}.\n${reason ? `Note: ${reason}\n` : ''}\nView details on TradeLink:\n${ctaUrl}\n\nTradeLink Marketplace Team`;
 
   const bodyContent = `
     <div style="text-align: center; margin-bottom: 16px;">

@@ -86,6 +86,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
   const [searchFilter, setSearchFilter] = useState('');
   const [isSendingMedia, setIsSendingMedia] = useState(false);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [customMeetupInput, setCustomMeetupInput] = useState('');
   const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768);
 
   // Modals state
@@ -711,7 +712,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
                         Cancel
                       </button>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.4rem', maxHeight: '140px', overflowY: 'auto' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.4rem', maxHeight: '130px', overflowY: 'auto' }}>
                       {OFFICIAL_CAMPUS_SPOTS.map((spot) => (
                         <button
                           key={spot}
@@ -733,6 +734,41 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
                           {spot}
                         </button>
                       ))}
+                    </div>
+
+                    {/* Propose Any Custom Meetup Spot */}
+                    <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.35rem', paddingTop: '0.4rem', borderTop: '1px dashed var(--border-subtle)' }}>
+                      <input
+                        type="text"
+                        value={customMeetupInput}
+                        onChange={(e) => setCustomMeetupInput(e.target.value)}
+                        placeholder="Or type custom meetup location"
+                        className="clean-input"
+                        style={{ fontSize: '0.78rem', padding: '0.35rem 0.6rem', flex: 1 }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && customMeetupInput.trim()) {
+                            e.preventDefault();
+                            sendMeetupLocation(customMeetupInput.trim());
+                            setCustomMeetupInput('');
+                            setShowLocationPicker(false);
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="btn-primary"
+                        style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem', borderRadius: '6px', whiteSpace: 'nowrap' }}
+                        disabled={!customMeetupInput.trim()}
+                        onClick={() => {
+                          if (customMeetupInput.trim()) {
+                            sendMeetupLocation(customMeetupInput.trim());
+                            setCustomMeetupInput('');
+                            setShowLocationPicker(false);
+                          }
+                        }}
+                      >
+                        Send Spot
+                      </button>
                     </div>
                   </div>
                 )}

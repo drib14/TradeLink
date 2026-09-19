@@ -294,7 +294,8 @@ const banUser = asyncHandler(async (req, res, next) => {
     return next(new AppError('You cannot ban your own administrative account.', 400));
   }
 
-  if (target.email === 'uc.tradelink@gmail.com') {
+  const rootAdminEmail = process.env.ADMIN_SEED_EMAIL || process.env.ADMIN_EMAIL || 'uc.tradelink@gmail.com';
+  if (target.email === rootAdminEmail || target.id === 'user-admin') {
     return next(new AppError('The root administrator account cannot be banned.', 403));
   }
 
@@ -404,7 +405,8 @@ const deleteUser = asyncHandler(async (req, res, next) => {
     return next(new AppError('You cannot delete your own administrative account.', 400));
   }
 
-  if (target.email === 'uc.tradelink@gmail.com') {
+  const rootAdminEmail = process.env.ADMIN_SEED_EMAIL || process.env.ADMIN_EMAIL || 'uc.tradelink@gmail.com';
+  if (target.email === rootAdminEmail || target.id === 'user-admin') {
     return next(new AppError('The root administrator account cannot be deleted.', 403));
   }
 
@@ -474,7 +476,8 @@ const demoteAdmin = asyncHandler(async (req, res, next) => {
     return next(new AppError('You cannot demote your own administrative account.', 400));
   }
 
-  if (target.email === 'uc.tradelink@gmail.com') {
+  const rootAdminEmail = process.env.ADMIN_SEED_EMAIL || process.env.ADMIN_EMAIL || 'uc.tradelink@gmail.com';
+  if (target.email === rootAdminEmail || target.id === 'user-admin') {
     return next(new AppError('The root administrator account cannot be demoted.', 403));
   }
 

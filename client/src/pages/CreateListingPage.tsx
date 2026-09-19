@@ -89,10 +89,11 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
   const [customTagInput, setCustomTagInput] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [images, setImages] = useState<string[]>([]);
-  const [acceptedPaymentMethods, setAcceptedPaymentMethods] = useState<('cash' | 'gcash' | 'maya')[]>([
+  const [acceptedPaymentMethods, setAcceptedPaymentMethods] = useState<('cash' | 'gcash' | 'maya' | 'bank_transfer')[]>([
     'cash',
     'gcash',
-    'maya'
+    'maya',
+    'bank_transfer'
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);

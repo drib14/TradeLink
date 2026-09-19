@@ -19,10 +19,10 @@ export const CAMPUS_SLIDES: CampusSlide[] = [
     id: 'slide-main',
     campusName: 'UC Main Campus',
     shortTag: 'UC Main',
-    title: 'UC Main Marketplace Hub',
-    subtitle: 'Trade CCS coding books, Engineering drafting tools, Law and CBA reviewers, laptops, and uniforms safely at Sanciangko Gate.',
+    title: 'UC Main Student Marketplace',
+    subtitle: 'Trade CCS coding books, Engineering drafting tools, Law and CBA reviewers, laptops, and uniforms safely with campus peers.',
     imageUrl: '/images/campuses/uc-main.jpg',
-    highlight: 'Sanciangko & J. Alcantara Trading Hub',
+    highlight: 'Sanciangko & J. Alcantara Student Hub',
     colleges: 'CCS • CBA • Law • Criminology • SHS'
   },
   // 2. UC Banilad Campus
@@ -30,10 +30,10 @@ export const CAMPUS_SLIDES: CampusSlide[] = [
     id: 'slide-banilad',
     campusName: 'UC Banilad Campus',
     shortTag: 'UC Banilad',
-    title: 'UC Banilad Student Exchange',
+    title: 'UC Banilad Peer Exchange',
     subtitle: 'Buy, sell, and swap clinical scrubs, nursing duty kits, medical reviewers, and dorm essentials with fellow Banilad students.',
     imageUrl: '/images/campuses/uc-banilad.jpg',
-    highlight: 'Banilad Atrium & Cafeteria Meetup Desk',
+    highlight: 'Banilad Atrium & Cafeteria Plaza',
     colleges: 'Nursing • Allied Health • CBA • Medicine'
   },
   // 3. UC Lapu-Lapu & Mandaue (LM)
@@ -41,10 +41,10 @@ export const CAMPUS_SLIDES: CampusSlide[] = [
     id: 'slide-lm',
     campusName: 'UC Lapu-Lapu & Mandaue (LM)',
     shortTag: 'UC LM',
-    title: 'UC LM Engineering & Tech Barter',
-    subtitle: 'Peer-to-peer campus exchange for Engineering kits, scientific calculators, PC peripherals, uniforms, and student gadgets in Mandaue.',
+    title: 'UC LM Tech & Engineering Barter',
+    subtitle: 'Peer-to-peer campus exchange for Engineering tools, scientific calculators, PC peripherals, uniforms, and gadgets in Mandaue.',
     imageUrl: '/images/campuses/uc-lm.jpg',
-    highlight: 'A.C. Cortes Guarded Turnstile Zone',
+    highlight: 'A.C. Cortes Campus Hub',
     colleges: 'Engineering • IT • Business • Tourism'
   },
   // 4. UC METC Maritime Education & Training Center
@@ -53,9 +53,9 @@ export const CAMPUS_SLIDES: CampusSlide[] = [
     campusName: 'UC METC Maritime Center',
     shortTag: 'UC METC',
     title: 'UC METC Maritime Trading Post',
-    subtitle: 'Cadet-to-cadet marketplace for merchant marine uniforms, shoulder boards, navigation reviewers, safety gear, and electronics.',
+    subtitle: 'Cadet-to-cadet marketplace for merchant marine uniforms, shoulder boards, navigation reviewers, gear, and student electronics.',
     imageUrl: '/images/campuses/uc-metc.jpg',
-    highlight: 'Alumnos St. Guarded Security Post',
+    highlight: 'Alumnos St. Campus Grounds',
     colleges: 'BSMT • BSMarE • Naval Architecture'
   },
   // 5. UC PRI (Junior & Senior High Campus)
@@ -66,7 +66,7 @@ export const CAMPUS_SLIDES: CampusSlide[] = [
     title: 'UC PRI High School Marketplace',
     subtitle: 'Direct student exchange for Junior High (Grades 7–10) reviewers, Senior High STEM/ABM modules, PE uniforms, and calculators.',
     imageUrl: '/images/campuses/uc-main.jpg',
-    highlight: 'J. Alcantara High School Safety Zone',
+    highlight: 'J. Alcantara Student Zone',
     colleges: 'Junior High (7-10) • STEM • ABM • HUMSS • TVL'
   },
   // 6. UC Pardo-Talisay Campus
@@ -77,7 +77,7 @@ export const CAMPUS_SLIDES: CampusSlide[] = [
     title: 'UC Pardo-Talisay Student Market',
     subtitle: 'South Cebu student board for pre-loved textbooks, uniforms, tech gadgets, and school gear with verified campus peers.',
     imageUrl: '/images/campuses/uc-pardo-talisay.jpg',
-    highlight: 'Pardo-Talisay Guarded Main Gate',
+    highlight: 'Pardo-Talisay Campus Plaza',
     colleges: 'SHS • Education • Criminology • CBA'
   },
   // 7. UC South Campus
@@ -96,22 +96,22 @@ export const CAMPUS_SLIDES: CampusSlide[] = [
     id: 'slide-ucmed',
     campusName: 'UC Medical Center (UCMed)',
     shortTag: 'UC Medical Center',
-    title: 'UCMed Clinical & Med Exchange',
+    title: 'UCMed Clinical & Medical Exchange',
     subtitle: 'Medical student exchange for clinical diagnostic kits, stethoscopes, medical textbooks, and healthcare essentials.',
     imageUrl: '/images/campuses/uc-ucmed.jpg',
-    highlight: 'Ouano Ave. Clinical Lobby Desk',
+    highlight: 'Ouano Ave. Student Lounge',
     colleges: 'Medicine • Clinical Interns • Health Sciences'
   },
-  // 9. University of Cebu - All Campuses Network
+  // 9. All Campuses Network
   {
     id: 'slide-all',
-    campusName: 'All UC Campuses',
+    campusName: 'All Campuses Network',
     shortTag: 'All Campuses',
-    title: 'University of Cebu Marketplace Network',
-    subtitle: 'The official verified student trading platform for Junior High, Senior High, and College students across all UC campuses. 0% fees, 100% verified.',
+    title: 'TradeLink Inter-Campus Network',
+    subtitle: 'Our student-powered marketplace and barter network connecting peers across all 8 campuses. 0% fees, 100% verified students.',
     imageUrl: '/images/campuses/uc-all-campuses.jpg',
-    highlight: 'System-Wide Safe Student Trading',
-    colleges: 'All 8 Campuses • JHS • SHS • College'
+    highlight: 'Unified Student Barter Network',
+    colleges: 'All 8 Campuses • High School • College • Grad'
   }
 ];
 
@@ -167,11 +167,13 @@ export const CampusCarouselBanner: React.FC<CampusCarouselBannerProps> = ({
         overflow: 'hidden',
         boxShadow: '0 20px 40px -10px rgba(0, 43, 127, 0.35)',
         backgroundColor: '#001D59',
-        height: 'clamp(350px, 45vw, 440px)',
-        width: '100%'
+        minHeight: 'clamp(360px, 42vw, 440px)',
+        width: '100%',
+        display: 'flex',
+        flexDirection: 'column'
       }}
     >
-      {/* 1. Silky Smooth Crossfade Slide Backgrounds */}
+      {/* 1. Crossfade Slide Backgrounds */}
       {CAMPUS_SLIDES.map((s, index) => {
         const isCurrent = index === currentIdx;
         return (
@@ -201,41 +203,43 @@ export const CampusCarouselBanner: React.FC<CampusCarouselBannerProps> = ({
         );
       })}
 
-      {/* 2. Layered High-Contrast Gradient & Glass Overlay for Maximum Readability */}
+      {/* 2. Layered High-Contrast Gradient Overlay */}
       <div
         style={{
           position: 'absolute',
           inset: 0,
-          background: 'linear-gradient(90deg, rgba(0, 29, 89, 0.94) 0%, rgba(0, 43, 127, 0.86) 45%, rgba(0, 29, 89, 0.45) 100%)',
-          backdropFilter: 'blur(1.5px)',
+          background: 'linear-gradient(90deg, rgba(0, 29, 89, 0.95) 0%, rgba(0, 43, 127, 0.88) 50%, rgba(0, 29, 89, 0.6) 100%)',
+          backdropFilter: 'blur(2px)',
           zIndex: 2
         }}
       />
 
-      {/* 3. Foreground Content Container */}
+      {/* 3. Foreground Content Container — Ultra Responsive */}
       <div
         style={{
           position: 'relative',
-          height: '100%',
+          flex: 1,
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          padding: 'clamp(1.25rem, 3.5vw, 2.5rem)',
-          paddingLeft: 'clamp(3rem, 5.5vw, 4.5rem)',
-          paddingRight: 'clamp(3rem, 5.5vw, 4.5rem)',
+          padding: 'clamp(1.2rem, 3.5vw, 2.5rem)',
+          paddingLeft: 'clamp(1.5rem, 4.5vw, 4rem)',
+          paddingRight: 'clamp(1.5rem, 4.5vw, 4rem)',
           zIndex: 5,
-          maxWidth: '1200px'
+          maxWidth: '1200px',
+          width: '100%',
+          boxSizing: 'border-box'
         }}
       >
-        {/* Top Badges & Campus Index Counter */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+        {/* Top Badges */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
           <span
             style={{
               backgroundColor: '#FFC72C',
               color: '#002B7F',
-              padding: '0.3rem 0.85rem',
+              padding: '0.3rem 0.8rem',
               borderRadius: '9999px',
-              fontSize: '0.75rem',
+              fontSize: 'clamp(0.7rem, 1.2vw, 0.75rem)',
               fontWeight: 800,
               display: 'inline-flex',
               alignItems: 'center',
@@ -245,7 +249,7 @@ export const CampusCarouselBanner: React.FC<CampusCarouselBannerProps> = ({
               boxShadow: '0 2px 8px rgba(255, 199, 44, 0.4)'
             }}
           >
-            <Building2 size={13} /> {slide.shortTag === 'All Campuses' ? 'TradeLink Campus Network' : `Campus ${currentIdx + 1} of 8`}
+            <Building2 size={13} /> {slide.shortTag === 'All Campuses' ? 'TradeLink Network' : `Campus ${currentIdx + 1} of 8`}
           </span>
 
           <span
@@ -254,31 +258,32 @@ export const CampusCarouselBanner: React.FC<CampusCarouselBannerProps> = ({
               backdropFilter: 'blur(8px)',
               color: '#FFFFFF',
               border: '1px solid rgba(255, 255, 255, 0.25)',
-              padding: '0.35rem 0.8rem',
+              padding: '0.3rem 0.75rem',
               borderRadius: '9999px',
-              fontSize: '0.78rem',
+              fontSize: 'clamp(0.7rem, 1.2vw, 0.75rem)',
               fontWeight: 700,
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.4rem',
+              gap: '0.35rem',
               lineHeight: 1
             }}
           >
-            <MapPin size={13} color="#FFC72C" style={{ flexShrink: 0 }} />
+            <MapPin size={12} color="#FFC72C" style={{ flexShrink: 0 }} />
             <span>{slide.highlight}</span>
           </span>
         </div>
 
-        {/* Hero Title & Subtitle with Keyframe Smooth Transition */}
-        <div key={slide.id} style={{ animation: 'fadeInUp 0.45s ease-out' }}>
+        {/* Hero Title & Subtitle with Clean Layout */}
+        <div key={slide.id} style={{ animation: 'fadeInUp 0.45s ease-out', margin: '0.75rem 0' }}>
           <h2
             style={{
-              fontSize: 'clamp(1.35rem, 3.2vw, 2.4rem)',
-              fontWeight: 800,
+              fontSize: 'clamp(1.25rem, 2.8vw, 2.2rem)',
+              fontWeight: 900,
               color: '#FFFFFF',
               lineHeight: 1.2,
-              textShadow: '0 2px 10px rgba(0,0,0,0.3)',
-              fontFamily: 'var(--font-display)'
+              textShadow: '0 2px 10px rgba(0,0,0,0.35)',
+              fontFamily: 'var(--font-display)',
+              margin: 0
             }}
           >
             {slide.title}
@@ -286,14 +291,15 @@ export const CampusCarouselBanner: React.FC<CampusCarouselBannerProps> = ({
 
           <p
             style={{
-              fontSize: 'clamp(0.82rem, 1.3vw, 0.95rem)',
+              fontSize: 'clamp(0.8rem, 1.2vw, 0.92rem)',
               color: '#E2E8F0',
-              marginTop: '0.5rem',
+              marginTop: '0.45rem',
+              marginBottom: 0,
               lineHeight: 1.5,
               maxWidth: '620px',
               textShadow: '0 1px 4px rgba(0,0,0,0.4)',
               display: '-webkit-box',
-              WebkitLineClamp: 3,
+              WebkitLineClamp: 2,
               WebkitBoxOrient: 'vertical',
               overflow: 'hidden'
             }}
@@ -305,82 +311,120 @@ export const CampusCarouselBanner: React.FC<CampusCarouselBannerProps> = ({
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.45rem',
-              marginTop: '0.85rem',
+              gap: '0.4rem',
+              marginTop: '0.65rem',
               color: '#FFC72C',
-              fontSize: '0.82rem',
+              fontSize: 'clamp(0.74rem, 1.1vw, 0.82rem)',
               fontWeight: 700,
               lineHeight: 1
             }}
           >
-            <GraduationCap size={16} style={{ flexShrink: 0 }} />
-            <span>{slide.colleges}</span>
+            <GraduationCap size={15} style={{ flexShrink: 0 }} />
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{slide.colleges}</span>
           </div>
         </div>
 
-        {/* 4. Modern, Compact, Non-Stretched CTA Buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
-          <button
-            onClick={() => handleCampusClick(slide)}
-            style={{
-              backgroundColor: '#FFC72C',
-              color: '#002B7F',
-              padding: '0.65rem 1.4rem',
-              borderRadius: '10px',
-              fontSize: '0.86rem',
-              fontWeight: 800,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.45rem',
-              border: 'none',
-              boxShadow: '0 4px 14px rgba(255, 199, 44, 0.35)',
-              cursor: 'pointer',
-              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 6px 20px rgba(255, 199, 44, 0.5)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 14px rgba(255, 199, 44, 0.35)';
-            }}
-          >
-            <span>{slide.shortTag === 'All Campuses' ? 'Browse All Items' : `Browse ${slide.shortTag}`}</span>
-            <ArrowRight size={15} style={{ flexShrink: 0 }} />
-          </button>
+        {/* 4. Action Buttons & Indicator row */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => handleCampusClick(slide)}
+              style={{
+                backgroundColor: '#FFC72C',
+                color: '#002B7F',
+                padding: '0.6rem 1.25rem',
+                borderRadius: '10px',
+                fontSize: 'clamp(0.78rem, 1.2vw, 0.86rem)',
+                fontWeight: 800,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                border: 'none',
+                boxShadow: '0 4px 14px rgba(255, 199, 44, 0.35)',
+                cursor: 'pointer',
+                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 6px 20px rgba(255, 199, 44, 0.5)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 14px rgba(255, 199, 44, 0.35)';
+              }}
+            >
+              <span>{slide.shortTag === 'All Campuses' ? 'Browse All Items' : `Browse ${slide.shortTag}`}</span>
+              <ArrowRight size={14} style={{ flexShrink: 0 }} />
+            </button>
 
-          <button
-            onClick={() => onPostListing?.()}
+            <button
+              onClick={() => onPostListing?.()}
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.12)',
+                backdropFilter: 'blur(10px)',
+                color: '#FFFFFF',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                padding: '0.6rem 1.2rem',
+                borderRadius: '10px',
+                fontSize: 'clamp(0.78rem, 1.2vw, 0.84rem)',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.22)';
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.5)';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.12)';
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              <Plus size={15} style={{ flexShrink: 0 }} />
+              <span>Post Listing</span>
+            </button>
+          </div>
+
+          {/* Quick Slide Indicator Buttons */}
+          <div
             style={{
-              backgroundColor: 'rgba(255, 255, 255, 0.12)',
-              backdropFilter: 'blur(10px)',
-              color: '#FFFFFF',
-              border: '1px solid rgba(255, 255, 255, 0.3)',
-              padding: '0.65rem 1.3rem',
-              borderRadius: '10px',
-              fontSize: '0.84rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              display: 'inline-flex',
+              display: 'flex',
               alignItems: 'center',
-              gap: '0.45rem',
-              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.22)';
-              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.5)';
-              e.currentTarget.style.transform = 'translateY(-2px)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.12)';
-              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-              e.currentTarget.style.transform = 'translateY(0)';
+              gap: '0.35rem',
+              backgroundColor: 'rgba(0, 29, 89, 0.65)',
+              padding: '4px 8px',
+              borderRadius: '9999px',
+              backdropFilter: 'blur(6px)',
+              border: '1px solid rgba(255, 255, 255, 0.15)'
             }}
           >
-            <Plus size={15} style={{ flexShrink: 0 }} />
-            <span>Post Listing</span>
-          </button>
+            {CAMPUS_SLIDES.map((s, idx) => {
+              const isActive = idx === currentIdx;
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => setCurrentIdx(idx)}
+                  title={`${idx + 1}. ${s.campusName}`}
+                  aria-label={`Go to slide ${idx + 1}: ${s.campusName}`}
+                  style={{
+                    width: isActive ? '20px' : '6px',
+                    height: '6px',
+                    borderRadius: '9999px',
+                    backgroundColor: isActive ? '#FFC72C' : 'rgba(255, 255, 255, 0.4)',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    cursor: 'pointer',
+                    border: 'none',
+                    padding: 0
+                  }}
+                />
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -458,45 +502,6 @@ export const CampusCarouselBanner: React.FC<CampusCarouselBannerProps> = ({
       >
         <ChevronRight size={24} style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }} />
       </button>
-
-      {/* 8-Campus Quick Slide Indicator Buttons */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: '1rem',
-          right: 'clamp(1rem, 4vw, 2.5rem)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.35rem',
-          zIndex: 20,
-          backgroundColor: 'rgba(0, 29, 89, 0.6)',
-          padding: '4px 8px',
-          borderRadius: '9999px',
-          backdropFilter: 'blur(6px)',
-          border: '1px solid rgba(255, 255, 255, 0.15)'
-        }}
-      >
-        {CAMPUS_SLIDES.map((s, idx) => {
-          const isActive = idx === currentIdx;
-          return (
-            <button
-              key={s.id}
-              onClick={() => setCurrentIdx(idx)}
-              title={`${idx + 1}. ${s.campusName}`}
-              aria-label={`Go to slide ${idx + 1}: ${s.campusName}`}
-              style={{
-                width: isActive ? '24px' : '7px',
-                height: '7px',
-                borderRadius: '9999px',
-                backgroundColor: isActive ? '#FFC72C' : 'rgba(255, 255, 255, 0.4)',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                cursor: 'pointer',
-                border: 'none'
-              }}
-            />
-          );
-        })}
-      </div>
     </div>
   );
 };

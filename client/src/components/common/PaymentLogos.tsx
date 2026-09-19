@@ -170,7 +170,36 @@ export const GrabPayLogo: React.FC<LogoProps> = ({ size = 24, className = '', st
   );
 };
 
-export type ValidPaymentMethod = 'cash' | 'gcash' | 'maya' | 'grabpay';
+/**
+ * Official Bank Transfer / InstaPay Emblem SVG
+ * Indigo badge with classical pillars representing Philippine bank transfers (BDO, BPI, UnionBank, etc.)
+ */
+export const BankTransferLogo: React.FC<LogoProps> = ({ size = 24, className = '', style = {} }) => {
+  const numSize = typeof size === 'number' ? size : parseInt(size as string, 10) || 24;
+
+  return (
+    <svg
+      width={numSize}
+      height={numSize}
+      viewBox="0 0 48 48"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      style={{ display: 'inline-block', flexShrink: 0, ...style }}
+      aria-label="Bank Transfer"
+      role="img"
+    >
+      <rect width="48" height="48" rx="12" fill="#4338CA" />
+      <path d="M24 11L10 18V20H38V18L24 11Z" fill="white" />
+      <rect x="13" y="22" width="4" height="12" rx="1" fill="white" fillOpacity="0.9" />
+      <rect x="22" y="22" width="4" height="12" rx="1" fill="white" fillOpacity="0.9" />
+      <rect x="31" y="22" width="4" height="12" rx="1" fill="white" fillOpacity="0.9" />
+      <rect x="10" y="36" width="28" height="3" rx="1" fill="white" />
+    </svg>
+  );
+};
+
+export type ValidPaymentMethod = 'cash' | 'gcash' | 'maya' | 'bank_transfer' | 'grabpay';
 
 interface PaymentBadgeProps {
   method: string;
@@ -283,6 +312,32 @@ export const PaymentMethodBadge: React.FC<PaymentBadgeProps> = ({
       >
         <GrabPayLogo size={logoSize} />
         {showLabel && <span>GrabPay</span>}
+      </span>
+    );
+  }
+
+  if (normalized.includes('bank') || normalized.includes('transfer')) {
+    return (
+      <span
+        className={className}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.35rem',
+          backgroundColor: '#EEF2FF',
+          color: '#4338CA',
+          border: '1px solid #C7D2FE',
+          borderRadius: '9999px',
+          padding,
+          fontSize,
+          fontWeight: 800,
+          letterSpacing: '0.01em',
+          boxShadow: '0 1px 2px rgba(67, 56, 202, 0.08)',
+          ...style
+        }}
+      >
+        <BankTransferLogo size={logoSize} />
+        {showLabel && <span>Bank Transfer</span>}
       </span>
     );
   }
@@ -427,17 +482,18 @@ export const PaymentMethodSelector: React.FC<PaymentSelectorProps> = ({
 };
 
 export interface PaymentMethodCheckboxGroupProps {
-  selectedMethods: ('cash' | 'gcash' | 'maya')[];
-  onChange: (methods: ('cash' | 'gcash' | 'maya')[]) => void;
+  selectedMethods: ('cash' | 'gcash' | 'maya' | 'bank_transfer')[];
+  onChange: (methods: ('cash' | 'gcash' | 'maya' | 'bank_transfer')[]) => void;
   disabled?: boolean;
 }
 
 /**
- * Custom-styled Payment Method Checkbox Group for Sellers
+ * Custom-styled Payment Method Checkbox Group for Sellers & Students
  * Features custom branded tiles with official SVG emblems, animated checkmarks, and single-method guard.
+ * Strictly excludes cards since peer-to-peer campus trades do not use credit gateways.
  */
 export const PaymentMethodCheckboxGroup: React.FC<PaymentMethodCheckboxGroupProps> = ({
-  selectedMethods = ['cash', 'gcash', 'maya'],
+  selectedMethods = ['cash', 'gcash', 'maya', 'bank_transfer'],
   onChange,
   disabled = false
 }) => {
@@ -468,10 +524,19 @@ export const PaymentMethodCheckboxGroup: React.FC<PaymentMethodCheckboxGroupProp
       accentColor: '#0A0D14',
       bgSelected: '#F8FAFC',
       badge: 'Zero Fee'
+    },
+    {
+      id: 'bank_transfer' as const,
+      title: 'Bank Transfer',
+      subtitle: 'InstaPay or online banking QR transfer',
+      logo: <BankTransferLogo size={32} />,
+      accentColor: '#4338CA',
+      bgSelected: '#EEF2FF',
+      badge: 'InstaPay'
     }
   ];
 
-  const handleToggle = (id: 'cash' | 'gcash' | 'maya') => {
+  const handleToggle = (id: 'cash' | 'gcash' | 'maya' | 'bank_transfer') => {
     if (disabled) return;
     const exists = selectedMethods.includes(id);
     if (exists) {
@@ -592,9 +657,9 @@ export const PaymentMethodCheckboxGroup: React.FC<PaymentMethodCheckboxGroupProp
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-        <span>Buyers will only be offered methods you select here.</span>
+        <span>Peers will settle transactions using the methods you select here.</span>
         <span style={{ fontWeight: 700, color: selectedMethods.length === 1 ? '#F59E0B' : 'var(--text-muted)' }}>
-          {selectedMethods.length} of 3 accepted {selectedMethods.length === 1 && '(Minimum 1 required)'}
+          {selectedMethods.length} of 4 accepted {selectedMethods.length === 1 && '(Minimum 1 required)'}
         </span>
       </div>
     </div>

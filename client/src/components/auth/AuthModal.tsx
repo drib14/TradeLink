@@ -107,7 +107,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!loginIdentifier.trim()) {
-      showToast('Input Required', 'Please enter your Student ID or ID Number.', 'warning');
+      showToast('Input Required', 'Please enter your Student ID or Email.', 'warning');
       return;
     }
     if (!loginPassword) {
@@ -122,7 +122,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         showToast('Welcome Back', res.message, 'success');
         onClose();
       } else {
-        showToast('Login Failed', res.message, 'error');
+        const isCredentialError =
+          res.message.toLowerCase().includes('invalid') ||
+          res.message.toLowerCase().includes('credential') ||
+          res.message.toLowerCase().includes('not found');
+        const displayMsg = isCredentialError
+          ? 'Account not found or password incorrect. If you have not registered yet, click "Create Student Account" below.'
+          : res.message;
+        showToast('Login Failed', displayMsg, 'error');
       }
     } catch (err: any) {
       showToast('Error', err?.message || 'Login encountered an issue.', 'error');
@@ -298,18 +305,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               {/* Identifier Input */}
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-                  ID Number
+                  Student ID or Email
                 </label>
                 <input
                   type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
                   value={loginIdentifier}
-                  onChange={(e) => setLoginIdentifier(e.target.value.replace(/\D/g, ''))}
-                  placeholder="ID Number"
+                  onChange={(e) => setLoginIdentifier(e.target.value)}
+                  placeholder="Student ID (e.g. 1234567) or Email"
                   className="clean-input"
                   style={{ fontWeight: 500 }}
-                  maxLength={20}
+                  maxLength={64}
                   required
                   autoFocus
                   disabled={isSubmitting}
