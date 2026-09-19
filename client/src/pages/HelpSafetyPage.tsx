@@ -1,46 +1,30 @@
 import React, { useState } from 'react';
 import {
   ShieldCheck,
-  Phone,
-  KeyRound,
   CheckCircle2,
   AlertTriangle,
+  FileCheck,
   ChevronLeft,
+  Lock,
+  Eye,
+  Camera,
+  MessageSquare,
+  Sparkles,
   MapPin,
   Clock,
-  Mail,
-  FileCheck,
-  Building2,
-  Lock,
-  Camera
+  ThumbsUp
 } from 'lucide-react';
-import { CAMPUS_DETAILS, SAFE_MEETUP_CHECKLIST } from '../data/campusLocations';
-import { Campus } from '../types';
+import { SAFE_MEETUP_CHECKLIST } from '../data/campusLocations';
 
 interface HelpSafetyPageProps {
   onNavigate: (view: string, param?: any) => void;
 }
 
 export const HelpSafetyPage: React.FC<HelpSafetyPageProps> = ({ onNavigate }) => {
-  const campusList: Campus[] = [
-    'UC Main',
-    'UC Banilad',
-    'UC LM',
-    'UC METC',
-    'UC PRI',
-    'UC Pardo-Talisay',
-    'UC South Campus',
-    'UC Medical Center'
-  ];
-
-  const [selectedCampus, setSelectedCampus] = useState<string>('All');
-
-  const displayedCampuses = selectedCampus === 'All'
-    ? campusList
-    : campusList.filter((c) => c === selectedCampus);
+  const [activeTab, setActiveTab] = useState<'tips' | 'verification'>('tips');
 
   return (
-    <div className="container" style={{ maxWidth: '980px', padding: '2rem 1.5rem 5rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+    <div className="container" style={{ maxWidth: '960px', padding: '2rem 1.5rem 5rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
       {/* Page Header */}
       <div>
         <button
@@ -62,17 +46,17 @@ export const HelpSafetyPage: React.FC<HelpSafetyPageProps> = ({ onNavigate }) =>
           <ChevronLeft size={16} /> Back to Home
         </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: 'var(--uc-blue)', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-          <ShieldCheck size={16} /> Campus Trust, Verification & Safety Manual
+          <ShieldCheck size={16} /> TradeLink Safety & Trust Manual
         </div>
         <h1 style={{ fontSize: '2.1rem', fontWeight: 900, color: 'var(--text-primary)', marginTop: '0.25rem', fontFamily: 'var(--font-display)' }}>
-          Trade Safely Across the University of Cebu
+          Trade Safely with Verified Peers
         </h1>
         <p style={{ fontSize: '0.92rem', color: 'var(--text-secondary)', lineHeight: 1.6, marginTop: '0.35rem' }}>
-          TradeLink connects verified students across all 8 University of Cebu campuses. Every transaction takes place in designated, guarded campus security zones with end-to-end encrypted campus chat and authentic product reviews.
+          TradeLink connects verified students across all campus hubs. Buy, sell, and swap pre-loved textbooks, uniforms, tech, and gear with mutual trust, clear communication, and complete flexibility.
         </p>
       </div>
 
-      {/* 4-Step Safety Pillar */}
+      {/* 4 Core Safety Pillars */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem' }}>
         <div className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <div style={{ width: '38px', height: '38px', borderRadius: '8px', backgroundColor: 'var(--uc-blue-subtle)', color: 'var(--uc-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -80,7 +64,7 @@ export const HelpSafetyPage: React.FC<HelpSafetyPageProps> = ({ onNavigate }) =>
           </div>
           <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)' }}>1. Student Verification</h4>
           <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-            Students authenticate with their official UC Student ID Card and a live selfie to match facial biometrics and earn the verified checkmark badge.
+            Students authenticate with their Student ID Card and selfie verification to earn the verified checkmark badge.
           </p>
         </div>
 
@@ -88,9 +72,9 @@ export const HelpSafetyPage: React.FC<HelpSafetyPageProps> = ({ onNavigate }) =>
           <div style={{ width: '38px', height: '38px', borderRadius: '8px', backgroundColor: 'var(--uc-gold-light)', color: '#B45309', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <MapPin size={20} />
           </div>
-          <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)' }}>2. Safe Campus Zones</h4>
+          <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)' }}>2. Flexible Public Meetups</h4>
           <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-            Meetups occur exclusively at staffed security guard desks and central lobbies across all 8 official UC campuses.
+            You and your peer decide where to meet—library lounges, student dining halls, quadrangles, or nearby public hubs.
           </p>
         </div>
 
@@ -98,9 +82,9 @@ export const HelpSafetyPage: React.FC<HelpSafetyPageProps> = ({ onNavigate }) =>
           <div style={{ width: '38px', height: '38px', borderRadius: '8px', backgroundColor: 'var(--accent-green-subtle)', color: 'var(--accent-green)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <CheckCircle2 size={20} />
           </div>
-          <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)' }}>3. Guarded Settlement & Reviews</h4>
+          <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)' }}>3. In-Person Inspection</h4>
           <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-            Inspect item condition physically at the guard post before the seller finalizes the transaction. Leave genuine product ratings for other students.
+            Inspect item condition physically before paying. Settle with Cash, GCash, Maya, or Bank Transfer in person.
           </p>
         </div>
 
@@ -108,128 +92,82 @@ export const HelpSafetyPage: React.FC<HelpSafetyPageProps> = ({ onNavigate }) =>
           <div style={{ width: '38px', height: '38px', borderRadius: '8px', backgroundColor: 'var(--accent-red-subtle)', color: 'var(--accent-red)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <AlertTriangle size={20} />
           </div>
-          <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)' }}>4. Fast Peer Protection</h4>
+          <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)' }}>4. Fast Community Protection</h4>
           <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-            Suspicious listings, prohibited exam leaks, and fraudulent accounts are swiftly investigated, banned, and escalated to the SAO.
+            Suspicious listings, prohibited exam materials, and fraudulent accounts are quickly flagged and suspended by our moderation team.
           </p>
         </div>
       </div>
 
-      {/* Complete 8 UC Campuses Security Directory & Contact Information */}
+      {/* Safety Guidelines Card (Replaces the UC security phone directory) */}
       <div
         style={{
-          backgroundColor: 'var(--uc-blue-dark, #001D59)',
+          backgroundColor: '#001D59',
           color: '#FFFFFF',
           borderRadius: '16px',
           padding: '2rem clamp(1.25rem, 3vw, 2rem)',
           display: 'flex',
           flexDirection: 'column',
-          gap: '1.5rem',
+          gap: '1.25rem',
           boxShadow: 'var(--shadow-lg)',
           border: '1.5px solid rgba(255, 199, 44, 0.3)'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <Phone size={24} color="var(--uc-gold, #FFC72C)" />
-            <div>
-              <h3 style={{ fontSize: '1.3rem', fontWeight: 900, color: '#FFFFFF', fontFamily: 'var(--font-display)' }}>
-                Official University of Cebu Campus Security & Guard Posts
-              </h3>
-              <p style={{ fontSize: '0.8rem', color: '#CBD5E1', marginTop: '2px' }}>
-                Direct hotlines, official guard desks, and operating hours for all 8 UC campuses
-              </p>
-            </div>
-          </div>
-
-          {/* Campus Filter */}
-          <div style={{ display: 'flex', gap: '0.35rem', overflowX: 'auto', maxWidth: '100%' }}>
-            {['All', ...campusList].map((camp) => (
-              <button
-                key={camp}
-                onClick={() => setSelectedCampus(camp)}
-                style={{
-                  padding: '0.35rem 0.75rem',
-                  borderRadius: '6px',
-                  fontSize: '0.74rem',
-                  fontWeight: selectedCampus === camp ? 800 : 500,
-                  backgroundColor: selectedCampus === camp ? '#FFC72C' : 'rgba(255,255,255,0.1)',
-                  color: selectedCampus === camp ? '#001D59' : '#FFFFFF',
-                  border: 'none',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                {camp}
-              </button>
-            ))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+          <Sparkles size={24} color="#FFC72C" />
+          <div>
+            <h3 style={{ fontSize: '1.3rem', fontWeight: 900, color: '#FFFFFF', fontFamily: 'var(--font-display)', margin: 0 }}>
+              Smart Student Trading Guidelines
+            </h3>
+            <p style={{ fontSize: '0.82rem', color: '#CBD5E1', marginTop: '2px', marginBottom: 0 }}>
+              Follow these recommended practices for smooth and dependable peer exchanges
+            </p>
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
-          {displayedCampuses.map((campusKey) => {
-            const details = CAMPUS_DETAILS[campusKey];
-            return (
-              <div
-                key={campusKey}
-                style={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.07)',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  borderRadius: '12px',
-                  padding: '1.15rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '0.5rem',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--uc-gold, #FFC72C)' }}>
-                    {details.shortName}
-                  </span>
-                  <span style={{ fontSize: '0.68rem', backgroundColor: 'rgba(255,255,255,0.15)', color: '#FFFFFF', padding: '0.15rem 0.5rem', borderRadius: '4px' }}>
-                    {details.studentCountEst}
-                  </span>
-                </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem', marginTop: '0.5rem' }}>
+          <div style={{ backgroundColor: 'rgba(255, 255, 255, 0.08)', borderRadius: '12px', padding: '1.15rem', border: '1px solid rgba(255, 255, 255, 0.12)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#FFC72C', fontWeight: 800, fontSize: '0.88rem' }}>
+              <Clock size={16} /> Daytime Meetings
+            </div>
+            <p style={{ fontSize: '0.82rem', color: '#E2E8F0', marginTop: '0.45rem', lineHeight: 1.55 }}>
+              Always schedule meetups during daytime hours between 7:00 AM and 6:30 PM when campus areas and public plazas are well-lit and busy.
+            </p>
+          </div>
 
-                <div style={{ fontSize: '0.8rem', color: '#E2E8F0', lineHeight: 1.4 }}>
-                  <strong>Address:</strong> {details.address}
-                </div>
+          <div style={{ backgroundColor: 'rgba(255, 255, 255, 0.08)', borderRadius: '12px', padding: '1.15rem', border: '1px solid rgba(255, 255, 255, 0.12)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#86EFAC', fontWeight: 800, fontSize: '0.88rem' }}>
+              <MapPin size={16} /> Public Spaces Only
+            </div>
+            <p style={{ fontSize: '0.82rem', color: '#E2E8F0', marginTop: '0.45rem', lineHeight: 1.55 }}>
+              Choose open public spaces such as the campus library, cafeteria atrium, student lounge, or busy coffee shops. Never meet in private dorms or secluded alleys.
+            </p>
+          </div>
 
-                <div style={{ fontSize: '0.8rem', color: '#93C5FD', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <Phone size={14} style={{ flexShrink: 0 }} />
-                  <a href={`tel:${details.phone.replace(/[^0-9]/g, '')}`} style={{ color: '#93C5FD', fontWeight: 700, textDecoration: 'none' }}>
-                    {details.phone}
-                  </a>
-                  {details.altPhone && <span style={{ color: '#CBD5E1' }}>/ {details.altPhone}</span>}
-                </div>
+          <div style={{ backgroundColor: 'rgba(255, 255, 255, 0.08)', borderRadius: '12px', padding: '1.15rem', border: '1px solid rgba(255, 255, 255, 0.12)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#93C5FD', fontWeight: 800, fontSize: '0.88rem' }}>
+              <Eye size={16} /> Thorough Item Inspection
+            </div>
+            <p style={{ fontSize: '0.82rem', color: '#E2E8F0', marginTop: '0.45rem', lineHeight: 1.55 }}>
+              Test gadgets, check textbook bindings, verify calculator screens, and check uniform sizing in person before sending payment.
+            </p>
+          </div>
 
-                <div style={{ fontSize: '0.76rem', color: '#CBD5E1', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <Mail size={14} style={{ flexShrink: 0 }} />
-                  <span>{details.email}</span>
-                </div>
-
-                <div style={{ fontSize: '0.75rem', color: '#CBD5E1', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.5rem', marginTop: '0.2rem' }}>
-                  <div style={{ color: '#F1F5F9', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                    <Building2 size={13} color="#FFC72C" /> Guard Station:
-                  </div>
-                  <div style={{ marginTop: '2px' }}>{details.securityDesk}</div>
-                </div>
-
-                <div style={{ fontSize: '0.72rem', color: '#86EFAC', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  <Clock size={12} style={{ flexShrink: 0 }} />
-                  <span>Hours: {details.operatingHours}</span>
-                </div>
-              </div>
-            );
-          })}
+          <div style={{ backgroundColor: 'rgba(255, 255, 255, 0.08)', borderRadius: '12px', padding: '1.15rem', border: '1px solid rgba(255, 255, 255, 0.12)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#FCD34D', fontWeight: 800, fontSize: '0.88rem' }}>
+              <ThumbsUp size={16} /> In-Person Handover
+            </div>
+            <p style={{ fontSize: '0.82rem', color: '#E2E8F0', marginTop: '0.45rem', lineHeight: 1.55 }}>
+              Never send down payments or full balances in advance prior to the physical handover. Exchange payment via Cash, GCash, or Maya while you are together.
+            </p>
+          </div>
         </div>
       </div>
 
       {/* Safe Trade Checklist */}
       <div className="clean-card" style={{ padding: '1.5rem' }}>
         <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-          <CheckCircle2 size={20} color="var(--accent-green)" /> Safe Trade Checklist for UC Students
+          <CheckCircle2 size={20} color="var(--accent-green)" /> Safe Trading Checklist for Students
         </h3>
         <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.86rem', color: 'var(--text-secondary)', padding: 0, margin: 0 }}>
           {SAFE_MEETUP_CHECKLIST.map((tip, idx) => (
@@ -249,59 +187,62 @@ export const HelpSafetyPage: React.FC<HelpSafetyPageProps> = ({ onNavigate }) =>
         <h3 style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--text-primary)' }}>
           Obtaining Your Verified Student Badge
         </h3>
-        <p style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', lineHeight: 1.65 }}>
-          All University of Cebu students can unlock the official <strong>Verified Student Badge</strong> to establish instant trust and gain access to unrestricted selling. To get verified:
+        <p style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          The Gold Verified Student Badge indicates that a student account has been authenticated with a matching Student ID Card and selfie check.
         </p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', marginTop: '0.5rem' }}>
-          <div style={{ backgroundColor: 'var(--bg-subtle)', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-            <div style={{ fontWeight: 800, color: 'var(--uc-blue)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <FileCheck size={16} /> Step 1: Official UC Student ID Card
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginTop: '0.5rem' }}>
+          <div style={{ backgroundColor: 'var(--bg-subtle)', padding: '1rem', borderRadius: '10px', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+            <Camera size={20} color="var(--uc-blue)" style={{ flexShrink: 0, marginTop: '2px' }} />
+            <div>
+              <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-primary)' }}>1. Clear Photo Upload</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '2px', lineHeight: 1.45 }}>
+                Submit a crisp, glare-free snapshot of your current Student ID card.
+              </div>
             </div>
-            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
-              Upload a clear, glare-free photo of your official physical or digital UC Student ID card showing your name, student ID number, and clear face photo.
-            </p>
           </div>
-          <div style={{ backgroundColor: 'var(--bg-subtle)', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-            <div style={{ fontWeight: 800, color: 'var(--accent-green)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <Camera size={16} /> Step 2: Live Camera Selfie
+
+          <div style={{ backgroundColor: 'var(--bg-subtle)', padding: '1rem', borderRadius: '10px', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+            <Eye size={20} color="var(--accent-green)" style={{ flexShrink: 0, marginTop: '2px' }} />
+            <div>
+              <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-primary)' }}>2. Biometric Liveness</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '2px', lineHeight: 1.45 }}>
+                Complete a live interactive selfie challenge to confirm real-time identity.
+              </div>
             </div>
-            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
-              Take a live selfie to match your face with the photo on your student ID. This biometric verification eliminates scammers and fake accounts.
-            </p>
           </div>
-        </div>
-        <div style={{ backgroundColor: '#FEF3C7', padding: '0.85rem 1rem', borderRadius: '8px', border: '1px solid #FDE68A', fontSize: '0.82rem', color: '#92400E', lineHeight: 1.55 }}>
-          <strong>Notice on Study Loads / COR:</strong> TradeLink strictly requires an official Student ID with photo. Certificate of Registration (COR) or Study Load is <strong>not accepted</strong> because it lacks a photographic portrait necessary for live face-matching verification.
+
+          <div style={{ backgroundColor: 'var(--bg-subtle)', padding: '1rem', borderRadius: '10px', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+            <Lock size={20} color="#B45309" style={{ flexShrink: 0, marginTop: '2px' }} />
+            <div>
+              <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-primary)' }}>3. Instant Badge</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '2px', lineHeight: 1.45 }}>
+                Verified status unlocks trusted merchant indicators and peer buyer trust.
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Emergency Assistance Box */}
-      <div
-        className="clean-card"
-        style={{
-          padding: '1.75rem',
-          backgroundColor: 'var(--bg-subtle)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          textAlign: 'center',
-          gap: '0.75rem'
-        }}
-      >
-        <Mail size={24} color="var(--uc-blue)" />
-        <h4 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-          Report an Issue or Contact Campus Support
-        </h4>
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', maxWidth: '540px', lineHeight: 1.6 }}>
-          If you encounter suspicious listings, no-shows, harassment, or need assistance verifying your student account, our moderation desk is available at:
+      {/* Community Standards & Dispute Resolution */}
+      <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+        <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+          Community Standards & Dispute Resolution
+        </h3>
+        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          TradeLink maintains zero tolerance for scams, counterfeit gear, abusive communication, or leaked academic tests. If you encounter any issue:
         </p>
-        <a
-          href="mailto:uc.tradelink@gmail.com"
-          className="btn-primary"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', padding: '0.65rem 1.4rem', textDecoration: 'none' }}
-        >
-          <Mail size={16} /> uc.tradelink@gmail.com
-        </a>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <MessageSquare size={16} color="var(--uc-blue)" />
+            <span>Use the <strong>"Report"</strong> button directly inside any peer chat conversation or item listing.</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <ShieldCheck size={16} color="var(--accent-green)" />
+            <span>Reports are reviewed promptly by student moderators with rapid account suspension for bad actors.</span>
+          </div>
+        </div>
       </div>
     </div>
   );

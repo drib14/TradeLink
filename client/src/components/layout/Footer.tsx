@@ -74,12 +74,12 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <Logo size="sm" showSubtitle={false} isDark={true} />
-              <span style={{ fontSize: '0.82rem', color: '#64748B', fontWeight: 600 }}>
-                University of Cebu Student Exchange
+              <span style={{ fontSize: '0.82rem', color: '#94A3B8', fontWeight: 600 }}>
+                Student-Powered Campus Exchange
               </span>
             </div>
             <p style={{ fontSize: '0.78rem', color: '#64748B', margin: 0, maxWidth: '400px', lineHeight: 1.4 }}>
-              Peer-to-peer campus marketplace for textbooks, uniforms, reviewers, and electronics across 8 UC campuses.
+              Peer-to-peer student marketplace for textbooks, uniforms, reviewers, and supplies across campus hubs.
             </p>
           </div>
 

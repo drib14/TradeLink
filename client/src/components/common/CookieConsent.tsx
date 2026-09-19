@@ -229,7 +229,7 @@ export const CookieConsent: React.FC<CookieConsentProps> = ({ onNavigate }) => {
                     }}
                   >
                     <ShieldCheck size={12} />
-                    <span>CSRF & Student Auth Guarded</span>
+                    <span>CSRF & Student Auth Protected</span>
                   </div>
                   <div
                     style={{

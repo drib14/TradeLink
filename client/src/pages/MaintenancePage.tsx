@@ -100,7 +100,7 @@ export const MaintenancePage: React.FC<MaintenancePageProps> = ({ onNavigate }) 
           className="btn-secondary"
           style={{ padding: '0.65rem 1.4rem' }}
         >
-          <ShieldCheck size={15} /> View Safety Hotlines
+          <ShieldCheck size={15} /> View Safety Guide
         </button>
       </div>
     </div>

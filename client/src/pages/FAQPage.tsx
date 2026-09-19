@@ -30,51 +30,51 @@ export const FAQPage: React.FC<FAQPageProps> = ({ onNavigate }) => {
   const faqs: FAQItem[] = [
     {
       category: 'Meetups & Safety',
-      badge: 'Campus Rule',
+      badge: 'Meetup Choice',
       question: 'Where do trades take place, and can we meet outside campus?',
-      answer: 'All trades must take place strictly inside designated, guarded University of Cebu security booths during daytime hours (7:00 AM – 6:00 PM). Never agree to meet in boarding houses, private dorm rooms, or secluded spots. Meeting at campus security gates ensures physical safety, CCTV coverage, and honest exchanges for both parties.'
+      answer: 'Buyers and sellers have full flexibility to decide where they prefer to meet. Students commonly coordinate convenient public spots like campus libraries, cafeterias, department lounges, or nearby public cafes during daytime hours. We always recommend choosing well-lit, public spaces with good foot traffic.'
     },
     {
       category: 'Orders & Reviews',
       badge: 'Core Protocol',
       question: 'How do order completion and product reviews work?',
-      answer: 'Once you meet at the designated campus guard desk and physically inspect the item, the seller marks the transaction as complete in TradeLink. Afterwards, buyers can submit an authentic 1 to 5 star product review with detailed feedback to help fellow students assess item quality.'
+      answer: 'Once you meet at your agreed spot and physically inspect the item, the seller marks the transaction as complete in TradeLink. Afterwards, buyers can submit an authentic 1 to 5 star product review with detailed feedback to help fellow students assess item quality.'
     },
     {
       category: 'Meetups & Safety',
       badge: 'Payment Safety',
       question: 'How should I pay for items? Is advance payment allowed?',
-      answer: 'Both physical cash and in-person GCash/Maya transfers are accepted. However, you must NEVER send money in advance prior to the physical campus meetup. If paying via GCash, transfer the funds in front of the campus guard desk only after thoroughly inspecting the item.'
+      answer: 'You can pay using Cash on meetup, GCash, Maya, or Bank Transfer. However, you must NEVER send money in advance prior to your physical meetup. Settle payment in person only after thoroughly inspecting the item.'
     },
     {
       category: 'Meetups & Safety',
       badge: 'Inspection Rights',
       question: 'What happens if an item is damaged or the student does not show up?',
-      answer: 'You have zero obligation to accept an item that does not match its listing photos or description—simply decline the trade before the order is finalized. For meetups, wait 10 to 15 minutes at the security desk. If the other student fails to arrive without notice, you can safely cancel. Repeated unexcused no-shows trigger automatic penalties and account suspension.'
+      answer: 'You have zero obligation to accept an item that does not match its listing photos or description—simply decline the trade before the order is finalized. If the other student fails to arrive without notice, you can safely cancel in chat. Repeated unexcused no-shows trigger automatic warnings and account suspension.'
     },
     {
       category: 'Student Verification',
       badge: 'Security System',
       question: 'How does the Student Verification System work, and how fast is approval?',
-      answer: 'TradeLink uses a secure 3-step verification system requiring your physical UC Student ID card and a live webcam biometric selfie with anti-spoofing challenge actions. Submissions with clear credentials and valid liveness verification (>90% confidence score) are automatically approved instantly. Submissions with blur, mismatched credentials, or suspicious signals are held for manual campus administrator review.'
+      answer: 'TradeLink uses a secure verification system requiring your valid Student ID card and a live selfie check. Submissions with clear credentials and valid liveness verification are approved quickly, unlocking the Verified Student Badge on your profile.'
     },
     {
       category: 'Buying & Swapping',
       badge: 'Direct Barter',
       question: 'How do peer item swaps (barter trades) work without money?',
-      answer: 'On items marked "Open to Swap", click "Propose Swap" to select an item from your own active listings to offer in exchange. You and the other student can agree on a straight 1:1 trade, or an uneven trade with a cash difference. Meet at the campus security gate, inspect both items, and the seller finalizes the barter.'
+      answer: 'On items marked "Open to Swap", click "Propose Swap" to select an item from your own active listings to offer in exchange. You and the other student can agree on a straight 1:1 trade, or an uneven trade with a cash difference. Meet at your agreed location, inspect both items, and the seller finalizes the barter.'
     },
     {
       category: 'Buying & Swapping',
       badge: 'Zero Fees',
       question: 'Are there any platform fees or commissions on student sales?',
-      answer: 'None at all. TradeLink is 100% free for all University of Cebu students across all 8 campus branches. There are zero listing fees, zero transaction cuts, and zero commissions. 100% of the agreed amount stays between you and your fellow student.'
+      answer: 'None at all. TradeLink is 100% free for students across all campuses. There are zero listing fees, zero transaction cuts, and zero commissions. 100% of the agreed amount stays between you and your fellow student.'
     },
     {
       category: 'Meetups & Safety',
       badge: 'Dispute & Reports',
       question: 'How do I report scam attempts, abusive behavior, or meetup disputes?',
-      answer: 'Click the "Report" button inside the peer chat or on any item listing. You can also contact our student safety desk directly at uc.tradelink@gmail.com. Campus security administrators review flagged accounts and reports within 24 hours to suspend fraudulent or abusive users.'
+      answer: 'Click the "Report" button inside the peer chat or on any item listing. TradeLink moderators review flagged accounts and reports within 24 hours to suspend fraudulent or abusive users and protect the community.'
     }
   ];
 
@@ -127,7 +127,7 @@ export const FAQPage: React.FC<FAQPageProps> = ({ onNavigate }) => {
           Frequently Asked Questions
         </h1>
         <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6, marginTop: '0.35rem' }}>
-          Essential answers on campus security booth meetups, order completion, payment safety, student verification, and item swaps.
+          Essential answers on campus meetups, order completion, payment safety, student verification, and item swaps.
         </p>
       </div>
 
@@ -304,15 +304,15 @@ export const FAQPage: React.FC<FAQPageProps> = ({ onNavigate }) => {
           Have an urgent question or meetup dispute?
         </h4>
         <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', maxWidth: '520px' }}>
-          Our campus moderation board and security liaisons are ready to assist with account verification, trade disputes, or safety concerns.
+          Our student moderation team is ready to assist with account questions, trade disputes, or safety reports.
         </p>
-        <a
-          href="mailto:uc.tradelink@gmail.com"
+        <button
+          onClick={() => onNavigate('messages')}
           className="btn-primary"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', padding: '0.65rem 1.35rem', textDecoration: 'none' }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', padding: '0.65rem 1.35rem' }}
         >
-          <Mail size={16} /> Contact Support: uc.tradelink@gmail.com
-        </a>
+          <Mail size={16} /> Open Student Help Desk
+        </button>
       </div>
     </div>
   );

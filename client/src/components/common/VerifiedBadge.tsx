@@ -12,7 +12,7 @@ export const VerifiedBadge: React.FC<VerifiedBadgeProps> = ({
   size = 'sm',
   variant = 'green',
   showTooltip = true,
-  tooltipText = 'Verified UC Student'
+  tooltipText = 'Verified Student'
 }) => {
   const [isHovered, setIsHovered] = useState(false);
 

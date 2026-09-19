@@ -87,14 +87,24 @@ function getCookie(name: string): string | null {
   return match ? decodeURIComponent(match[3]) : null;
 }
 
-// Core request function
+// Core request function with automatic retry for network glitches & Render cold-starts
 async function request<T = any>(
   method: HttpMethod,
   endpoint: string,
   body?: any,
-  options: { skipAuth?: boolean; retryOnUnauth?: boolean; headers?: Record<string, string> } = {}
+  options: {
+    skipAuth?: boolean;
+    retryOnUnauth?: boolean;
+    headers?: Record<string, string>;
+    retries?: number;
+  } = {}
 ): Promise<ApiResponse<T>> {
-  const { skipAuth = false, retryOnUnauth = true, headers: customHeaders = {} } = options;
+  const {
+    skipAuth = false,
+    retryOnUnauth = true,
+    headers: customHeaders = {},
+    retries = method === 'GET' ? 2 : 0
+  } = options;
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -136,9 +146,9 @@ async function request<T = any>(
   }
 
   try {
-    // 30-second timeout to prevent hung connections
+    // 45-second timeout to accommodate Render free-tier cold starts
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const timeoutId = setTimeout(() => controller.abort(), 45000);
     config.signal = controller.signal;
 
     const res = await fetch(url, config);
@@ -185,11 +195,23 @@ async function request<T = any>(
 
     return json as ApiResponse<T>;
   } catch (err: any) {
-    // Network error — server unreachable
-    if (err instanceof TypeError && err.message.includes('fetch')) {
+    // If it is a network error / abort / ERR_NETWORK_CHANGED, retry if attempts remain
+    const isNetworkError =
+      (err instanceof TypeError && err.message.toLowerCase().includes('fetch')) ||
+      err?.name === 'AbortError' ||
+      (typeof err?.message === 'string' && (err.message.includes('network') || err.message.includes('abort')));
+
+    if (isNetworkError && retries > 0) {
+      const delayMs = (3 - retries) * 1200;
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+      return request<T>(method, endpoint, body, { ...options, retries: retries - 1 });
+    }
+
+    // Network error — server unreachable or booting up
+    if (isNetworkError) {
       throw {
         status: 'error',
-        message: 'Server unreachable. Running in offline mode.',
+        message: 'Server unreachable or spinning up from cold start. Please check connection.',
         statusCode: 0,
       } as ApiError;
     }

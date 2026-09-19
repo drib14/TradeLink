@@ -275,18 +275,20 @@ async function autoInitDatabase() {
     }
 
 
-    // 2. Ensure Sole Administrator Account Exists: uc.tradelink@gmail.com | TradeLink@2026 | TradeLink Admin
-    const adminPassword = 'TradeLink@2026';
+    // 2. Ensure Sole Administrator Account Exists using environment variables
+    const adminEmail = process.env.ADMIN_SEED_EMAIL || process.env.ADMIN_EMAIL || 'uc.tradelink@gmail.com';
+    const adminPassword = process.env.ADMIN_SEED_PASSWORD || process.env.ADMIN_PASSWORD || 'TradeLink@2026';
+    const adminName = process.env.ADMIN_SEED_NAME || 'TradeLink Admin';
     const adminPasswordHash = await bcrypt.hash(adminPassword, 10);
 
     // Remove legacy or alternative admin accounts
     await db('users').where({ email: 'admin@uc.edu.ph' }).del().catch(() => {});
-    await db('users').where({ id: 'user-admin' }).whereNot({ email: 'uc.tradelink@gmail.com' }).del().catch(() => {});
+    await db('users').where({ id: 'user-admin' }).whereNot({ email: adminEmail }).del().catch(() => {});
 
-    const existingAdmin = await db('users').where({ email: 'uc.tradelink@gmail.com' }).first();
+    const existingAdmin = await db('users').where({ email: adminEmail }).first();
     if (existingAdmin) {
       await db('users').where({ id: existingAdmin.id }).update({
-        name: 'TradeLink Admin',
+        name: adminName,
         password_hash: adminPasswordHash,
         role: 'admin',
         is_banned: false,
@@ -296,8 +298,8 @@ async function autoInitDatabase() {
     } else {
       await db('users').insert({
         id: 'user-admin-main',
-        name: 'TradeLink Admin',
-        email: 'uc.tradelink@gmail.com',
+        name: adminName,
+        email: adminEmail,
         student_id: 'ADMIN001',
         password_hash: adminPasswordHash,
         role: 'admin',
@@ -316,7 +318,7 @@ async function autoInitDatabase() {
         is_pro_merchant: false,
         is_banned: false
       });
-      logger.info('[DB Init] Created administrator: uc.tradelink@gmail.com');
+      logger.info(`[DB Init] Created administrator: ${adminEmail}`);
     }
 
     // 3. Ensure Default System Configuration Exists

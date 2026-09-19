@@ -63,12 +63,12 @@ export const FlashMarketTutorialModal: React.FC<FlashMarketTutorialModalProps> =
       badge: 'Step 3 of 3: Instant Chat & Safety',
       title: 'Peer Responses & Safe Handover',
       description:
-        'When a verified student has what you need, they respond directly to your request. You can coordinate and complete the handover safely within the official UC network:',
+        'When a verified student has what you need, they respond directly to your request. You can coordinate and complete the handover safely on TradeLink:',
       icon: <ShieldCheck size={32} color="#002B7F" />,
       features: [
         'Instant peer-to-peer campus chat with verified student badges',
         'No public phone numbers or social media required — privacy protected',
-        'Safe meetup recommendation: always meet at guarded campus gates or canteen during school hours'
+        'Safe meetup recommendation: agree on a comfortable, well-lit campus spot or public cafe during daytime hours'
       ]
     }
   ];
