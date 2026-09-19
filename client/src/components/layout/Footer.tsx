@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Logo } from '../common/Logo';
 import { useToast } from '../common/Toast';
 import { api } from '../../services/api';
-import { Mail, Check, HelpCircle, Shield, Users, FileText, Info } from 'lucide-react';
+import { Mail, Check, HelpCircle, Shield, Users, FileText, Info, Cookie } from 'lucide-react';
 
 interface FooterProps {
   onNavigate: (view: string, param?: any) => void;
@@ -257,6 +257,22 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               }}
             >
               Privacy Policy
+            </button>
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('tradelink_open_cookie_consent'))}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#CBD5E1',
+                cursor: 'pointer',
+                padding: 0,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem'
+              }}
+            >
+              <Cookie size={14} color="#64748B" />
+              <span>Cookie Preferences</span>
             </button>
           </nav>
         </div>

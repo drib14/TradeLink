@@ -25,14 +25,17 @@ exports.seed = async function(knex) {
   await knex.raw('SET FOREIGN_KEY_CHECKS = 1');
 
   // Hash admin password using 12 salt rounds for enhanced brute-force resistance
-  const adminHash = await bcrypt.hash('TradeLink@2026', 12);
+  const adminEmail = process.env.ADMIN_SEED_EMAIL || 'admin@tradelink.ph';
+  const adminPassword = process.env.ADMIN_SEED_PASSWORD || 'TradeLink@2026';
+  const adminName = process.env.ADMIN_SEED_NAME || 'TradeLink Admin';
+  const adminHash = await bcrypt.hash(adminPassword, 12);
 
   // 1. Seed ONLY the single official Administrator Account
   await knex('users').insert([
     {
       id: 'user-admin',
-      name: 'TradeLink Admin',
-      email: 'uc.tradelink@gmail.com',
+      name: adminName,
+      email: adminEmail,
       student_id: 'ADMIN001',
       password_hash: adminHash,
       role: 'admin',

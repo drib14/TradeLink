@@ -522,7 +522,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <button
                         onClick={() => {
                           setIsUserMenuOpen(false);
-                          window.open('http://localhost:5174', '_blank') || (window.location.href = 'http://localhost:5174');
+                          const adminUrl = import.meta.env.VITE_ADMIN_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5174' : 'https://tradelink-admin.vercel.app');
+                          window.open(adminUrl, '_blank') || (window.location.href = adminUrl);
                         }}
                         className="dropdown-item"
                         style={{ backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', color: 'var(--uc-blue, #002B7F)', fontWeight: 700 }}

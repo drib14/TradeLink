@@ -117,10 +117,10 @@ coverage/
 
 # =========================
 
-# DB folder is intentionally tracked
-
-!DB/
-!DB/**
+DB/
+*.sql
+*.sqlite
+*.sqlite3
 
 # =========================
 
