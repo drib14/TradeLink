@@ -346,7 +346,8 @@ const AdminAppContent: React.FC = () => {
     <AdminProvider>
       <AdminDashboard onNavigate={(view) => {
         if (view === 'home') {
-          window.location.href = 'http://localhost:5173';
+          const clientUrl = import.meta.env.VITE_CLIENT_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5173' : 'https://tradelink-uc.vercel.app');
+          window.location.href = clientUrl;
         }
       }} />
     </AdminProvider>

@@ -63,9 +63,12 @@ export function useApi<T>(
 // Standalone offline check
 export async function isBackendReachable(): Promise<boolean> {
   try {
-    const host = typeof window !== 'undefined' && window.location.hostname ? window.location.hostname : 'localhost';
-    const protocol = typeof window !== 'undefined' && window.location.protocol ? window.location.protocol : 'http:';
-    const res = await fetch(`${protocol}//${host}:3001/api/health`, { method: 'GET' });
+    const baseUrl = import.meta.env.VITE_API_BASE_URL
+      ? import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, '')
+      : (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+        ? 'http://localhost:3001/api'
+        : '/api');
+    const res = await fetch(`${baseUrl}/health`, { method: 'GET' });
     return res.ok;
   } catch {
     return false;

@@ -79,7 +79,7 @@ DATABASE_URL="mysql://<user>:<password>@<host>:<port>/<dbname>" DB_SSL=true npx 
 ```
 
 > [!NOTE]
-> The updated `DB/seed.sql` script seeds **ONLY** the official administrator account (`ADMIN001` / `uc.tradelink@gmail.com` / `TradeLink@2026`), system safety rules, and baseline announcements. It contains **zero dummy students** and **zero mock listings**.
+> The database initialization seeds **ONLY** the initial administrator account (`ADMIN001` configured via `ADMIN_SEED_EMAIL` and `ADMIN_SEED_PASSWORD` in `.env`), system safety rules, and baseline announcements. It contains **zero dummy students** and **zero mock listings**.
 
 ---
 
@@ -123,12 +123,12 @@ Under the **Environment** tab of your Web Service, add the following variables:
 | `COOKIE_SAME_SITE` | `none` | **Critical for cross-origin cookies between Vercel & Render** |
 | `SMTP_HOST` | `smtp.gmail.com` | Gmail SMTP host |
 | `SMTP_PORT` | `465` | SSL Port |
-| `SMTP_USER` | `uc.tradelink@gmail.com` | Official TradeLink Gmail address |
-| `SMTP_PASS` | `otjs xmia kiqq qoup` | Google App Password (16 characters) |
-| `SMTP_FROM` | `TradeLink UC <uc.tradelink@gmail.com>` | Sender display header |
-| `CLOUDINARY_CLOUD_NAME` | `uyytbpe1` | Cloudinary account name |
-| `CLOUDINARY_API_KEY` | `444765518329932` | Cloudinary API Key |
-| `CLOUDINARY_API_SECRET` | `8bzdy9kQjlWHTx6DhOsxOGHqSEo` | Cloudinary Secret |
+| `SMTP_USER` | `your_email@gmail.com` | Official TradeLink sender Gmail address |
+| `SMTP_PASS` | `your_16_char_app_password` | Google App Password (16 characters) |
+| `SMTP_FROM` | `TradeLink Marketplace <noreply@yourdomain.com>` | Sender display header |
+| `CLOUDINARY_CLOUD_NAME` | `your_cloudinary_cloud_name` | Cloudinary account name |
+| `CLOUDINARY_API_KEY` | `your_cloudinary_api_key` | Cloudinary API Key |
+| `CLOUDINARY_API_SECRET` | `your_cloudinary_api_secret` | Cloudinary API Secret |
 | `DAILY_UPLOAD_QUOTA_MB` | `50` | Per-user daily upload limit |
 
 > [!IMPORTANT]
@@ -229,13 +229,13 @@ Whenever a student creates a deal, completes an order, or requests a password re
 
 Once deployment is complete, log in to the admin portal using the pre-seeded master administrator:
 
-| Field | Production Value |
+| Field | Configuration / Value |
 |---|---|
 | **Portal URL** | `https://<your-admin-app>.vercel.app` |
-| **Email** | `uc.tradelink@gmail.com` |
+| **Email** | Configured via `ADMIN_SEED_EMAIL` in `.env` |
 | **Admin ID Number** | `ADMIN001` |
-| **Default Password** | `TradeLink@2026` |
-| **Assigned Campus** | UC Main (Campus Safety & Moderation Desk) |
+| **Default Password** | Configured via `ADMIN_SEED_PASSWORD` in `.env` |
+| **Role** | Community Moderation & Safety Desk |
 
 > [!CAUTION]
 > After logging in for the first time, change the administrator password from the Admin Portal Settings to ensure maximum security.

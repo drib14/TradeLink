@@ -64,4 +64,10 @@ services:
       - key: SMTP_PASS
         sync: false
       - key: SMTP_FROM
-        value: "TradeLink UC <uc.tradelink@gmail.com>"
+        value: "TradeLink Marketplace <noreply@tradelink.ph>"
+      - key: ADMIN_SEED_EMAIL
+        sync: false
+      - key: ADMIN_SEED_PASSWORD
+        sync: false
+      - key: SUPPORT_EMAIL
+        sync: false

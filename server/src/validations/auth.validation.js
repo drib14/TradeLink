@@ -45,7 +45,7 @@ const loginSchema = Joi.object({
     'string.empty': 'Please enter your password.'
   })
 }).or('studentId', 'idNumber', 'emailOrStudentId', 'identifier', 'email').messages({
-  'object.missing': 'Please enter your Student ID or Email.'
+  'object.missing': 'Please enter your Student ID number.'
 });
 
 const forgotPasswordSchema = Joi.object({
