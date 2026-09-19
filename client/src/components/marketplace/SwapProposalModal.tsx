@@ -330,7 +330,7 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="btn-secondary"
+            className="btn-neutral"
             style={{ padding: '0.55rem 1.15rem', fontSize: '0.82rem' }}
           >
             Cancel

@@ -24,6 +24,7 @@ export function mapFlashRequestFromApi(raw: any): FlashRequest {
     durationHours: raw.durationHours || raw.duration_hours || 24,
     expiresAt: raw.expiresAt || raw.expires_at || null,
     isExpired: Boolean(raw.isExpired || raw.is_expired || (raw.expires_at && new Date(raw.expires_at) < new Date())),
+    imageUrl: raw.imageUrl || raw.image_url || null,
     createdAt: raw.createdAt || raw.created_at || new Date().toISOString(),
   };
 }

@@ -38,6 +38,24 @@ async function autoInitDatabase() {
       }
     }
 
+    // 1a. Ensure 'users' table has token_version and auth hardening columns
+    const hasUsers = await db.schema.hasTable('users');
+    if (hasUsers) {
+      const hasTokenVersion = await db.schema.hasColumn('users', 'token_version').catch(() => false);
+      if (!hasTokenVersion) {
+        await db.schema.alterTable('users', (t) => {
+          t.integer('failed_login_attempts').unsigned().notNullable().defaultTo(0);
+          t.dateTime('locked_until').nullable();
+          t.integer('token_version').unsigned().notNullable().defaultTo(1);
+          t.tinyint('failed_reset_attempts').unsigned().notNullable().defaultTo(0);
+          t.dateTime('password_changed_at').nullable();
+        }).catch((err) => {
+          logger.warn(`[DB Init] Could not alter users table: ${err.message}`);
+        });
+        logger.info('[DB Init] Added token_version and auth hardening columns to users table.');
+      }
+    }
+
     // 1b. Ensure password_reset_requests table exists
     const hasPasswordResetTable = await db.schema.hasTable('password_reset_requests');
     if (!hasPasswordResetTable) {
@@ -121,6 +139,20 @@ async function autoInitDatabase() {
       }).catch(() => {});
     }
 
+    // 1d. Ensure accepted_payment_methods exists on listings table
+    const hasListingsTable = await db.schema.hasTable('listings').catch(() => false);
+    if (hasListingsTable) {
+      const hasAcceptedPaymentMethods = await db.schema.hasColumn('listings', 'accepted_payment_methods').catch(() => false);
+      if (!hasAcceptedPaymentMethods) {
+        await db.schema.alterTable('listings', (t) => {
+          t.string('accepted_payment_methods', 255).notNullable().defaultTo('cash,gcash,maya');
+        }).catch((err) => {
+          logger.warn(`[DB Init] Could not alter listings table: ${err.message}`);
+        });
+        logger.info('[DB Init] Added accepted_payment_methods column to listings table.');
+      }
+    }
+
     // 1d. Ensure verification_requests columns exist for automated approval and fraud analysis
     const hasVerifTable = await db.schema.hasTable('verification_requests').catch(() => false);
     if (hasVerifTable) {
@@ -162,21 +194,86 @@ async function autoInitDatabase() {
       logger.info('[DB Init] Created newsletter_subscribers table.');
     }
 
-    // 1f. Ensure users table has advanced security authentication columns
-    const hasUsers = await db.schema.hasTable('users').catch(() => false);
-    if (hasUsers) {
-      const hasFailedAttempts = await db.schema.hasColumn('users', 'failed_login_attempts').catch(() => false);
-      if (!hasFailedAttempts) {
-        await db.schema.alterTable('users', (t) => {
-          t.integer('failed_login_attempts').unsigned().defaultTo(0);
-          t.datetime('locked_until').nullable();
-          t.integer('token_version').unsigned().defaultTo(1);
-          t.tinyint('failed_reset_attempts').unsigned().defaultTo(0);
-          t.datetime('password_changed_at').nullable();
-        }).catch(() => {});
-        logger.info('[DB Init] Added security auth columns to users table.');
-      }
+    // 1g. Ensure listing_views table exists for persistent unique view tracking
+    const hasListingViewsTable = await db.schema.hasTable('listing_views').catch(() => false);
+    if (!hasListingViewsTable) {
+      await db.raw(`
+        CREATE TABLE IF NOT EXISTS \`listing_views\` (
+          \`id\` VARCHAR(36) NOT NULL PRIMARY KEY,
+          \`listing_id\` VARCHAR(36) NOT NULL,
+          \`viewer_identifier\` VARCHAR(128) NOT NULL,
+          \`created_at\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE KEY \`uniq_listing_viewer\` (\`listing_id\`, \`viewer_identifier\`),
+          INDEX \`idx_listing_views_listing\` (\`listing_id\`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      `).catch(() => {});
+      logger.info('[DB Init] Created listing_views table for persistent deduplicated view counting.');
     }
+
+    // 1h. Ensure flash_requests.image_url exists
+    const hasFlashImageCol = await db.schema.hasColumn('flash_requests', 'image_url').catch(() => false);
+    if (!hasFlashImageCol) {
+      await db.schema.alterTable('flash_requests', (t) => {
+        t.string('image_url', 500).nullable();
+      }).catch(() => {});
+      logger.info('[DB Init] Added image_url column to flash_requests table.');
+    }
+
+    // Self-healing: Backfill missing or null flash_requests images with high-resolution academic photos
+    try {
+      const emptyImageRequests = await db('flash_requests')
+        .whereNull('image_url')
+        .orWhere('image_url', '')
+        .select('id', 'item_name', 'category');
+
+      for (const req of emptyImageRequests) {
+        let fallbackImage = 'https://images.unsplash.com/photo-1594980596870-8aa52a78d8cd?auto=format&fit=crop&w=800&q=80';
+        const nameLower = (req.item_name || '').toLowerCase();
+        const catLower = (req.category || '').toLowerCase();
+
+        if (nameLower.includes('calculator') || catLower.includes('calculator')) {
+          fallbackImage = 'https://images.unsplash.com/photo-1594980596870-8aa52a78d8cd?auto=format&fit=crop&w=800&q=80';
+        } else if (nameLower.includes('uniform') || nameLower.includes('epaulette') || catLower.includes('uniform')) {
+          fallbackImage = nameLower.includes('marine') || nameLower.includes('epaulette')
+            ? 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=800&q=80'
+            : 'https://images.unsplash.com/photo-1523381294911-8d3cead13475?auto=format&fit=crop&w=800&q=80';
+        } else if (nameLower.includes('medical') || nameLower.includes('stethoscope') || catLower.includes('medical')) {
+          fallbackImage = 'https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?auto=format&fit=crop&w=800&q=80';
+        } else if (nameLower.includes('drafting') || nameLower.includes('square') || catLower.includes('architecture') || catLower.includes('engineering')) {
+          fallbackImage = 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80';
+        } else if (nameLower.includes('notes') || nameLower.includes('book') || catLower.includes('textbook')) {
+          fallbackImage = 'https://images.unsplash.com/photo-1532012164546-f432f2e3777a?auto=format&fit=crop&w=800&q=80';
+        }
+
+        await db('flash_requests').where({ id: req.id }).update({ image_url: fallbackImage });
+      }
+      if (emptyImageRequests.length > 0) {
+        logger.info(`[DB Init] Backfilled realistic academic images for ${emptyImageRequests.length} flash request(s).`);
+      }
+    } catch (backfillErr) {
+      logger.warn(`[DB Init] Flash image backfill notice: ${backfillErr.message}`);
+    }
+
+    // 1i. Ensure listings rating and total_reviews columns exist
+    const hasListingRatingCol = await db.schema.hasColumn('listings', 'rating').catch(() => false);
+    if (!hasListingRatingCol) {
+      await db.schema.alterTable('listings', (t) => {
+        t.decimal('rating', 2, 1).defaultTo(0.0);
+        t.integer('total_reviews').unsigned().defaultTo(0);
+      }).catch(() => {});
+      logger.info('[DB Init] Added rating and total_reviews columns to listings table.');
+    }
+
+    // 1j. Ensure reviews.listing_id column exists
+    const hasReviewListingCol = await db.schema.hasColumn('reviews', 'listing_id').catch(() => false);
+    if (!hasReviewListingCol) {
+      await db.schema.alterTable('reviews', (t) => {
+        t.string('listing_id', 36).nullable();
+        t.index('listing_id', 'idx_reviews_listing');
+      }).catch(() => {});
+      logger.info('[DB Init] Added listing_id column to reviews table.');
+    }
+
 
     // 2. Ensure Sole Administrator Account Exists: uc.tradelink@gmail.com | TradeLink@2026 | TradeLink Admin
     const adminPassword = 'TradeLink@2026';
@@ -254,7 +351,7 @@ async function autoInitDatabase() {
           {
             id: 'ann-1',
             title: 'Guarded Meetup Reminder',
-            message: 'Always meet inside official UC campus security gates during daytime hours. Inspect items before scanning the Handshake QR code.',
+            message: 'Always meet inside official UC campus security gates during daytime hours. Inspect items before completing the transaction.',
             campus: 'All',
             type: 'alert',
             author_id: 'user-admin',

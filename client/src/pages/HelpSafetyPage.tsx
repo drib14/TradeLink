@@ -68,7 +68,7 @@ export const HelpSafetyPage: React.FC<HelpSafetyPageProps> = ({ onNavigate }) =>
           Trade Safely Across the University of Cebu
         </h1>
         <p style={{ fontSize: '0.92rem', color: 'var(--text-secondary)', lineHeight: 1.6, marginTop: '0.35rem' }}>
-          TradeLink connects verified students across all 8 University of Cebu campuses. Every transaction takes place in designated, guarded campus security zones with encrypted handshake codes for scam-free trading.
+          TradeLink connects verified students across all 8 University of Cebu campuses. Every transaction takes place in designated, guarded campus security zones with end-to-end encrypted campus chat and authentic product reviews.
         </p>
       </div>
 
@@ -96,11 +96,11 @@ export const HelpSafetyPage: React.FC<HelpSafetyPageProps> = ({ onNavigate }) =>
 
         <div className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <div style={{ width: '38px', height: '38px', borderRadius: '8px', backgroundColor: 'var(--accent-green-subtle)', color: 'var(--accent-green)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <KeyRound size={20} />
+            <CheckCircle2 size={20} />
           </div>
-          <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)' }}>3. 4-Digit Handshake</h4>
+          <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)' }}>3. Guarded Settlement & Reviews</h4>
           <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-            Inspect item condition physically at the guard post before entering the encrypted 4-digit code to finalize and build trust.
+            Inspect item condition physically at the guard post before the seller finalizes the transaction. Leave genuine product ratings for other students.
           </p>
         </div>
 

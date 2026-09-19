@@ -221,6 +221,8 @@ export const CampusCarouselBanner: React.FC<CampusCarouselBannerProps> = ({
           flexDirection: 'column',
           justifyContent: 'space-between',
           padding: 'clamp(1.25rem, 3.5vw, 2.5rem)',
+          paddingLeft: 'clamp(3rem, 5.5vw, 4.5rem)',
+          paddingRight: 'clamp(3rem, 5.5vw, 4.5rem)',
           zIndex: 5,
           maxWidth: '1200px'
         }}
@@ -389,26 +391,35 @@ export const CampusCarouselBanner: React.FC<CampusCarouselBannerProps> = ({
         className="desktop-only"
         style={{
           position: 'absolute',
-          left: '1rem',
+          left: '0.75rem',
           top: '50%',
           transform: 'translateY(-50%)',
-          backgroundColor: 'rgba(0, 29, 89, 0.65)',
-          backdropFilter: 'blur(6px)',
+          backgroundColor: 'transparent',
           color: '#FFFFFF',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
+          border: 'none',
           borderRadius: '50%',
           width: '38px',
           height: '38px',
+          display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 20,
           cursor: 'pointer',
-          transition: 'all 0.15s ease'
+          transition: 'all 0.2s ease',
+          opacity: 0.8
         }}
-        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#002B7F')}
-        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(0, 29, 89, 0.65)')}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.opacity = '1';
+          e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
+          e.currentTarget.style.transform = 'translateY(-50%) scale(1.08)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.opacity = '0.8';
+          e.currentTarget.style.backgroundColor = 'transparent';
+          e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+        }}
       >
-        <ChevronLeft size={20} />
+        <ChevronLeft size={24} style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }} />
       </button>
 
       <button
@@ -417,26 +428,35 @@ export const CampusCarouselBanner: React.FC<CampusCarouselBannerProps> = ({
         className="desktop-only"
         style={{
           position: 'absolute',
-          right: '1rem',
+          right: '0.75rem',
           top: '50%',
           transform: 'translateY(-50%)',
-          backgroundColor: 'rgba(0, 29, 89, 0.65)',
-          backdropFilter: 'blur(6px)',
+          backgroundColor: 'transparent',
           color: '#FFFFFF',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
+          border: 'none',
           borderRadius: '50%',
           width: '38px',
           height: '38px',
+          display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 20,
           cursor: 'pointer',
-          transition: 'all 0.15s ease'
+          transition: 'all 0.2s ease',
+          opacity: 0.8
         }}
-        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#002B7F')}
-        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(0, 29, 89, 0.65)')}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.opacity = '1';
+          e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
+          e.currentTarget.style.transform = 'translateY(-50%) scale(1.08)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.opacity = '0.8';
+          e.currentTarget.style.backgroundColor = 'transparent';
+          e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+        }}
       >
-        <ChevronRight size={20} />
+        <ChevronRight size={24} style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }} />
       </button>
 
       {/* 8-Campus Quick Slide Indicator Buttons */}

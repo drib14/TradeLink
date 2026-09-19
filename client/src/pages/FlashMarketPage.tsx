@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useFlashMarket } from '../context/FlashMarketContext';
+import { useMarket } from '../context/MarketContext';
 import { useAuth } from '../context/AuthContext';
 import { useChat } from '../context/ChatContext';
 import { useToast } from '../components/common/Toast';
@@ -18,9 +19,12 @@ import {
   Clock,
   Filter,
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  HelpCircle,
+  X
 } from 'lucide-react';
 import { StudentVerificationModal } from '../components/verification/StudentVerificationModal';
+import { FlashMarketTutorialModal } from '../components/marketplace/FlashMarketTutorialModal';
 
 interface FlashMarketPageProps {
   onNavigate: (view: string, param?: any) => void;
@@ -46,15 +50,36 @@ const getTimeRemaining = (expiresAt?: string) => {
 
 export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, onOpenChat, onOpenAuth }) => {
   const { requests, respondToRequest } = useFlashMarket();
+  const { selectedCampus: globalCampus, setSelectedCampus: setGlobalCampus } = useMarket();
   const { currentUser, isAuthenticated } = useAuth();
   const { showToast } = useToast();
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
-  const [selectedCampus, setSelectedCampus] = useState<'All' | Campus>('All');
+  const [isTutorialOpen, setIsTutorialOpen] = useState(false);
+  const [selectedCampus, setSelectedCampus] = useState<'All' | Campus>(globalCampus || 'All');
   const [urgencyFilter, setUrgencyFilter] = useState<'all' | 'urgent' | 'this_week' | 'flexible'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSimulatingLoading, setIsSimulatingLoading] = useState(true);
+
+  // Sync when global campus filter changes
+  React.useEffect(() => {
+    if (globalCampus) {
+      setSelectedCampus(globalCampus);
+    }
+  }, [globalCampus]);
+
+  const handleCampusChange = (c: 'All' | Campus) => {
+    setSelectedCampus(c);
+    setGlobalCampus(c);
+  };
+
+  React.useEffect(() => {
+    const hasSeen = localStorage.getItem('tradelink_flash_tutorial_seen');
+    if (!hasSeen) {
+      setIsTutorialOpen(true);
+    }
+  }, []);
 
   React.useEffect(() => {
     const timer = setTimeout(() => {
@@ -76,7 +101,11 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
   ];
 
   const filteredRequests = requests.filter((req) => {
-    if (selectedCampus !== 'All' && req.preferredCampus !== selectedCampus) return false;
+    if (selectedCampus !== 'All') {
+      const matchPref = req.preferredCampus && req.preferredCampus.toLowerCase().includes(selectedCampus.toLowerCase());
+      const matchReq = req.requesterCampus && req.requesterCampus.toLowerCase().includes(selectedCampus.toLowerCase());
+      if (!matchPref && !matchReq) return false;
+    }
 
     if (urgencyFilter !== 'all') {
       const u = (req.urgency || '').toLowerCase();
@@ -149,7 +178,8 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
       {/* Header Banner */}
       <div
         style={{
-          background: 'linear-gradient(135deg, #002B7F 0%, #001D59 100%)',
+          backgroundColor: '#002B7F',
+          border: '1px solid #001D59',
           color: '#FFFFFF',
           borderRadius: '18px',
           padding: '2.25rem clamp(1.25rem, 4vw, 2.5rem)',
@@ -158,7 +188,7 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: '1.5rem',
-          boxShadow: '0 12px 30px rgba(0, 43, 127, 0.22)'
+          boxShadow: '0 4px 14px rgba(0, 43, 127, 0.12)'
         }}
       >
         <div style={{ maxWidth: '640px' }}>
@@ -173,13 +203,36 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
           </p>
         </div>
 
-        <button
-          onClick={handleOpenCreateModal}
-          className="btn-gold"
-          style={{ padding: '0.75rem 1.5rem', fontSize: '0.9rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
-        >
-          <Zap size={18} style={{ flexShrink: 0 }} /> <span>Post Flash Request</span>
-        </button>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <button
+            onClick={() => setIsTutorialOpen(true)}
+            id="how-flash-market-works-btn"
+            style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.12)',
+              color: '#FFFFFF',
+              border: '1px solid rgba(255, 255, 255, 0.25)',
+              borderRadius: '12px',
+              padding: '0.75rem 1.25rem',
+              fontSize: '0.88rem',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <HelpCircle size={17} color="#FFC72C" />
+            <span>How Flash Market Works</span>
+          </button>
+          <button
+            onClick={handleOpenCreateModal}
+            className="btn-gold"
+            style={{ padding: '0.75rem 1.5rem', fontSize: '0.9rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
+          >
+            <Zap size={18} style={{ flexShrink: 0 }} /> <span>Post Flash Request</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter Row: Search, Campus, Urgency */}
@@ -199,28 +252,49 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
           </div>
 
           {/* Campus Dropdown Filter */}
-          <div style={{ position: 'relative', minWidth: '220px' }}>
-            <Building2 size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-            <select
-              value={selectedCampus}
-              onChange={(e) => setSelectedCampus(e.target.value as any)}
-              className="clean-input"
-              style={{
-                paddingLeft: '2.35rem',
-                paddingRight: '2rem',
-                cursor: 'pointer',
-                fontWeight: 700,
-                color: 'var(--text-primary)',
-                appearance: 'auto'
-              }}
-              aria-label="Filter by UC Campus"
-            >
-              {campuses.map((c) => (
-                <option key={c} value={c}>
-                  {c === 'All' ? 'All UC Campuses' : c}
-                </option>
-              ))}
-            </select>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <div style={{ position: 'relative', minWidth: '200px' }}>
+              <Building2 size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+              <select
+                value={selectedCampus}
+                onChange={(e) => handleCampusChange(e.target.value as any)}
+                className="clean-input"
+                style={{
+                  paddingLeft: '2.35rem',
+                  paddingRight: '2rem',
+                  cursor: 'pointer',
+                  fontWeight: 700,
+                  color: 'var(--text-primary)',
+                  height: '42px',
+                  borderRadius: '10px'
+                }}
+                aria-label="Filter by UC Campus"
+              >
+                {campuses.map((c) => (
+                  <option key={c} value={c}>
+                    {c === 'All' ? 'All UC Campuses' : c}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {selectedCampus !== 'All' && (
+              <button
+                onClick={() => handleCampusChange('All')}
+                className="btn-neutral"
+                style={{
+                  padding: '0.35rem 0.65rem',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  height: '42px',
+                  borderRadius: '10px'
+                }}
+                title="Clear campus filter"
+              >
+                <X size={14} />
+                <span>Reset</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -279,146 +353,338 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
             const isCardExpired = Boolean(req.isExpired || req.status === 'expired' || (req.expiresAt && new Date(req.expiresAt).getTime() <= Date.now()));
             const timeLeft = getTimeRemaining(req.expiresAt);
 
-            const urgencyBadge = isUrgent ? (
-              <span className="badge-pill badge-sold" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', backgroundColor: '#FEF2F2', color: '#DC2626', border: '1px solid #FECACA' }}>
-                <Zap size={11} /> Urgent (24h)
-              </span>
-            ) : isThisWeek ? (
-              <span className="badge-pill" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', backgroundColor: '#FFFBEB', color: '#D97706', border: '1px solid #FDE68A' }}>
-                <Clock size={11} /> This Week
-              </span>
-            ) : (
-              <span className="badge-pill badge-gray">
-                Flexible
-              </span>
-            );
-
             return (
               <div
                 key={req.id}
-                className="clean-card"
+                className="clean-card card-interactive"
+                onClick={() => onNavigate('flash-detail', { id: req.id })}
                 style={{
-                  padding: '1rem',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '0.65rem',
-                  borderRadius: '14px',
+                  height: '100%',
+                  borderRadius: '16px',
+                  overflow: 'hidden',
                   border: isCardExpired ? '1px dashed #CBD5E1' : '1px solid var(--border-subtle, #E2E8F0)',
-                  backgroundColor: isCardExpired ? '#F8FAFC' : '#FFFFFF',
-                  opacity: isCardExpired ? 0.72 : 1,
-                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02)',
-                  transition: 'transform 0.2s ease, box-shadow 0.2s ease, border-color 0.15s ease'
+                  backgroundColor: isCardExpired ? '#F8FAFC' : 'var(--bg-surface, #FFFFFF)',
+                  opacity: isCardExpired ? 0.75 : 1,
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+                  transition: 'transform 0.2s ease, box-shadow 0.2s ease, border-color 0.15s ease',
+                  cursor: 'pointer'
                 }}
               >
-                {/* Top Meta Row */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.35rem' }}>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.72rem', fontWeight: 800, color: 'var(--uc-blue)' }}>
-                    <MapPin size={11} />
-                    <span>{req.preferredCampus}</span>
-                    <span style={{ color: 'var(--border-subtle)' }}>•</span>
-                    <span style={{ color: 'var(--text-secondary)' }}>{req.requesterCollege}</span>
-                  </div>
-
-                  {isCardExpired ? (
-                    <span className="badge-pill" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', backgroundColor: '#F1F5F9', color: '#64748B', border: '1px solid #CBD5E1', fontSize: '0.65rem', fontWeight: 700 }}>
-                      <Clock size={10} /> Expired
-                    </span>
-                  ) : (
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
-                      {timeLeft && (
-                        <span style={{ fontSize: '0.66rem', color: '#D97706', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '2px', backgroundColor: '#FFFBEB', padding: '1px 5px', borderRadius: '4px', border: '1px solid #FDE68A' }}>
-                          <Clock size={9} /> {timeLeft}
-                        </span>
-                      )}
-                      {urgencyBadge}
-                    </div>
-                  )}
-                </div>
-
-                {/* Title */}
-                <h3 style={{ fontSize: '0.96rem', fontWeight: 800, color: isCardExpired ? '#64748B' : 'var(--text-primary)', lineHeight: 1.35, margin: 0 }}>
-                  {req.itemTitle}
-                </h3>
-
-                {/* Description */}
-                <p style={{ fontSize: '0.8rem', color: isCardExpired ? '#94A3B8' : 'var(--text-secondary)', lineHeight: 1.45, flex: 1, margin: 0, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                  {req.description}
-                </p>
-
-                {/* Target Budget & Offers */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: isCardExpired ? '#F1F5F9' : 'var(--bg-subtle, #F8FAFC)', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border-subtle, #E2E8F0)' }}>
-                  <div>
-                    <span style={{ fontSize: '0.64rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>
-                      Target Budget
-                    </span>
-                    <div style={{ fontSize: '1.05rem', fontWeight: 900, color: isCardExpired ? '#64748B' : 'var(--uc-blue)', fontFamily: 'var(--font-display)' }}>
-                      {req.targetBudget <= 0 ? (
-                        req.description?.toLowerCase().includes('free') ? (
-                          <span style={{ color: '#059669', fontSize: '0.92rem' }}>FREE / Donation</span>
-                        ) : (
-                          <span style={{ color: '#D97706', fontSize: '0.92rem' }}>Open to Offers</span>
-                        )
-                      ) : (
-                        `₱${req.targetBudget.toLocaleString()}`
-                      )}
-                    </div>
-                  </div>
-
-                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: isCardExpired ? '#94A3B8' : 'var(--accent-green)' }}>
-                    {req.offersCount} {req.offersCount === 1 ? 'offer' : 'offers'}
-                  </span>
-                </div>
-
-                {/* Requester Profile & Action */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '0.45rem', borderTop: '1px solid var(--border-subtle, #F1F5F9)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', overflow: 'hidden' }}>
-                    <UserAvatar
-                      src={req.requesterAvatar}
-                      name={req.requesterName}
-                      size={24}
-                    />
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.74rem', fontWeight: 700, color: isCardExpired ? '#64748B' : 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      <span>{req.requesterName}</span>
-                      <VerifiedBadge size="xs" variant="green" showTooltip={false} />
-                    </div>
-                  </div>
-
-                  {isCardExpired ? (
-                    <button
-                      disabled
-                      style={{
-                        padding: '0.4rem 0.65rem',
-                        fontSize: '0.75rem',
-                        fontWeight: 700,
-                        backgroundColor: '#E2E8F0',
-                        color: '#64748B',
-                        border: '1px solid #CBD5E1',
-                        borderRadius: '6px',
-                        cursor: 'not-allowed',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '3px'
+                {/* Media Preview / Request Visual Banner with Floating Glass Badges */}
+                <div
+                  style={{
+                    width: '100%',
+                    height: '145px',
+                    overflow: 'hidden',
+                    backgroundColor: '#0F172A',
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}
+                >
+                  {req.imageUrl ? (
+                    <img
+                      src={req.imageUrl}
+                      alt={req.itemTitle}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        const fallbackEl = e.currentTarget.nextElementSibling as HTMLElement;
+                        if (fallbackEl) fallbackEl.style.display = 'flex';
                       }}
-                    >
-                      <Clock size={11} /> Closed
-                    </button>
-                  ) : currentUser && req.requesterId === currentUser.id ? (
-                    <button
-                      onClick={() => onNavigate('profile')}
-                      className="btn-secondary"
-                      style={{ padding: '0.4rem 0.7rem', fontSize: '0.75rem', fontWeight: 700, borderRadius: '6px' }}
-                    >
-                      Your Request
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => handleRespond(req)}
-                      className="btn-gold"
-                      style={{ padding: '0.42rem 0.75rem', fontSize: '0.76rem', fontWeight: 800, borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
-                    >
-                      <MessageSquare size={12} /> Offer Item
-                    </button>
-                  )}
+                    />
+                  ) : null}
+                  <div
+                    style={{
+                      display: req.imageUrl ? 'none' : 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.35rem',
+                      width: '100%',
+                      height: '100%',
+                      background: 'linear-gradient(135deg, #002B7F 0%, #1E3A8A 100%)',
+                      color: '#FFFFFF',
+                      padding: '1rem',
+                      textAlign: 'center'
+                    }}
+                  >
+                    <div style={{ width: '38px', height: '38px', borderRadius: '50%', backgroundColor: 'rgba(255, 199, 44, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Zap size={22} color="#FFC72C" />
+                    </div>
+                    <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#FFFFFF', letterSpacing: '0.02em' }}>
+                      {req.category || 'Urgent Request'}
+                    </span>
+                  </div>
+
+                  {/* Floating Glassmorphic Badges Overlay */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '8px',
+                      left: '8px',
+                      right: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      zIndex: 2,
+                      pointerEvents: 'none'
+                    }}
+                  >
+                    {/* Urgency Badge */}
+                    {isCardExpired ? (
+                      <span
+                        style={{
+                          backgroundColor: 'rgba(15, 23, 42, 0.85)',
+                          backdropFilter: 'blur(8px)',
+                          color: '#CBD5E1',
+                          padding: '0.2rem 0.55rem',
+                          borderRadius: '999px',
+                          fontSize: '0.66rem',
+                          fontWeight: 800,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                          boxShadow: '0 2px 6px rgba(0, 0, 0, 0.2)'
+                        }}
+                      >
+                        <Clock size={11} /> Expired
+                      </span>
+                    ) : isUrgent ? (
+                      <span
+                        style={{
+                          backgroundColor: 'rgba(220, 38, 38, 0.92)',
+                          backdropFilter: 'blur(8px)',
+                          color: '#FFFFFF',
+                          padding: '0.2rem 0.6rem',
+                          borderRadius: '999px',
+                          fontSize: '0.66rem',
+                          fontWeight: 800,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                          boxShadow: '0 2px 8px rgba(220, 38, 38, 0.4)'
+                        }}
+                      >
+                        <Zap size={11} /> Urgent (24h)
+                      </span>
+                    ) : isThisWeek ? (
+                      <span
+                        style={{
+                          backgroundColor: 'rgba(217, 119, 6, 0.92)',
+                          backdropFilter: 'blur(8px)',
+                          color: '#FFFFFF',
+                          padding: '0.2rem 0.55rem',
+                          borderRadius: '999px',
+                          fontSize: '0.66rem',
+                          fontWeight: 800,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                          boxShadow: '0 2px 8px rgba(217, 119, 6, 0.4)'
+                        }}
+                      >
+                        <Clock size={11} /> This Week
+                      </span>
+                    ) : (
+                      <span
+                        style={{
+                          backgroundColor: 'rgba(5, 150, 105, 0.9)',
+                          backdropFilter: 'blur(8px)',
+                          color: '#FFFFFF',
+                          padding: '0.2rem 0.55rem',
+                          borderRadius: '999px',
+                          fontSize: '0.66rem',
+                          fontWeight: 800,
+                          boxShadow: '0 2px 6px rgba(5, 150, 105, 0.35)'
+                        }}
+                      >
+                        Flexible
+                      </span>
+                    )}
+
+                    {/* Countdown Timer Badge */}
+                    {!isCardExpired && timeLeft && (
+                      <span
+                        style={{
+                          backgroundColor: 'rgba(15, 23, 42, 0.85)',
+                          backdropFilter: 'blur(8px)',
+                          color: '#FFC72C',
+                          padding: '0.2rem 0.55rem',
+                          borderRadius: '999px',
+                          fontSize: '0.66rem',
+                          fontWeight: 800,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                          boxShadow: '0 2px 6px rgba(0, 0, 0, 0.25)'
+                        }}
+                      >
+                        <Clock size={10} /> {timeLeft}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Card Body Container */}
+                <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', flex: 1, gap: '0.55rem' }}>
+                  {/* Full-width Campus & College Meta Row */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.72rem', fontWeight: 800, color: 'var(--uc-blue)' }}>
+                    <MapPin size={12} style={{ flexShrink: 0 }} />
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{req.preferredCampus}</span>
+                    <span style={{ color: 'var(--border-subtle)', flexShrink: 0 }}>•</span>
+                    <span style={{ color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{req.requesterCollege}</span>
+                  </div>
+
+                  {/* Title */}
+                  <h3
+                    style={{
+                      fontSize: '0.96rem',
+                      fontWeight: 800,
+                      color: isCardExpired ? '#64748B' : 'var(--text-primary)',
+                      lineHeight: 1.35,
+                      margin: 0,
+                      minHeight: '2.6em',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}
+                    title={req.itemTitle}
+                  >
+                    {req.itemTitle}
+                  </h3>
+
+                  {/* Description */}
+                  <p
+                    style={{
+                      fontSize: '0.8rem',
+                      color: isCardExpired ? '#94A3B8' : 'var(--text-secondary)',
+                      lineHeight: 1.45,
+                      margin: 0,
+                      minHeight: '2.8em',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}
+                  >
+                    {req.description}
+                  </p>
+
+                  {/* Target Budget & Responses Valuation Box */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      backgroundColor: isCardExpired ? '#F1F5F9' : 'var(--bg-subtle, #F8FAFC)',
+                      padding: '0.55rem 0.8rem',
+                      borderRadius: '10px',
+                      border: '1px solid var(--border-subtle, #E2E8F0)',
+                      marginTop: '0.2rem'
+                    }}
+                  >
+                    <div>
+                      <span style={{ fontSize: '0.64rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        Target Budget
+                      </span>
+                      <div style={{ fontSize: '1.05rem', fontWeight: 900, color: isCardExpired ? '#64748B' : 'var(--uc-blue)', fontFamily: 'var(--font-display)', marginTop: '1px' }}>
+                        {req.targetBudget <= 0 ? (
+                          req.description?.toLowerCase().includes('free') ? (
+                            <span style={{ color: '#059669', fontSize: '0.88rem' }}>FREE / Donation</span>
+                          ) : (
+                            <span style={{ color: '#D97706', fontSize: '0.88rem' }}>Open to Offers</span>
+                          )
+                        ) : (
+                          `₱${req.targetBudget.toLocaleString()}`
+                        )}
+                      </div>
+                    </div>
+
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{ fontSize: '0.64rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        Responses
+                      </span>
+                      <div style={{ fontSize: '0.8rem', fontWeight: 800, color: req.offersCount > 0 ? '#059669' : 'var(--text-muted)', marginTop: '2px' }}>
+                        {req.offersCount} {req.offersCount === 1 ? 'offer' : 'offers'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Requester Profile & Action Footer (Anchored to bottom) */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginTop: 'auto',
+                      paddingTop: '0.65rem',
+                      borderTop: '1px solid var(--border-subtle, #F1F5F9)',
+                      gap: '0.5rem'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', overflow: 'hidden', minWidth: 0, flex: 1 }}>
+                      <UserAvatar
+                        src={req.requesterAvatar}
+                        name={req.requesterName}
+                        size={24}
+                      />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.74rem', fontWeight: 700, color: isCardExpired ? '#64748B' : 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={req.requesterName}>{req.requesterName}</span>
+                        <VerifiedBadge size="xs" variant="green" showTooltip={false} />
+                      </div>
+                    </div>
+
+                    {isCardExpired ? (
+                      <button
+                        disabled
+                        style={{
+                          padding: '0.4rem 0.65rem',
+                          fontSize: '0.74rem',
+                          fontWeight: 700,
+                          backgroundColor: '#E2E8F0',
+                          color: '#64748B',
+                          border: '1px solid #CBD5E1',
+                          borderRadius: '8px',
+                          cursor: 'not-allowed',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '3px'
+                        }}
+                      >
+                        <Clock size={11} /> Closed
+                      </button>
+                    ) : currentUser && req.requesterId === currentUser.id ? (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onNavigate('profile');
+                        }}
+                        className="btn-secondary"
+                        style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', fontWeight: 700, borderRadius: '8px' }}
+                      >
+                        Your Request
+                      </button>
+                    ) : (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRespond(req);
+                        }}
+                        className="btn-gold"
+                        style={{ padding: '0.42rem 0.8rem', fontSize: '0.76rem', fontWeight: 800, borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        <MessageSquare size={13} /> Offer Item
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             );
@@ -428,8 +694,17 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
         <div className="empty-state">
           <Zap size={36} color="var(--uc-blue)" />
           <h3 className="empty-state-title">No Flash Requests Found</h3>
-          <p className="empty-state-desc">No student has posted an urgent request matching your filters. Be the first to broadcast what you need!</p>
-          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+          <p className="empty-state-desc">
+            {selectedCampus !== 'All'
+              ? `No student has posted an urgent request for ${selectedCampus}. Try selecting All Campuses or post what you need!`
+              : 'No student has posted an urgent request matching your filters. Be the first to broadcast what you need!'}
+          </p>
+          <div style={{ display: 'flex', gap: '0.65rem', marginTop: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+            {selectedCampus !== 'All' && (
+              <button onClick={() => handleCampusChange('All')} className="btn-secondary">
+                Show All Campuses
+              </button>
+            )}
             <button onClick={() => setIsCreateModalOpen(true)} className="btn-primary">
               <Plus size={15} /> Post Flash Request
             </button>
@@ -449,9 +724,20 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
       )}
 
       {/* Student Verification Modal */}
-      <StudentVerificationModal
-        isOpen={isVerificationModalOpen}
-        onClose={() => setIsVerificationModalOpen(false)}
+      {isVerificationModalOpen && (
+        <StudentVerificationModal
+          isOpen={isVerificationModalOpen}
+          onClose={() => setIsVerificationModalOpen(false)}
+        />
+      )}
+
+      {/* Flash Market Tutorial Walkthrough Modal */}
+      <FlashMarketTutorialModal
+        isOpen={isTutorialOpen}
+        onClose={() => {
+          setIsTutorialOpen(false);
+          localStorage.setItem('tradelink_flash_tutorial_seen', 'true');
+        }}
       />
     </div>
   );

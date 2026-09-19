@@ -98,7 +98,8 @@ const getFlashRequests = asyncHandler(async (req, res) => {
       description: r.description || r.notes || '',
       notes: r.notes || r.description || '',
       preferredCampus: r.preferred_campus || r.target_campus || 'UC Main',
-      targetCampus: r.target_campus || r.preferred_campus || 'UC Main',
+      imageUrl: r.image_url || null,
+      image_url: r.image_url || null,
       status: effectiveStatus,
       offersCount: r.offers_count || 0,
       createdAt: r.created_at
@@ -128,7 +129,9 @@ const createFlashRequest = asyncHandler(async (req, res, next) => {
     description,
     notes,
     preferredCampus,
-    targetCampus
+    targetCampus,
+    imageUrl,
+    image_url
   } = req.body;
 
   const title = (itemTitle || itemName || '').trim();
@@ -161,6 +164,7 @@ const createFlashRequest = asyncHandler(async (req, res, next) => {
     urgency,
     budget_range: String(targetBudget || budgetRange || '0.00'),
     notes: (description || notes || '').trim(),
+    image_url: imageUrl || image_url || null,
     duration_hours: hours,
     expires_at: expiresAt,
     status: 'open',
@@ -187,6 +191,8 @@ const createFlashRequest = asyncHandler(async (req, res, next) => {
         urgency,
         durationHours: hours,
         expiresAt: expiresAt.toISOString(),
+        imageUrl: newReq.image_url,
+        image_url: newReq.image_url,
         isExpired: false,
         description: (description || notes || '').trim(),
         preferredCampus: newReq.target_campus,

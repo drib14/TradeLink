@@ -18,7 +18,7 @@ interface FAQPageProps {
 interface FAQItem {
   question: string;
   answer: string;
-  category: 'Meetups & Safety' | 'Handshake & Trust' | 'Buying & Swapping' | 'Student Verification';
+  category: 'Meetups & Safety' | 'Orders & Reviews' | 'Buying & Swapping' | 'Student Verification';
   badge?: string;
 }
 
@@ -35,10 +35,10 @@ export const FAQPage: React.FC<FAQPageProps> = ({ onNavigate }) => {
       answer: 'All trades must take place strictly inside designated, guarded University of Cebu security booths during daytime hours (7:00 AM – 6:00 PM). Never agree to meet in boarding houses, private dorm rooms, or secluded spots. Meeting at campus security gates ensures physical safety, CCTV coverage, and honest exchanges for both parties.'
     },
     {
-      category: 'Handshake & Trust',
+      category: 'Orders & Reviews',
       badge: 'Core Protocol',
-      question: 'How does the 4-Digit Handshake Code and Trust Score work?',
-      answer: 'The 4-digit Handshake Code is your final transaction confirmation. Never give the seller your code until you have physically held, tested, and confirmed the item condition. Once the seller enters your code in the app, the transaction completes and Trust Score points are awarded. All new student accounts start at 0% Trust Score and earn ratings through verified peer transactions.'
+      question: 'How do order completion and product reviews work?',
+      answer: 'Once you meet at the designated campus guard desk and physically inspect the item, the seller marks the transaction as complete in TradeLink. Afterwards, buyers can submit an authentic 1 to 5 star product review with detailed feedback to help fellow students assess item quality.'
     },
     {
       category: 'Meetups & Safety',
@@ -50,7 +50,7 @@ export const FAQPage: React.FC<FAQPageProps> = ({ onNavigate }) => {
       category: 'Meetups & Safety',
       badge: 'Inspection Rights',
       question: 'What happens if an item is damaged or the student does not show up?',
-      answer: 'You have zero obligation to accept an item that does not match its listing photos or description—simply decline the trade and do not give your handshake code. For meetups, wait 10 to 15 minutes at the security desk. If the other student fails to arrive without notice, you can safely cancel. Repeated unexcused no-shows trigger automatic punctuality penalties and account suspension.'
+      answer: 'You have zero obligation to accept an item that does not match its listing photos or description—simply decline the trade before the order is finalized. For meetups, wait 10 to 15 minutes at the security desk. If the other student fails to arrive without notice, you can safely cancel. Repeated unexcused no-shows trigger automatic penalties and account suspension.'
     },
     {
       category: 'Student Verification',
@@ -62,7 +62,7 @@ export const FAQPage: React.FC<FAQPageProps> = ({ onNavigate }) => {
       category: 'Buying & Swapping',
       badge: 'Direct Barter',
       question: 'How do peer item swaps (barter trades) work without money?',
-      answer: 'On items marked "Open to Swap", click "Propose Swap" to select an item from your own active listings to offer in exchange. You and the other student can agree on a straight 1:1 trade, or an uneven trade with a cash difference. Meet at the campus security gate, inspect both items, and exchange the mutual handshake code to finalize the barter.'
+      answer: 'On items marked "Open to Swap", click "Propose Swap" to select an item from your own active listings to offer in exchange. You and the other student can agree on a straight 1:1 trade, or an uneven trade with a cash difference. Meet at the campus security gate, inspect both items, and the seller finalizes the barter.'
     },
     {
       category: 'Buying & Swapping',
@@ -74,14 +74,14 @@ export const FAQPage: React.FC<FAQPageProps> = ({ onNavigate }) => {
       category: 'Meetups & Safety',
       badge: 'Dispute & Reports',
       question: 'How do I report scam attempts, abusive behavior, or meetup disputes?',
-      answer: 'Click the "Report" button inside the peer chat drawer or on any item listing. You can also contact our student safety desk directly at uc.tradelink@gmail.com. Campus security administrators review flagged accounts and reports within 24 hours to suspend fraudulent or abusive users.'
+      answer: 'Click the "Report" button inside the peer chat or on any item listing. You can also contact our student safety desk directly at uc.tradelink@gmail.com. Campus security administrators review flagged accounts and reports within 24 hours to suspend fraudulent or abusive users.'
     }
   ];
 
   const categories = [
     'All',
     'Meetups & Safety',
-    'Handshake & Trust',
+    'Orders & Reviews',
     'Buying & Swapping',
     'Student Verification'
   ];
@@ -127,7 +127,7 @@ export const FAQPage: React.FC<FAQPageProps> = ({ onNavigate }) => {
           Frequently Asked Questions
         </h1>
         <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6, marginTop: '0.35rem' }}>
-          Essential answers on campus security booth meetups, 4-digit handshake codes, payment safety, student verification, and item swaps.
+          Essential answers on campus security booth meetups, order completion, payment safety, student verification, and item swaps.
         </p>
       </div>
 

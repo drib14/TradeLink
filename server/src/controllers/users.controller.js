@@ -37,6 +37,9 @@ const getUserProfile = asyncHandler(async (req, res, next) => {
   });
 
   // Get user's reviews
+  const hasTargetCol = await db.schema.hasColumn('reviews', 'target_user_id').catch(() => true);
+  const targetUserCol = hasTargetCol ? 'reviews.target_user_id' : 'reviews.reviewee_id';
+
   const reviews = await db('reviews')
     .join('users as reviewer', 'reviews.reviewer_id', 'reviewer.id')
     .select(
@@ -46,16 +49,19 @@ const getUserProfile = asyncHandler(async (req, res, next) => {
       'reviewer.campus as reviewer_campus',
       'reviewer.trust_score as reviewer_trust_score'
     )
-    .where('reviews.reviewee_id', id)
+    .where(targetUserCol, id)
     .orderBy('reviews.created_at', 'desc')
     .limit(10);
 
   const formattedReviews = reviews.map(serializeReview);
 
+  const isSelf = Boolean(req.user && req.user.id === id);
+  const isAdmin = Boolean(req.user && req.user.role === 'admin');
+
   res.status(200).json({
     status: 'success',
     data: {
-      user: serializeUser(user),
+      user: serializeUser(user, { isSelf, isAdmin }),
       listings: formattedListings,
       reviews: formattedReviews
     }
@@ -311,8 +317,11 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
 const getUserReviews = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
 
+  const hasTargetCol = await db.schema.hasColumn('reviews', 'target_user_id').catch(() => true);
+  const targetUserCol = hasTargetCol ? 'reviews.target_user_id' : 'reviews.reviewee_id';
+
   const reviews = await db('reviews')
-    .where({ reviewee_id: id })
+    .where(targetUserCol, id)
     .join('users as reviewer', 'reviews.reviewer_id', 'reviewer.id')
     .select(
       'reviews.*',

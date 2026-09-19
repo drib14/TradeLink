@@ -51,6 +51,7 @@ const config = {
   },
 
   cookieSecret: process.env.COOKIE_SECRET || (envMode === 'test' ? 'test_cookie_secret_1234567890' : crypto.randomBytes(48).toString('hex')),
+  verificationSessionSecret: process.env.VERIFICATION_SESSION_SECRET || process.env.JWT_ACCESS_SECRET || (envMode === 'test' ? 'test_verif_secret_1234567890' : crypto.randomBytes(48).toString('hex')),
 
   clientUrl: process.env.CLIENT_URL || 'http://localhost:5173',
   adminUrl: process.env.ADMIN_URL || 'http://localhost:5174',

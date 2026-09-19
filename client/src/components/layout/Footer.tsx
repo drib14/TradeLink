@@ -1,391 +1,288 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Logo } from '../common/Logo';
-import {
-  ShieldCheck,
-  Mail,
-  CheckCircle2,
-  AlertCircle,
-  ArrowRight,
-  Loader2
-} from 'lucide-react';
+import { useToast } from '../common/Toast';
+import { api } from '../../services/api';
+import { Mail, Check, HelpCircle, Shield, Users, FileText, Info } from 'lucide-react';
 
 interface FooterProps {
   onNavigate: (view: string, param?: any) => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
-  const [email, setEmail] = useState('');
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [feedbackMessage, setFeedbackMessage] = useState('');
-  const [subscribedEmail, setSubscribedEmail] = useState('');
-
-  useEffect(() => {
-    try {
-      const savedEmail = localStorage.getItem('tradelink_newsletter_email');
-      if (savedEmail) {
-        setSubscribedEmail(savedEmail);
-        setStatus('success');
-        setFeedbackMessage(`Subscribed as ${savedEmail}`);
-      }
-    } catch {
-      // Ignore localStorage errors
-    }
-  }, []);
+  const { showToast } = useToast();
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [isSubscribing, setIsSubscribing] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false);
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmed = email.trim();
-
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!trimmed || !emailRegex.test(trimmed)) {
-      setStatus('error');
-      setFeedbackMessage('Please enter a valid email address.');
+    if (!newsletterEmail.trim() || !newsletterEmail.includes('@')) {
+      showToast('Invalid Email', 'Please enter a valid university email address.', 'warning');
       return;
     }
 
-    setStatus('loading');
-    setFeedbackMessage('');
-
     try {
-      const response = await fetch('/api/newsletter/subscribe', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ email: trimmed })
-      });
-
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok && response.status !== 200) {
-        throw new Error(data?.message || 'Unable to subscribe right now.');
-      }
-
-      setSubscribedEmail(trimmed);
-      setStatus('success');
-      setFeedbackMessage(data?.message || 'Welcome to TradeLink Student Digest! You are now subscribed.');
-      try {
-        localStorage.setItem('tradelink_newsletter_email', trimmed);
-      } catch {
-        // Ignore localStorage error
-      }
-      setEmail('');
-    } catch (err: any) {
-      // Fallback for resilient offline/network edge cases
-      setSubscribedEmail(trimmed);
-      setStatus('success');
-      setFeedbackMessage('You are subscribed to TradeLink campus deal alerts and updates!');
-      try {
-        localStorage.setItem('tradelink_newsletter_email', trimmed);
-      } catch {
-        // Ignore
-      }
-      setEmail('');
-    }
-  };
-
-  const handleResetSubscription = () => {
-    try {
-      localStorage.removeItem('tradelink_newsletter_email');
+      setIsSubscribing(true);
+      await api.post('/newsletter/subscribe', { email: newsletterEmail.trim() });
+      setIsSubscribed(true);
+      setNewsletterEmail('');
+      showToast('Subscribed!', 'You are now enrolled in TradeLink campus announcements and trade drops.', 'success');
     } catch {
-      // Ignore
+      // Fallback success feedback
+      setIsSubscribed(true);
+      setNewsletterEmail('');
+      showToast('Subscribed!', 'Thank you for joining TradeLink campus updates.', 'success');
+    } finally {
+      setIsSubscribing(false);
     }
-    setSubscribedEmail('');
-    setStatus('idle');
-    setFeedbackMessage('');
-    setEmail('');
   };
 
   return (
     <footer
       style={{
-        background: 'linear-gradient(180deg, #001744 0%, #000E2B 100%)',
-        borderTop: '2px solid #FFC72C',
-        color: '#E2E8F0',
-        paddingTop: '3rem',
-        paddingBottom: '2rem',
+        backgroundColor: '#0F172A',
+        borderTop: '1px solid #1E293B',
+        color: '#94A3B8',
+        paddingTop: '2.5rem',
+        paddingBottom: '2.5rem',
         marginTop: 'auto',
-        width: '100%',
-        maxWidth: '100vw',
-        overflowX: 'clip'
+        width: '100%'
       }}
     >
       <div
         style={{
-          width: '100%',
-          maxWidth: '100%',
-          margin: 0,
-          padding: '0 clamp(1.5rem, 4vw, 4rem)'
+          maxWidth: '1200px',
+          margin: '0 auto',
+          padding: '0 1.5rem',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '2rem'
         }}
       >
-        {/* Main Columns Layout: 3 Balanced Columns */}
+        {/* Top Row: Brand & Newsletter */}
         <div
           style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '2.5rem',
-            paddingBottom: '2.5rem',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.12)'
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1.5rem',
+            paddingBottom: '1.75rem',
+            borderBottom: '1px solid #1E293B'
           }}
         >
-          {/* Col 1: Brand & UC Student Community */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-            <Logo size="md" showSubtitle={true} isDark={true} />
-            <p style={{ fontSize: '0.84rem', lineHeight: 1.6, color: '#94A3B8', maxWidth: '360px' }}>
-              The official student exchange and barter network for the University of Cebu community. Built for Webmasters with zero platform fees.
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <Logo size="sm" showSubtitle={false} isDark={true} />
+              <span style={{ fontSize: '0.82rem', color: '#64748B', fontWeight: 600 }}>
+                University of Cebu Student Exchange
+              </span>
+            </div>
+            <p style={{ fontSize: '0.78rem', color: '#64748B', margin: 0, maxWidth: '400px', lineHeight: 1.4 }}>
+              Peer-to-peer campus marketplace for textbooks, uniforms, reviewers, and electronics across 8 UC campuses.
             </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginTop: '0.25rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem', color: '#CBD5E1' }}>
-                <CheckCircle2 size={14} color="#FFC72C" style={{ flexShrink: 0 }} />
-                <span>Zero Platform Fees &bull; 100% Free Forever</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem', color: '#CBD5E1' }}>
-                <CheckCircle2 size={14} color="#FFC72C" style={{ flexShrink: 0 }} />
-                <span>Guarded Campus Security Meetups</span>
-              </div>
-            </div>
-
-            <div style={{ marginTop: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem', color: '#94A3B8' }}>
-              <Mail size={14} color="#FFC72C" style={{ flexShrink: 0 }} />
-              <span>Support: </span>
-              <a
-                href="mailto:uc.tradelink@gmail.com"
-                style={{ color: '#FFC72C', textDecoration: 'none', fontWeight: 600 }}
-                onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
-                onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
-              >
-                uc.tradelink@gmail.com
-              </a>
-            </div>
           </div>
 
-          {/* Col 2: Trust, Safety & Campus Governance */}
-          <div>
-            <h5
+          {/* Newsletter Box */}
+          <form
+            onSubmit={handleSubscribe}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              backgroundColor: '#1E293B',
+              padding: '4px 6px 4px 12px',
+              borderRadius: '10px',
+              border: '1px solid #334155',
+              maxWidth: '380px',
+              width: '100%'
+            }}
+          >
+            <Mail size={15} color="#64748B" style={{ flexShrink: 0 }} />
+            <input
+              type="email"
+              value={newsletterEmail}
+              onChange={(e) => setNewsletterEmail(e.target.value)}
+              placeholder="Enter email for campus drops..."
+              disabled={isSubscribed || isSubscribing}
               style={{
-                color: '#FFC72C',
-                fontSize: '0.82rem',
-                fontWeight: 800,
-                marginBottom: '1rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
+                background: 'none',
+                border: 'none',
+                outline: 'none',
+                color: '#F8FAFC',
+                fontSize: '0.8rem',
+                flex: 1,
+                minWidth: 0
+              }}
+            />
+            <button
+              type="submit"
+              disabled={isSubscribed || isSubscribing}
+              style={{
+                backgroundColor: isSubscribed ? '#059669' : '#002B7F',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '0.45rem 0.85rem',
+                fontSize: '0.76rem',
+                fontWeight: 700,
+                cursor: isSubscribed ? 'default' : 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '0.45rem'
+                gap: '0.3rem',
+                whiteSpace: 'nowrap',
+                transition: 'background-color 0.15s ease'
               }}
             >
-              <ShieldCheck size={15} style={{ flexShrink: 0 }} /> <span>Trust & Governance</span>
-            </h5>
-            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.84rem', padding: 0, margin: 0 }}>
-              {[
-                { label: 'Frequently Asked Questions', view: 'faq', params: {} },
-                { label: 'Campus Safety Guidelines', view: 'help-safety', params: {} },
-                { label: 'Terms & Student Honor Code', view: 'terms', params: { tab: 'honor-code' } },
-                { label: 'Privacy Policy', view: 'terms', params: { tab: 'privacy' } },
-                { label: 'Cookie Preferences', view: '__cookie_consent__', params: {} },
-                { label: 'About TradeLink', view: 'about', params: {} },
-                { label: 'Student Contributors & Team', view: 'developers', params: {} }
-              ].map((link) => (
-                <li key={link.label}>
-                  <button
-                    onClick={() => {
-                      if (link.view === '__cookie_consent__') {
-                        window.dispatchEvent(new CustomEvent('tradelink_open_cookie_consent'));
-                      } else {
-                        onNavigate(link.view, link.params);
-                      }
-                    }}
-                    style={linkBtnStyle}
-                    onMouseEnter={(e) => (e.currentTarget.style.color = '#FFC72C')}
-                    onMouseLeave={(e) => (e.currentTarget.style.color = '#CBD5E1')}
-                  >
-                    {link.label}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Col 3: Real Campus Newsletter */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-            <h5
-              style={{
-                color: '#FFC72C',
-                fontSize: '0.82rem',
-                fontWeight: 800,
-                marginBottom: '0.25rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.45rem'
-              }}
-            >
-              <Mail size={15} style={{ flexShrink: 0 }} /> <span>Campus Newsletter</span>
-            </h5>
-
-            <p style={{ fontSize: '0.82rem', lineHeight: 1.55, color: '#94A3B8', margin: 0 }}>
-              Subscribe to the TradeLink Student Digest for verified campus deals, textbook exchange alerts, and academic barter updates.
-            </p>
-
-            {status === 'success' ? (
-              <div
-                style={{
-                  backgroundColor: 'rgba(16, 185, 129, 0.12)',
-                  border: '1px solid rgba(16, 185, 129, 0.3)',
-                  borderRadius: '10px',
-                  padding: '0.85rem 1rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '0.45rem'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#10B981', fontWeight: 800, fontSize: '0.84rem' }}>
-                  <CheckCircle2 size={16} />
-                  <span>Subscribed Successfully</span>
-                </div>
-                <p style={{ fontSize: '0.78rem', color: '#CBD5E1', margin: 0, lineHeight: 1.45 }}>
-                  {feedbackMessage}
-                </p>
-                {subscribedEmail && (
-                  <button
-                    type="button"
-                    onClick={handleResetSubscription}
-                    style={{
-                      alignSelf: 'flex-start',
-                      background: 'none',
-                      border: 'none',
-                      color: '#FFC72C',
-                      fontSize: '0.72rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      padding: 0,
-                      marginTop: '0.2rem',
-                      textDecoration: 'underline'
-                    }}
-                  >
-                    Change email address
-                  </button>
-                )}
-              </div>
-            ) : (
-              <form onSubmit={handleSubscribe} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <div style={{ display: 'flex', gap: '0.4rem' }}>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      if (status === 'error') {
-                        setStatus('idle');
-                        setFeedbackMessage('');
-                      }
-                    }}
-                    placeholder="Email Address"
-                    disabled={status === 'loading'}
-                    required
-                    style={{
-                      flex: 1,
-                      backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                      border: status === 'error' ? '1.5px solid #EF4444' : '1.5px solid rgba(255, 255, 255, 0.2)',
-                      borderRadius: '8px',
-                      padding: '0.6rem 0.85rem',
-                      color: '#F8FAFC',
-                      fontSize: '0.82rem',
-                      outline: 'none',
-                      transition: 'border-color 0.15s ease'
-                    }}
-                    onFocus={(e) => (e.currentTarget.style.borderColor = '#FFC72C')}
-                    onBlur={(e) => {
-                      if (status !== 'error') {
-                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-                      }
-                    }}
-                  />
-                  <button
-                    type="submit"
-                    disabled={status === 'loading' || !email.trim()}
-                    style={{
-                      backgroundColor: '#FFC72C',
-                      color: '#002B7F',
-                      border: 'none',
-                      borderRadius: '8px',
-                      padding: '0.6rem 1rem',
-                      fontSize: '0.82rem',
-                      fontWeight: 800,
-                      cursor: status === 'loading' || !email.trim() ? 'not-allowed' : 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.35rem',
-                      opacity: status === 'loading' || !email.trim() ? 0.7 : 1,
-                      transition: 'all 0.15s ease',
-                      flexShrink: 0
-                    }}
-                  >
-                    {status === 'loading' ? (
-                      <Loader2 size={14} className="animate-spin" />
-                    ) : (
-                      <>
-                        <span>Join</span>
-                        <ArrowRight size={14} />
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                {status === 'error' && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#F87171', fontSize: '0.74rem' }}>
-                    <AlertCircle size={13} style={{ flexShrink: 0 }} />
-                    <span>{feedbackMessage}</span>
-                  </div>
-                )}
-
-                <span style={{ fontSize: '0.7rem', color: '#64748B', lineHeight: 1.35 }}>
-                  Zero spam. Unsubscribe anytime. Sent only for UC campus drops and exchange news.
-                </span>
-              </form>
-            )}
-          </div>
+              {isSubscribed ? (
+                <>
+                  <Check size={12} />
+                  <span>Subscribed</span>
+                </>
+              ) : isSubscribing ? (
+                <span>Joining...</span>
+              ) : (
+                <span>Subscribe</span>
+              )}
+            </button>
+          </form>
         </div>
 
-        {/* Bottom Bar: Clean & Concise */}
+        {/* Middle Row: Essential Utility & Policy Links (No Navbar Duplicates) */}
         <div
           style={{
-            paddingTop: '1.5rem',
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1rem'
+          }}
+        >
+          <nav
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '1.5rem',
+              fontSize: '0.82rem'
+            }}
+          >
+            <button
+              onClick={() => onNavigate('faq')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#CBD5E1',
+                cursor: 'pointer',
+                padding: 0,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem'
+              }}
+            >
+              <HelpCircle size={14} color="#64748B" />
+              <span>FAQ & Help</span>
+            </button>
+            <button
+              onClick={() => onNavigate('about')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#CBD5E1',
+                cursor: 'pointer',
+                padding: 0,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem'
+              }}
+            >
+              <Info size={14} color="#64748B" />
+              <span>About TradeLink</span>
+            </button>
+            <button
+              onClick={() => onNavigate('developers')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#CBD5E1',
+                cursor: 'pointer',
+                padding: 0,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem'
+              }}
+            >
+              <Users size={14} color="#64748B" />
+              <span>Developers & Team</span>
+            </button>
+            <button
+              onClick={() => onNavigate('help-safety')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#CBD5E1',
+                cursor: 'pointer',
+                padding: 0,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem'
+              }}
+            >
+              <Shield size={14} color="#64748B" />
+              <span>Campus Safety</span>
+            </button>
+            <button
+              onClick={() => onNavigate('terms')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#CBD5E1',
+                cursor: 'pointer',
+                padding: 0,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem'
+              }}
+            >
+              <FileText size={14} color="#64748B" />
+              <span>Honor Code & Terms</span>
+            </button>
+            <button
+              onClick={() => onNavigate('privacy')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#CBD5E1',
+                cursor: 'pointer',
+                padding: 0
+              }}
+            >
+              Privacy Policy
+            </button>
+          </nav>
+        </div>
+
+        {/* Bottom Row: Campuses & Copyright */}
+        <div
+          style={{
             display: 'flex',
             flexWrap: 'wrap',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: '0.75rem',
-            fontSize: '0.76rem',
-            color: '#64748B',
-            width: '100%'
+            paddingTop: '1rem',
+            borderTop: '1px solid #1E293B',
+            fontSize: '0.75rem',
+            color: '#64748B'
           }}
         >
-          <p style={{ margin: 0, color: '#94A3B8' }}>
-            &copy; 2026 TradeLink &bull; University of Cebu Student Exchange. Built by UC Webmasters.
-          </p>
-
-          <div style={{ color: '#94A3B8', fontSize: '0.74rem', display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-            <span>Unified 8-Campus Student Network</span>
-            <span style={{ color: '#475569' }}>&bull;</span>
-            <span>Cebu City, Philippines</span>
-          </div>
+          <span>
+            UC Main &bull; UC Banilad &bull; UC LM &bull; UC METC &bull; UC Pardo-Talisay &bull; UC South &bull; UCMed &bull; UC PRI
+          </span>
+          <span>
+            &copy; {new Date().getFullYear()} TradeLink &bull; Verified student-to-student platform
+          </span>
         </div>
       </div>
     </footer>
   );
-};
-
-const linkBtnStyle: React.CSSProperties = {
-  color: '#CBD5E1',
-  textAlign: 'left',
-  fontWeight: 500,
-  transition: 'color 0.15s ease',
-  cursor: 'pointer',
-  background: 'none',
-  border: 'none',
-  padding: 0
 };

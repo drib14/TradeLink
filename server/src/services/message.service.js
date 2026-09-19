@@ -1,6 +1,51 @@
+const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../config/db');
 const AppError = require('../utils/AppError');
+const config = require('../config/env');
+
+const ENCRYPTION_KEY = crypto.createHash('sha256').update(config.jwt?.accessSecret || 'tradelink-campus-chat-secure-salt-2026').digest();
+const ALGORITHM = 'aes-256-gcm';
+
+/**
+ * Encrypts plaintext message content with AES-256-GCM
+ * Output format: enc:v1:<hex_iv>:<hex_auth_tag>:<hex_ciphertext>
+ */
+function encryptMessageContent(text) {
+  if (!text) return text;
+  try {
+    const iv = crypto.randomBytes(12);
+    const cipher = crypto.createCipheriv(ALGORITHM, ENCRYPTION_KEY, iv);
+    let encrypted = cipher.update(text, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    const authTag = cipher.getAuthTag().toString('hex');
+    return `enc:v1:${iv.toString('hex')}:${authTag}:${encrypted}`;
+  } catch (err) {
+    return text;
+  }
+}
+
+/**
+ * Decrypts encrypted message content
+ */
+function decryptMessageContent(text) {
+  if (!text || typeof text !== 'string') return text;
+  if (!text.startsWith('enc:v1:')) return text;
+  try {
+    const parts = text.split(':');
+    if (parts.length !== 5) return text;
+    const iv = Buffer.from(parts[2], 'hex');
+    const authTag = Buffer.from(parts[3], 'hex');
+    const encryptedText = parts[4];
+    const decipher = crypto.createDecipheriv(ALGORITHM, ENCRYPTION_KEY, iv);
+    decipher.setAuthTag(authTag);
+    let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+  } catch (err) {
+    return text;
+  }
+}
 
 // Helper to determine flash table name
 let _flashTable = null;
@@ -16,7 +61,7 @@ async function getFlashTable() {
 }
 
 /**
- * Persists a message and updates conversation status in a single atomic transaction
+ * Persists an encrypted message and updates conversation status in a single atomic transaction
  */
 async function createMessage({
   conversationId,
@@ -48,6 +93,7 @@ async function createMessage({
   const effectiveFlashId = flashRequestId || wantedRequestId || null;
   const msgId = uuidv4();
   const summaryContent = cleanContent || (mediaType === 'video' ? '[Video Attachment]' : '[Image Attachment]');
+  const storedContent = isSystemMessage ? summaryContent : encryptMessageContent(summaryContent);
 
   // Check column name in messages table
   const hasFlashCol = await db.schema.hasColumn('messages', 'flash_request_id').catch(() => false);
@@ -58,7 +104,7 @@ async function createMessage({
     conversation_id: conversationId,
     sender_id: senderId,
     receiver_id: receiverId,
-    content: summaryContent,
+    content: storedContent,
     is_read: false,
     is_system_message: Boolean(isSystemMessage),
     media_url: mediaUrl || null,
@@ -100,6 +146,7 @@ async function createMessage({
     senderId,
     receiverId,
     content: summaryContent,
+    isEncrypted: !isSystemMessage,
     isRead: false,
     mediaUrl: mediaUrl || null,
     mediaType: mediaType || null,
@@ -109,13 +156,15 @@ async function createMessage({
     transactionId: transactionId || null,
     flashRequestId: effectiveFlashId,
     wantedRequestId: effectiveFlashId,
-    swapOffer,
-    transaction,
-    flashRequest,
-    wantedRequest: flashRequest
+    swapOffer: swapOffer || null,
+    transaction: transaction || null,
+    flashRequest: flashRequest || null,
+    wantedRequest: flashRequest || null
   };
 }
 
 module.exports = {
-  createMessage
+  createMessage,
+  encryptMessageContent,
+  decryptMessageContent
 };

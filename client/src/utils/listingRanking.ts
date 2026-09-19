@@ -27,7 +27,7 @@ export interface RankingOptions {
   searchQuery?: string;
   selectedCampus?: Campus | 'All';
   selectedCategory?: string | 'All';
-  tradeModeFilter?: 'all' | 'buy_sell' | 'swap' | 'free_donation' | 'flash_only';
+  tradeModeFilter?: 'all' | 'buy_sell' | 'swap' | 'free_donation';
   conditionFilter?: string | 'All';
   minPrice?: number;
   maxPrice?: number;
@@ -228,10 +228,10 @@ export function calculateCompositeScore(
   const recencyMultiplier = Math.exp(-DECAY_LAMBDA * deltaT);
   score += recencyMultiplier * 20.0;
 
-  // 4. Trust / Verification weight
+  // 4. Verification & Product Rating weight
   if (item.kind === 'listing') {
-    const trustScore = item.data.sellerTrustScore ?? 60;
-    score += (trustScore / 100) * 8.0;
+    const productRating = item.data.rating ?? 5.0;
+    score += (productRating / 5.0) * 8.0;
     if (item.data.sellerIsVerified) score += 5.0;
     if (item.data.isBoosted) score += 12.0;
   } else {
@@ -272,9 +272,10 @@ export function rankAndFilterFeed(
 
   // 1. Build Candidate Pool
   const candidates: UnifiedFeedItem[] = [];
+  const normalizedTradeMode = (tradeModeFilter || 'all').toLowerCase();
 
   // Add listings (unless filtering flash only)
-  if (tradeModeFilter !== 'flash_only') {
+  if (normalizedTradeMode !== 'flash_only') {
     for (const l of listings) {
       if (l.isSold || l.status === 'sold') continue;
 
@@ -285,9 +286,9 @@ export function rankAndFilterFeed(
       if (selectedCategory !== 'All' && l.category !== selectedCategory) continue;
 
       // Filter: Trade Mode
-      if (tradeModeFilter === 'buy_sell' && l.tradeMode !== 'buy_sell') continue;
-      if (tradeModeFilter === 'swap' && l.tradeMode !== 'swap') continue;
-      if (tradeModeFilter === 'free_donation' && l.tradeMode !== 'free_donation') continue;
+      if (normalizedTradeMode === 'buy_sell' && l.tradeMode !== 'buy_sell') continue;
+      if (normalizedTradeMode === 'swap' && l.tradeMode !== 'swap') continue;
+      if (normalizedTradeMode === 'free_donation' && l.tradeMode !== 'free_donation') continue;
 
       // Filter: Condition
       if (conditionFilter !== 'All' && l.condition !== conditionFilter) continue;
@@ -300,8 +301,8 @@ export function rankAndFilterFeed(
     }
   }
 
-  // Add Flash Requests (unless filtering specific listing-only modes)
-  if (tradeModeFilter === 'all' || tradeModeFilter === 'flash_only') {
+  // Add Flash Requests (when viewing All trade types or Flash Only)
+  if (normalizedTradeMode === 'all' || normalizedTradeMode === 'flash_only' || normalizedTradeMode === 'flash') {
     for (const f of flashRequests) {
       if (f.status !== 'open') continue;
       if (f.isExpired) continue;
@@ -364,7 +365,7 @@ export function rankAndFilterFeed(
         break;
       }
       case 'trust': {
-        const t = item.kind === 'listing' ? (item.data.sellerTrustScore ?? 50) : 80;
+        const t = item.kind === 'listing' ? (item.data.rating ?? 5.0) : 5.0;
         priority = t;
         break;
       }

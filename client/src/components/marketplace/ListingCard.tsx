@@ -8,7 +8,8 @@ import { useToast } from '../common/Toast';
 import { BuyNowModal } from './BuyNowModal';
 import { SwapProposalModal } from './SwapProposalModal';
 import { ManageListingModal } from './ManageListingModal';
-import { ArrowLeftRight, Gift, ShoppingBag, Zap, Clock, Film, Eye, Sliders, RotateCcw, CheckCircle2, MapPin } from 'lucide-react';
+import { ArrowLeftRight, Gift, ShoppingBag, Film, Eye, Sliders, RotateCcw, CheckCircle2 } from 'lucide-react';
+import { formatRelativeTime } from '../../utils/date';
 
 interface ListingCardProps {
   listing: Listing;
@@ -38,11 +39,6 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
     listing.media?.some((m) => m.mediaType === 'video') ||
     listing.images?.some((img) => img.match(/\.(mp4|webm|mov|mkv)$/i) || img.includes('/video/upload/'))
   );
-
-  const isNew = useMemo(() => {
-    if (!listing.createdAt) return false;
-    return (Date.now() - new Date(listing.createdAt).getTime()) < 24 * 60 * 60 * 1000;
-  }, [listing.createdAt]);
 
   const handleActionClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -75,15 +71,13 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
       >
         {/* Product Media Box */}
         <div className="product-card-media">
-          {/* Shimmer placeholder */}
+          {/* Clean placeholder */}
           {!imgLoaded && (
             <div
               style={{
                 position: 'absolute',
                 inset: 0,
-                background: 'linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%)',
-                backgroundSize: '200% 100%',
-                animation: 'pulse 1.5s infinite ease-in-out'
+                backgroundColor: 'var(--bg-subtle, #F1F5F9)'
               }}
             />
           )}
@@ -94,7 +88,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
               style={{
                 position: 'absolute',
                 inset: 0,
-                backgroundColor: 'rgba(15, 23, 42, 0.6)',
+                backgroundColor: 'rgba(15, 23, 42, 0.65)',
                 backdropFilter: 'blur(2px)',
                 display: 'flex',
                 alignItems: 'center',
@@ -106,14 +100,12 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
                 style={{
                   backgroundColor: '#DC2626',
                   color: '#FFFFFF',
-                  padding: '0.3rem 0.8rem',
-                  borderRadius: '20px',
-                  fontWeight: 900,
+                  padding: '0.35rem 0.85rem',
+                  borderRadius: '6px',
+                  fontWeight: 800,
                   fontSize: '0.72rem',
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-                  border: '1.5px solid rgba(255, 255, 255, 0.4)'
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase'
                 }}
               >
                 Sold Out
@@ -149,8 +141,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
             </div>
           )}
 
-          {/* Floating Badges (Clean, Non-overlapping) */}
-          {/* Top-Left Badge: YOURS or NEW */}
+          {/* Single restrained top-left badge if applicable */}
           {isOwner ? (
             <span
               style={{
@@ -158,153 +149,95 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
                 top: '8px',
                 left: '8px',
                 backgroundColor: '#002B7F',
-                color: '#FFC72C',
+                color: '#FFFFFF',
                 padding: '3px 8px',
-                borderRadius: '6px',
+                borderRadius: '4px',
                 fontSize: '0.64rem',
-                fontWeight: 800,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '3px',
-                zIndex: 4,
-                boxShadow: '0 2px 6px rgba(0, 43, 127, 0.35)'
+                fontWeight: 700,
+                zIndex: 4
               }}
             >
-              <Zap size={11} color="#FFC72C" />
-              <span>YOURS</span>
+              Your Listing
             </span>
-          ) : isNew && !isSoldOut ? (
+          ) : listing.tradeMode === 'swap' ? (
             <span
               style={{
                 position: 'absolute',
                 top: '8px',
                 left: '8px',
-                backgroundColor: '#2563EB',
+                backgroundColor: '#002B7F',
                 color: '#FFFFFF',
                 padding: '3px 8px',
-                borderRadius: '6px',
+                borderRadius: '4px',
                 fontSize: '0.64rem',
-                fontWeight: 800,
+                fontWeight: 700,
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '3px',
-                zIndex: 4,
-                boxShadow: '0 2px 6px rgba(37, 99, 235, 0.35)'
+                zIndex: 4
               }}
             >
-              <Clock size={10} />
-              <span>NEW</span>
+              <ArrowLeftRight size={10} />
+              <span>Swap</span>
+            </span>
+          ) : listing.tradeMode === 'free_donation' ? (
+            <span
+              style={{
+                position: 'absolute',
+                top: '8px',
+                left: '8px',
+                backgroundColor: '#059669',
+                color: '#FFFFFF',
+                padding: '3px 8px',
+                borderRadius: '4px',
+                fontSize: '0.64rem',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+                zIndex: 4
+              }}
+            >
+              <Gift size={10} />
+              <span>Free</span>
             </span>
           ) : null}
 
-          {/* Top-Right Badge: Video Demo */}
+          {/* Subtle top-right video indicator */}
           {hasVideo && (
             <span
               style={{
                 position: 'absolute',
                 top: '8px',
                 right: '8px',
-                backgroundColor: 'rgba(15, 23, 42, 0.78)',
+                backgroundColor: 'rgba(15, 23, 42, 0.75)',
                 color: '#FFFFFF',
-                padding: '3px 7px',
-                borderRadius: '6px',
+                padding: '3px 6px',
+                borderRadius: '4px',
                 fontSize: '0.62rem',
-                fontWeight: 800,
+                fontWeight: 600,
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '3px',
-                backdropFilter: 'blur(4px)',
-                zIndex: 4,
-                boxShadow: '0 2px 6px rgba(0,0,0,0.25)'
+                zIndex: 4
               }}
-              title="Actual product video demonstration available"
+              title="Product video demonstration available"
             >
-              <Film size={11} color="#FFC72C" />
-              <span>VIDEO</span>
+              <Film size={10} />
+              <span>Video</span>
             </span>
           )}
-
-          {/* Bottom-Left Badge: Trade Mode (SWAP or FREE) */}
-          {listing.tradeMode === 'swap' ? (
-            <span
-              style={{
-                position: 'absolute',
-                bottom: '8px',
-                left: '8px',
-                backgroundColor: '#002B7F',
-                color: '#FFC72C',
-                padding: '3px 8px',
-                borderRadius: '6px',
-                fontSize: '0.64rem',
-                fontWeight: 800,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '3px',
-                zIndex: 4,
-                boxShadow: '0 2px 6px rgba(0, 43, 127, 0.3)'
-              }}
-            >
-              <ArrowLeftRight size={10} />
-              <span>SWAP</span>
-            </span>
-          ) : listing.tradeMode === 'free_donation' ? (
-            <span
-              style={{
-                position: 'absolute',
-                bottom: '8px',
-                left: '8px',
-                backgroundColor: '#059669',
-                color: '#FFFFFF',
-                padding: '3px 8px',
-                borderRadius: '6px',
-                fontSize: '0.64rem',
-                fontWeight: 800,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '3px',
-                zIndex: 4,
-                boxShadow: '0 2px 6px rgba(5, 150, 105, 0.3)'
-              }}
-            >
-              <Gift size={10} />
-              <span>FREE</span>
-            </span>
-          ) : null}
-
-          {/* Bottom-Right Badge: Campus Location */}
-          <span
-            style={{
-              position: 'absolute',
-              bottom: '8px',
-              right: '8px',
-              backgroundColor: 'rgba(255, 255, 255, 0.94)',
-              color: 'var(--uc-blue, #002B7F)',
-              padding: '2px 7px',
-              borderRadius: '6px',
-              fontSize: '0.64rem',
-              fontWeight: 800,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '3px',
-              backdropFilter: 'blur(4px)',
-              zIndex: 4,
-              boxShadow: '0 2px 6px rgba(0, 0, 0, 0.12)'
-            }}
-          >
-            <MapPin size={10} />
-            <span>{listing.sellerCampus}</span>
-          </span>
         </div>
 
         {/* Card Body */}
         <div className="product-card-body">
-          {/* Category & Condition Row */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-muted, #64748B)' }}>
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '65%' }}>
+          {/* Category & Campus Row */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-muted, #64748B)', gap: '0.35rem' }}>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '58%' }}>
               {listing.category}
             </span>
-            <span style={{ fontWeight: 600, color: 'var(--text-secondary, #475569)', flexShrink: 0 }}>
-              {listing.condition}
+            <span style={{ fontWeight: 600, color: 'var(--text-secondary, #475569)', flexShrink: 0, maxWidth: '42%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={listing.sellerCampus}>
+              {listing.sellerCampus}
             </span>
           </div>
 
@@ -319,9 +252,11 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
               WebkitLineClamp: 2,
               WebkitBoxOrient: 'vertical',
               overflow: 'hidden',
+              textOverflow: 'ellipsis',
               minHeight: '2.4em',
               margin: 0
             }}
+            title={listing.title}
           >
             {listing.title}
           </h4>
@@ -347,21 +282,38 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
               )}
             </div>
 
-            {savingsPct > 0 && listing.tradeMode !== 'free_donation' && (
-              <span
-                style={{
-                  fontSize: '0.68rem',
-                  fontWeight: 800,
-                  color: 'var(--accent-green, #047857)',
-                  backgroundColor: 'var(--accent-green-subtle, #ECFDF5)',
-                  border: '1px solid var(--accent-green-border, #A7F3D0)',
-                  padding: '1px 5px',
-                  borderRadius: '4px'
-                }}
-              >
-                {savingsPct}% OFF
-              </span>
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+              {listing.condition && (
+                <span
+                  style={{
+                    fontSize: '0.66rem',
+                    fontWeight: 600,
+                    color: 'var(--text-secondary, #475569)',
+                    backgroundColor: 'var(--bg-subtle, #F1F5F9)',
+                    border: '1px solid var(--border-subtle, #E2E8F0)',
+                    padding: '1px 5px',
+                    borderRadius: '4px'
+                  }}
+                >
+                  {listing.condition}
+                </span>
+              )}
+              {savingsPct > 0 && listing.tradeMode !== 'free_donation' && (
+                <span
+                  style={{
+                    fontSize: '0.68rem',
+                    fontWeight: 800,
+                    color: 'var(--accent-green, #047857)',
+                    backgroundColor: 'var(--accent-green-subtle, #ECFDF5)',
+                    border: '1px solid var(--accent-green-border, #A7F3D0)',
+                    padding: '1px 5px',
+                    borderRadius: '4px'
+                  }}
+                >
+                  {savingsPct}% OFF
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Low Stock Warning */}
@@ -519,22 +471,39 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
                 <span>{isSoldOut ? 'Sold Out' : 'Active'}</span>
               </div>
             ) : (
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', overflow: 'hidden' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', overflow: 'hidden', minWidth: 0, maxWidth: '125px' }}>
                 <UserAvatar
                   src={listing.sellerAvatar}
                   name={listing.sellerName}
                   size={18}
                 />
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary, #475569)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {listing.sellerName ? listing.sellerName.split(' ')[0] : 'Student'}
+                <span
+                  style={{
+                    fontSize: '0.72rem',
+                    color: 'var(--text-secondary, #475569)',
+                    fontWeight: 600,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    minWidth: 0
+                  }}
+                  title={listing.sellerName || 'Student'}
+                >
+                  {listing.sellerName || 'Student'}
                 </span>
                 {listing.sellerIsVerified && <VerifiedBadge size="xs" variant="green" showTooltip={false} />}
               </div>
             )}
 
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.68rem', color: 'var(--text-muted, #94A3B8)', flexShrink: 0 }}>
-              <Eye size={11} style={{ flexShrink: 0 }} />
-              <span>{listing.views || 0}</span>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.68rem', color: 'var(--text-muted, #94A3B8)', flexShrink: 0 }}>
+              {listing.createdAt && (
+                <span>{formatRelativeTime(listing.createdAt)}</span>
+              )}
+              {listing.createdAt && <span>•</span>}
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                <Eye size={11} style={{ flexShrink: 0 }} />
+                <span>{listing.views || 0}</span>
+              </div>
             </div>
           </div>
         </div>

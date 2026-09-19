@@ -35,6 +35,65 @@ DELETE FROM `users`;
 -- Password for all seed accounts: TradeLink@2026 / Password123!
 -- Hashes generated with 12 bcrypt salt rounds
 
+-- Ensure security auth columns exist on users table in case DB was created from older schema
+SET @dbname = DATABASE();
+SET @tablename = "users";
+
+-- token_version
+SET @colname = "token_version";
+SET @preparedStatement = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tablename AND COLUMN_NAME = @colname) > 0,
+  "SELECT 1",
+  "ALTER TABLE `users` ADD COLUMN `token_version` INT UNSIGNED NOT NULL DEFAULT 1"
+));
+PREPARE alterIfNotExists FROM @preparedStatement;
+EXECUTE alterIfNotExists;
+DEALLOCATE PREPARE alterIfNotExists;
+
+-- failed_login_attempts
+SET @colname = "failed_login_attempts";
+SET @preparedStatement = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tablename AND COLUMN_NAME = @colname) > 0,
+  "SELECT 1",
+  "ALTER TABLE `users` ADD COLUMN `failed_login_attempts` INT UNSIGNED NOT NULL DEFAULT 0"
+));
+PREPARE alterIfNotExists FROM @preparedStatement;
+EXECUTE alterIfNotExists;
+DEALLOCATE PREPARE alterIfNotExists;
+
+-- locked_until
+SET @colname = "locked_until";
+SET @preparedStatement = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tablename AND COLUMN_NAME = @colname) > 0,
+  "SELECT 1",
+  "ALTER TABLE `users` ADD COLUMN `locked_until` DATETIME DEFAULT NULL"
+));
+PREPARE alterIfNotExists FROM @preparedStatement;
+EXECUTE alterIfNotExists;
+DEALLOCATE PREPARE alterIfNotExists;
+
+-- failed_reset_attempts
+SET @colname = "failed_reset_attempts";
+SET @preparedStatement = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tablename AND COLUMN_NAME = @colname) > 0,
+  "SELECT 1",
+  "ALTER TABLE `users` ADD COLUMN `failed_reset_attempts` TINYINT UNSIGNED NOT NULL DEFAULT 0"
+));
+PREPARE alterIfNotExists FROM @preparedStatement;
+EXECUTE alterIfNotExists;
+DEALLOCATE PREPARE alterIfNotExists;
+
+-- password_changed_at
+SET @colname = "password_changed_at";
+SET @preparedStatement = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tablename AND COLUMN_NAME = @colname) > 0,
+  "SELECT 1",
+  "ALTER TABLE `users` ADD COLUMN `password_changed_at` DATETIME DEFAULT NULL"
+));
+PREPARE alterIfNotExists FROM @preparedStatement;
+EXECUTE alterIfNotExists;
+DEALLOCATE PREPARE alterIfNotExists;
+
 INSERT INTO `users` (
   `id`, `name`, `email`, `student_id`, `password_hash`, `role`, `campus`, `college`, `year_level`,
   `avatar_url`, `is_verified`, `id_photo_url`, `trust_score`, `rating`, `total_reviews`,
@@ -104,16 +163,22 @@ INSERT INTO `listing_media` (`id`, `listing_id`, `media_url`, `media_type`, `thu
 
 INSERT INTO `flash_requests` (
   `id`, `requester_id`, `item_name`, `category`, `target_campus`,
-  `urgency`, `budget_range`, `notes`, `status`, `offers_count`
+  `urgency`, `budget_range`, `notes`, `image_url`, `status`, `offers_count`
 ) VALUES
 -- Mode 1: Numeric Target Budget
-('flash-1', 'student-4', 'Casio fx-991ES or ClassWiz Scientific Calculator', 'Calculators', 'UC Main', 'immediate', '₱500', 'Urgent need for midterms exam this Friday! Willing to meet at UC Main campus lobby or canteen.', 'open', 3),
+('flash-1', 'student-4', 'Casio fx-991ES or ClassWiz Scientific Calculator', 'Calculators', 'UC Main', 'immediate', '₱500', 'Urgent need for midterms exam this Friday! Willing to meet at UC Main campus lobby or canteen.', 'https://images.unsplash.com/photo-1594980596870-8aa52a78d8cd?auto=format&fit=crop&w=800&q=80', 'open', 3),
 
 -- Mode 2: Open to Offers / Negotiable
-('flash-2', 'student-3', 'UC Marine Deck Epaulettes and Shoulder Marks', 'Uniforms', 'UC METC', 'this_week', 'Open to Offers', 'Looking for pristine condition 3rd year deck epaulettes. Please send offers via campus chat.', 'open', 1),
+('flash-2', 'student-3', 'UC Marine Deck Epaulettes and Shoulder Marks', 'Uniforms', 'UC METC', 'this_week', 'Open to Offers', 'Looking for pristine condition 3rd year deck epaulettes. Please send offers via campus chat.', 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=800&q=80', 'open', 1),
 
 -- Mode 3: Free Student Donation Request
-('flash-3', 'student-2', 'Medical Parasitology Lecture Review Notes / Flashcards', 'Textbooks', 'UC Banilad', 'flexible', 'FREE / Donation', 'Seeking any senior who can pass down their 2nd year parasitology notes or flashcards. Much appreciated!', 'open', 2);
+('flash-3', 'student-2', 'Medical Parasitology Lecture Review Notes / Flashcards', 'Textbooks', 'UC Banilad', 'flexible', 'FREE / Donation', 'Seeking any senior who can pass down their 2nd year parasitology notes or flashcards. Much appreciated!', 'https://images.unsplash.com/photo-1532012164546-f432f2e3777a?auto=format&fit=crop&w=800&q=80', 'open', 2),
+
+-- Mode 4: Nursing & Medical Diagnostic Gear
+('flash-4', 'student-1', 'Standard Medical Stethoscope & Sphygmomanometer Set', 'Medical Supplies', 'UC Medical Center', 'immediate', '₱850', 'Needed for clinical rotation duty this weekend at UCMed. Any clean working Littmann or standard dual-head model.', 'https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?auto=format&fit=crop&w=800&q=80', 'open', 1),
+
+-- Mode 5: Engineering & Architecture Drafting Equipment
+('flash-5', 'student-3', 'Rotring / Standard 24-inch Technical T-Square & Triangles', 'Architecture & Engineering', 'UC Main', 'this_week', '₱350', 'For CEA plate drafting submission on Monday. Clean acrylic blade with clear graduation marks preferred.', 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80', 'open', 0);
 
 -- ----------------------------------------------------------------------------
 -- 5. SEED CAMPUS ANNOUNCEMENTS

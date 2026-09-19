@@ -19,7 +19,7 @@ export const mobileListingsService = {
   },
 
   async updateListing(id: string, updates: Partial<Listing>): Promise<void> {
-    await mobileApi.put(`/listings/${id}`, updates);
+    await mobileApi.patch(`/listings/${id}`, updates);
   },
 
   async deleteListing(id: string): Promise<void> {

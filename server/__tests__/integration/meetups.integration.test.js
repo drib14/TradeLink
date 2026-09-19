@@ -78,7 +78,7 @@ meetupsRouter.post('/:id/verify', async (req, res) => {
 testApp.use('/api/meetups', meetupsRouter);
 testApp.use(errorHandler);
 
-describe('Integration Test: Physical Meetups & OTP / Hashed QR Code Handshake', () => {
+describe('Integration Test: Campus Meetups & Verification Confirmation', () => {
   it('should retrieve meetup details using hashed token mtp_...', async () => {
     const hashedSlug = encodeId('mtp-501', 'meetup');
     expect(hashedSlug.startsWith('mtp_')).toBe(true);
@@ -106,7 +106,7 @@ describe('Integration Test: Physical Meetups & OTP / Hashed QR Code Handshake', 
     expect(res.body.message).toContain('Invalid verification code');
   });
 
-  it('should complete meetup handshake on correct 4-digit code (4829)', async () => {
+  it('should complete meetup on correct 4-digit verification code (4829)', async () => {
     const hashedSlug = encodeId('mtp-501', 'meetup');
     const token = createTestToken({ userId: 'user-alex' });
 

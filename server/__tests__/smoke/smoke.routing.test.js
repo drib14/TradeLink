@@ -26,7 +26,7 @@ const pathToView = (path, search = '') => {
   if (cleanLower === 'create-listing' || cleanLower === 'post' || cleanLower === 'sell') return { view: 'create-listing', params: {} };
   if (cleanLower === 'wanted' || cleanLower === 'requests' || cleanLower === 'pasabuy') return { view: 'wanted', params: {} };
   if (cleanLower === 'swaps' || cleanLower === 'barter') return { view: 'swaps', params: {} };
-  if (cleanLower === 'meetups' || cleanLower === 'handshake' || cleanLower === 'transactions' || cleanLower === 'history') return { view: 'transactions', params: {} };
+  if (cleanLower === 'meetups' || cleanLower === 'transactions' || cleanLower === 'history') return { view: 'transactions', params: {} };
   if (cleanLower === 'campus-map' || cleanLower === 'landmarks' || cleanLower === 'map') return { view: 'campus-map', params: {} };
   if (cleanLower === 'about') return { view: 'about', params: {} };
   if (cleanLower === 'faq') return { view: 'faq', params: {} };
@@ -144,7 +144,7 @@ describe('Tier 4: Client SPA Routing Smoke Tests (pathToView)', () => {
       expect(pathToView('/requests').view).toBe('wanted');
       expect(pathToView('/pasabuy').view).toBe('wanted');
       expect(pathToView('/barter').view).toBe('swaps');
-      expect(pathToView('/handshake').view).toBe('transactions');
+      expect(pathToView('/meetups').view).toBe('transactions');
       expect(pathToView('/saved').view).toBe('marketplace');
       expect(pathToView('/history').view).toBe('transactions');
       expect(pathToView('/map').view).toBe('campus-map');

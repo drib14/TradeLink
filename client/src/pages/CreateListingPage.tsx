@@ -5,6 +5,7 @@ import { useToast } from '../components/common/Toast';
 import { DragDropUpload } from '../components/common/DragDropUpload';
 import { StudentVerificationModal } from '../components/verification/StudentVerificationModal';
 import { ConfirmModal } from '../components/common/ConfirmModal';
+import { PaymentMethodCheckboxGroup, PaymentMethodBadge } from '../components/common/PaymentLogos';
 import { TradeMode, ConditionGrade } from '../types';
 import {
   ShoppingBag,
@@ -88,6 +89,11 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
   const [customTagInput, setCustomTagInput] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [images, setImages] = useState<string[]>([]);
+  const [acceptedPaymentMethods, setAcceptedPaymentMethods] = useState<('cash' | 'gcash' | 'maya')[]>([
+    'cash',
+    'gcash',
+    'maya'
+  ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
@@ -158,6 +164,10 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
       if (formMode === 'sell') {
         if (sellType === 'paid' && (price === '' || Number(price) <= 0)) {
           showToast('Price Required', 'Please set a valid selling price in PHP or select Free Student Gift.', 'warning');
+          return false;
+        }
+        if (sellType === 'paid' && acceptedPaymentMethods.length === 0) {
+          showToast('Payment Method Required', 'Please select at least one accepted payment method.', 'warning');
           return false;
         }
       } else {
@@ -239,7 +249,8 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
         sellerCampus: currentUser?.campus,
         sellerCollege: currentUser?.college,
         sellerIsVerified: currentUser?.isVerified,
-        sellerTrustScore: currentUser?.trustScore
+        sellerTrustScore: currentUser?.trustScore,
+        acceptedPaymentMethods: computedTradeMode === 'buy_sell' ? acceptedPaymentMethods : ['cash', 'gcash', 'maya']
       });
 
       const successTitle = formMode === 'swap' ? 'Swap Offer Published!' : 'Listing Published for Sale!';
@@ -869,6 +880,19 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
             </div>
           )}
 
+          {/* Accepted Settlement Methods Checkbox Group */}
+          {sellType === 'paid' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                Accepted Payment Settlements *
+              </label>
+              <PaymentMethodCheckboxGroup
+                selectedMethods={acceptedPaymentMethods}
+                onChange={setAcceptedPaymentMethods}
+              />
+            </div>
+          )}
+
           {/* Search Tags */}
           <div>
             <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
@@ -1244,6 +1268,32 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
                 </div>
               </div>
             </div>
+
+            {/* Accepted Settlement Methods Preview */}
+            {formMode === 'sell' && sellType === 'paid' && (
+              <div
+                style={{
+                  maxWidth: '300px',
+                  margin: '0.85rem auto 0 auto',
+                  padding: '0.65rem 0.85rem',
+                  borderRadius: '10px',
+                  backgroundColor: 'var(--bg-surface, #F8FAFC)',
+                  border: '1px solid var(--border-subtle, #E2E8F0)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.35rem'
+                }}
+              >
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)' }}>
+                  Accepted Settlement Methods
+                </span>
+                <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                  {acceptedPaymentMethods.map((m) => (
+                    <PaymentMethodBadge key={m} method={m} size="sm" />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1264,7 +1314,7 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
             <button
               type="button"
               onClick={handleBack}
-              className="btn-secondary"
+              className="btn-neutral"
               style={{
                 padding: '0.65rem 1.25rem',
                 fontSize: '0.86rem',
@@ -1280,8 +1330,8 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
             <button
               type="button"
               onClick={handleCancel}
-              className="btn-ghost"
-              style={{ padding: '0.65rem 1rem', fontSize: '0.84rem' }}
+              className="btn-neutral"
+              style={{ padding: '0.65rem 1.15rem', fontSize: '0.84rem' }}
             >
               Discard
             </button>

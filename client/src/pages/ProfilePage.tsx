@@ -12,6 +12,7 @@ import { Modal } from '../components/common/Modal';
 import { reviewsService } from '../services/reviews.service';
 import { usersService } from '../services/users.service';
 import { User, Listing, Review, FlashRequest, College } from '../types';
+import { formatRelativeTime } from '../utils/date';
 import {
   ShieldCheck,
   Star,
@@ -50,6 +51,7 @@ import {
 } from 'lucide-react';
 import { StudentVerificationModal } from '../components/verification/StudentVerificationModal';
 import { maskStudentId } from '../utils/security';
+import { PaymentMethodBadge, CashLogo, GCashLogo, MayaLogo } from '../components/common/PaymentLogos';
 
 interface ProfilePageProps {
   userId?: string;
@@ -71,14 +73,31 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   const { showToast } = useToast();
 
   const [fetchedUser, setFetchedUser] = useState<User | null>(null);
+  const [isLoadingUser, setIsLoadingUser] = useState<boolean>(Boolean(userId && (!currentUser || currentUser.id !== userId)));
   const [isCopiedLink, setIsCopiedLink] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
     if (userId && (!currentUser || currentUser.id !== userId)) {
-      usersService.getProfile(userId).then((res) => {
-        if (res) setFetchedUser(res);
-      }).catch(() => {});
+      setIsLoadingUser(true);
+      usersService.getProfile(userId)
+        .then((res) => {
+          if (isMounted) {
+            if (res) setFetchedUser(res);
+            setIsLoadingUser(false);
+          }
+        })
+        .catch(() => {
+          if (isMounted) {
+            setIsLoadingUser(false);
+          }
+        });
+    } else {
+      setIsLoadingUser(false);
     }
+    return () => {
+      isMounted = false;
+    };
   }, [userId, currentUser]);
 
   const targetUser: User | null = userId
@@ -86,10 +105,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
     : (currentUser || null);
 
   useEffect(() => {
-    if (userId && !targetUser && allUsers.length > 0) {
+    // Only redirect to not-found when user fetch has fully finished and no user exists
+    if (userId && !isLoadingUser && !targetUser) {
       onNavigate('not-found');
     }
-  }, [userId, targetUser, allUsers.length, onNavigate]);
+  }, [userId, isLoadingUser, targetUser, onNavigate]);
 
   const isSelf = !!currentUser && !!targetUser && currentUser.id === targetUser.id;
 
@@ -229,7 +249,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
       paymentMethods: editPaymentMethods.trim()
     });
     setIsEditProfileModalOpen(false);
-    showToast('Profile Updated', 'Your storefront details and trading preferences have been saved.', 'success');
+    showToast('Profile Updated', 'Your profile details and trading preferences have been saved.', 'success');
   };
 
   const handleStartChatWithUser = async () => {
@@ -251,10 +271,26 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
     if (navigator.clipboard) {
       navigator.clipboard.writeText(window.location.href);
       setIsCopiedLink(true);
-      showToast('Storefront Link Copied', 'Direct link to this student storefront copied to clipboard.', 'success');
+      showToast('Profile Link Copied', 'Direct link to this student profile copied to clipboard.', 'success');
       setTimeout(() => setIsCopiedLink(false), 2500);
     }
   };
+
+  if (isLoadingUser && !targetUser) {
+    return (
+      <div className="container page-enter" style={{ padding: '5rem 1.5rem', textAlign: 'center', maxWidth: '520px' }}>
+        <div className="clean-card" style={{ padding: '3rem 2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
+          <div style={{ width: '40px', height: '40px', border: '3px solid var(--border-subtle, #E2E8F0)', borderTopColor: 'var(--uc-blue, #002B7F)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+          <div>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>Loading Student Profile...</h3>
+            <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+              Retrieving verified campus profile and active listings...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!targetUser) {
     if (!currentUser && !userId) {
@@ -266,7 +302,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
             </div>
             <div>
               <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary, #0F172A)' }}>
-                Sign In to View Your Storefront
+                Sign In to View Your Profile
               </h2>
               <p style={{ fontSize: '0.86rem', color: 'var(--text-muted, #64748B)', marginTop: '0.35rem', lineHeight: 1.5 }}>
                 Log in with your University of Cebu account to manage your listings, view inventory value, track student verification status, and monitor campus reviews.
@@ -316,7 +352,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
 
   return (
     <div className="container page-enter" style={{ padding: '2rem 1.5rem 6rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      {/* 1. STOREFRONT HERO CARD */}
+      {/* 1. STUDENT PROFILE HERO CARD */}
       <div
         className="clean-card"
         style={{
@@ -331,7 +367,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
         <div
           style={{
             height: '145px',
-            background: 'linear-gradient(135deg, #001D59 0%, #002B7F 50%, #0A43A8 100%)',
+            backgroundColor: '#002B7F',
+            borderBottom: '1px solid #001D59',
             position: 'relative',
             padding: '1.25rem 1.75rem',
             display: 'flex',
@@ -340,7 +377,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#FFC72C', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            <Award size={16} /> University of Cebu Campus Storefront
+            <Award size={16} /> University of Cebu Verified Student
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
             <CampusBadge campus={targetUser.campus} size="sm" />
@@ -360,7 +397,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 alignItems: 'center',
                 gap: '0.35rem'
               }}
-              title="Share Storefront"
+              title="Share Profile"
             >
               {isCopiedLink ? <Check size={14} color="#86EFAC" /> : <Share2 size={14} />}
               <span>{isCopiedLink ? 'Copied' : 'Share'}</span>
@@ -368,7 +405,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           </div>
         </div>
 
-        {/* Storefront Details Container */}
+        {/* Profile Details Container */}
         <div style={{ padding: '0 1.75rem 1.75rem 1.75rem', marginTop: '-48px', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {/* Avatar, Identity & Primary Actions Row */}
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.25rem' }}>
@@ -477,7 +514,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                     className="btn-secondary"
                     style={{ padding: '0.65rem 1rem', fontSize: '0.82rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
                   >
-                    <Edit3 size={15} /> Edit Storefront
+                    <Edit3 size={15} /> Edit Profile
                   </button>
 
                   <button
@@ -493,7 +530,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                     onClick={handleShareProfile}
                     className="btn-ghost"
                     style={{ padding: '0.65rem 0.85rem', fontSize: '0.82rem' }}
-                    title="Share Storefront Link"
+                    title="Share Profile Link"
                   >
                     {isCopiedLink ? <Check size={17} color="var(--accent-green)" /> : <Copy size={17} />}
                   </button>
@@ -622,7 +659,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 {completedTradesCount}
               </div>
               <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                {hasTransactions ? 'Verified Handshakes' : 'No trades yet'}
+                {hasTransactions ? 'Completed Trades' : 'No trades yet'}
               </span>
             </div>
 
@@ -635,7 +672,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 {punctualityRate}%
               </div>
               <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                {hasTransactions ? 'On-Time Handshakes' : '0% On-Time'}
+                {hasTransactions ? 'Completed Exchanges' : '0% On-Time'}
               </span>
             </div>
 
@@ -729,11 +766,17 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
 
           {/* Payment / Barter Options */}
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.65rem' }}>
-            <div style={{ color: 'var(--uc-blue)', marginTop: '2px' }}><CreditCard size={16} /></div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '3px', marginTop: '2px' }}>
+              <CashLogo size={16} />
+              <GCashLogo size={16} />
+              <MayaLogo size={16} />
+            </div>
             <div>
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Payment / Barter</div>
-              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
-                {targetUser.paymentMethods || 'Cash on Handshake • GCash Instant • Direct Swap'}
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Accepted Settlements</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', marginTop: '4px' }}>
+                <PaymentMethodBadge method="cash" size="xs" />
+                <PaymentMethodBadge method="gcash" size="xs" />
+                <PaymentMethodBadge method="maya" size="xs" />
               </div>
             </div>
           </div>
@@ -757,7 +800,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-            {targetUser.idPhotoUrl && (
+            {(isSelf || currentUser?.role === 'admin') && targetUser.idPhotoUrl && (
               <div
                 onClick={() => setInspectedIdImage(targetUser.idPhotoUrl || null)}
                 style={{
@@ -803,7 +846,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 </h3>
               </div>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary, #475569)', marginTop: '0.15rem', margin: 0 }}>
-                ID Number: <strong>{targetUser.studentId}</strong> • Enrolled at <strong>{targetUser.campus}</strong> ({targetUser.college})
+                ID Number: <strong>{maskStudentId(targetUser.studentId, isSelf || currentUser?.role === 'admin')}</strong> • Enrolled at <strong>{targetUser.campus}</strong> ({targetUser.college})
               </p>
               <div style={{ fontSize: '0.72rem', color: 'var(--accent-green, #059669)', fontWeight: 700, marginTop: '0.15rem' }}>
                 Authenticated by Campus Safety Moderation Desk
@@ -811,7 +854,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
             </div>
           </div>
 
-          {targetUser.idPhotoUrl && (
+          {(isSelf || currentUser?.role === 'admin') && targetUser.idPhotoUrl && (
             <button
               onClick={() => setInspectedIdImage(targetUser.idPhotoUrl || null)}
               className="btn-secondary"
@@ -927,7 +970,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
         )
       )}
 
-      {/* 5. STOREFRONT NAVIGATION TABS */}
+      {/* 5. PROFILE NAVIGATION TABS */}
       <div
         className="touch-scroll-row"
         style={{
@@ -989,7 +1032,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
 
       {/* 6. TAB CONTENTS */}
 
-      {/* TAB 1: ACTIVE STOREFRONT LISTINGS */}
+      {/* TAB 1: ACTIVE LISTINGS */}
       {activeTab === 'listings' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {/* In-store Search & Filtering Bar */}
@@ -1062,7 +1105,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           {userActiveListings.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--text-muted)', paddingBottom: '0.25rem' }}>
               <span>
-                Showing <strong>{filteredActiveListings.length}</strong> of <strong>{userActiveListings.length}</strong> items in storefront
+                Showing <strong>{filteredActiveListings.length}</strong> of <strong>{userActiveListings.length}</strong> items listed
               </span>
               <span>
                 Filtered Value: <strong style={{ color: 'var(--uc-blue)' }}>₱{filteredValue.toLocaleString()}</strong>
@@ -1087,13 +1130,13 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 <ShoppingBag size={28} />
               </div>
               <h4 className="empty-state-title">
-                {storeSearch ? 'No Matching Items in Storefront' : 'No Active Listings'}
+                {storeSearch ? 'No Matching Items Found' : 'No Active Listings'}
               </h4>
               <p className="empty-state-desc">
                 {storeSearch ? (
                   `No items matched "${storeSearch}". Try searching for another term or clear the search filter.`
                 ) : isSelf ? (
-                  "Your storefront is currently empty. Post your textbooks, uniforms, reviewers, or tech gear to start trading with UC classmates!"
+                  "You have no active listings at the moment. Post your textbooks, uniforms, reviewers, or tech gear to start trading with UC classmates!"
                 ) : (
                   `${targetUser.name} currently has no active listings in this category.`
                 )}
@@ -1182,7 +1225,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                         onClick={async (e) => {
                           e.stopPropagation();
                           await markAsSold(item.id, false);
-                          showToast('Listing Reactivated', `"${item.title}" is now back active in your storefront!`, 'success');
+                          showToast('Listing Reactivated', `"${item.title}" is now back active in your listings!`, 'success');
                         }}
                         className="btn-primary"
                         style={{
@@ -1195,7 +1238,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                           alignItems: 'center',
                           gap: '0.3rem'
                         }}
-                        title="Reactivate this item in your active storefront"
+                        title="Reactivate this item in your active listings"
                       >
                         <RotateCcw size={12} /> Relist Item
                       </button>
@@ -1396,7 +1439,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                       <div>
                         <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-primary)' }}>{rev.reviewerName}</div>
                         <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                          {rev.reviewerCampus} • {new Date(rev.createdAt).toLocaleDateString()}
+                          {rev.reviewerCampus} • {formatRelativeTime(rev.createdAt)}
                         </div>
                       </div>
                     </div>
@@ -1433,7 +1476,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
               </div>
               <h4 className="empty-state-title">No Peer Reviews Yet</h4>
               <p className="empty-state-desc">
-                Ratings and comments from other students after handshakes will be published here.
+                Ratings and comments from other students after completing transactions will be published here.
               </p>
             </div>
           )}
@@ -1610,18 +1653,18 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
         </div>
       </Modal>
 
-      {/* EDIT STOREFRONT PROFILE MODAL */}
+      {/* EDIT STUDENT PROFILE MODAL */}
       <Modal
         isOpen={isEditProfileModalOpen}
         onClose={() => setIsEditProfileModalOpen(false)}
-        title="Edit Campus Storefront"
+        title="Edit Student Profile"
       >
         <form onSubmit={handleSaveFullProfile} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {/* Avatar Preview */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem', backgroundColor: 'var(--bg-subtle, #F8FAFC)', borderRadius: '10px', border: '1px solid var(--border-subtle, #E2E8F0)' }}>
             <UserAvatar src={editAvatar} name={editName || targetUser.name} size="lg" />
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)' }}>Storefront Photo Preview</div>
+              <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)' }}>Profile Photo Preview</div>
               <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '2px' }}>
                 {editAvatar ? 'Custom photo provided' : 'Defaulting to your name initials on UC theme'}
               </div>
@@ -1661,7 +1704,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
 
           <div>
             <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
-              Storefront Bio
+              Student Bio
             </label>
             <textarea
               value={editBio}
@@ -1801,7 +1844,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 className="clean-input"
               />
               <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                Where you feel most comfortable meeting classmates for handshakes.
+                Where you feel most comfortable meeting classmates for exchanges.
               </div>
             </div>
 

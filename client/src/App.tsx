@@ -7,11 +7,11 @@ import { FlashMarketProvider } from './context/FlashMarketContext';
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
 import { MobileBottomNav } from './components/layout/MobileBottomNav';
-import { ChatDrawer } from './components/chat/ChatDrawer';
 import { AuthModal } from './components/auth/AuthModal';
 import { UnverifiedAccountModal } from './components/auth/UnverifiedAccountModal';
 import { StudentVerificationModal } from './components/verification/StudentVerificationModal';
 import { CookieConsent } from './components/common/CookieConsent';
+import { MessagesPage } from './pages/MessagesPage';
 
 // Pages
 import { HomePage } from './pages/HomePage';
@@ -22,6 +22,7 @@ import { SwapsPage } from './pages/SwapsPage';
 import { TransactionsPage } from './pages/TransactionsPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { FlashMarketPage } from './pages/FlashMarketPage';
+import { FlashRequestDetailPage } from './pages/FlashRequestDetailPage';
 import { HelpSafetyPage } from './pages/HelpSafetyPage';
 import { TermsPrivacyPage } from './pages/TermsPrivacyPage';
 import { AboutPage } from './pages/AboutPage';
@@ -53,16 +54,25 @@ const pathToView = (path: string, search: string = window.location.search): { vi
     }
     return { view: 'item-detail', params: { id } };
   }
+  if (cleanPath.startsWith('flash/') || cleanPath.startsWith('flash-detail/') || cleanPath.startsWith('requests/')) {
+    const rawId = cleanPath.split('/')[1] || searchParams.get('id') || undefined;
+    const id = rawId ? decodeHashedId(rawId) : undefined;
+    if (!id) {
+      return { view: 'not-found', params: {} };
+    }
+    return { view: 'flash-detail', params: { id } };
+  }
 
   const cleanLower = cleanPath.toLowerCase();
-  if (!cleanLower || cleanLower === 'home') return { view: 'home', params: {} };
+  if (!cleanLower || cleanLower === 'home' || cleanLower === 'index' || cleanLower === 'index.html') return { view: 'home', params: {} };
+  if (cleanLower === 'marketplace' || cleanLower === 'catalog' || cleanLower === 'items' || cleanLower === 'shop' || cleanLower === 'browse') return { view: 'marketplace', params: {} };
   if (cleanLower === 'create-listing' || cleanLower === 'post' || cleanLower === 'sell' || cleanLower === 'swap-item' || cleanLower === 'post-swap') {
     const mode = searchParams.get('mode') || (cleanLower === 'swap-item' || cleanLower === 'post-swap' ? 'swap' : cleanLower === 'sell' ? 'sell' : undefined);
     return { view: 'create-listing', params: { mode } };
   }
   if (cleanLower === 'flash-market' || cleanLower === 'flash' || cleanLower === 'wanted' || cleanLower === 'requests' || cleanLower === 'pasabuy' || cleanLower === 'urgent') return { view: 'flash-market', params: {} };
   if (cleanLower === 'swaps' || cleanLower === 'barter') return { view: 'swaps', params: {} };
-  if (cleanLower === 'meetups' || cleanLower === 'handshake' || cleanLower === 'transactions' || cleanLower === 'history') return { view: 'transactions', params: {} };
+  if (cleanLower === 'meetups' || cleanLower === 'transactions' || cleanLower === 'history') return { view: 'transactions', params: {} };
   if (cleanLower === 'about') return { view: 'about', params: {} };
   if (cleanLower === 'developers' || cleanLower === 'team' || cleanLower === 'devs' || cleanLower === 'resources') return { view: 'developers', params: {} };
   if (cleanLower === 'faq') return { view: 'faq', params: {} };
@@ -70,6 +80,12 @@ const pathToView = (path: string, search: string = window.location.search): { vi
   if (cleanLower === 'terms' || cleanLower === 'guidelines') return { view: 'terms', params: { tab: 'honor-code' } };
   if (cleanLower === 'privacy') return { view: 'terms', params: { tab: 'privacy' } };
   if (cleanLower === 'maintenance') return { view: 'maintenance', params: {} };
+  if (cleanLower === 'messages' || cleanLower === 'chat' || cleanLower.startsWith('messages/') || cleanLower.startsWith('chat/')) {
+    const parts = cleanPath.split('/');
+    const rawId = parts[1] || searchParams.get('id') || searchParams.get('conversationId') || undefined;
+    const conversationId = rawId ? decodeHashedId(rawId) : undefined;
+    return { view: 'messages', params: { conversationId } };
+  }
   if (cleanLower === 'favorites' || cleanLower === 'saved') return { view: 'marketplace', params: {} };
   if (cleanLower === 'settings' || cleanLower === 'preferences') return { view: 'settings', params: {} };
   if (cleanLower === 'not-found' || cleanLower === '404') return { view: 'not-found', params: {} };
@@ -89,7 +105,6 @@ export const MainApp: React.FC = () => {
     const { params } = pathToView(window.location.pathname, window.location.search);
     return params;
   });
-  const [isChatOpen, setIsChatOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isUnverifiedModalOpen, setIsUnverifiedModalOpen] = useState(false);
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
@@ -112,13 +127,16 @@ export const MainApp: React.FC = () => {
   const handleNavigate = (view: string, params: any = {}) => {
     const validViews = [
       'home', 'marketplace', 'item-detail', 'create-listing', 'flash-market',
-      'wanted', 'swaps', 'meetups', 'transactions', 'profile', 'about',
+      'flash-detail', 'wanted', 'swaps', 'meetups', 'transactions', 'profile', 'about',
       'developers', 'faq', 'help-safety', 'terms', 'privacy', 'favorites',
-      'settings', 'maintenance', 'not-found'
+      'settings', 'maintenance', 'messages', 'not-found'
     ];
     let targetView = validViews.includes(view) ? view : 'not-found';
 
     if (targetView === 'item-detail' && !params?.id) {
+      targetView = 'not-found';
+    }
+    if (targetView === 'flash-detail' && !params?.id) {
       targetView = 'not-found';
     }
 
@@ -127,10 +145,14 @@ export const MainApp: React.FC = () => {
 
     let path = `/${targetView}`;
     if (targetView === 'home') path = '/';
-    if (targetView === 'item-detail' && params.id) path = `/item/${encodeHashedId(params.id, 'listing')}`;
-    if (targetView === 'create-listing' && params.mode) path = `/create-listing?mode=${params.mode}`;
+    if (targetView === 'item-detail' && params?.id) path = `/item/${encodeHashedId(params.id, 'listing')}`;
+    if (targetView === 'flash-detail' && params?.id) path = `/flash/${encodeHashedId(params.id, 'flash')}`;
+    if (targetView === 'create-listing' && params?.mode) path = `/create-listing?mode=${params.mode}`;
     if (targetView === 'profile') {
-      path = params.userId ? `/profile/${encodeHashedId(params.userId, 'user')}` : '/profile';
+      path = params?.userId ? `/profile/${encodeHashedId(params.userId, 'user')}` : '/profile';
+    }
+    if (targetView === 'messages') {
+      path = params?.conversationId ? `/messages/${encodeHashedId(params.conversationId, 'conversation')}` : '/messages';
     }
     if (targetView === 'not-found') path = '/404';
 
@@ -144,7 +166,7 @@ export const MainApp: React.FC = () => {
       <Navbar
         currentView={currentView}
         onNavigate={handleNavigate}
-        onOpenChat={() => setIsChatOpen(true)}
+        onOpenChat={() => handleNavigate('messages')}
         onOpenAuth={() => setIsAuthModalOpen(true)}
         onOpenVerification={() => setIsVerificationModalOpen(true)}
       />
@@ -153,14 +175,14 @@ export const MainApp: React.FC = () => {
         {(() => {
           switch (currentView) {
             case 'home':
-              return <HomePage onNavigate={handleNavigate} onOpenChat={() => setIsChatOpen(true)} />;
+              return <HomePage onNavigate={handleNavigate} onOpenChat={() => handleNavigate('messages')} />;
             case 'marketplace':
               return (
                 <MarketplacePage
                   onNavigate={handleNavigate}
                   onOpenAuth={() => setIsAuthModalOpen(true)}
                   onOpenVerification={() => setIsVerificationModalOpen(true)}
-                  onOpenChat={() => setIsChatOpen(true)}
+                  onOpenChat={() => handleNavigate('messages')}
                 />
               );
             case 'item-detail':
@@ -168,7 +190,7 @@ export const MainApp: React.FC = () => {
                 <ItemDetailPage
                   listingId={viewParams.id}
                   onNavigate={handleNavigate}
-                  onOpenChat={() => setIsChatOpen(true)}
+                  onOpenChat={() => handleNavigate('messages')}
                   onOpenAuth={() => setIsAuthModalOpen(true)}
                   onOpenVerification={() => setIsVerificationModalOpen(true)}
                 />
@@ -186,7 +208,16 @@ export const MainApp: React.FC = () => {
               return (
                 <FlashMarketPage
                   onNavigate={handleNavigate}
-                  onOpenChat={() => setIsChatOpen(true)}
+                  onOpenChat={() => handleNavigate('messages')}
+                  onOpenAuth={() => setIsAuthModalOpen(true)}
+                />
+              );
+            case 'flash-detail':
+              return (
+                <FlashRequestDetailPage
+                  requestId={viewParams?.id}
+                  onNavigate={handleNavigate}
+                  onOpenChat={() => handleNavigate('messages')}
                   onOpenAuth={() => setIsAuthModalOpen(true)}
                 />
               );
@@ -194,7 +225,7 @@ export const MainApp: React.FC = () => {
               return (
                 <SwapsPage
                   onNavigate={handleNavigate}
-                  onOpenChat={() => setIsChatOpen(true)}
+                  onOpenChat={() => handleNavigate('messages')}
                   onOpenAuth={() => setIsAuthModalOpen(true)}
                   onOpenVerification={() => setIsVerificationModalOpen(true)}
                 />
@@ -204,7 +235,7 @@ export const MainApp: React.FC = () => {
               return (
                 <TransactionsPage
                   onNavigate={handleNavigate}
-                  onOpenChat={() => setIsChatOpen(true)}
+                  onOpenChat={() => handleNavigate('messages')}
                 />
               );
             case 'profile':
@@ -232,7 +263,15 @@ export const MainApp: React.FC = () => {
                   onNavigate={handleNavigate}
                   onOpenAuth={() => setIsAuthModalOpen(true)}
                   onOpenVerification={() => setIsVerificationModalOpen(true)}
-                  onOpenChat={() => setIsChatOpen(true)}
+                  onOpenChat={() => handleNavigate('messages')}
+                />
+              );
+            case 'messages':
+              return (
+                <MessagesPage
+                  conversationId={viewParams?.conversationId}
+                  onNavigate={handleNavigate}
+                  onOpenAuth={() => setIsAuthModalOpen(true)}
                 />
               );
             case 'settings':
@@ -253,14 +292,6 @@ export const MainApp: React.FC = () => {
 
       {/* 3. Campus Footer */}
       <Footer onNavigate={handleNavigate} />
-
-      {/* 4. Live Campus Messaging Drawer */}
-      <ChatDrawer
-        isOpen={isChatOpen}
-        onClose={() => setIsChatOpen(false)}
-        onNavigateToItem={(id) => handleNavigate('item-detail', { id })}
-        onNavigateToProfile={(userId) => handleNavigate('profile', { userId })}
-      />
 
       {/* 5. Authentication Modal */}
       <AuthModal
@@ -292,7 +323,7 @@ export const MainApp: React.FC = () => {
       <MobileBottomNav
         currentView={currentView}
         onNavigate={handleNavigate}
-        onOpenChat={() => setIsChatOpen(true)}
+        onOpenChat={() => handleNavigate('messages')}
         onOpenAuth={() => setIsAuthModalOpen(true)}
       />
 

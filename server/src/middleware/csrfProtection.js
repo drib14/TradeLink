@@ -32,10 +32,18 @@ function csrfProtection(req, res, next) {
   // 3. For state-changing methods (POST, PUT, PATCH, DELETE), validate token
   const headerToken = req.headers['x-xsrf-token'] || req.headers['x-csrf-token'];
   const cookieToken = req.cookies && req.cookies['XSRF-TOKEN'];
+  const isCookieAuth = Boolean(req.cookies && (req.cookies.accessToken || req.cookies.refreshToken));
 
-  // If a cookie token was present with the incoming request, verify header match
-  if (cookieToken) {
-    if (!headerToken || headerToken !== cookieToken) {
+  // If request uses cookie authentication or provides an XSRF cookie, enforce strict match
+  if (cookieToken || isCookieAuth) {
+    if (!headerToken || !cookieToken) {
+      return next(new AppError('CSRF token validation failed. Missing security token.', 403));
+    }
+    
+    // Constant-time comparison to mitigate timing attacks
+    const headerBuf = Buffer.from(String(headerToken));
+    const cookieBuf = Buffer.from(String(cookieToken));
+    if (headerBuf.length !== cookieBuf.length || !crypto.timingSafeEqual(headerBuf, cookieBuf)) {
       return next(new AppError('CSRF token validation failed. Please refresh the page and try again.', 403));
     }
   }

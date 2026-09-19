@@ -3,6 +3,7 @@ import { useFlashMarket } from '../../context/FlashMarketContext';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../common/Toast';
 import { Campus } from '../../types';
+import { DragDropUpload } from '../common/DragDropUpload';
 import { X, Zap, CheckCircle2, Clock, AlertCircle, Tag, HelpCircle, Gift } from 'lucide-react';
 
 interface CreateFlashRequestModalProps {
@@ -27,6 +28,7 @@ export const CreateFlashRequestModal: React.FC<CreateFlashRequestModalProps> = (
   const [urgency, setUrgency] = useState<'Immediate / Urgent' | 'This Week' | 'Flexible'>('Immediate / Urgent');
   const [durationHours, setDurationHours] = useState<number>(24);
   const [preferredCampus, setPreferredCampus] = useState<Campus>(currentUser?.campus || 'UC Main');
+  const [images, setImages] = useState<string[]>([]);
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -63,7 +65,8 @@ export const CreateFlashRequestModal: React.FC<CreateFlashRequestModalProps> = (
         urgency,
         durationHours,
         description: (description.trim() || `Looking for ${itemTitle} in ${preferredCampus}.`) + priceLabel,
-        preferredCampus
+        preferredCampus,
+        imageUrl: images[0] || undefined
       });
 
       showToast('Flash Request Posted!', `"${itemTitle}" is now live on the Flash Market.`, 'success');
@@ -72,6 +75,7 @@ export const CreateFlashRequestModal: React.FC<CreateFlashRequestModalProps> = (
       setTargetBudget('');
       setPriceMode('fixed');
       setDescription('');
+      setImages([]);
     } catch (err: any) {
       showToast('Posting Failed', err?.message || 'Unable to post flash request.', 'error');
     } finally {
@@ -102,8 +106,11 @@ export const CreateFlashRequestModal: React.FC<CreateFlashRequestModalProps> = (
           borderRadius: '16px',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
           maxWidth: '520px',
+          maxHeight: '90vh',
           width: '100%',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column'
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -115,7 +122,7 @@ export const CreateFlashRequestModal: React.FC<CreateFlashRequestModalProps> = (
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            background: 'linear-gradient(135deg, #002B7F 0%, #001D59 100%)',
+            backgroundColor: '#002B7F',
             color: '#FFFFFF'
           }}
         >
@@ -161,7 +168,7 @@ export const CreateFlashRequestModal: React.FC<CreateFlashRequestModalProps> = (
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <form onSubmit={handleSubmit} style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '1rem', overflowY: 'auto' }}>
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#1E293B', marginBottom: '0.35rem' }}>
               What item are you looking for? *
@@ -405,6 +412,21 @@ export const CreateFlashRequestModal: React.FC<CreateFlashRequestModalProps> = (
             </div>
           </div>
 
+
+          <div>
+            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#1E293B', marginBottom: '0.35rem' }}>
+              Item Reference Photo (Optional)
+            </label>
+            <DragDropUpload
+              images={images}
+              onChange={setImages}
+              maxFiles={1}
+              isMultiple={false}
+              acceptVideos={false}
+              label=""
+              helperText="Add a photo of the item you are looking for to display in explore and flash cards."
+            />
+          </div>
 
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#1E293B', marginBottom: '0.35rem' }}>

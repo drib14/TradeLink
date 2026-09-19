@@ -392,7 +392,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate, onOpenAu
               <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Notification Preferences</h3>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Choose what alerts you receive via in-app notifications.</p>
               <ToggleSwitch on={notifSwaps} onToggle={() => setNotifSwaps(!notifSwaps)} label="Swap Proposals & Offers" description="Instant notifications when peers offer barter trades for your items" />
-              <ToggleSwitch on={notifMeetups} onToggle={() => setNotifMeetups(!notifMeetups)} label="Meetup Schedule Reminders" description="Alerts for scheduled campus handshakes and 4-digit verification codes" />
+              <ToggleSwitch on={notifMeetups} onToggle={() => setNotifMeetups(!notifMeetups)} label="Meetup Schedule Reminders" description="Alerts for scheduled campus meetups and transaction updates" />
               <ToggleSwitch on={notifPriceDrops} onToggle={() => setNotifPriceDrops(!notifPriceDrops)} label="Saved Item Price Drops" description="Get notified when bookmarked items have their price reduced" />
               <ToggleSwitch on={notifWanted} onToggle={() => setNotifWanted(!notifWanted)} label="Wanted Board Item Matches" description="Alerts when items matching your requested wanted items are posted" />
               <ToggleSwitch on={notifSystem} onToggle={() => setNotifSystem(!notifSystem)} label="Campus Safety & System Alerts" description="Official University of Cebu safety and platform announcements" />

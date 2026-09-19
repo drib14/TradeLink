@@ -135,19 +135,13 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
           <button
             onClick={onCancel}
             disabled={isLoading}
+            className="btn-neutral"
             style={{
               padding: '0.65rem 1.25rem',
               borderRadius: '12px',
               fontSize: '0.85rem',
-              fontWeight: 700,
-              backgroundColor: '#F1F5F9',
-              color: '#334155',
-              border: 'none',
-              cursor: 'pointer',
-              transition: 'background-color 0.15s ease'
+              fontWeight: 700
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#E2E8F0')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#F1F5F9')}
           >
             {cancelText}
           </button>

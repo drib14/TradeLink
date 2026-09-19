@@ -6,6 +6,7 @@ import { useToast } from '../components/common/Toast';
 import { ListingCard } from '../components/marketplace/ListingCard';
 import { SwapProposalModal } from '../components/marketplace/SwapProposalModal';
 import { Listing, SwapOffer } from '../types';
+import { formatRelativeTime } from '../utils/date';
 import {
   ArrowLeftRight,
   Plus,
@@ -16,7 +17,8 @@ import {
   Clock,
   MessageSquare,
   ShoppingBag,
-  MapPin
+  MapPin,
+  X
 } from 'lucide-react';
 
 interface SwapsPageProps {
@@ -32,7 +34,7 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({
   onOpenAuth,
   onOpenVerification
 }) => {
-  const { listings } = useMarket();
+  const { listings, selectedCampus, setSelectedCampus } = useMarket();
   const { currentUser, isAuthenticated } = useAuth();
   const { swaps, respondToSwap, openChatForSwap } = useChat();
   const { showToast } = useToast();
@@ -40,7 +42,15 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({
   const [activeTab, setActiveTab] = useState<'catalog' | 'proposals'>('catalog');
   const [selectedTargetForSwap, setSelectedTargetForSwap] = useState<Listing | null>(null);
 
-  const swapListings = listings.filter((l: Listing) => l.tradeMode === 'swap' && !l.isSold);
+  const swapListings = listings.filter((l: Listing) => {
+    if (l.tradeMode !== 'swap' || l.isSold) return false;
+    if (selectedCampus !== 'All') {
+      const matchSellerCampus = l.sellerCampus && l.sellerCampus.toLowerCase().includes(selectedCampus.toLowerCase());
+      const matchItemCampus = (l as any).campus && (l as any).campus.toLowerCase().includes(selectedCampus.toLowerCase());
+      if (!matchSellerCampus && !matchItemCampus) return false;
+    }
+    return true;
+  });
   const mySwaps = currentUser
     ? swaps.filter(
         (s: SwapOffer) => s.targetSellerId === currentUser.id || s.offererId === currentUser.id
@@ -87,25 +97,73 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({
         </button>
       </div>
 
-      {/* Segmented Control Tabs */}
-      <div style={{ display: 'inline-flex', backgroundColor: 'var(--bg-subtle, #F1F5F9)', padding: '3px', borderRadius: 'var(--radius-full)', alignSelf: 'flex-start', border: '1px solid var(--border-subtle, #CBD5E1)' }}>
-        <button
-          onClick={() => setActiveTab('catalog')}
-          className={`segmented-tab ${activeTab === 'catalog' ? 'active' : ''}`}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
-        >
-          <ArrowLeftRight size={14} style={{ flexShrink: 0 }} />
-          <span>Available Swaps ({swapListings.length})</span>
-        </button>
+      {/* Toolbar: Segmented Tabs + On-Page Campus Dropdown */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.85rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'inline-flex', backgroundColor: 'var(--bg-subtle, #F1F5F9)', padding: '3px', borderRadius: 'var(--radius-full)', border: '1px solid var(--border-subtle, #CBD5E1)', height: '36px' }}>
+          <button
+            onClick={() => setActiveTab('catalog')}
+            className={`segmented-tab ${activeTab === 'catalog' ? 'active' : ''}`}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+          >
+            <ArrowLeftRight size={14} style={{ flexShrink: 0 }} />
+            <span>Available Swaps ({swapListings.length})</span>
+          </button>
 
-        <button
-          onClick={() => setActiveTab('proposals')}
-          className={`segmented-tab ${activeTab === 'proposals' ? 'active' : ''}`}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
-        >
-          <Clock size={14} style={{ flexShrink: 0 }} />
-          <span>My Proposals ({mySwaps.length})</span>
-        </button>
+          <button
+            onClick={() => setActiveTab('proposals')}
+            className={`segmented-tab ${activeTab === 'proposals' ? 'active' : ''}`}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+          >
+            <Clock size={14} style={{ flexShrink: 0 }} />
+            <span>My Proposals ({mySwaps.length})</span>
+          </button>
+        </div>
+
+        {/* Campus Filter Dropdown */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <select
+            value={selectedCampus}
+            onChange={(e) => setSelectedCampus(e.target.value as any)}
+            className="clean-input"
+            style={{
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              padding: '0.4rem 2rem 0.4rem 0.75rem',
+              cursor: 'pointer',
+              height: '36px',
+              borderRadius: '10px'
+            }}
+            aria-label="Filter swaps by campus"
+          >
+            <option value="All">🏫 All Campuses</option>
+            <option value="UC Main">UC Main</option>
+            <option value="UC Banilad">UC Banilad</option>
+            <option value="UC LM">UC LM</option>
+            <option value="UC METC">UC METC</option>
+            <option value="UC Pardo-Talisay">UC Pardo-Talisay</option>
+            <option value="UC South Campus">UC South Campus</option>
+            <option value="UC Medical Center">UC Medical Center</option>
+            <option value="UC PRI">UC PRI</option>
+          </select>
+
+          {selectedCampus !== 'All' && (
+            <button
+              onClick={() => setSelectedCampus('All')}
+              className="btn-neutral"
+              style={{
+                padding: '0.35rem 0.6rem',
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                height: '36px',
+                borderRadius: '10px'
+              }}
+              title="Clear campus filter"
+            >
+              <X size={13} />
+              <span>Reset</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Tab 1: Swap Catalog */}
@@ -145,10 +203,21 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({
           ) : (
             <div className="empty-state">
               <h3 className="empty-state-title">No items currently listed for swap</h3>
-              <p className="empty-state-desc">Post an item with the Swap Item Form to initiate student peer barter.</p>
-              <button onClick={() => onNavigate('create-listing', { mode: 'swap' })} className="btn-primary" style={{ marginTop: '0.75rem' }}>
-                Post a Swap Item
-              </button>
+              <p className="empty-state-desc">
+                {selectedCampus !== 'All'
+                  ? `No swap listings found for ${selectedCampus}. Try selecting All Campuses or post the first swap!`
+                  : 'Post an item with the Swap Item Form to initiate student peer barter.'}
+              </p>
+              <div style={{ display: 'flex', gap: '0.65rem', justifyContent: 'center', marginTop: '0.75rem', flexWrap: 'wrap' }}>
+                {selectedCampus !== 'All' && (
+                  <button onClick={() => setSelectedCampus('All')} className="btn-secondary">
+                    Show All Campuses
+                  </button>
+                )}
+                <button onClick={() => onNavigate('create-listing', { mode: 'swap' })} className="btn-primary">
+                  Post a Swap Item
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -216,7 +285,7 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({
                       </span>
                       <span style={{ color: 'var(--border-subtle)' }}>•</span>
                       <span style={{ color: 'var(--text-muted)' }}>
-                        {new Date(swap.createdAt).toLocaleDateString()}
+                        {formatRelativeTime(swap.createdAt)}
                       </span>
                     </div>
 
@@ -337,8 +406,8 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({
                       </button>
                       <button
                         onClick={() => respondToSwap(swap.id, 'declined')}
-                        className="btn-secondary"
-                        style={{ padding: '0.45rem 1rem', fontSize: '0.8rem', color: '#DC2626', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                        className="btn-danger-outline"
+                        style={{ padding: '0.45rem 1rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
                       >
                         <XCircle size={14} style={{ flexShrink: 0 }} />
                         <span>Decline</span>

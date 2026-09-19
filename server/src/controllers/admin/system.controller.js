@@ -215,7 +215,7 @@ const toggleFeatureFlag = asyncHandler(async (req, res, next) => {
 
   if (!flag) {
     flag = await db('feature_flags')
-      .whereILike('name', `%${id.replace(/_/g, ' ')}%`)
+      .where('name', 'like', `%${id.replace(/_/g, ' ')}%`)
       .first();
   }
 

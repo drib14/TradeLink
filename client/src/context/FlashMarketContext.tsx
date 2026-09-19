@@ -14,6 +14,7 @@ interface FlashMarketContextType {
     description: string;
     preferredCampus: Campus;
     durationHours?: number;
+    imageUrl?: string;
   }) => Promise<FlashRequest>;
   respondToRequest: (requestId: string, offerMessage?: string) => Promise<void>;
   fulfillRequest: (requestId: string) => Promise<void>;
@@ -54,6 +55,7 @@ export const FlashMarketProvider: React.FC<{ children: React.ReactNode }> = ({ c
     description: string;
     preferredCampus: Campus;
     durationHours?: number;
+    imageUrl?: string;
   }): Promise<FlashRequest> => {
     if (!currentUser) {
       throw new Error('Please log in to post an urgent Flash Request.');
@@ -67,6 +69,7 @@ export const FlashMarketProvider: React.FC<{ children: React.ReactNode }> = ({ c
       durationHours: params.durationHours || (params.urgency === 'Immediate / Urgent' || params.urgency === 'immediate' ? 24 : params.urgency === 'This Week' || params.urgency === 'this_week' ? 72 : 168),
       description: params.description.trim(),
       preferredCampus: params.preferredCampus,
+      imageUrl: params.imageUrl,
     };
 
     const created = await flashMarketService.createRequest(payload);

@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useMarket } from '../../context/MarketContext';
-import { RotateCcw, X, SlidersHorizontal, Tag, DollarSign } from 'lucide-react';
+import { RotateCcw, X, SlidersHorizontal, Tag, DollarSign, Building2 } from 'lucide-react';
 import { ConditionGrade } from '../../types';
 
 export const FilterBar: React.FC = () => {
   const {
+    selectedCampus,
+    setSelectedCampus,
     selectedCategory,
     setSelectedCategory,
     selectedTradeMode,
@@ -54,6 +56,7 @@ export const FilterBar: React.FC = () => {
   ];
 
   const hasActiveFilters =
+    selectedCampus !== 'All' ||
     selectedCategory !== 'All' ||
     selectedTradeMode !== 'All' ||
     selectedCondition !== 'All' ||
@@ -115,6 +118,33 @@ export const FilterBar: React.FC = () => {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
+          {/* Campus Filter */}
+          <div style={{ position: 'relative', minWidth: '130px', flex: '1 1 130px', maxWidth: '210px' }}>
+            <select
+              value={selectedCampus}
+              onChange={(e: any) => setSelectedCampus(e.target.value)}
+              className="clean-input"
+              style={{
+                padding: '0.45rem 0.75rem',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                color: 'var(--text-primary)',
+                backgroundColor: 'var(--bg-surface)'
+              }}
+              aria-label="Filter by campus"
+            >
+              <option value="All">All Campuses</option>
+              <option value="UC Main">UC Main</option>
+              <option value="UC Banilad">UC Banilad</option>
+              <option value="UC LM">UC LM</option>
+              <option value="UC METC">UC METC</option>
+              <option value="UC Pardo-Talisay">UC Pardo-Talisay</option>
+              <option value="UC South Campus">UC South Campus</option>
+              <option value="UC Medical Center">UC Medical Center</option>
+              <option value="UC PRI">UC PRI</option>
+            </select>
+          </div>
+
           {/* Trade Mode Filter */}
           <div style={{ position: 'relative', minWidth: '120px', flex: '1 1 120px', maxWidth: '220px' }}>
             <select
@@ -133,7 +163,6 @@ export const FilterBar: React.FC = () => {
               <option value="buy_sell">Buy & Sell Only</option>
               <option value="swap">Swap / Barter Only</option>
               <option value="free_donation">Free Donations Only</option>
-              <option value="flash_only">⚡ Flash Requests Only</option>
             </select>
           </div>
 
@@ -326,6 +355,32 @@ export const FilterBar: React.FC = () => {
       {hasActiveFilters && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', paddingTop: '2px' }}>
           <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 700 }}>Active filters:</span>
+
+          {selectedCampus !== 'All' && (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.3rem',
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                color: 'var(--uc-blue)',
+                backgroundColor: 'var(--uc-blue-subtle)',
+                padding: '0.2rem 0.55rem',
+                borderRadius: '6px',
+                border: '1px solid rgba(0, 43, 127, 0.15)'
+              }}
+            >
+              <Building2 size={11} /> {selectedCampus}
+              <button
+                onClick={() => setSelectedCampus('All')}
+                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', color: 'var(--uc-blue)' }}
+                aria-label="Clear campus filter"
+              >
+                <X size={12} />
+              </button>
+            </span>
+          )}
 
           {selectedCategory !== 'All' && (
             <span

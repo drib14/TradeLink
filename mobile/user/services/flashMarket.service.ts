@@ -30,6 +30,10 @@ export const mobileFlashMarketService = {
     return this.createFlashRequest(data);
   },
 
+  async createRequest(data: Partial<FlashRequest>): Promise<FlashRequest> {
+    return this.createFlashRequest(data);
+  },
+
   async respondToWanted(id: string): Promise<void> {
     return this.respondToFlashRequest(id);
   },

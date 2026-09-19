@@ -6,6 +6,8 @@ import { Transaction } from '../types';
 import { TransactionReceiptModal } from '../components/marketplace/TransactionReceiptModal';
 import { ConfirmModal } from '../components/common/ConfirmModal';
 import { PromptModal } from '../components/common/PromptModal';
+import { PaymentMethodBadge } from '../components/common/PaymentLogos';
+import { formatRelativeTime } from '../utils/date';
 import {
   FileText,
   Clock,
@@ -284,9 +286,7 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
               ? { bg: '#FDE8E8', text: '#9B1C1C', icon: <XCircle size={14} /> }
               : { bg: '#FEF08A', text: '#854D0E', icon: <Clock size={14} /> };
 
-            const formattedDate = tx.createdAt
-              ? new Date(tx.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-              : '';
+            const formattedDate = formatRelativeTime(tx.createdAt);
 
             return (
               <div
@@ -386,8 +386,10 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
                         <>Buyer: <strong style={{ color: 'var(--text-primary)' }}>{tx.buyerName}</strong></>
                       )}
                     </div>
-                    <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.25rem', fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
-                      <span>Payment: <strong style={{ textTransform: 'uppercase' }}>{tx.paymentMethod}</strong></span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginTop: '0.25rem', fontSize: '0.74rem', color: 'var(--text-secondary)', flexWrap: 'wrap' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        Payment: <PaymentMethodBadge method={tx.paymentMethod} size="xs" />
+                      </span>
                       <span>•</span>
                       <span>Status: <strong style={{ color: tx.paymentStatus === 'paid' ? '#059669' : '#D97706', textTransform: 'capitalize' }}>{tx.paymentStatus}</strong></span>
                     </div>
@@ -509,15 +511,22 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
                         <span>Cancel</span>
                       </button>
 
-                      <button
-                        onClick={() => handleComplete(tx)}
-                        disabled={actionLoadingId === tx.id}
-                        className="btn-primary"
-                        style={{ padding: '0.4rem 0.95rem', fontSize: '0.76rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-                      >
-                        <Check size={13} />
-                        <span>Mark Completed</span>
-                      </button>
+                      {!isBuyer ? (
+                        <button
+                          onClick={() => handleComplete(tx)}
+                          disabled={actionLoadingId === tx.id}
+                          className="btn-primary"
+                          style={{ padding: '0.4rem 0.95rem', fontSize: '0.76rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                        >
+                          <Check size={13} />
+                          <span>Mark Completed</span>
+                        </button>
+                      ) : (
+                        <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', backgroundColor: 'var(--bg-subtle)', padding: '0.35rem 0.65rem', borderRadius: '6px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                          <Clock size={12} />
+                          <span>Awaiting Seller Completion</span>
+                        </span>
+                      )}
                     </>
                   )}
                 </div>

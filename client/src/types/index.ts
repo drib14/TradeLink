@@ -173,10 +173,14 @@ export interface Listing {
   status?: string;
   createdAt: string;
   views: number;
+  rating?: number;
+  totalReviews?: number;
   tags?: string[];
   favoritesCount?: number;
   preferredMeetupSpots?: string[];
   customMeetupSpot?: string;
+  acceptedPaymentMethods?: ('cash' | 'gcash' | 'maya')[];
+  campus?: Campus;
 }
 
 export interface SwapOffer {
@@ -357,6 +361,7 @@ export interface FlashRequest {
   durationHours?: number;
   expiresAt?: string;
   isExpired?: boolean;
+  imageUrl?: string;
   createdAt: string;
 }
 

@@ -150,20 +150,25 @@ export const Navbar: React.FC<NavbarProps> = ({
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
+                justifyContent: 'space-between',
+                width: '175px',
                 gap: '0.4rem',
                 backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)',
-                border: '1px solid rgba(255, 255, 255, 0.8)',
-                padding: '0.45rem 0.95rem',
-                borderRadius: '16px',
+                border: '1px solid var(--border-subtle, #CBD5E1)',
+                padding: '0.45rem 0.85rem',
+                borderRadius: '10px',
                 fontSize: '0.82rem',
                 fontWeight: 700,
                 color: 'var(--uc-blue, #002B7F)',
                 cursor: 'pointer',
-                boxShadow: '0 3px 6px rgba(0, 43, 127, 0.08), inset 1.5px 1.5px 3px rgba(255, 255, 255, 0.9), inset -1.5px -1.5px 3px rgba(0, 43, 127, 0.04)',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
                 transition: 'all 0.15s ease'
               }}
+              title={selectedCampus === 'All' ? 'All UC Campuses' : selectedCampus}
             >
-              <span>{selectedCampus === 'All' ? 'All UC Campuses' : selectedCampus}</span>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, textAlign: 'left' }}>
+                {selectedCampus === 'All' ? 'All UC Campuses' : selectedCampus}
+              </span>
               <ChevronDown size={14} style={{ flexShrink: 0 }} />
             </button>
 
@@ -174,9 +179,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                   top: 'calc(100% + 8px)',
                   left: 0,
                   backgroundColor: '#FFFFFF',
-                  border: '1.5px solid rgba(255, 255, 255, 0.9)',
-                  borderRadius: '18px',
-                  boxShadow: '0 16px 36px rgba(0, 43, 127, 0.16), inset 2.5px 2.5px 5px rgba(255, 255, 255, 0.95), inset -2.5px -2.5px 5px rgba(0, 43, 127, 0.04)',
+                  border: '1px solid var(--border-subtle, #E2E8F0)',
+                  borderRadius: '12px',
+                  boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05)',
                   width: '220px',
                   zIndex: 60,
                   padding: '0.5rem',
@@ -536,7 +541,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       className="dropdown-item"
                     >
                       <User size={16} color="var(--uc-blue, #002B7F)" style={{ flexShrink: 0 }} />
-                      <span>My Profile & Storefront</span>
+                      <span>My Profile</span>
                     </button>
 
                     {/* 2. Transaction History */}

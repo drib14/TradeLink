@@ -82,7 +82,9 @@ export const ManageListingModal: React.FC<ManageListingModalProps> = ({
       await updateListing(listing.id, {
         price,
         quantity,
-        description: description.trim()
+        description: description.trim(),
+        isSold,
+        status: isSold ? 'sold' : 'active'
       });
       showToast('Listing Updated', 'Your changes have been saved.', 'success');
       onClose();

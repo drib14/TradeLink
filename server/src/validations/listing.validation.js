@@ -37,7 +37,8 @@ const createListingSchema = Joi.object({
   preferredMeetupSpots: Joi.array().items(Joi.string().trim().max(200)).default([]),
   customMeetupSpot: Joi.string().trim().max(200).allow('', null),
   campus: Joi.string().valid(...CAMPUSES).allow('', null),
-  department: Joi.string().trim().max(100).allow('', null)
+  department: Joi.string().trim().max(100).allow('', null),
+  acceptedPaymentMethods: Joi.array().items(Joi.string().valid('cash', 'gcash', 'maya')).default(['cash', 'gcash', 'maya'])
 }).or('media', 'images').messages({
   'object.missing': 'At least one listing photo is required (provide media or images).'
 });
@@ -60,12 +61,13 @@ const updateListingSchema = Joi.object({
   customMeetupSpot: Joi.string().trim().max(200).allow('', null),
   campus: Joi.string().valid(...CAMPUSES).allow('', null),
   department: Joi.string().trim().max(100).allow('', null),
+  acceptedPaymentMethods: Joi.array().items(Joi.string().valid('cash', 'gcash', 'maya')),
   status: Joi.string().valid('active', 'sold'),
   isSold: Joi.boolean()
 });
 
 const queryListingsSchema = Joi.object({
-  campus: Joi.string().trim().allow('All', ''),
+  campus: Joi.string().valid('All', '', ...CAMPUSES).default('All'),
   category: Joi.string().trim().allow('All', ''),
   tradeMode: Joi.string().valid('All', ...TRADE_MODES).default('All'),
   condition: Joi.string().valid('All', ...CONDITIONS).default('All'),

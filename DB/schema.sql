@@ -135,6 +135,8 @@ CREATE TABLE `listings` (
   `featured_until` DATETIME DEFAULT NULL,
   `course_code` VARCHAR(30) DEFAULT NULL,
   `quantity` INT UNSIGNED NOT NULL DEFAULT 1,
+  `rating` DECIMAL(2,1) NOT NULL DEFAULT 0.0,
+  `total_reviews` INT UNSIGNED NOT NULL DEFAULT 0,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
@@ -167,6 +169,20 @@ CREATE TABLE `listing_media` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
+-- 3B. LISTING UNIQUE VIEWS TABLE (Owner Exclusion & Deduplication)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `listing_views` (
+  `id` VARCHAR(36) NOT NULL PRIMARY KEY,
+  `listing_id` VARCHAR(36) NOT NULL,
+  `viewer_identifier` VARCHAR(128) NOT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  UNIQUE KEY `uniq_listing_viewer` (`listing_id`, `viewer_identifier`),
+  INDEX `idx_listing_views_listing` (`listing_id`),
+  CONSTRAINT `fk_listing_views_listing` FOREIGN KEY (`listing_id`) REFERENCES `listings` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------
 -- 4. FLASH MARKET REQUESTS TABLE (Urgent Buy/Sell/Swap Requests)
 -- ----------------------------------------------------------------------------
 CREATE TABLE `flash_requests` (
@@ -187,6 +203,7 @@ CREATE TABLE `flash_requests` (
   `urgency` ENUM('immediate', 'this_week', 'flexible') NOT NULL DEFAULT 'flexible',
   `budget_range` VARCHAR(50) DEFAULT NULL,
   `notes` TEXT DEFAULT NULL,
+  `image_url` VARCHAR(500) DEFAULT NULL,
   `status` ENUM('open', 'fulfilled', 'cancelled', 'expired') NOT NULL DEFAULT 'open',
   `offers_count` INT UNSIGNED NOT NULL DEFAULT 0,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -318,26 +335,25 @@ CREATE TABLE `messages` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
--- 9. REVIEWS & TRUST RATINGS TABLE
+-- 9. PRODUCT REVIEWS TABLE (Item Reviews & Ratings)
 -- ----------------------------------------------------------------------------
 CREATE TABLE `reviews` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
-  `transaction_id` VARCHAR(36) NOT NULL,
+  `listing_id` VARCHAR(36) NOT NULL,
   `reviewer_id` VARCHAR(36) NOT NULL,
-  `target_user_id` VARCHAR(36) NOT NULL,
+  `transaction_id` VARCHAR(36) DEFAULT NULL,
+  `target_user_id` VARCHAR(36) DEFAULT NULL,
   `rating` TINYINT UNSIGNED NOT NULL CHECK (`rating` BETWEEN 1 AND 5),
   `comment` TEXT DEFAULT NULL,
   `trade_type` VARCHAR(50) NOT NULL DEFAULT 'buy_sell',
   `item_title` VARCHAR(200) DEFAULT NULL,
-  `was_punctual` BOOLEAN NOT NULL DEFAULT TRUE,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-  FOREIGN KEY (`transaction_id`) REFERENCES `transactions` (`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`listing_id`) REFERENCES `listings` (`id`) ON DELETE CASCADE,
   FOREIGN KEY (`reviewer_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`target_user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  UNIQUE KEY `uq_review_tx_reviewer` (`transaction_id`, `reviewer_id`),
-  INDEX `idx_reviews_target` (`target_user_id`),
-  INDEX `idx_reviews_reviewer` (`reviewer_id`)
+  INDEX `idx_reviews_listing` (`listing_id`),
+  INDEX `idx_reviews_reviewer` (`reviewer_id`),
+  INDEX `idx_reviews_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------

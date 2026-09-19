@@ -2,7 +2,6 @@ const { v4: uuidv4 } = require('uuid');
 const db = require('../config/db');
 const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
-const { recalculateUserStats } = require('../services/trustScore.service');
 const { serializeTransaction } = require('../serializers');
 
 /**
@@ -310,8 +309,9 @@ const completeTransaction = asyncHandler(async (req, res, next) => {
     return next(new AppError('Transaction not found.', 404));
   }
 
-  if (req.user.id !== tx.seller_id && req.user.id !== tx.buyer_id && req.user.role !== 'admin') {
-    return next(new AppError('Unauthorized to complete this transaction.', 403));
+  // Only the seller or an administrator can mark the transaction as completed
+  if (req.user.id !== tx.seller_id && req.user.role !== 'admin') {
+    return next(new AppError('Only the seller can mark this transaction as completed.', 403));
   }
 
   if (tx.status === 'completed') {
@@ -329,10 +329,6 @@ const completeTransaction = asyncHandler(async (req, res, next) => {
     await trx('listings').where({ id: tx.listing_id }).update({ status: 'sold' });
   });
 
-  // Recalculate trust scores for both student participants
-  await recalculateUserStats(tx.seller_id);
-  await recalculateUserStats(tx.buyer_id);
-
   // Sync completion system event to chat
   const io = req.app.get('io');
   await syncTransactionToChat({
@@ -341,7 +337,7 @@ const completeTransaction = asyncHandler(async (req, res, next) => {
     sellerId: tx.seller_id,
     transactionId: tx.id,
     referenceNo: tx.reference_no,
-    content: `[Deal Completed] Reference ${tx.reference_no} is officially COMPLETED! Thank you for trading safely on campus. Both students can now rate and review each other.`,
+    content: `[Deal Completed] Reference ${tx.reference_no} is officially COMPLETED! Thank you for trading safely on campus. The buyer can now submit a product review for this item.`,
     isSystem: true,
     io
   });

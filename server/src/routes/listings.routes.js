@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const listingsController = require('../controllers/listings.controller');
+const reviewsController = require('../controllers/reviews.controller');
 const { authenticate, optionalAuth } = require('../middleware/auth');
 const { requireVerified, requireStudent } = require('../middleware/rbac');
 const decodeParams = require('../middleware/decodeParams');
@@ -19,6 +20,8 @@ decodeParams.bindRouter(router);
 
 router.get('/', validate(queryListingsSchema, 'query'), listingsController.getListings);
 router.get('/:id', validateUUID('id'), optionalAuth, listingsController.getListingById);
+router.get('/:id/reviews', validateUUID('id'), reviewsController.getListingReviews);
+router.post('/:id/reviews', validateUUID('id'), authenticate, requireStudent, reviewsController.createReview);
 
 router.post(
   '/',

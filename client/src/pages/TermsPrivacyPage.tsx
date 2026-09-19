@@ -121,13 +121,13 @@ export const TermsPrivacyPage: React.FC<TermsPrivacyPageProps> = ({ onNavigate, 
 
           <div className="clean-card" style={{ padding: '1.5rem', borderLeft: '4px solid var(--accent-green)' }}>
             <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--accent-green)', marginBottom: '0.65rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <ShieldCheck size={20} /> 2. Handshake Verification Integrity
+              <ShieldCheck size={20} /> 2. In-Person Settlement & Review Integrity
             </h3>
             <p style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', lineHeight: 1.65 }}>
-              The 4-digit Handshake Code and Handshake QR Code are physical verification mechanisms. They must <strong>only</strong> be given to the seller or buyer after physical in-person inspection of the item at a designated campus security checkpoint and confirmation of payment.
+              All exchanges must occur in-person at designated campus security checkpoints. The seller marks the order completed only after both parties have inspected the item and confirmed payment. Buyers can then leave honest product ratings and reviews.
             </p>
             <div style={{ backgroundColor: 'var(--bg-subtle)', padding: '0.85rem', borderRadius: '8px', marginTop: '0.65rem', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-              <strong>Trust Score Farming Prohibited:</strong> Generating sham transactions or fake reviews to artificially inflate trust scores or bypass moderation is strictly forbidden and monitored via automated anomaly detection.
+              <strong>Review Farming Prohibited:</strong> Submitting fake or manipulated reviews to artificially inflate item ratings or mislead student buyers is strictly forbidden and subject to account suspension.
             </div>
           </div>
 
@@ -173,7 +173,7 @@ export const TermsPrivacyPage: React.FC<TermsPrivacyPageProps> = ({ onNavigate, 
             <ul style={{ paddingLeft: '1.25rem', fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.65 }}>
               <li><strong>Student Credentials:</strong> Official Student ID number, full name, university or personal email, campus affiliation, and course/grade level.</li>
               <li><strong>Verification Media:</strong> Clear photo of official UC Student ID card and live camera selfie submitted exclusively for biometric facial matching and verification badge approval (Study Load / COR is not accepted as it lacks a photo).</li>
-              <li><strong>Transaction & Meetup Records:</strong> Item listings, agreed meetup checkpoints, 4-digit handshake completions, and peer reviews.</li>
+              <li><strong>Transaction & Meetup Records:</strong> Item listings, agreed meetup checkpoints, order completions, and product reviews.</li>
               <li><strong>Communications:</strong> Encrypted in-app peer-to-peer chat messages exchanged regarding listings and trade coordination.</li>
             </ul>
           </div>
@@ -261,8 +261,8 @@ export const TermsPrivacyPage: React.FC<TermsPrivacyPageProps> = ({ onNavigate, 
               <li><strong>Verify in Daylight:</strong> Meet at the scheduled campus guard desk while security guards are on active duty.</li>
               <li><strong>Physical Inspection:</strong> Carefully inspect textbook pages, uniform sizing, or electronic equipment functionality.</li>
               <li><strong>Confirm Payment:</strong> Exchange physical cash or verified student e-wallet (GCash) payment in front of the counter.</li>
-              <li><strong>Exchange 4-Digit Handshake Code:</strong> Provide the Handshake code or scan the QR code to lock in completion.</li>
-              <li><strong>Submit Peer Review:</strong> Rate your fellow UCian to build a transparent campus reputation.</li>
+              <li><strong>Finalize Order:</strong> The seller marks the order as complete in TradeLink once both peers confirm the exchange.</li>
+              <li><strong>Submit Product Review:</strong> Leave an authentic product rating and review to guide future student peers.</li>
             </ol>
           </div>
         </div>

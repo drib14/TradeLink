@@ -2,7 +2,7 @@ const { v4: uuidv4 } = require('uuid');
 const db = require('../config/db');
 const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
-const { createMessage } = require('../services/message.service');
+const { createMessage, encryptMessageContent, decryptMessageContent } = require('../services/message.service');
 
 /**
  * Get or create a conversation between current user and target user
@@ -74,7 +74,7 @@ const getOrCreateConversation = asyncHandler(async (req, res, next) => {
         conversation_id: convId,
         sender_id: currentUserId,
         receiver_id: targetUserId,
-        content: cleanInitial,
+        content: encryptMessageContent(cleanInitial),
         is_read: false,
         is_system_message: false,
         created_at: new Date()
@@ -352,7 +352,7 @@ const getConversations = asyncHandler(async (req, res) => {
         offeredTitle: matchingSwap.offered_item_title,
         status: matchingSwap.status
       } : null,
-      lastMessage: c.last_message || '',
+      lastMessage: decryptMessageContent(c.last_message) || '',
       lastMessageTimestamp: c.last_message_at || c.created_at,
       unreadCount: unreadMap.get(c.id) || 0
     };
@@ -468,7 +468,8 @@ const getMessages = asyncHandler(async (req, res, next) => {
     conversationId: m.conversation_id,
     senderId: m.sender_id,
     receiverId: m.receiver_id,
-    content: m.content,
+    content: decryptMessageContent(m.content),
+    isEncrypted: Boolean(m.content && m.content.startsWith('enc:v1:')),
     isRead: Boolean(m.is_read),
     mediaUrl: m.media_url || null,
     mediaType: m.media_type || null,

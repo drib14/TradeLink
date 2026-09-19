@@ -139,11 +139,11 @@ async function processImage(inputBuffer) {
   try {
     const processed = await sharp(inputBuffer)
       .rotate() // Autorotate based on EXIF before stripping metadata
-      .resize(1920, 1080, {
+      .resize(1200, 1200, {
         fit: 'inside',
         withoutEnlargement: true
       })
-      .webp({ quality: 80, effort: 4 })
+      .webp({ quality: 75, effort: 4 })
       .toBuffer();
 
     return {
@@ -240,8 +240,10 @@ async function uploadBuffer(buffer, originalFilename = 'file.jpg', mimeType = 'i
         public_id: uniqueId,
         resource_type: mediaType === 'video' ? 'video' : 'image',
         ...(process.env.CLOUDINARY_MODERATION === 'true' ? { moderation: 'aws_rek' } : {}),
-        transformation: mediaType === 'video' ? [] : [
-          { quality: 'auto:good', fetch_format: 'auto' }
+        transformation: mediaType === 'video' ? [
+          { quality: 'auto:eco', video_codec: 'auto' }
+        ] : [
+          { quality: 'auto:good', fetch_format: 'auto', width: 1200, crop: 'limit' }
         ]
       };
 

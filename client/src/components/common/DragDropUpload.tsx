@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { Upload, X, Video, Film } from 'lucide-react';
+import { Upload, X, Video, Film, Loader2 } from 'lucide-react';
 import { useToast } from './Toast';
+import { uploadFile } from '../../services/api';
 
 interface DragDropUploadProps {
   images: string[];
@@ -18,7 +19,7 @@ function compressImageClient(file: File): Promise<string> {
     const objectUrl = URL.createObjectURL(file);
     img.onload = () => {
       URL.revokeObjectURL(objectUrl);
-      const MAX_DIM = 1600;
+      const MAX_DIM = 1200;
       let { width, height } = img;
       if (width > MAX_DIM || height > MAX_DIM) {
         if (width > height) {
@@ -41,9 +42,9 @@ function compressImageClient(file: File): Promise<string> {
         return;
       }
       ctx.drawImage(img, 0, 0, width, height);
-      let dataUrl = canvas.toDataURL('image/webp', 0.82);
+      let dataUrl = canvas.toDataURL('image/webp', 0.75);
       if (!dataUrl.startsWith('data:image/webp')) {
-        dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+        dataUrl = canvas.toDataURL('image/jpeg', 0.75);
       }
       resolve(dataUrl);
     };
@@ -58,16 +59,63 @@ function compressImageClient(file: File): Promise<string> {
   });
 }
 
+function compressImageToFile(file: File): Promise<File> {
+  return new Promise((resolve) => {
+    if (!file.type.startsWith('image/')) {
+      return resolve(file);
+    }
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const MAX_DIM = 1200;
+      let { width, height } = img;
+      if (width > MAX_DIM || height > MAX_DIM) {
+        if (width > height) {
+          height = Math.round((height * MAX_DIM) / width);
+          width = MAX_DIM;
+        } else {
+          width = Math.round((width * MAX_DIM) / height);
+          height = MAX_DIM;
+        }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return resolve(file);
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) return resolve(file);
+          const compressedFile = new File([blob], file.name.replace(/\.[^.]+$/, '.webp'), {
+            type: 'image/webp'
+          });
+          resolve(compressedFile);
+        },
+        'image/webp',
+        0.75
+      );
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(file);
+    };
+    img.src = objectUrl;
+  });
+}
+
 export const DragDropUpload: React.FC<DragDropUploadProps> = ({
   images,
   onChange,
-  maxFiles = 5,
+  maxFiles = 10,
   label = 'Photos & Product Demonstration Videos',
   helperText = 'Drag & drop photos or product sample videos here, or browse',
   isMultiple = true,
   acceptVideos = true
 }) => {
   const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { showToast } = useToast();
 
@@ -80,6 +128,9 @@ export const DragDropUpload: React.FC<DragDropUploadProps> = ({
       return;
     }
 
+    const existingVideoCount = images.filter(isVideoItem).length;
+    let addedVideoCount = 0;
+
     const validFiles = Array.from(files).filter((file) => {
       // Explicitly reject SVG for security
       if (file.type.includes('svg') || file.name.toLowerCase().endsWith('.svg')) {
@@ -88,7 +139,18 @@ export const DragDropUpload: React.FC<DragDropUploadProps> = ({
       }
       const isImg = file.type.startsWith('image/');
       const isVid = acceptVideos && (file.type.startsWith('video/') || /\.(mp4|webm|mov|m4v)$/i.test(file.name));
-      return isImg || isVid;
+
+      if (!isImg && !isVid) return false;
+
+      if (isVid) {
+        if (existingVideoCount + addedVideoCount >= 1) {
+          showToast('Video Limit', 'Only 1 demonstration video is allowed per listing to optimize quota.', 'warning');
+          return false;
+        }
+        addedVideoCount++;
+      }
+
+      return true;
     });
 
     if (validFiles.length === 0) {
@@ -98,49 +160,62 @@ export const DragDropUpload: React.FC<DragDropUploadProps> = ({
 
     const filesToProcess = validFiles.slice(0, remainingSlots);
     const newItems: string[] = [];
+    setIsUploading(true);
 
-    for (const file of filesToProcess) {
-      // 15MB limit for videos, 10MB limit for images
-      if (file.size > 15 * 1024 * 1024) {
-        showToast('File Too Large', `${file.name} is larger than 15MB limit.`, 'warning');
-        continue;
-      }
-
-      if (file.type.startsWith('image/')) {
-        try {
-          const compressed = await compressImageClient(file);
-          newItems.push(compressed);
-        } catch {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            if (typeof reader.result === 'string') {
-              newItems.push(reader.result);
-              if (isMultiple) onChange([...images, ...newItems]);
-              else onChange(newItems);
-            }
-          };
-          reader.readAsDataURL(file);
+    try {
+      for (const file of filesToProcess) {
+        // 15MB limit for videos, 10MB limit for images
+        if (file.size > 15 * 1024 * 1024) {
+          showToast('File Too Large', `${file.name} is larger than 15MB limit.`, 'warning');
+          continue;
         }
-      } else {
-        // Video file — read as Data URL
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          if (typeof reader.result === 'string') {
-            newItems.push(reader.result);
-            if (isMultiple) onChange([...images, ...newItems]);
-            else onChange(newItems);
-          }
-        };
-        reader.readAsDataURL(file);
-      }
-    }
 
-    if (newItems.length > 0) {
-      if (isMultiple) {
-        onChange([...images, ...newItems]);
-      } else {
-        onChange(newItems);
+        // Optimize image client-side before sending to server/storage to preserve Cloudinary free tier
+        const fileToUpload = file.type.startsWith('image/') ? await compressImageToFile(file) : file;
+
+        // 1. Try uploading to server endpoint directly
+        try {
+          const uploadRes = await uploadFile(fileToUpload, 'listings');
+          if (uploadRes && uploadRes.url) {
+            newItems.push(uploadRes.url);
+            continue;
+          }
+        } catch {
+          // Fallback to local encoding if server is unreachable
+        }
+
+        // 2. Client fallback
+        if (file.type.startsWith('image/')) {
+          try {
+            const compressed = await compressImageClient(file);
+            newItems.push(compressed);
+          } catch {
+            const dataUrl = await new Promise<string>((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(typeof reader.result === 'string' ? reader.result : '');
+              reader.readAsDataURL(file);
+            });
+            if (dataUrl) newItems.push(dataUrl);
+          }
+        } else {
+          const dataUrl = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(typeof reader.result === 'string' ? reader.result : '');
+            reader.readAsDataURL(file);
+          });
+          if (dataUrl) newItems.push(dataUrl);
+        }
       }
+
+      if (newItems.length > 0) {
+        if (isMultiple) {
+          onChange([...images, ...newItems]);
+        } else {
+          onChange(newItems);
+        }
+      }
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -230,15 +305,15 @@ export const DragDropUpload: React.FC<DragDropUploadProps> = ({
             transform: isDragging ? 'scale(1.1)' : 'scale(1)'
           }}
         >
-          <Upload size={20} />
+          {isUploading ? <Loader2 size={20} className="animate-spin" /> : <Upload size={20} />}
         </div>
 
         <div>
           <p style={{ fontSize: '0.84rem', fontWeight: 700, color: '#002B7F' }}>
-            {isDragging ? 'Drop media files here' : helperText}
+            {isUploading ? 'Optimizing & uploading media...' : isDragging ? 'Drop media files here' : helperText}
           </p>
           <p style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '2px' }}>
-            Supports JPG, PNG, WEBP & MP4, WEBM, MOV videos up to 50MB (Upload at least 5 media)
+            Supports JPG, PNG, WEBP & MP4, WEBM, MOV videos up to 15MB
           </p>
         </div>
       </div>

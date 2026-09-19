@@ -55,6 +55,11 @@ function initializeSocket(httpServer) {
         return next(new Error('Authentication error: Account suspended.'));
       }
 
+      // Token revocation check: reject if tokenVersion is older than current version
+      if (decoded.tokenVersion && user.token_version && decoded.tokenVersion < user.token_version) {
+        return next(new Error('Authentication error: Session has expired or been revoked. Please reconnect with fresh token.'));
+      }
+
       socket.user = user;
       next();
     } catch (err) {

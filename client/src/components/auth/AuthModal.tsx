@@ -241,7 +241,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {/* Top Header Banner with UC Colors */}
         <div
           style={{
-            background: 'linear-gradient(135deg, #002B7F 0%, #0A1931 100%)',
+            backgroundColor: '#002B7F',
             padding: '1.25rem 1.5rem',
             position: 'relative',
             color: '#FFFFFF',

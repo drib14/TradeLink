@@ -107,6 +107,21 @@ const removeListingByAdmin = asyncHandler(async (req, res, next) => {
     });
   }
 
+  // Check if foreign key references exist in transactions or swaps
+  const hasTransactions = await db('transactions').where({ listing_id: listingId }).first();
+  const hasSwaps = await db('swaps').where(builder => {
+    builder.where({ proposer_listing_id: listingId }).orWhere({ receiver_listing_id: listingId });
+  }).first();
+
+  if (hasTransactions || hasSwaps) {
+    await db('listings').where({ id: listingId }).update({ status: 'archived', updated_at: new Date() });
+    await logAdminAction(req.user, 'Archived Listing', 'listing', listingId, `Reason: ${reason}`, req);
+    return res.status(200).json({
+      status: 'success',
+      message: 'Listing archived (historical transaction records preserved).'
+    });
+  }
+
   // Clean up listing media files from Cloudinary storage
   const listingMedia = await db('listing_media').where({ listing_id: listingId });
   for (const m of listingMedia) {
@@ -116,7 +131,6 @@ const removeListingByAdmin = asyncHandler(async (req, res, next) => {
   await db.transaction(async (trx) => {
     await trx('listing_media').where({ listing_id: listingId }).delete();
     await trx('flagged_listings').where({ listing_id: listingId }).delete();
-    await trx('favorites').where({ listing_id: listingId }).delete();
     await trx('listings').where({ id: listingId }).delete();
   });
 
@@ -246,9 +260,9 @@ const getAllUsers = asyncHandler(async (req, res) => {
     const q = `%${search.trim().toLowerCase()}%`;
     query = query.where((builder) => {
       builder
-        .whereILike('name', q)
-        .orWhereILike('email', q)
-        .orWhereILike('student_id', q);
+        .where('name', 'like', q)
+        .orWhere('email', 'like', q)
+        .orWhere('student_id', 'like', q);
     });
   }
 
@@ -412,10 +426,8 @@ const deleteUser = asyncHandler(async (req, res, next) => {
     if (listingIds.length > 0) {
       await trx('listing_media').whereIn('listing_id', listingIds).delete();
       await trx('flagged_listings').whereIn('listing_id', listingIds).delete();
-      await trx('favorites').whereIn('listing_id', listingIds).delete();
       await trx('listings').whereIn('id', listingIds).delete();
     }
-    await trx('favorites').where({ user_id: id }).delete();
     await trx('users').where({ id }).delete();
   });
 

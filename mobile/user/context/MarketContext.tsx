@@ -206,7 +206,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const addFlashRequest = async (data: Partial<FlashRequest>): Promise<FlashRequest | null> => {
     try {
-      const created = await mobileWantedService.createRequest(data);
+      const created = await mobileWantedService.createFlashRequest(data);
       if (created) {
         setFlashRequests((prev) => [created, ...prev]);
         return created;
@@ -220,7 +220,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const addWantedRequest = async (data: Partial<WantedRequest>): Promise<WantedRequest | null> => {
     try {
-      const created = await mobileWantedService.createRequest(data);
+      const created = await mobileWantedService.createWantedRequest(data);
       if (created) {
         setFlashRequests((prev) => [created, ...prev]);
         return created;

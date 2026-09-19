@@ -14,12 +14,14 @@ import {
 } from 'lucide-react';
 import { CAMPUS_DETAILS } from '../data/campusLocations';
 import { Campus } from '../types';
+import { useMarket } from '../context/MarketContext';
 
 interface AboutPageProps {
   onNavigate: (view: string, param?: any) => void;
 }
 
 export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
+  const { setSelectedCampus } = useMarket();
   const stats = [
     { label: 'Campuses Connected', value: '8 Official Hubs' },
     { label: 'Active Students & SHS', value: '60,000+ UCians' },
@@ -107,9 +109,9 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
             <div style={{ width: '38px', height: '38px', borderRadius: '8px', backgroundColor: 'var(--uc-blue-subtle)', color: 'var(--uc-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <ShieldCheck size={20} />
             </div>
-            <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>Guarded Handshake Security</h4>
+            <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>Guarded Campus Settlement</h4>
             <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', lineHeight: 1.55 }}>
-              No stranger danger or unsafe off-campus meetups. All trades occur directly inside designated campus guard checkpoints using encrypted 4-digit verification codes.
+              No stranger danger or unsafe off-campus meetups. All trades occur directly inside designated campus guard checkpoints with verified student ID authentication and peer reviews.
             </p>
           </div>
 
@@ -157,15 +159,25 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
             return (
               <div
                 key={c}
-                className="clean-card"
+                className="clean-card card-interactive"
+                onClick={() => {
+                  setSelectedCampus(c);
+                  onNavigate('marketplace');
+                }}
                 style={{
                   padding: '1.15rem',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '0.4rem'
+                  gap: '0.4rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.18s ease'
                 }}
+                title={`Browse items available at ${info.shortName}`}
               >
-                <div style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--uc-blue)' }}>{info.shortName}</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--uc-blue)' }}>{info.shortName}</div>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--uc-blue)', fontWeight: 800 }}>Explore &rarr;</span>
+                </div>
                 <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{info.address}</div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--accent-green)', fontWeight: 700 }}>Tel: {info.phone}</div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>

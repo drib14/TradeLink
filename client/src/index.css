@@ -860,6 +860,34 @@ input[type="radio"] {
   box-shadow: none !important;
 }
 
+.btn-neutral {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  background-color: var(--bg-subtle, #F1F5F9) !important;
+  color: var(--text-secondary, #475569) !important;
+  border: 1px solid var(--border-subtle, #E2E8F0) !important;
+  padding: 0.6rem 1.2rem !important;
+  border-radius: var(--radius-md) !important;
+  font-size: 0.86rem !important;
+  font-weight: 600 !important;
+  box-shadow: none !important;
+  transition: all var(--transition-fast) !important;
+  cursor: pointer;
+}
+
+.btn-neutral:hover {
+  background-color: #E2E8F0 !important;
+  color: var(--text-primary, #0F172A) !important;
+  border-color: #CBD5E1 !important;
+}
+
+.btn-neutral:active {
+  transform: translateY(0) !important;
+  background-color: #CBD5E1 !important;
+}
+
 .btn-danger {
   display: inline-flex;
   align-items: center;
@@ -2504,6 +2532,21 @@ textarea:focus,
   transform: translateY(-2px) !important;
   border-color: #CBD5E1 !important;
   box-shadow: 0 6px 12px -2px rgba(0, 43, 127, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04) !important;
+}
+
+.card-interactive {
+  cursor: pointer !important;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.15s ease !important;
+}
+
+.card-interactive:hover {
+  transform: translateY(-3px) !important;
+  border-color: #94A3B8 !important;
+  box-shadow: 0 8px 20px -3px rgba(0, 43, 127, 0.12), 0 3px 6px -1px rgba(0, 0, 0, 0.04) !important;
+}
+
+.card-interactive:active {
+  transform: translateY(0) scale(0.99) !important;
 }
 
 .clay-pill {

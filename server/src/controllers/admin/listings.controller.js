@@ -62,9 +62,9 @@ const getAllListingsAdmin = asyncHandler(async (req, res) => {
     const q = `%${cleanSearch}%`;
     query = query.where((builder) => {
       builder
-        .whereILike('listings.title', q)
-        .orWhereILike('listings.description', q)
-        .orWhereILike('seller.name', q);
+        .where('listings.title', 'like', q)
+        .orWhere('listings.description', 'like', q)
+        .orWhere('seller.name', 'like', q);
     });
   }
 
@@ -139,7 +139,6 @@ const createListingAdmin = asyncHandler(async (req, res, next) => {
       quantity: Math.max(0, parseInt(quantity, 10) || 1),
       is_featured: Boolean(isFeatured),
       status: 'active',
-      tags: JSON.stringify(tags || []),
       created_at: new Date(),
       updated_at: new Date()
     });
@@ -248,7 +247,6 @@ const updateListingAdmin = asyncHandler(async (req, res, next) => {
   }
   if (isFeatured !== undefined) updates.is_featured = Boolean(isFeatured);
   if (status !== undefined) updates.status = status;
-  if (tags !== undefined) updates.tags = JSON.stringify(tags);
 
   await db.transaction(async (trx) => {
     await trx('listings').where({ id }).update(updates);
@@ -325,7 +323,7 @@ const updateListingAdmin = asyncHandler(async (req, res, next) => {
 });
 
 /**
- * Admin delete listing
+ * Admin delete listing (foreign-key safe with soft-delete archival if transacted)
  */
 const deleteListingAdmin = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
@@ -333,6 +331,22 @@ const deleteListingAdmin = asyncHandler(async (req, res, next) => {
 
   if (!listing) {
     return next(new AppError('Listing not found.', 404));
+  }
+
+  // Check if foreign key references exist in transactions or swaps
+  const hasTransactions = await db('transactions').where({ listing_id: id }).first();
+  const hasSwaps = await db('swaps').where(builder => {
+    builder.where({ proposer_listing_id: id }).orWhere({ receiver_listing_id: id });
+  }).first();
+
+  if (hasTransactions || hasSwaps) {
+    // Preserve financial & audit history without foreign key failure
+    await db('listings').where({ id }).update({ status: 'archived', updated_at: new Date() });
+    await logAdminAction(req.user, 'Archived Listing', 'listing', id, `Admin archived transacted listing "${listing.title}"`, req);
+    return res.status(200).json({
+      status: 'success',
+      message: 'Listing archived (historical transaction records preserved).'
+    });
   }
 
   // Delete attached files from Cloudinary storage
@@ -344,7 +358,6 @@ const deleteListingAdmin = asyncHandler(async (req, res, next) => {
   await db.transaction(async (trx) => {
     await trx('listing_media').where({ listing_id: id }).delete();
     await trx('flagged_listings').where({ listing_id: id }).delete();
-    await trx('favorites').where({ listing_id: id }).delete();
     await trx('listings').where({ id }).delete();
   });
 

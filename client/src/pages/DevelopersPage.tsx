@@ -5,7 +5,6 @@ import {
   ChevronRight,
   LayoutGrid,
   MapPin,
-  HeartHandshake,
   Crown,
   CheckCircle2,
   Cpu,
@@ -48,8 +47,8 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
       role: 'Platform Lead & Creator',
       category: 'Lead',
       categoryBadge: 'Project Lead & Creator',
-      badgeColor: 'linear-gradient(135deg, #002B7F 0%, #001744 100%)',
-      accentGlow: 'rgba(0, 43, 127, 0.28)',
+      badgeColor: '#002B7F',
+      accentGlow: 'rgba(0, 43, 127, 0.15)',
       campus: 'UC Main Campus',
       avatarUrl: 'https://avatars.githubusercontent.com/u/112171139?v=4',
       initials: 'JR',
@@ -65,8 +64,8 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
       role: 'Project Coordinator',
       category: 'Management',
       categoryBadge: 'Project Coordination',
-      badgeColor: 'linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)',
-      accentGlow: 'rgba(124, 58, 237, 0.25)',
+      badgeColor: '#7C3AED',
+      accentGlow: 'rgba(124, 58, 237, 0.15)',
       campus: 'UC Main Campus',
       avatarUrl: '',
       initials: 'RA',
@@ -82,8 +81,8 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
       role: 'Data & Records Specialist',
       category: 'Database',
       categoryBadge: 'Data & Security Records',
-      badgeColor: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
-      accentGlow: 'rgba(2, 132, 199, 0.25)',
+      badgeColor: '#0284C7',
+      accentGlow: 'rgba(2, 132, 199, 0.15)',
       campus: 'UC Main Campus',
       avatarUrl: '',
       initials: 'TV',
@@ -99,8 +98,8 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
       role: 'Marketplace Records Specialist',
       category: 'Database',
       categoryBadge: 'Marketplace Records',
-      badgeColor: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
-      accentGlow: 'rgba(2, 132, 199, 0.25)',
+      badgeColor: '#0284C7',
+      accentGlow: 'rgba(2, 132, 199, 0.15)',
       campus: 'UC Banilad Campus',
       avatarUrl: '',
       initials: 'JT',
@@ -116,8 +115,8 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
       role: 'User Experience Designer',
       category: 'UI/UX',
       categoryBadge: 'Campus Experience Design',
-      badgeColor: 'linear-gradient(135deg, #DB2777 0%, #9D174D 100%)',
-      accentGlow: 'rgba(219, 39, 119, 0.25)',
+      badgeColor: '#DB2777',
+      accentGlow: 'rgba(219, 39, 119, 0.15)',
       campus: 'UC LM Campus',
       avatarUrl: '',
       initials: 'GF',
@@ -133,8 +132,8 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
       role: 'Visual & Interaction Designer',
       category: 'UI/UX',
       categoryBadge: 'Visual Experience',
-      badgeColor: 'linear-gradient(135deg, #D97706 0%, #B45309 100%)',
-      accentGlow: 'rgba(217, 119, 6, 0.25)',
+      badgeColor: '#D97706',
+      accentGlow: 'rgba(217, 119, 6, 0.15)',
       campus: 'UC Main Campus',
       avatarUrl: '',
       initials: 'EC',
@@ -150,8 +149,8 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
       role: 'App Experience Builder',
       category: 'Frontend',
       categoryBadge: 'Interactive Web Experience',
-      badgeColor: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-      accentGlow: 'rgba(5, 150, 105, 0.25)',
+      badgeColor: '#059669',
+      accentGlow: 'rgba(5, 150, 105, 0.15)',
       campus: 'UC Banilad Campus',
       avatarUrl: '',
       initials: 'JS',
@@ -167,8 +166,8 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
       role: 'Student Interface Builder',
       category: 'Frontend',
       categoryBadge: 'Student Forms & Verification',
-      badgeColor: 'linear-gradient(135deg, #0D9488 0%, #0F766E 100%)',
-      accentGlow: 'rgba(13, 148, 136, 0.25)',
+      badgeColor: '#0D9488',
+      accentGlow: 'rgba(13, 148, 136, 0.15)',
       campus: 'UC Main Campus',
       avatarUrl: '',
       initials: 'LB',
@@ -817,8 +816,8 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
               {/* Header Accent Bar */}
               <div
                 style={{
-                  height: '8px',
-                  background: member.id === 'jhonrid' ? 'linear-gradient(90deg, #FFC72C 0%, #002B7F 100%)' : member.badgeColor
+                  height: '6px',
+                  backgroundColor: member.badgeColor
                 }}
               />
 
@@ -1010,7 +1009,7 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
         style={{
           padding: '2.25rem',
           borderRadius: '20px',
-          background: 'linear-gradient(135deg, rgba(0, 43, 127, 0.05) 0%, rgba(255, 199, 44, 0.09) 100%)',
+          background: '#F8FAFC',
           border: '1.5px solid rgba(0, 43, 127, 0.15)',
           display: 'flex',
           alignItems: 'center',
@@ -1035,7 +1034,7 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
               boxShadow: '0 6px 16px rgba(0, 43, 127, 0.3)'
             }}
           >
-            <HeartHandshake size={28} />
+            <Users size={28} />
           </div>
           <div>
             <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--text-primary)', margin: 0 }}>

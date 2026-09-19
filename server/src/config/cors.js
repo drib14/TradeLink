@@ -18,14 +18,30 @@ const normalizeOrigin = (url) => (url ? url.trim().replace(/\/+$/, '') : '');
 
 /**
  * Builds the set of allowed origins from environment variables and defaults.
- * Supports comma-separated origins in CLIENT_URL or ALLOWED_ORIGINS.
+ * Restricts localhost origins to development and test environments.
+ * Supports comma-separated origins in CLIENT_URL, ADMIN_URL, or ALLOWED_ORIGINS.
  */
 function getAllowedOrigins() {
-  const origins = new Set(defaultOrigins.map(normalizeOrigin));
+  const origins = new Set();
+
+  // In development and testing, allow standard local dev servers
+  if (!env.isProduction) {
+    defaultOrigins.map(normalizeOrigin).forEach((url) => {
+      if (url) origins.add(url);
+    });
+  }
 
   // Parse CLIENT_URL (e.g. "https://tradelink-uc.vercel.app" or comma-separated)
   if (env.clientUrl && env.clientUrl !== '*') {
     env.clientUrl.split(',').forEach((url) => {
+      const normalized = normalizeOrigin(url);
+      if (normalized) origins.add(normalized);
+    });
+  }
+
+  // Parse ADMIN_URL (e.g. "https://admin-tradelink.vercel.app" or comma-separated)
+  if (env.adminUrl && env.adminUrl !== '*') {
+    env.adminUrl.split(',').forEach((url) => {
       const normalized = normalizeOrigin(url);
       if (normalized) origins.add(normalized);
     });
