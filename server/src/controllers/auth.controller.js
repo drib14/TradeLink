@@ -322,12 +322,79 @@ const forgotPassword = asyncHandler(async (req, res, next) => {
 
   // Send verification code directly to student's email
   try {
-    await emailService.sendPasswordResetEmail(user.email, code, user.name, req);
+    const mailResult = await emailService.sendPasswordResetEmail(user.email, code, user.name, req);
+    if (!mailResult || mailResult.error) {
+      console.warn(`[AUTH] Notice: Mail delivery returned status:`, mailResult?.error || 'unconfirmed');
+    }
   } catch (err) {
     console.error('[AUTH] Failed to send password reset email:', err.message);
   }
 
-  return successResponse();
+  console.log(`\n======================================================`);
+  console.log(`[AUTH] 🔑 PASSWORD RESET CODE FOR ${user.email}: [ ${code} ]`);
+  console.log(`======================================================\n`);
+
+  // In non-production, return devCode in response so developer or user testing is never blocked
+  const resPayload = {
+    status: 'success',
+    message: 'If an account with that email exists, a 6-digit verification code has been dispatched. Please check your inbox or spam folder.'
+  };
+  if (process.env.NODE_ENV !== 'production') {
+    resPayload.devCode = code;
+  }
+
+  return res.status(200).json(resPayload);
+});
+
+/**
+ * Verify 6-digit reset code before opening reset password modal
+ */
+const verifyResetCode = asyncHandler(async (req, res, next) => {
+  const { email, code } = req.body;
+
+  if (!email || !code) {
+    return next(new AppError('Email and 6-digit verification code are required.', 400));
+  }
+
+  const cleanEmail = email.toLowerCase().trim();
+  const user = await db('users').whereRaw('LOWER(email) = ?', [cleanEmail]).first();
+  if (!user) {
+    return next(new AppError('Account not found.', 404));
+  }
+
+  if (!user.reset_code_hash || !user.reset_code_exp || new Date() > new Date(user.reset_code_exp)) {
+    return next(new AppError('Verification code has expired or is invalid. Please request a new code.', 400));
+  }
+
+  const isMatch = await verifyCode(code.trim(), user.reset_code_hash);
+  if (!isMatch) {
+    const attempts = (user.failed_reset_attempts || 0) + 1;
+    if (attempts >= 3) {
+      await db('users').where({ id: user.id }).update({
+        reset_code_hash: null,
+        reset_code_exp: null,
+        failed_reset_attempts: 0
+      });
+      return next(
+        new AppError(
+          'Invalid verification code. Maximum attempts exceeded (3/3). This code has been invalidated. Please request a new code.',
+          400
+        )
+      );
+    }
+    await db('users').where({ id: user.id }).update({ failed_reset_attempts: attempts });
+    return next(
+      new AppError(
+        `Invalid verification code. You have ${3 - attempts} attempt(s) remaining.`,
+        400
+      )
+    );
+  }
+
+  return res.status(200).json({
+    status: 'success',
+    message: 'Verification code confirmed. You may now set your new password.'
+  });
 });
 
 /**
@@ -421,6 +488,7 @@ module.exports = {
   refreshToken,
   logout,
   forgotPassword,
+  verifyResetCode,
   resetPassword,
   getMe
 };

@@ -85,7 +85,12 @@ export const authService = {
 
   async forgotPassword(email: string): Promise<{ message: string; resetCode?: string }> {
     const res = await api.post('/auth/forgot-password', { email }, { skipAuth: true });
-    return { message: res.message || 'Code sent.', resetCode: (res as any).resetCode };
+    return { message: res.message || 'Code sent.', resetCode: (res as any).resetCode || (res as any).devCode };
+  },
+
+  async verifyResetCode(email: string, code: string): Promise<{ message: string }> {
+    const res = await api.post('/auth/verify-reset-code', { email, code }, { skipAuth: true });
+    return { message: res.message || 'Code confirmed.' };
   },
 
   async resetPassword(email: string, code: string, newPassword: string): Promise<{ message: string }> {

@@ -14,6 +14,7 @@ interface AuthContextType {
   login: (idNumber: string, password?: string) => Promise<{ success: boolean; message: string }>;
   register: (data: RegisterData) => Promise<{ success: boolean; message: string }>;
   forgotPassword: (email: string) => Promise<{ success: boolean; resetCode?: string; message: string }>;
+  verifyResetCode: (email: string, code: string) => Promise<{ success: boolean; message: string }>;
   resetPassword: (email: string, code: string, newPassword: string) => Promise<{ success: boolean; message: string }>;
   logout: () => void;
   updateProfile: (data: Partial<User>) => void;
@@ -146,12 +147,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  const resetPassword = useCallback(async (email: string, code: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
-    if (!code || code.length !== 4) {
-      return { success: false, message: 'Invalid 4-digit verification code.' };
+  const verifyResetCode = useCallback(async (email: string, code: string): Promise<{ success: boolean; message: string }> => {
+    const cleanCode = code.trim().replace(/\D/g, '');
+    if (cleanCode.length !== 6) {
+      return { success: false, message: 'Please enter a valid 6-digit verification code.' };
     }
     try {
-      const result = await authService.resetPassword(email, code, newPassword);
+      const result = await authService.verifyResetCode(email, cleanCode);
+      return { success: true, message: result.message };
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'Invalid or expired verification code.' };
+    }
+  }, []);
+
+  const resetPassword = useCallback(async (email: string, code: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
+    const cleanCode = code.trim().replace(/\D/g, '');
+    if (cleanCode.length !== 6) {
+      return { success: false, message: 'Invalid 6-digit verification code.' };
+    }
+    try {
+      const result = await authService.resetPassword(email, cleanCode, newPassword);
       return { success: true, message: result.message };
     } catch (err: any) {
       return { success: false, message: err?.message || 'Password reset failed.' };
@@ -229,6 +244,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         register,
         forgotPassword,
+        verifyResetCode,
         resetPassword,
         logout,
         updateProfile,

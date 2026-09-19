@@ -691,6 +691,49 @@ input[type="search"]:focus,
   transform: none !important;
 }
 
+/* Multi-box Digit Code Inputs */
+.digit-box {
+  width: 48px !important;
+  height: 56px !important;
+  text-align: center !important;
+  font-size: 1.5rem !important;
+  font-weight: 800 !important;
+  font-family: var(--font-mono, monospace) !important;
+  background-color: #F8FAFC !important;
+  border: 2px solid #CBD5E1 !important;
+  border-radius: 12px !important;
+  color: var(--uc-blue) !important;
+  padding: 0 !important;
+  outline: none !important;
+  box-sizing: border-box !important;
+  transition: all 0.15s ease !important;
+}
+
+.digit-box:hover {
+  border-color: #94A3B8 !important;
+  background-color: #FFFFFF !important;
+}
+
+.digit-box:focus {
+  background-color: #FFFFFF !important;
+  border-color: var(--uc-blue) !important;
+  box-shadow: 0 0 0 4px rgba(0, 43, 127, 0.15) !important;
+}
+
+.digit-box.filled {
+  border-color: var(--uc-blue) !important;
+  background-color: rgba(0, 43, 127, 0.03) !important;
+}
+
+@media (max-width: 480px) {
+  .digit-box {
+    width: 42px !important;
+    height: 48px !important;
+    font-size: 1.25rem !important;
+    border-radius: 10px !important;
+  }
+}
+
 @media (max-width: 640px) {
   .search-input,
   .navbar-search-input,

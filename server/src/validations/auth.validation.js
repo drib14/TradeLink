@@ -55,6 +55,17 @@ const forgotPasswordSchema = Joi.object({
   })
 });
 
+const verifyResetCodeSchema = Joi.object({
+  email: Joi.string().trim().email().required().messages({
+    'string.email': 'Please enter a valid email address.',
+    'string.empty': 'Email address is required.'
+  }),
+  code: Joi.string().trim().length(6).required().messages({
+    'string.length': 'Verification code must be 6 digits.',
+    'string.empty': 'Verification code is required.'
+  })
+});
+
 const resetPasswordSchema = Joi.object({
   email: Joi.string().trim().email().required(),
   code: Joi.string().trim().length(6).required().messages({
@@ -112,6 +123,7 @@ module.exports = {
   registerSchema,
   loginSchema,
   forgotPasswordSchema,
+  verifyResetCodeSchema,
   resetPasswordSchema,
   updateProfileSchema,
   adminLoginSchema,

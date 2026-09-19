@@ -9,6 +9,7 @@ const EXEMPT_PREFIXES = [
   '/auth/register',
   '/auth/login',
   '/auth/forgot-password',
+  '/auth/verify-reset-code',
   '/auth/reset-password',
   '/admin-auth/login',
   '/admin-auth/forgot-password',
