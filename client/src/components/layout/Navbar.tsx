@@ -140,7 +140,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               padding: 0
             }}
           >
-            <Logo size="sm" showSubtitle={false} isDark={false} />
+            <Logo size="sm" showSubtitle={false} isDark={false} iconOnlyOnMobile={true} />
           </button>
 
           {/* Minimal Campus Dropdown (Desktop for all visitors) */}
@@ -221,7 +221,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Center: Search Input (Available to All Visitors) */}
-        <div className="search-bar-wrapper" style={{ flex: 1, minWidth: 0, maxWidth: '440px' }}>
+        <div className="search-bar-wrapper" style={{ flex: 1, minWidth: '100px', maxWidth: '440px' }}>
           <Search
             size={16}
             className="search-icon"

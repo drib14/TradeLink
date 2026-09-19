@@ -329,7 +329,7 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
                 )}
                 <span>{m.name.split(' ')[0]}</span>
                 {m.id === 'jhonrid' && (
-                  <span style={{ fontSize: '0.6rem', color: '#B45309', fontWeight: 900 }}>★</span>
+                  <Crown size={11} color="#B45309" />
                 )}
               </button>
             );

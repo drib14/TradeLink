@@ -513,15 +513,8 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
         </button>
       </div>
 
-      {/* Stepper Progress Bar */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: '0.5rem',
-          marginBottom: '1.75rem'
-        }}
-      >
+      {/* Desktop Stepper Progress Bar */}
+      <div className="desktop-stepper">
         {stepsConfig.map((s) => {
           const isCompleted = currentStep > s.num;
           const isCurrent = currentStep === s.num;
@@ -567,6 +560,26 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
             </div>
           );
         })}
+      </div>
+
+      {/* Mobile Stepper Progress Bar */}
+      <div className="mobile-stepper">
+        <div className="mobile-stepper-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--uc-blue)', backgroundColor: 'var(--uc-blue-subtle)', padding: '0.15rem 0.5rem', borderRadius: '6px' }}>
+              Step {currentStep} of 4
+            </span>
+            <span style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+              {stepsConfig[currentStep - 1]?.label}
+            </span>
+          </div>
+          <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+            {Math.round((currentStep / 4) * 100)}%
+          </span>
+        </div>
+        <div className="mobile-stepper-track">
+          <div className="mobile-stepper-progress" style={{ width: `${(currentStep / 4) * 100}%` }} />
+        </div>
       </div>
 
       {/* STEP 1: ITEM DETAILS */}

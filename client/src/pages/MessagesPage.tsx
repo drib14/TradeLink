@@ -210,7 +210,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
           </h1>
           <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             <ShieldCheck size={14} color="#059669" />
-            <span>End-to-End Server Encrypted (AES-256-GCM) • Official UC Campus Checkpoints</span>
+            <span>Direct Peer Messaging • Coordinate Safe Campus Meetups</span>
           </p>
         </div>
 
@@ -229,8 +229,8 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
       <div
         style={{
           display: 'flex',
-          height: 'calc(100vh - 180px)',
-          minHeight: '560px',
+          height: isMobileView ? 'calc(100dvh - 120px)' : 'calc(100dvh - 180px)',
+          minHeight: isMobileView ? '360px' : '560px',
           maxHeight: '850px',
           backgroundColor: 'var(--bg-surface)',
           borderRadius: '16px',
@@ -574,8 +574,8 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
                 >
                   {/* Encrypted Disclaimer */}
                   <div style={{ textAlign: 'center', margin: '0.5rem 0' }}>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', backgroundColor: 'var(--bg-subtle, #F1F5F9)', padding: '0.25rem 0.75rem', borderRadius: '9999px', border: '1px solid var(--border-subtle)' }}>
-                      🔒 Messages in this conversation are encrypted and accessible only by you and {activeConversation.otherParticipant.name}.
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', backgroundColor: 'var(--bg-subtle, #F1F5F9)', padding: '0.25rem 0.75rem', borderRadius: '9999px', border: '1px solid var(--border-subtle)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <Lock size={11} color="var(--text-muted)" /> Messages are private between you and {activeConversation.otherParticipant.name}.
                     </span>
                   </div>
 

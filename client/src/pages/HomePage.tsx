@@ -131,7 +131,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenChat: _onO
                 }}
                 aria-label="Filter feed by campus"
               >
-                <option value="All">🏫 All Campuses</option>
+                <option value="All">All Campuses</option>
                 <option value="UC Main">UC Main</option>
                 <option value="UC Banilad">UC Banilad</option>
                 <option value="UC LM">UC LM</option>

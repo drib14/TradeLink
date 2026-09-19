@@ -271,7 +271,7 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
                     {listing.sellerIsVerified && <VerifiedBadge size="xs" variant="green" />}
                   </div>
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                    {listing.sellerCampus} • {listing.rating ? `★ ${Number(listing.rating).toFixed(1)} rating` : 'Verified Student'}
+                    {listing.sellerCampus} • {listing.rating ? `${Number(listing.rating).toFixed(1)} / 5.0 rating` : 'Verified Student'}
                   </span>
                 </div>
               </div>

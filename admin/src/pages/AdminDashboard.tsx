@@ -1138,8 +1138,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
           </div>
 
           {/* User Table */}
-          <div className="clean-card" style={{ padding: '1rem', overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
+          <div className="clean-card" style={{ padding: '1rem', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table style={{ width: '100%', minWidth: '760px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid #E2E8F0', color: '#64748B' }}>
                   <th style={{ padding: '0.65rem 0.75rem' }}>Student Profile</th>
@@ -1447,8 +1447,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 <p style={{ fontSize: '0.78rem', marginTop: '0.25rem' }}>Try clearing the search query or adjusting campus/status filters.</p>
               </div>
             ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
+              <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                <table style={{ width: '100%', minWidth: '760px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
                   <thead>
                     <tr style={{ borderBottom: '2px solid #E2E8F0', color: '#64748B' }}>
                       <th style={{ padding: '0.65rem 0.75rem' }}>Item</th>
@@ -1964,8 +1964,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
               </p>
             </div>
           </div>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table style={{ width: '100%', minWidth: '760px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid #E2E8F0', color: '#64748B' }}>
                   <th style={{ padding: '0.65rem 0.75rem' }}>Requested Item</th>
@@ -2053,8 +2053,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
               </p>
             </div>
           </div>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table style={{ width: '100%', minWidth: '760px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid #E2E8F0', color: '#64748B' }}>
                   <th style={{ padding: '0.65rem 0.75rem' }}>Reference & Date</th>
@@ -2280,8 +2280,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
             </div>
           </div>
 
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table style={{ width: '100%', minWidth: '760px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid #E2E8F0', color: '#64748B' }}>
                   <th style={{ padding: '0.65rem 0.75rem' }}>Action</th>

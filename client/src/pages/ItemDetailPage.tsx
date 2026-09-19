@@ -155,6 +155,24 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
   const [reportCategory, setReportCategory] = useState(REPORT_CATEGORIES[0]);
   const [reportReason, setReportReason] = useState('');
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+
+  const handleGalleryTouchStart = (e: React.TouchEvent) => {
+    setTouchStartX(e.touches[0].clientX);
+  };
+
+  const handleGalleryTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX === null || !listing?.images || listing.images.length <= 1) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartX;
+    if (deltaX > 45) {
+      // Swiped right -> previous image
+      setActiveImageIdx((prev) => (prev - 1 + listing.images.length) % listing.images.length);
+    } else if (deltaX < -45) {
+      // Swiped left -> next image
+      setActiveImageIdx((prev) => (prev + 1) % listing.images.length);
+    }
+    setTouchStartX(null);
+  };
 
   // Keyboard navigation for Lightbox
   useEffect(() => {
@@ -332,7 +350,7 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
         }}
       >
         {/* Left Column: Image & Video Gallery */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', maxWidth: '600px', width: '100%' }}>
           {/* Main Media with Video Support and Lightbox Trigger */}
           {(() => {
             const currentMediaUrl = listing.images[activeImageIdx] || listing.images[0] || '';
@@ -344,6 +362,8 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
 
             return (
               <div
+                onTouchStart={handleGalleryTouchStart}
+                onTouchEnd={handleGalleryTouchEnd}
                 style={{
                   backgroundColor: 'var(--bg-subtle, #0F172A)',
                   borderRadius: '14px',
@@ -353,7 +373,8 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
                   position: 'relative',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  touchAction: 'pan-y'
                 }}
               >
                 {currentIsVideo ? (

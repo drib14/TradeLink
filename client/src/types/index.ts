@@ -172,6 +172,7 @@ export interface Listing {
   quantity: number;
   status?: string;
   createdAt: string;
+  updatedAt?: string;
   views: number;
   rating?: number;
   totalReviews?: number;

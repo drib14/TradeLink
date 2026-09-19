@@ -135,7 +135,7 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({
             }}
             aria-label="Filter swaps by campus"
           >
-            <option value="All">🏫 All Campuses</option>
+            <option value="All">All Campuses</option>
             <option value="UC Main">UC Main</option>
             <option value="UC Banilad">UC Banilad</option>
             <option value="UC LM">UC LM</option>

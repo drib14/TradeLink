@@ -37,8 +37,12 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
     onOpenChat();
   };
 
+  if (currentView === 'item-detail') {
+    return null;
+  }
+
   return (
-    <nav className="mobile-nav-bar mobile-only">
+    <nav className="mobile-nav-bar mobile-only" style={{ bottom: 'calc(10px + var(--safe-bottom, 0px))' }}>
       {/* 1. Home */}
       <button
         onClick={() => onNavigate('home')}

@@ -418,7 +418,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
       // PHASE 3: CENTER & NATURAL BLINK (Auto-capture Master Verified Selfie)
       // =========================================================================
       else if (currentPhase === 'blink_verify') {
-        setGuidanceTip('Look straight at the camera and blink naturally 👁️');
+        setGuidanceTip('Look straight at the camera and blink naturally');
         const isBlinkingOrCentering = (normalizedDiff >= 6 && normalizedDiff <= 65) || (avgCenterLum >= 45 && avgCenterLum <= 235);
 
         if (isBlinkingOrCentering) {
@@ -1123,7 +1123,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
               <div style={{ backgroundColor: 'var(--bg-subtle, #F8FAFC)', padding: '0.55rem 0.85rem', borderRadius: '10px', border: '1px solid var(--border-subtle, #E2E8F0)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
                   <span style={{ fontSize: '0.73rem', fontWeight: 800, color: livenessPassed ? '#059669' : 'var(--uc-blue)' }}>
-                    {livenessPassed ? '✓ Active Liveness Verified' : 'Natural Liveness Detection Meter'}
+                    {livenessPassed ? 'Selfie Verification Complete' : 'Selfie Alignment Check'}
                   </span>
                   <span style={{ fontSize: '0.7rem', fontWeight: 800, color: livenessPassed ? '#059669' : 'var(--text-muted)' }}>
                     {Math.min(100, Math.round(livenessProgress))}%
@@ -1378,7 +1378,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
                                 boxShadow: '0 8px 24px rgba(0,0,0,0.5)'
                               }}
                             >
-                              <span style={{ fontSize: '1.1rem' }}>👁️</span> BLINK NATURALLY
+                              <span>BLINK NATURALLY</span>
                             </div>
                           </div>
                         )}

@@ -147,6 +147,34 @@ export const CampusCarouselBanner: React.FC<CampusCarouselBannerProps> = ({
 
   const slide = CAMPUS_SLIDES[currentIdx];
 
+  const touchStartXRef = React.useRef<number | null>(null);
+  const touchEndXRef = React.useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartXRef.current = e.touches[0].clientX;
+    touchEndXRef.current = e.touches[0].clientX;
+    setIsPaused(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndXRef.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    setIsPaused(false);
+    if (touchStartXRef.current === null || touchEndXRef.current === null) return;
+    const diff = touchStartXRef.current - touchEndXRef.current;
+    if (Math.abs(diff) > 40) {
+      if (diff > 0) {
+        handleNext();
+      } else {
+        handlePrev();
+      }
+    }
+    touchStartXRef.current = null;
+    touchEndXRef.current = null;
+  };
+
   const handleCampusClick = (targetSlide: CampusSlide) => {
     if (onSelectCampus) {
       if (targetSlide.shortTag === 'All Campuses') {
@@ -161,6 +189,9 @@ export const CampusCarouselBanner: React.FC<CampusCarouselBannerProps> = ({
     <div
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
       style={{
         position: 'relative',
         borderRadius: '20px',
@@ -170,7 +201,8 @@ export const CampusCarouselBanner: React.FC<CampusCarouselBannerProps> = ({
         minHeight: 'clamp(360px, 42vw, 440px)',
         width: '100%',
         display: 'flex',
-        flexDirection: 'column'
+        flexDirection: 'column',
+        touchAction: 'pan-y'
       }}
     >
       {/* 1. Crossfade Slide Backgrounds */}
