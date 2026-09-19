@@ -85,10 +85,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = useCallback(async (idNumber: string, password?: string): Promise<{ success: boolean; message: string }> => {
-    const cleanId = idNumber.trim();
+    const cleanId = idNumber.replace(/\D/g, '').trim();
 
     if (!cleanId) {
-      return { success: false, message: 'Please enter your Student ID or Email.' };
+      return { success: false, message: 'Please enter your Student ID Number.' };
+    }
+    if (cleanId.length < 6) {
+      return { success: false, message: 'Student ID must be at least 6 digits.' };
     }
     if (!password) {
       return { success: false, message: 'Please enter your password.' };

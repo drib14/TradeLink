@@ -81,6 +81,64 @@ async function attemptTokenRefresh(): Promise<string | null> {
   }
 }
 
+let memoryCsrfToken: string | null = null;
+
+export function setCsrfToken(token: string) {
+  if (!token) return;
+  memoryCsrfToken = token;
+  try {
+    sessionStorage.setItem('tradelink_csrf_token', token);
+  } catch {}
+}
+
+export function getCsrfToken(): string | null {
+  if (memoryCsrfToken) return memoryCsrfToken;
+  try {
+    const saved = sessionStorage.getItem('tradelink_csrf_token');
+    if (saved) {
+      memoryCsrfToken = saved;
+      return saved;
+    }
+  } catch {}
+  return getCookie('XSRF-TOKEN') || getCookie('CSRF-TOKEN');
+}
+
+// Proactively pre-fetch CSRF token if not cached
+let csrfFetchPromise: Promise<string | null> | null = null;
+export async function ensureCsrfToken(): Promise<string | null> {
+  const current = getCsrfToken();
+  if (current) return current;
+  if (csrfFetchPromise) return csrfFetchPromise;
+
+  csrfFetchPromise = (async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/csrf-token`, { credentials: 'include' });
+      const headerToken = res.headers.get('x-csrf-token') || res.headers.get('x-xsrf-token');
+      if (headerToken) {
+        setCsrfToken(headerToken);
+        return headerToken;
+      }
+      if (res.ok) {
+        const json = await res.json();
+        if (json.csrfToken) {
+          setCsrfToken(json.csrfToken);
+          return json.csrfToken;
+        }
+      }
+    } catch {}
+    return null;
+  })();
+
+  const token = await csrfFetchPromise;
+  csrfFetchPromise = null;
+  return token;
+}
+
+// Pre-warm CSRF token on startup
+if (typeof window !== 'undefined') {
+  ensureCsrfToken().catch(() => {});
+}
+
 function getCookie(name: string): string | null {
   if (typeof document === 'undefined') return null;
   const match = document.cookie.match(new RegExp('(^|;\\s*)(' + name + ')=([^;]*)'));
@@ -116,9 +174,10 @@ async function request<T = any>(
   }
 
   // Inject CSRF double-submit token on state-mutating requests
-  const xsrfToken = getCookie('XSRF-TOKEN');
+  const xsrfToken = getCsrfToken();
   if (xsrfToken && method !== 'GET') {
     headers['X-XSRF-TOKEN'] = xsrfToken;
+    headers['X-CSRF-Token'] = xsrfToken;
   }
 
   const config: RequestInit = {
@@ -181,6 +240,11 @@ async function request<T = any>(
           });
         });
       }
+    }
+
+    const respCsrf = res.headers.get('x-csrf-token') || res.headers.get('x-xsrf-token');
+    if (respCsrf) {
+      setCsrfToken(respCsrf);
     }
 
     const json = await res.json();
@@ -251,9 +315,10 @@ export async function uploadFile(
     headers['Authorization'] = `Bearer ${accessToken}`;
   }
 
-  const xsrfToken = getCookie('XSRF-TOKEN');
+  const xsrfToken = getCsrfToken();
   if (xsrfToken) {
     headers['X-XSRF-TOKEN'] = xsrfToken;
+    headers['X-CSRF-Token'] = xsrfToken;
   }
 
   const res = await fetch(`${API_BASE_URL}/upload`, {

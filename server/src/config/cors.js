@@ -131,7 +131,9 @@ const corsOptions = {
     'X-RateLimit-Remaining',
     'X-RateLimit-Reset',
     'X-XSRF-TOKEN',
-    'x-xsrf-token'
+    'x-xsrf-token',
+    'X-CSRF-Token',
+    'x-csrf-token'
   ]
 };
 

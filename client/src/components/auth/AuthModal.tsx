@@ -33,7 +33,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Login inputs
-  const [loginIdentifier, setLoginIdentifier] = useState('');
+  const [loginStudentId, setLoginStudentId] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
 
   // Register inputs
@@ -106,8 +106,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!loginIdentifier.trim()) {
-      showToast('Input Required', 'Please enter your Student ID or Email.', 'warning');
+    const cleanId = loginStudentId.trim().replace(/\D/g, '');
+    if (!cleanId) {
+      showToast('Input Required', 'Please enter your Student ID Number.', 'warning');
+      return;
+    }
+    if (cleanId.length < 6) {
+      showToast('Invalid ID', 'Student ID must be at least 6 digits.', 'warning');
       return;
     }
     if (!loginPassword) {
@@ -117,7 +122,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     setIsSubmitting(true);
     try {
-      const res = await login(loginIdentifier, loginPassword);
+      const res = await login(cleanId, loginPassword);
       if (res.success) {
         showToast('Welcome Back', res.message, 'success');
         onClose();
@@ -127,7 +132,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           res.message.toLowerCase().includes('credential') ||
           res.message.toLowerCase().includes('not found');
         const displayMsg = isCredentialError
-          ? 'Account not found or password incorrect. If you have not registered yet, click "Create Student Account" below.'
+          ? 'Invalid Student ID or password. If you have not registered yet, click "Create Student Account" below.'
           : res.message;
         showToast('Login Failed', displayMsg, 'error');
       }
@@ -216,6 +221,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         showToast('Password Updated', res.message, 'success');
         setMode('login');
         setLoginPassword('');
+        setLoginStudentId('');
       } else {
         showToast('Reset Failed', res.message, 'error');
       }
@@ -283,13 +289,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <span>Official UC Student Portal</span>
             </div>
             <h2 style={{ fontSize: '1.4rem', fontWeight: 900, color: '#FFFFFF', letterSpacing: '-0.02em', margin: 0, fontFamily: 'var(--font-display)' }}>
-              {mode === 'login' && 'University Sign In'}
+              {mode === 'login' && 'Student Sign In'}
               {mode === 'register' && 'Create Student Account'}
               {mode === 'forgot' && 'Reset Account Password'}
               {mode === 'reset' && 'Enter Verification Code'}
             </h2>
             <p style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.75)', margin: '0.2rem 0 0 0' }}>
-              {mode === 'login' && 'Buy, sell, and swap safely across all 8 UC campuses'}
+              {mode === 'login' && 'Enter your Student ID number and password to sign in'}
               {mode === 'register' && 'Join the exclusive University of Cebu student trade network'}
               {mode === 'forgot' && 'Enter your registered email to receive a recovery code'}
               {mode === 'reset' && 'Set a new secure password for your student account'}
@@ -302,19 +308,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           {/* 1. LOGIN FORM */}
           {mode === 'login' && (
             <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
-              {/* Identifier Input */}
+              {/* Student ID Number Input */}
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-                  Student ID or Email
+                  Student ID Number
                 </label>
                 <input
                   type="text"
-                  value={loginIdentifier}
-                  onChange={(e) => setLoginIdentifier(e.target.value)}
-                  placeholder="Student ID (e.g. 1234567) or Email"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={loginStudentId}
+                  onChange={(e) => setLoginStudentId(e.target.value.replace(/\D/g, ''))}
+                  placeholder="Student ID Number (e.g. 1234567)"
                   className="clean-input"
                   style={{ fontWeight: 500 }}
-                  maxLength={64}
+                  maxLength={20}
                   required
                   autoFocus
                   disabled={isSubmitting}
