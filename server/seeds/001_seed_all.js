@@ -45,12 +45,12 @@ exports.seed = async function(knex) {
       avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
       is_verified: true,
       id_photo_url: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80',
-      trust_score: 100,
-      rating: 5.0,
+      trust_score: 0,
+      rating: 0.0,
       total_reviews: 0,
       completed_trades: 0,
-      punctuality_rate: 100,
-      bio: 'Official TradeLink Administration & Moderation Desk.',
+      punctuality_rate: 0,
+      bio: 'TradeLink Administration',
       is_pro_merchant: false,
       is_banned: false
     }

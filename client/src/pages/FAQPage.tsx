@@ -44,7 +44,7 @@ export const FAQPage: React.FC<FAQPageProps> = ({ onNavigate }) => {
       category: 'Meetups & Safety',
       badge: 'Payment Safety',
       question: 'How should I pay for items? Is advance payment allowed?',
-      answer: 'You can pay using Cash on meetup, GCash, Maya, or Bank Transfer. However, you must NEVER send money in advance prior to your physical meetup. Settle payment in person only after thoroughly inspecting the item.'
+      answer: 'Payments are settled directly as Cash on Meetup. Never send money in advance prior to your physical meetup. Settle cash in person only after thoroughly inspecting the item.'
     },
     {
       category: 'Meetups & Safety',
@@ -120,9 +120,6 @@ export const FAQPage: React.FC<FAQPageProps> = ({ onNavigate }) => {
         >
           <ChevronLeft size={16} /> Back to Home
         </button>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--uc-blue)', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          <HelpCircle size={15} /> Student Help Center
-        </div>
         <h1 style={{ fontSize: '2.1rem', fontWeight: 900, color: 'var(--text-primary)', marginTop: '0.25rem', fontFamily: 'var(--font-display)' }}>
           Frequently Asked Questions
         </h1>

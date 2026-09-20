@@ -132,11 +132,6 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
       if (onOpenAuth) onOpenAuth();
       return;
     }
-    if (!currentUser.isVerified) {
-      showToast('Verification Required', 'Student ID verification is required before posting flash requests.', 'warning');
-      setIsVerificationModalOpen(true);
-      return;
-    }
     setIsCreateModalOpen(true);
   };
 
@@ -146,11 +141,6 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
     if (!isAuthenticated || !currentUser) {
       showToast('Log In Required', 'Please log in to respond with an item offer.', 'warning');
       if (onOpenAuth) onOpenAuth();
-      return;
-    }
-    if (!currentUser.isVerified) {
-      showToast('Verification Required', 'Student ID verification is required before submitting trade offers.', 'warning');
-      setIsVerificationModalOpen(true);
       return;
     }
     const isExpired = req.isExpired || req.status === 'expired' || (Boolean(req.expiresAt) && new Date(req.expiresAt!).getTime() <= Date.now());

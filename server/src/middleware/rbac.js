@@ -34,16 +34,8 @@ const requireVerified = (req, res, next) => {
     return next();
   }
 
-  if (!req.user.is_verified) {
-    return next(
-      new AppError(
-        'Student ID verification required. Please upload your valid University of Cebu ID to unlock this feature.',
-        403
-      )
-    );
-  }
-
-  next();
+  // MVP: Verification temporarily disabled for open access to all users
+  return next();
 };
 
 const { requireStudent } = require('./requireStudent');

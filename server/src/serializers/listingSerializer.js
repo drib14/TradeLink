@@ -61,8 +61,8 @@ function serializeListing(row, mediaItems = []) {
     sellerAvatar: row.seller_avatar || row.sellerAvatar || null,
     sellerCampus: row.seller_campus || row.sellerCampus || row.campus || '',
     sellerCollege: row.seller_college || row.sellerCollege || row.department || '',
-    sellerIsVerified: Boolean(row.seller_is_verified ?? row.sellerIsVerified ?? false),
-    sellerTrustScore: Number(row.seller_trust_score ?? row.sellerTrustScore ?? 0),
+    sellerIsVerified: true,
+    sellerTrustScore: 0,
     rating: parseFloat(row.rating ?? 0.0),
     totalReviews: Number(row.total_reviews ?? row.totalReviews ?? 0),
     isSold: isSoldExplicit || isOutOfStock,
@@ -78,12 +78,7 @@ function serializeListing(row, mediaItems = []) {
       }
     })(),
     views: Number(row.views_count ?? row.views ?? 0),
-    acceptedPaymentMethods: (() => {
-      const raw = row.accepted_payment_methods || row.acceptedPaymentMethods;
-      if (!raw) return ['cash', 'gcash', 'maya'];
-      if (Array.isArray(raw)) return raw.map(m => String(m).toLowerCase());
-      return String(raw).split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
-    })(),
+    acceptedPaymentMethods: ['cash'],
     createdAt: row.created_at || row.createdAt || new Date().toISOString()
   };
 }

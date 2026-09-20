@@ -90,10 +90,7 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
   const [tags, setTags] = useState<string[]>([]);
   const [images, setImages] = useState<string[]>([]);
   const [acceptedPaymentMethods, setAcceptedPaymentMethods] = useState<('cash' | 'gcash' | 'maya' | 'bank_transfer')[]>([
-    'cash',
-    'gcash',
-    'maya',
-    'bank_transfer'
+    'cash'
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
@@ -249,9 +246,9 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
         sellerAvatar: currentUser?.avatar,
         sellerCampus: currentUser?.campus,
         sellerCollege: currentUser?.college,
-        sellerIsVerified: currentUser?.isVerified,
-        sellerTrustScore: currentUser?.trustScore,
-        acceptedPaymentMethods: computedTradeMode === 'buy_sell' ? acceptedPaymentMethods : ['cash', 'gcash', 'maya']
+        sellerIsVerified: true,
+        sellerTrustScore: 0,
+        acceptedPaymentMethods: ['cash']
       });
 
       const successTitle = formMode === 'swap' ? 'Swap Offer Published!' : 'Listing Published for Sale!';
@@ -316,81 +313,12 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
 
   const isPendingVerification = !currentUser.isVerified && (currentUser.verificationStatus === 'pending' || !!currentUser.idPhotoUrl);
 
+  // MVP: Verification check disabled for open access
+  /*
   if (currentUser && !currentUser.isVerified) {
-    if (isPendingVerification) {
-      return (
-        <div className="container page-enter" style={{ padding: '4rem 1.5rem', textAlign: 'center', maxWidth: '580px' }}>
-          <div className="clean-card" style={{ padding: '2.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
-            <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'rgba(0, 43, 127, 0.08)', color: 'var(--uc-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Clock size={32} />
-            </div>
-            <div>
-              <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--uc-blue)' }}>
-                Verification Request In Review
-              </h2>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.45rem', lineHeight: 1.55 }}>
-                Your student ID and live selfie are currently under review by campus moderators. Once verified, you can immediately post listings across all UC campuses.
-              </p>
-            </div>
-            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
-              <button
-                onClick={() => onNavigate('profile')}
-                className="btn-primary"
-                style={{ padding: '0.75rem 1.5rem', fontSize: '0.88rem', fontWeight: 800 }}
-              >
-                View Profile Status
-              </button>
-              <button
-                onClick={() => onNavigate('marketplace')}
-                className="btn-secondary"
-                style={{ padding: '0.75rem 1.25rem', fontSize: '0.88rem', fontWeight: 700 }}
-              >
-                Browse Catalog
-              </button>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="container page-enter" style={{ padding: '4rem 1.5rem', textAlign: 'center', maxWidth: '580px' }}>
-        <div className="clean-card" style={{ padding: '2.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
-          <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'rgba(255, 199, 44, 0.2)', color: '#B45309', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <ShieldAlert size={32} />
-          </div>
-          <div>
-            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--uc-blue)' }}>
-              Student ID Verification Required
-            </h2>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.45rem', lineHeight: 1.55 }}>
-              To maintain a verified, scam-free student exchange environment, creating listings requires an active University of Cebu student badge.
-            </p>
-          </div>
-          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
-            <button
-              onClick={() => setIsVerificationModalOpen(true)}
-              className="btn-gold"
-              style={{ padding: '0.75rem 1.75rem', fontSize: '0.88rem', fontWeight: 800 }}
-            >
-              Verify Student ID Now
-            </button>
-            <button
-              onClick={() => onNavigate('marketplace')}
-              className="btn-secondary"
-              style={{ padding: '0.75rem 1.25rem', fontSize: '0.88rem', fontWeight: 700 }}
-            >
-              Browse Catalog
-            </button>
-          </div>
-        </div>
-        <StudentVerificationModal
-          isOpen={isVerificationModalOpen}
-          onClose={() => setIsVerificationModalOpen(false)}
-        />
-      </div>
-    );
+    ...
   }
+  */
 
   const stepsConfig = formMode === 'sell'
     ? [
@@ -894,16 +822,16 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
             </div>
           )}
 
-          {/* Accepted Settlement Methods Checkbox Group */}
+          {/* Payment Method */}
           {sellType === 'paid' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
               <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-                Accepted Payment Settlements *
+                Payment Mode
               </label>
-              <PaymentMethodCheckboxGroup
-                selectedMethods={acceptedPaymentMethods}
-                onChange={setAcceptedPaymentMethods}
-              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 0.85rem', backgroundColor: 'var(--bg-subtle)', border: '1px solid var(--border-subtle)', borderRadius: '8px' }}>
+                <span style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-primary)' }}>💵 Cash on Meetup</span>
+                <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>(Standard campus peer settlement upon meetup)</span>
+              </div>
             </div>
           )}
 

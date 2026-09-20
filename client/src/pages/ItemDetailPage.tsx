@@ -246,12 +246,6 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
       if (onOpenAuth) onOpenAuth();
       return;
     }
-    if (!currentUser.isVerified) {
-      showToast('Verification Required', 'Student ID verification is required before placing orders.', 'warning');
-      if (onOpenVerification) onOpenVerification();
-      else setIsVerificationModalOpen(true);
-      return;
-    }
     setIsBuyModalOpen(true);
   };
 
@@ -259,12 +253,6 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
     if (!isAuthenticated || !currentUser) {
       showToast('Log In Required', 'Please log in with your UC account to propose a swap.', 'warning');
       if (onOpenAuth) onOpenAuth();
-      return;
-    }
-    if (!currentUser.isVerified) {
-      showToast('Verification Required', 'Student ID verification is required before proposing item swaps.', 'warning');
-      if (onOpenVerification) onOpenVerification();
-      else setIsVerificationModalOpen(true);
       return;
     }
     setIsSwapModalOpen(true);
@@ -814,24 +802,17 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
               border: '1px solid var(--border-subtle, #E2E8F0)',
               display: 'flex',
               flexDirection: 'column',
-              gap: '0.45rem'
+              gap: '0.35rem'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Accepted Payment Settlements
+            <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Payment Mode
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <PaymentMethodBadge method="cash" size="sm" />
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                Cash on Meetup (handover upon inspection)
               </span>
-              <span style={{ fontSize: '0.68rem', color: '#059669', fontWeight: 800 }}>
-                Verified Student Peer Trade
-              </span>
-            </div>
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-              {(listing.acceptedPaymentMethods && listing.acceptedPaymentMethods.length > 0
-                ? listing.acceptedPaymentMethods
-                : ['cash', 'gcash', 'maya']
-              ).map((method) => (
-                <PaymentMethodBadge key={method} method={method} size="sm" />
-              ))}
             </div>
           </div>
 
@@ -1089,7 +1070,6 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
                     <span style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                       {listing.sellerName}
                     </span>
-                    {listing.sellerIsVerified && <VerifiedBadge size="xs" variant="green" />}
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
                     {listing.sellerCollege} • {listing.sellerCampus}
@@ -1103,19 +1083,6 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
               >
                 View Profile →
               </button>
-            </div>
-
-            {/* Student Verification & Safety Status */}
-            <div style={{ backgroundColor: 'var(--bg-subtle, #F8FAFC)', borderRadius: '8px', padding: '0.75rem 0.95rem', border: '1px solid var(--border-subtle)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-                  <ShieldCheck size={14} color="#059669" style={{ flexShrink: 0 }} />
-                  {listing.sellerIsVerified ? 'Verified University Student' : 'Registered Campus Trader'}
-                </span>
-                <span style={{ fontSize: '0.74rem', fontWeight: 800, color: listing.sellerIsVerified ? '#059669' : 'var(--text-muted)' }}>
-                  {listing.sellerIsVerified ? 'ID Confirmed' : 'Campus Member'}
-                </span>
-              </div>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>

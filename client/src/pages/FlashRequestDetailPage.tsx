@@ -686,19 +686,15 @@ export const FlashRequestDetailPage: React.FC<FlashRequestDetailPageProps> = ({
               )}
             </div>
 
-            {/* Accepted Payment Settlements Section */}
+            {/* Payment Method Section */}
             <div>
               <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                Accepted Payment Settlements
+                Payment Mode
               </div>
-              <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
                 <PaymentMethodBadge method="cash" size="sm" />
-                <PaymentMethodBadge method="gcash" size="sm" />
-                <PaymentMethodBadge method="maya" size="sm" />
+                <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>Cash on Meetup</span>
               </div>
-              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.35rem', display: 'block' }}>
-                Verified student peer settlements. Zero platform gateway fees.
-              </span>
             </div>
 
             {/* Action Buttons */}

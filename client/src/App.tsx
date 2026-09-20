@@ -299,23 +299,22 @@ export const MainApp: React.FC = () => {
         onClose={() => setIsAuthModalOpen(false)}
         onRegisterSuccess={() => {
           setIsAuthModalOpen(false);
-          setIsUnverifiedModalOpen(true);
         }}
       />
 
-      {/* 6. Unverified Student Account Explanation Modal */}
+      {/* 6. Unverified Student Account Explanation Modal (Preserved for future, disabled for MVP) */}
       <UnverifiedAccountModal
-        isOpen={isUnverifiedModalOpen}
+        isOpen={false}
         onClose={() => setIsUnverifiedModalOpen(false)}
         onStartVerification={() => {
           setIsUnverifiedModalOpen(false);
-          setIsVerificationModalOpen(true);
+          setIsVerificationModalOpen(false);
         }}
       />
 
-      {/* 7. Two-Step Student Verification Modal (ID + Live Selfie) */}
+      {/* 7. Two-Step Student Verification Modal (Preserved for future, disabled for MVP) */}
       <StudentVerificationModal
-        isOpen={isVerificationModalOpen}
+        isOpen={false}
         onClose={() => setIsVerificationModalOpen(false)}
       />
 

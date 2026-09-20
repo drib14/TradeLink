@@ -47,7 +47,8 @@ const register = asyncHandler(async (req, res, next) => {
 
   const passwordHash = await bcrypt.hash(password, 12);
   const userId = uuidv4();
-  const isVerified = false;
+  // MVP: All registered students have open verified access
+  const isVerified = true;
   const trustScore = 0;
 
   const newUser = {
@@ -68,7 +69,7 @@ const register = asyncHandler(async (req, res, next) => {
     total_reviews: 0,
     completed_trades: 0,
     punctuality_rate: 0,
-    bio: `Student at ${campus} - ${college.trim()}.`,
+    bio: '',
     is_pro_merchant: false,
     is_banned: false
   };

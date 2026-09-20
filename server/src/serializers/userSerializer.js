@@ -5,15 +5,9 @@
 function serializeUser(user, options = {}) {
   if (!user) return null;
 
-  const isVerified = Boolean(user.is_verified ?? user.isVerified);
-  let verificationStatus = isVerified ? 'verified' : 'unverified';
-  if (!isVerified) {
-    if (user.verification_status || user.verificationStatus) {
-      verificationStatus = user.verification_status || user.verificationStatus;
-    } else if (user.id_photo_url || user.idPhotoUrl) {
-      verificationStatus = 'pending';
-    }
-  }
+  // MVP: Verification disabled, all users have full verified access
+  const isVerified = true;
+  const verificationStatus = 'verified';
 
   const isSelf = Boolean(options.isSelf);
   const isAdmin = Boolean(options.isAdmin);
@@ -31,10 +25,10 @@ function serializeUser(user, options = {}) {
     college: user.college,
     yearLevel: user.year_level || user.yearLevel,
     avatar: user.avatar_url || user.avatar || null,
-    isVerified,
-    verificationStatus,
+    isVerified: true,
+    verificationStatus: 'verified',
     idPhotoUrl: isSelf || isAdmin ? (user.id_photo_url || user.idPhotoUrl || null) : null,
-    trustScore: hasTransactions ? Number(user.trust_score ?? user.trustScore ?? 0) : 0,
+    trustScore: 0,
     rating: hasTransactions ? parseFloat(user.rating ?? 0.0) : 0.0,
     totalReviews,
     completedTrades,

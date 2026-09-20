@@ -385,7 +385,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 Sign In to View Your Profile
               </h2>
               <p style={{ fontSize: '0.86rem', color: 'var(--text-muted, #64748B)', marginTop: '0.35rem', lineHeight: 1.5 }}>
-                Log in with your University of Cebu account to manage your listings, view inventory value, track student verification status, and monitor campus reviews.
+                Sign in to manage your listings, view trade activity, and communicate with campus peers.
               </p>
             </div>
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
@@ -476,11 +476,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                     boxShadow: '0 8px 24px rgba(0, 43, 127, 0.22)'
                   }}
                 />
-                {targetUser.isVerified && (
-                  <div style={{ position: 'absolute', bottom: '4px', right: '4px' }}>
-                    <VerifiedBadge size="sm" variant="green" />
-                  </div>
-                )}
               </div>
 
               <div className="profile-identity-col">
@@ -488,13 +483,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                   <h1 style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--text-primary, #0F172A)', fontFamily: 'var(--font-display)', margin: 0 }}>
                     {targetUser.name}
                   </h1>
-                  {targetUser.isVerified ? (
-                    <VerifiedBadge size="md" variant="green" />
-                  ) : (
-                    <span style={{ backgroundColor: 'rgba(255, 199, 44, 0.15)', color: '#B45309', padding: '0.2rem 0.55rem', borderRadius: '9999px', fontSize: '0.72rem', fontWeight: 800 }}>
-                      Unverified Student
-                    </span>
-                  )}
                 </div>
 
                 <div className="profile-meta-chips">
@@ -585,38 +573,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 </>
               )}
 
-              {isSelf && !targetUser.isVerified && (
-                isPendingVerification ? (
-                  <button
-                    onClick={() => setIsPendingInfoModalOpen(true)}
-                    className="btn-secondary"
-                    style={{
-                      padding: '0.65rem 1.15rem',
-                      fontSize: '0.82rem',
-                      fontWeight: 800,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.45rem',
-                      backgroundColor: 'rgba(255, 199, 44, 0.15)',
-                      borderColor: 'rgba(229, 168, 0, 0.4)',
-                      color: '#B45309',
-                      minHeight: '44px'
-                    }}
-                    title="Click to view submission status"
-                  >
-                    Verification Pending Review
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => setIsVerificationModalOpen(true)}
-                    className="btn-gold"
-                    style={{ padding: '0.65rem 1.2rem', fontSize: '0.82rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', minHeight: '44px' }}
-                  >
-                    Verify Student ID
-                  </button>
-                )
-              )}
+              {/* Verification button disabled for MVP */}
             </div>
           </div>
 
@@ -643,7 +600,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
               </div>
             ) : (
               <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary, #334155)', lineHeight: 1.5, margin: 0 }}>
-                {targetUser.bio || 'Verified student active in campus marketplace exchanges, course gear, and textbook swaps.'}
+                {targetUser.bio || 'No bio provided yet.'}
               </p>
             )}
           </div>
@@ -704,7 +661,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                       Reviews
                     </span>
                     <span style={{ fontSize: '1.15rem', fontWeight: 900, color: '#D97706' }}>
-                      {rating > 0 ? rating.toFixed(1) : '5.0'} ★
+                      {rating > 0 ? rating.toFixed(1) : '0.0'} ★
                     </span>
                     <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                       ({totalReviewsCount})
@@ -915,7 +872,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 Campus Trade HQ & Safe Meetup Policy
               </h3>
               <p style={{ fontSize: '0.76rem', color: 'var(--text-muted, #64748B)', margin: 0 }}>
-                Verified exchange guidelines established for peer-to-peer campus transactions
+                Campus meetup and transaction preferences
               </p>
             </div>
           </div>
@@ -970,190 +927,24 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
               <CreditCard size={16} />
             </div>
             <div>
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Payment Preferences</div>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Payment Mode</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', marginTop: '4px' }}>
-                {parsePaymentMethods(targetUser.paymentMethods).map((method) => (
-                  <PaymentMethodBadge key={method} method={method} size="xs" />
-                ))}
+                <PaymentMethodBadge method="cash" size="xs" />
+                <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>Cash on Meetup</span>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 4. Official Verified Student ID Card Showcase */}
-      {targetUser.isVerified && (
-        <div
-          className="clean-card"
-          style={{
-            padding: '1.25rem 1.5rem',
-            border: '1.5px solid var(--uc-blue-border, #BCD1F7)',
-            backgroundColor: 'var(--bg-subtle, #F8FAFC)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '1.25rem',
-            borderRadius: '16px'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-            {(isSelf || currentUser?.role === 'admin') && targetUser.idPhotoUrl && (
-              <div
-                onClick={() => setInspectedIdImage(targetUser.idPhotoUrl || null)}
-                style={{
-                  width: '90px',
-                  height: '65px',
-                  borderRadius: '8px',
-                  overflow: 'hidden',
-                  position: 'relative',
-                  cursor: 'pointer',
-                  border: '1.5px solid var(--uc-blue-border, #BCD1F7)',
-                  boxShadow: '0 4px 10px rgba(0, 43, 127, 0.15)',
-                  backgroundColor: '#0F172A',
-                  flexShrink: 0
-                }}
-                title="Click to view full verified ID"
-              >
-                <img
-                  src={targetUser.idPhotoUrl}
-                  alt="Verified Student ID"
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-                <div
-                  style={{
-                    position: 'absolute',
-                    inset: 0,
-                    backgroundColor: 'rgba(0, 43, 127, 0.3)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#FFFFFF'
-                  }}
-                >
-                  <Eye size={16} />
-                </div>
-              </div>
-            )}
-
-            <div>
-              <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--uc-blue, #002B7F)', margin: 0 }}>
-                Campus Student ID Verified
-              </h3>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary, #475569)', marginTop: '0.15rem', margin: 0 }}>
-                ID Number: <strong>{maskStudentId(targetUser.studentId, isSelf || currentUser?.role === 'admin')}</strong> • Enrolled at <strong>{targetUser.campus}</strong> ({targetUser.college})
-              </p>
-              <div style={{ fontSize: '0.72rem', color: 'var(--accent-green, #059669)', fontWeight: 700, marginTop: '0.15rem' }}>
-                Authenticated by Campus Safety Moderation Desk
-              </div>
-            </div>
-          </div>
-
-          {(isSelf || currentUser?.role === 'admin') && targetUser.idPhotoUrl && (
-            <button
-              onClick={() => setInspectedIdImage(targetUser.idPhotoUrl || null)}
-              className="btn-secondary"
-              style={{ fontSize: '0.78rem', padding: '0.45rem 0.85rem' }}
-            >
-              <Eye size={13} /> View Verified ID Document
-            </button>
-          )}
-        </div>
+      {/* 4. Official Verified Student ID Card Showcase (Disabled for MVP) */}
+      {false && targetUser.isVerified && (
+        <div />
       )}
 
-      {/* Dynamic Verification Banner */}
-      {isSelf && !targetUser.isVerified && (
-        isRejectedVerification ? (
-          <div
-            style={{
-              backgroundColor: 'rgba(239, 68, 68, 0.08)',
-              border: '1.5px solid rgba(239, 68, 68, 0.3)',
-              borderRadius: 'var(--radius-lg)',
-              padding: '1.25rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '1rem'
-            }}
-          >
-            <div>
-              <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: '#DC2626', margin: 0 }}>
-                Verification Resubmission Needed
-              </h3>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem', margin: 0 }}>
-                Moderator Note: <strong>{(targetUser as any)?.verificationRejectionReason || 'Uploaded ID document or selfie was unreadable.'}</strong>
-              </p>
-            </div>
-            <button
-              onClick={() => setIsVerificationModalOpen(true)}
-              className="btn-primary"
-              style={{ padding: '0.55rem 1.15rem', fontSize: '0.82rem', fontWeight: 800, backgroundColor: '#DC2626', borderColor: '#DC2626' }}
-            >
-              Fix & Resubmit ID
-            </button>
-          </div>
-        ) : isPendingVerification ? (
-          <div
-            style={{
-              backgroundColor: 'rgba(0, 43, 127, 0.06)',
-              border: '1.5px solid rgba(0, 43, 127, 0.18)',
-              borderRadius: 'var(--radius-lg)',
-              padding: '1.25rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '1rem'
-            }}
-          >
-            <div>
-              <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--uc-blue)', margin: 0 }}>
-                Verification Request In Progress
-              </h3>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem', margin: 0 }}>
-                Your student credentials and live biometric selfie have been submitted for campus moderation. Please allow <strong>1–3 business days</strong> for campus safety administrators to complete verification.
-              </p>
-            </div>
-            <button
-              onClick={() => setIsPendingInfoModalOpen(true)}
-              className="btn-secondary"
-              style={{ padding: '0.55rem 1.15rem', fontSize: '0.82rem', fontWeight: 800 }}
-            >
-              View Submission Status
-            </button>
-          </div>
-        ) : (
-          <div
-            style={{
-              backgroundColor: 'rgba(255, 199, 44, 0.12)',
-              border: '1.5px solid rgba(229, 168, 0, 0.35)',
-              borderRadius: 'var(--radius-lg)',
-              padding: '1.25rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '1rem'
-            }}
-          >
-            <div>
-              <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--uc-blue)', margin: 0 }}>
-                Account Status: Unverified Student
-              </h3>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem', margin: 0 }}>
-                Complete the 2-step verification (Student ID + Live Selfie) to unlock marketplace listing and barter privileges.
-              </p>
-            </div>
-            <button
-              onClick={() => setIsVerificationModalOpen(true)}
-              className="btn-gold"
-              style={{ padding: '0.55rem 1.15rem', fontSize: '0.82rem', fontWeight: 800 }}
-            >
-              Start Verification
-            </button>
-          </div>
-        )
+      {/* Dynamic Verification Banner (Disabled for MVP) */}
+      {false && isSelf && !targetUser.isVerified && (
+        <div />
       )}
 
       {/* 5. PROFILE NAVIGATION TABS */}
@@ -1525,7 +1316,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                   {userSoldListings.length} Campus Trades Successfully Fulfilled
                 </div>
                 <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
-                  All items below have been handed over and completed in verified campus exchanges.
+                  Past completed items and trade handovers.
                 </div>
               </div>
             </div>
@@ -1893,7 +1684,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 ))}
               </div>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.4rem', fontWeight: 600 }}>
-                Based on {userReviews.length} Verified Student Ratings
+                Based on {userReviews.length} Ratings
               </div>
             </div>
 
@@ -1911,9 +1702,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 </span>
                 <span style={{ backgroundColor: 'rgba(255, 199, 44, 0.15)', color: '#B45309', padding: '0.35rem 0.65rem', borderRadius: '8px', fontSize: '0.76rem', fontWeight: 700 }}>
                   Accurately Described
-                </span>
-                <span style={{ backgroundColor: 'var(--bg-subtle, #F8FAFC)', color: 'var(--text-secondary, #334155)', padding: '0.35rem 0.65rem', borderRadius: '8px', fontSize: '0.76rem', fontWeight: 700, border: '1px solid var(--border-subtle, #E2E8F0)' }}>
-                  Verified Peer
                 </span>
               </div>
             </div>
@@ -2330,15 +2118,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
 
             <div>
               <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
-                Payment Preferences (Cash, e-Wallets & Bank Transfer)
+                Payment Mode
               </label>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.55rem' }}>
-                Select the payment methods you accept for trades. Card payments are excluded as transactions are settled directly peer-to-peer.
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 0.85rem', backgroundColor: 'var(--bg-subtle)', border: '1px solid var(--border-subtle)', borderRadius: '8px' }}>
+                <span style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-primary)' }}>💵 Cash on Meetup</span>
+                <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>(Standard campus peer settlement)</span>
               </div>
-              <PaymentMethodCheckboxGroup
-                selectedMethods={editPaymentMethods}
-                onChange={setEditPaymentMethods}
-              />
             </div>
           </div>
 

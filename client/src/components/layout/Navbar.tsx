@@ -420,9 +420,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                           <span style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-primary, #0F172A)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {currentUser.name}
                           </span>
-                          {currentUser.isVerified && (
-                            <VerifiedBadge size="xs" variant="green" showTooltip={false} />
-                          )}
                         </div>
                         <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--uc-blue)', backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', padding: '2px 6px', borderRadius: '4px', flexShrink: 0 }}>
                           {currentUser.campus}
@@ -432,68 +429,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <div style={{ fontSize: '0.74rem', color: 'var(--text-muted, #64748B)' }}>
                         Student ID: <strong>{currentUser.studentId}</strong>
                       </div>
-
-                      {/* Verification Status Banner */}
-                      {currentUser.isVerified ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.72rem', fontWeight: 800, color: 'var(--accent-green, #059669)', backgroundColor: 'var(--accent-green-subtle, #ECFDF5)', padding: '0.35rem 0.6rem', borderRadius: '6px' }}>
-                          <Check size={13} /> Official UC Peer Verified
-                        </div>
-                      ) : (
-                        (!currentUser.isVerified && (currentUser.verificationStatus === 'pending' || !!currentUser.idPhotoUrl)) ? (
-                          <div style={{ backgroundColor: 'rgba(0, 43, 127, 0.06)', border: '1px solid rgba(0, 43, 127, 0.15)', borderRadius: '8px', padding: '0.5rem 0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--uc-blue)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                <Clock size={12} style={{ flexShrink: 0 }} />
-                                <span>Verification In Review</span>
-                              </span>
-                              <span style={{ fontSize: '0.66rem', color: 'var(--text-muted)' }}>Estimated: 1–3 business days</span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setIsUserMenuOpen(false);
-                                onNavigate('profile');
-                              }}
-                              style={{
-                                fontSize: '0.7rem',
-                                fontWeight: 800,
-                                color: 'var(--uc-blue)',
-                                backgroundColor: '#FFFFFF',
-                                border: '1px solid var(--uc-blue-border, #BCD1F7)',
-                                borderRadius: '6px',
-                                padding: '3px 10px',
-                                cursor: 'pointer',
-                                flexShrink: 0
-                              }}
-                            >
-                              Status
-                            </button>
-                          </div>
-                        ) : (
-                          <div style={{ backgroundColor: 'rgba(255, 199, 44, 0.15)', border: '1px solid rgba(229, 168, 0, 0.35)', borderRadius: '8px', padding: '0.5rem 0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#B45309' }}>
-                              Unverified Student
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setIsUserMenuOpen(false);
-                                if (onOpenVerification) onOpenVerification();
-                              }}
-                              className="btn-gold"
-                              style={{
-                                fontSize: '0.7rem',
-                                fontWeight: 800,
-                                padding: '3px 10px',
-                                borderRadius: '6px',
-                                flexShrink: 0
-                              }}
-                            >
-                              Verify Now
-                            </button>
-                          </div>
-                        )
-                      )}
                     </div>
 
                     {/* Admin Moderation Desk (if admin) */}

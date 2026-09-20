@@ -81,34 +81,12 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
     );
   }
 
+  // MVP: Verification check disabled for open access
+  /*
   if (!currentUser.isVerified) {
-    return (
-      <div className="modal-backdrop-custom" onClick={onClose}>
-        <div className="modal-card-custom" style={{ maxWidth: '460px', textAlign: 'center', padding: '2rem' }} onClick={(e) => e.stopPropagation()}>
-          <div style={{ width: '54px', height: '54px', borderRadius: '50%', backgroundColor: 'rgba(255, 199, 44, 0.2)', color: '#B45309', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem auto' }}>
-            <ShieldCheck size={28} />
-          </div>
-          <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--uc-blue)' }}>Student ID Verification Required</h3>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0.75rem 0 1.25rem 0', lineHeight: 1.5 }}>
-            To protect buyers and sellers across all UC campuses, placing direct purchase orders requires official student ID verification.
-          </p>
-          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
-            <button onClick={onClose} className="btn-neutral" style={{ flex: 1 }}>Cancel</button>
-            <button
-              onClick={() => {
-                onClose();
-                if (onOpenVerification) onOpenVerification();
-              }}
-              className="btn-gold"
-              style={{ flex: 1.3 }}
-            >
-              Verify Student ID
-            </button>
-          </div>
-        </div>
-      </div>
-    );
+    ...
   }
+  */
 
   const isFree = listing.tradeMode === 'free_donation';
   const displayImage = (listing.media && listing.media[0]?.url) || (listing.images && listing.images[0]) || '';
@@ -279,10 +257,9 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                     <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>{listing.sellerName}</span>
-                    {listing.sellerIsVerified && <VerifiedBadge size="xs" variant="green" />}
                   </div>
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                    {listing.sellerCampus} • {listing.rating ? `${Number(listing.rating).toFixed(1)} / 5.0 rating` : 'Verified Student'}
+                    {listing.sellerCampus}{listing.rating ? ` • ${Number(listing.rating).toFixed(1)} / 5.0` : ''}
                   </span>
                 </div>
               </div>
@@ -331,23 +308,21 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
               </div>
             )}
 
-            {/* Payment Method Selection */}
+            {/* Payment Method - Cash on Meetup */}
             {!isFree && (
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.45rem' }}>
                   <label style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-                    Accepted Settlement Method
+                    Payment Mode
                   </label>
                   <span style={{ fontSize: '0.68rem', color: '#059669', fontWeight: 800, backgroundColor: '#ECFDF5', padding: '1px 6px', borderRadius: '4px', border: '1px solid #A7F3D0' }}>
-                    0% Processing Fee
+                    Direct Cash Handover
                   </span>
                 </div>
-                <PaymentMethodSelector
-                  selected={paymentMethod}
-                  onSelect={(method) => setPaymentMethod(method)}
-                  disabled={isSubmitting}
-                  availableMethods={availableMethods}
-                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.65rem 0.85rem', backgroundColor: 'var(--bg-subtle)', border: '1px solid var(--border-subtle)', borderRadius: '8px' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>💵 Cash on Meetup</span>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>(Pay in person upon inspecting the item)</span>
+                </div>
               </div>
             )}
 

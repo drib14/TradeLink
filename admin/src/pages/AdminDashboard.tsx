@@ -668,12 +668,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
       >
         {[
           { id: 'overview', label: 'Overview', icon: <TrendingUp size={14} /> },
-          { id: 'verifications', label: `ID Verifications (${pendingVerificationsCount})`, icon: <BadgeCheck size={14} /> },
+          { id: 'verifications', label: 'ID Verifications (Disabled)', icon: <BadgeCheck size={14} /> },
           { id: 'users', label: `Users & Moderation (${allUsers.length})`, icon: <UserCheck size={14} /> },
           { id: 'listings', label: `Listings & Flags (${pendingFlagsCount})`, icon: <ShieldAlert size={14} /> },
           { id: 'scanner', label: `Prohibited Scanner (${scannedViolations.length})`, icon: <Shield size={14} /> },
           { id: 'disputes', label: `Trade Disputes (${pendingDisputesCount})`, icon: <Scale size={14} /> },
-          { id: 'reputation', label: 'Trust & Reputation', icon: <Award size={14} /> },
           { id: 'flash-market', label: `Flash Market (${(flashRequests || wantedRequests).length})`, icon: <Zap size={14} /> },
           { id: 'transactions', label: `Transactions (${transactions.length})`, icon: <Receipt size={14} /> },
           { id: 'announcements', label: `Broadcasts (${announcements.length})`, icon: <Megaphone size={14} /> },
@@ -732,7 +731,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 {analytics?.kpi?.totalUsers ?? allUsers.length}
               </div>
               <span style={{ fontSize: '0.74rem', color: '#059669', fontWeight: 700 }}>
-                {analytics?.kpi?.verifiedUsers ?? allUsers.filter((u) => u.isVerified).length} verified ({((analytics?.kpi?.totalUsers ?? allUsers.length) > 0) ? Math.round(((analytics?.kpi?.verifiedUsers ?? allUsers.filter((u) => u.isVerified).length) / (analytics?.kpi?.totalUsers ?? allUsers.length)) * 100) : 0}%)
+                100% active access (Open MVP)
               </span>
             </div>
 
@@ -779,11 +778,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
               <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 Pending Moderation
               </span>
-              <div style={{ fontSize: '1.6rem', fontWeight: 900, color: ((analytics?.kpi ? (analytics.kpi.pendingVerifications + analytics.kpi.pendingFlags + analytics.kpi.pendingDisputes) : (pendingRequests.length + pendingFlags.length + pendingDisputesCount))) > 0 ? '#DC2626' : '#059669', fontFamily: 'var(--font-display)', marginTop: '0.15rem' }}>
-                {analytics?.kpi ? (analytics.kpi.pendingVerifications + analytics.kpi.pendingFlags + analytics.kpi.pendingDisputes) : (pendingRequests.length + pendingFlags.length + pendingDisputesCount)}
+              <div style={{ fontSize: '1.6rem', fontWeight: 900, color: ((analytics?.kpi ? (analytics.kpi.pendingFlags + analytics.kpi.pendingDisputes) : (pendingFlags.length + pendingDisputesCount))) > 0 ? '#DC2626' : '#059669', fontFamily: 'var(--font-display)', marginTop: '0.15rem' }}>
+                {analytics?.kpi ? (analytics.kpi.pendingFlags + analytics.kpi.pendingDisputes) : (pendingFlags.length + pendingDisputesCount)}
               </div>
-              <span style={{ fontSize: '0.74rem', color: '#DC2626', fontWeight: 700 }}>
-                {analytics?.kpi?.pendingVerifications ?? pendingRequests.length} KYC • {analytics?.kpi?.pendingFlags ?? pendingFlags.length} Flags • {analytics?.kpi?.pendingDisputes ?? pendingDisputesCount} Disputes
+              <span style={{ fontSize: '0.74rem', color: ((analytics?.kpi ? (analytics.kpi.pendingFlags + analytics.kpi.pendingDisputes) : (pendingFlags.length + pendingDisputesCount))) > 0 ? '#DC2626' : '#059669', fontWeight: 700 }}>
+                {analytics?.kpi?.pendingFlags ?? pendingFlags.length} Flags • {analytics?.kpi?.pendingDisputes ?? pendingDisputesCount} Disputes
               </span>
             </div>
           </div>
@@ -1086,6 +1085,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
           ========================================================================= */}
       {activeTab === 'verifications' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Temporary notice: Verification disabled for MVP */}
+          <div style={{ backgroundColor: '#EBF1FC', border: '1px solid #BCD1F7', borderRadius: '10px', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem', color: '#002B7F' }}>
+            <BadgeCheck size={24} style={{ flexShrink: 0 }} />
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '0.92rem' }}>Student ID Verification is Temporarily Disabled</div>
+              <div style={{ fontSize: '0.8rem', color: '#334155', marginTop: '2px' }}>
+                All student accounts currently have full trading and listing access. Historical verification requests remain preserved below.
+              </div>
+            </div>
+          </div>
+
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               {(['pending', 'suspicious', 'approved', 'rejected', 'all'] as const).map((filter) => {
@@ -1401,7 +1411,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 <tr style={{ borderBottom: '2px solid #E2E8F0', color: '#64748B' }}>
                   <th style={{ padding: '0.65rem 0.75rem' }}>Student Profile</th>
                   <th style={{ padding: '0.65rem 0.75rem' }}>Campus & College</th>
-                  <th style={{ padding: '0.65rem 0.75rem' }}>Trust Score</th>
                   <th style={{ padding: '0.65rem 0.75rem' }}>Warnings</th>
                   <th style={{ padding: '0.65rem 0.75rem' }}>Status</th>
                   <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>Admin Actions</th>
@@ -1418,7 +1427,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                           <div>
                             <div style={{ fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                               <span>{u.name}</span>
-                              {u.isVerified && <VerifiedBadge size="xs" variant="gold" />}
                             </div>
                             <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
                               ID: {u.studentId} • {u.email}
@@ -1430,15 +1438,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                       <td style={{ padding: '0.75rem' }}>
                         <div style={{ fontWeight: 700, color: '#002B7F' }}>{u.campus}</div>
                         <div style={{ fontSize: '0.72rem', color: '#64748B' }}>{u.college} ({u.yearLevel})</div>
-                      </td>
-
-                      <td style={{ padding: '0.75rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                          <div style={{ flex: 1, width: '60px', height: '6px', backgroundColor: '#E2E8F0', borderRadius: '9999px', overflow: 'hidden' }}>
-                            <div style={{ width: `${Number(u.trustScore ?? 0)}%`, height: '100%', backgroundColor: Number(u.trustScore ?? 0) > 70 ? '#059669' : Number(u.trustScore ?? 0) > 0 ? '#D97706' : '#94A3B8' }} />
-                          </div>
-                          <span style={{ fontWeight: 800, fontSize: '0.75rem' }}>{Number(u.trustScore ?? 0)}/100</span>
-                        </div>
                       </td>
 
                       <td style={{ padding: '0.75rem' }}>
@@ -2079,9 +2078,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
       )}
 
       {/* =========================================================================
-          TAB 7: STUDENT TRUST & HONOR CODE MANAGER
+          TAB 7: STUDENT TRUST & HONOR CODE MANAGER (Disabled for MVP)
           ========================================================================= */}
-      {activeTab === 'reputation' && (
+      {false && activeTab === 'reputation' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {/* Quick Adjustment Card */}
           <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>

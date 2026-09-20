@@ -63,11 +63,6 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({
       if (onOpenAuth) onOpenAuth();
       return;
     }
-    if (!currentUser.isVerified) {
-      showToast('Verification Required', 'Student ID verification is required before proposing item swaps.', 'warning');
-      if (onOpenVerification) onOpenVerification();
-      return;
-    }
     setSelectedTargetForSwap(item);
   };
 
@@ -76,9 +71,6 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: 'var(--uc-blue, #002B7F)', fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            <ArrowLeftRight size={14} style={{ flexShrink: 0 }} /> Cashless Student Barter
-          </div>
           <h1 style={{ fontSize: '1.85rem', fontWeight: 900, color: 'var(--text-primary, #002B7F)', marginTop: '0.2rem' }}>
             Campus Swap Hub
           </h1>
