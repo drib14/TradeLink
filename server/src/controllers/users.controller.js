@@ -288,7 +288,7 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
 
   const successMessage = evaluation.isApproved
     ? `Student ID verified automatically (${evaluation.confidenceScore}% confidence score, ${evaluation.facialMatchScore}% facial match). Your verified badge is now active!`
-    : `Verification submitted for manual review. Because automated facial match (${evaluation.facialMatchScore}%) was below the 90% threshold or requires inspection, your submission has been forwarded to the Campus Safety Moderation Desk. Please allow 1–3 business days for verification.`;
+    : `Verification submitted for admin review (${evaluation.facialMatchScore}% facial match). Our team will review your ID shortly.`;
 
   res.status(200).json({
     status: 'success',

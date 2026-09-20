@@ -247,19 +247,50 @@ async function request<T = any>(
       setCsrfToken(respCsrf);
     }
 
-    const json = await res.json();
+    let json: any = null;
+    try {
+      json = await res.json();
+    } catch {
+      // Body is not JSON (e.g. Vercel plain text / HTML error page for 413, 502, 504)
+      if (res.status === 413) {
+        throw {
+          status: 'error',
+          message: 'Upload payload too large (exceeds server limit). Please select a smaller photo or retry.',
+          statusCode: 413,
+        } as ApiError;
+      }
+      if (!res.ok) {
+        throw {
+          status: 'error',
+          message: `Request failed with status ${res.status}: ${res.statusText || 'Server Error'}`,
+          statusCode: res.status,
+        } as ApiError;
+      }
+    }
 
     if (!res.ok) {
+      if (res.status === 413) {
+        throw {
+          status: 'error',
+          message: 'Upload payload too large (exceeds server limit). Please select a smaller photo or retry.',
+          statusCode: 413,
+        } as ApiError;
+      }
       throw {
         status: 'error',
-        message: json.message || `Request failed with status ${res.status}`,
+        message: json?.message || `Request failed with status ${res.status}`,
         statusCode: res.status,
       } as ApiError;
     }
 
     return json as ApiResponse<T>;
   } catch (err: any) {
-    // If it is a network error / abort / ERR_NETWORK_CHANGED, retry if attempts remain
+    // If it's already an ApiError with a non-zero statusCode, pass it through directly
+    if (err && typeof err.statusCode === 'number' && err.statusCode > 0) {
+      throw err;
+    }
+
+    // If it is a genuine network error / abort / connection failure, retry if attempts remain
     const isNetworkError =
       (err instanceof TypeError && err.message.toLowerCase().includes('fetch')) ||
       err?.name === 'AbortError' ||

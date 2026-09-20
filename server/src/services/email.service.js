@@ -104,7 +104,7 @@ function getAppBaseUrl(req = null) {
 
   // 4. Safe production fallback
   if (isProduction) {
-    return 'https://tradelink-uc.vercel.app';
+    return 'https://uc-tradelink.vercel.app';
   }
 
   return 'http://localhost:5173';

@@ -168,7 +168,10 @@ function computeFacialMatch({ idPhotoUrl, selfiePhotoUrl, telemetry = {}, sessio
   );
 
   let matchScore = 0;
-  if (livenessVerified && !idSharpness.isBlurred) {
+  if (typeof telemetry.facialMatchScore === 'number' && telemetry.facialMatchScore > 0) {
+    // Biometric neural match score from client-side face verification
+    matchScore = Math.min(100, Math.max(0, Math.round(telemetry.facialMatchScore)));
+  } else if (livenessVerified && !idSharpness.isBlurred) {
     // When clear, sharp ID and live selfie with valid challenge are provided:
     // Scale into 91% - 97% range for verified matches (>90% instant approval)
     const variation = (sharpnessFactor % 7);
@@ -178,14 +181,18 @@ function computeFacialMatch({ idPhotoUrl, selfiePhotoUrl, telemetry = {}, sessio
     matchScore = Math.min(85, Math.max(60, Math.round((entropyMatch * 0.5) + (sharpnessFactor * 0.3))));
   }
 
+  const isMatchOver85 = matchScore >= 85;
+
   return {
     matchScore,
     isMatchOver90: matchScore >= 90,
+    isMatchOver85,
     details: {
       idSharpnessScore: idSharpness.sharpnessScore,
       selfieSharpnessScore: selfieSharpness.sharpnessScore,
       livenessVerified,
-      entropyMatch
+      entropyMatch,
+      neuralBiometricUsed: typeof telemetry.facialMatchScore === 'number'
     }
   };
 }
@@ -434,25 +441,37 @@ async function evaluateVerification({
     details: facialMatch.details
   };
 
-  if (!facialMatch.isMatchOver90) {
+  if (facialMatch.matchScore < 85) {
     suspiciousReasons.push(
-      `Automated facial match between ID card and live selfie was ${facialMatch.matchScore}% (below 90% threshold for instant approval). Forwarded for 1–3 business days manual review.`
+      `Automated facial match between ID card and live selfie was ${facialMatch.matchScore}% (below 85% threshold for instant approval). Forwarded for manual admin review.`
     );
   }
 
   // -------------------------------------------------------------
-  // 7. Final Decision Engine (>90% Accuracy & Facial Match Threshold)
+  // 7. Final Decision Engine (Automated Approval vs Manual Review)
   // -------------------------------------------------------------
   const confidenceScore = Math.min(100, Math.max(0, Math.round(totalScore)));
-  const hasSuspicion = suspiciousReasons.length > 0;
+
+  // Critical fraud / challenge bypass flags that mark as suspicious
+  const hasCriticalFraud = suspiciousReasons.some(
+    (r) => r.includes('duplicate') ||
+           r.includes('fingerprint') ||
+           r.includes('rejected') ||
+           r.includes('limit') ||
+           r.includes('session token missing') ||
+           r.includes('session validation failed')
+  );
 
   // Automated Instant Approval Conditions:
-  // 1. Confidence Score must be at least 90%
-  // 2. Facial match score must be at least 90%
+  // 1. Confidence Score must be at least 85%
+  // 2. Facial match score must be at least 85%
   // 3. ID image is clear and not blurred
-  // 4. Zero duplicate or spoofing flags
-  const isApproved = confidenceScore >= 90 && facialMatch.isMatchOver90 && !idSharpness.isBlurred && !hasSuspicion;
-  const isSuspicious = !isApproved;
+  // 4. Zero duplicate or fraud flags
+  const isApproved = confidenceScore >= 85 && facialMatch.matchScore >= 85 && !idSharpness.isBlurred && !hasCriticalFraud && suspiciousReasons.length === 0;
+
+  // If not auto-approved, mark as suspicious for challenge bypass, duplicate, or severely low match (<50%)
+  // Natural minor face differences (60-84%) are routed as standard pending review for admin
+  const isSuspicious = hasCriticalFraud || (facialMatch.matchScore < 50);
   const status = isApproved ? 'approved' : 'pending';
   const reviewEstimate = isApproved ? 'immediate' : '1-3 business days';
 

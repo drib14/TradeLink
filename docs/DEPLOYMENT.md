@@ -12,7 +12,7 @@ This guide details the complete production deployment procedure for the **Univer
 
 ```mermaid
 graph TD
-    Client["Student Web App (Vercel)<br/>https://tradelink-uc.vercel.app"] -->|REST / HTTPS| VercelAPI["TradeLink API Server (Vercel)<br/>https://tradelink-server.vercel.app"]
+    Client["Student Web App (Vercel)<br/>https://uc-tradelink.vercel.app"] -->|REST / HTTPS| VercelAPI["TradeLink API Server (Vercel)<br/>https://tradelink-backend.vercel.app"]
     Admin["Admin Portal (Vercel)<br/>https://tradelink-admin.vercel.app"] -->|REST / HTTPS| VercelAPI
     VercelAPI -->|SSL Encrypted Pool (4000/3306)| DB[(Managed MySQL 8.0 / TiDB Cloud<br/>gateway01.ap-southeast-1...)]
     VercelAPI -->|SMTP (Port 465 SSL)| Gmail["Gmail SMTP<br/>uc.tradelink@gmail.com"]
@@ -33,7 +33,7 @@ TradeLink uses a managed cloud MySQL 8.0 database (such as **TiDB Cloud Serverle
 
 ---
 
-## 🚀 2. Backend API Deployment on Vercel (`tradelink-server`)
+## 🚀 2. Backend API Deployment on Vercel (`tradelink-backend`)
 
 The TradeLink server is pre-configured with a Vercel Serverless Function entrypoint ([server/api/index.js](file:///c:/Users/jhond/Documents/TradeLink/server/api/index.js)) and rewrite rules ([server/vercel.json](file:///c:/Users/jhond/Documents/TradeLink/server/vercel.json)).
 
@@ -43,7 +43,7 @@ The TradeLink server is pre-configured with a Vercel Serverless Function entrypo
 3. Select your GitHub repository: `drib14/TradeLink`.
 
 ### Step 2: Configure Project Settings
-- **Project Name**: `tradelink-server` (or `tradelink-api`)
+- **Project Name**: `tradelink-backend`
 - **Framework Preset**: Select **Other**
 - **Root Directory**: Click **Edit** and choose `server`
 - **Build Command**: Leave empty / default (Vercel automatically packages Node.js functions)
@@ -66,10 +66,11 @@ In the project configuration screen (or under **Settings** → **Environment Var
 | `JWT_REFRESH_EXPIRY` | `7d` | Refresh token lifespan |
 | `COOKIE_SECRET` | `8e826b0d91d6ecb1c0839c6341c87add9c1534534dd80363a4ebede8a3a9d87bd7771227ddecb4cffe5e6f0412264d46` | Signed cookie secret |
 | `VERIFICATION_SESSION_SECRET` | `a839bc4e08c2bf80b91d6ecb1c0839c6341c87add9c1534534dd80363a4ebede8a3a9d87bd7771227ddecb4cffe5e6f0412264d46` | Biometric session secret |
-| `CLIENT_URL` | `https://tradelink-uc.vercel.app` | Allowed client origin(s) for CORS |
+| `CLIENT_URL` | `https://uc-tradelink.vercel.app` | Allowed client origin(s) for CORS |
 | `ADMIN_URL` | `https://tradelink-admin.vercel.app` | Allowed admin origin(s) for CORS |
-| `APP_URL` | `https://tradelink-uc.vercel.app` | Base URL used in student email links |
+| `APP_URL` | `https://uc-tradelink.vercel.app` | Base URL used in student email links |
 | `ADMIN_APP_URL` | `https://tradelink-admin.vercel.app` | Base URL used in admin email links |
+| `BACKEND_URL` | `https://tradelink-backend.vercel.app` | Backend base URL |
 | `ALLOW_VERCEL_PREVIEWS` | `true` | Allows preview PR branches (`*.vercel.app`) |
 | `COOKIE_SAME_SITE` | `none` | Cross-origin cookie policy for Vercel subdomains |
 | `SMTP_HOST` | `smtp.gmail.com` | SMTP host |
@@ -87,19 +88,19 @@ In the project configuration screen (or under **Settings** → **Environment Var
 | `ADMIN_SEED_NAME` | `TradeLink Community Moderation` | Administrator display name |
 
 ### Step 4: Deploy and Verify
-1. Click **Deploy**. Vercel will build the serverless package and assign your production URL (e.g. `https://tradelink-server.vercel.app`).
-2. Test health: Open `https://<your-server-domain>.vercel.app/api/health` in your browser. You should receive:
+1. Click **Deploy**. Vercel will build the serverless package and assign your production URL (`https://tradelink-backend.vercel.app`).
+2. Test health: Open `https://tradelink-backend.vercel.app/api/health` in your browser. You should receive:
    ```json
    { "status": "ok" }
    ```
 
 ---
 
-## ⚡ 3. Client Deployment on Vercel (Student Web App)
+## ⚡ 3. Client Deployment on Vercel (`uc-tradelink`)
 
 ### Step 1: Configure / Verify Project on Vercel
 1. Log in to [Vercel](https://vercel.com).
-2. Select your `tradelink-client` project (or import `drib14/TradeLink` with Root Directory: `client`).
+2. Select your `uc-tradelink` project (or import `drib14/TradeLink` with Root Directory: `client`).
 3. Set **Framework Preset**: `Vite`, **Root Directory**: `client`.
 
 ### Step 2: Environment Variables
@@ -107,13 +108,16 @@ Under **Settings** → **Environment Variables**:
 
 | Variable | Value |
 |---|---|
-| `VITE_API_BASE_URL` | `https://<your-server-domain>.vercel.app/api` |
+| `VITE_API_BASE_URL` | `https://tradelink-backend.vercel.app/api` |
+| `VITE_SOCKET_URL` | `https://tradelink-backend.vercel.app` |
+| `VITE_ADMIN_URL` | `https://tradelink-admin.vercel.app` |
+| `VITE_CLIENT_URL` | `https://uc-tradelink.vercel.app` |
 
 Click **Save** and trigger a **Redeploy** to ensure the build embeds the new Vercel server URL.
 
 ---
 
-## 🛡️ 4. Admin Portal Deployment on Vercel
+## 🛡️ 4. Admin Portal Deployment on Vercel (`tradelink-admin`)
 
 ### Step 1: Configure / Verify Project on Vercel
 1. Select your `tradelink-admin` project (or import `drib14/TradeLink` with Root Directory: `admin`).
@@ -124,7 +128,9 @@ Under **Settings** → **Environment Variables**:
 
 | Variable | Value |
 |---|---|
-| `VITE_API_BASE_URL` | `https://<your-server-domain>.vercel.app/api` |
+| `VITE_API_BASE_URL` | `https://tradelink-backend.vercel.app/api` |
+| `VITE_CLIENT_URL` | `https://uc-tradelink.vercel.app` |
+| `VITE_ADMIN_URL` | `https://tradelink-admin.vercel.app` |
 
 Click **Save** and trigger a **Redeploy**.
 
