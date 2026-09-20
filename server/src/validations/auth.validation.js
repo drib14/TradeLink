@@ -10,16 +10,17 @@ const registerSchema = Joi.object({
     'string.pattern.base': 'Student ID must contain between 6 and 20 digits with no hyphens or letters.',
     'string.empty': 'Student ID is required.'
   }),
-  email: Joi.string().trim().email().required().messages({
+  email: Joi.string().trim().email().max(256).required().messages({
     'string.email': 'Please provide a valid email address.',
+    'string.max': 'Email address must not exceed 256 characters.',
     'string.empty': 'Email is required.'
   }),
   password: Joi.string().min(8).max(100)
-    .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+    .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?])/)
     .required()
     .messages({
       'string.min': 'Password must be at least 8 characters long.',
-      'string.pattern.base': 'Password must contain at least one uppercase letter, one lowercase letter, and one number.',
+      'string.pattern.base': 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.',
       'string.empty': 'Password is required.'
     }),
   campus: Joi.string().valid(...CAMPUSES).required().messages({
@@ -49,15 +50,17 @@ const loginSchema = Joi.object({
 });
 
 const forgotPasswordSchema = Joi.object({
-  email: Joi.string().trim().email().required().messages({
+  email: Joi.string().trim().email().max(256).required().messages({
     'string.email': 'Please enter a valid email address.',
+    'string.max': 'Email address must not exceed 256 characters.',
     'string.empty': 'Email address is required.'
   })
 });
 
 const verifyResetCodeSchema = Joi.object({
-  email: Joi.string().trim().email().required().messages({
+  email: Joi.string().trim().email().max(256).required().messages({
     'string.email': 'Please enter a valid email address.',
+    'string.max': 'Email address must not exceed 256 characters.',
     'string.empty': 'Email address is required.'
   }),
   code: Joi.string().trim().length(6).required().messages({
@@ -67,16 +70,19 @@ const verifyResetCodeSchema = Joi.object({
 });
 
 const resetPasswordSchema = Joi.object({
-  email: Joi.string().trim().email().required(),
+  email: Joi.string().trim().email().max(256).required().messages({
+    'string.email': 'Please enter a valid email address.',
+    'string.max': 'Email address must not exceed 256 characters.'
+  }),
   code: Joi.string().trim().length(6).required().messages({
     'string.length': 'Verification code must be 6 digits.'
   }),
   newPassword: Joi.string().min(8).max(100)
-    .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+    .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?])/)
     .required()
     .messages({
       'string.min': 'New password must be at least 8 characters.',
-      'string.pattern.base': 'Password must contain at least one uppercase letter, one lowercase letter, and one number.'
+      'string.pattern.base': 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.'
     })
 });
 

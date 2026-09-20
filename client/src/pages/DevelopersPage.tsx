@@ -443,7 +443,7 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
                     flexDirection: 'column'
                   }}
                 >
-                  {/* Top Gradient Header Accent */}
+                  {/* Top Header Accent */}
                   <div
                     style={{
                       height: '96px',

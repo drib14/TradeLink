@@ -27,12 +27,12 @@ const FONT_SIZE_MAP: Record<string, string> = {
   xl: '1.75rem'
 };
 
-const GRADIENTS = [
-  'linear-gradient(135deg, #002B7F 0%, #0A1931 100%)',
-  'linear-gradient(135deg, #0A3EA8 0%, #001D59 100%)',
-  'linear-gradient(135deg, #002B7F 0%, #047857 100%)',
-  'linear-gradient(135deg, #001D59 0%, #7C2D12 100%)',
-  'linear-gradient(135deg, #1E1B4B 0%, #002B7F 100%)'
+const SOLID_COLORS = [
+  '#002B7F',
+  '#001D59',
+  '#0A3EA8',
+  '#0F172A',
+  '#1E293B'
 ];
 
 export const UserAvatar: React.FC<UserAvatarProps> = ({
@@ -58,14 +58,14 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   };
 
-  // Deterministic gradient selection based on name
-  const getGradient = (str: string): string => {
+  // Deterministic solid color selection based on name
+  const getColor = (str: string): string => {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       hash = str.charCodeAt(i) + ((hash << 5) - hash);
     }
-    const index = Math.abs(hash) % GRADIENTS.length;
-    return GRADIENTS[index];
+    const index = Math.abs(hash) % SOLID_COLORS.length;
+    return SOLID_COLORS[index];
   };
 
   const isGenericPlaceholder = !!src && (src.includes('photo-1535713875002') || src.includes('placeholder'));
@@ -105,7 +105,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
             width: '100%',
             height: '100%',
             borderRadius: '50%',
-            background: getGradient(name),
+            backgroundColor: getColor(name),
             color: '#FFFFFF',
             display: 'flex',
             alignItems: 'center',
@@ -114,8 +114,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
             fontSize,
             letterSpacing: '-0.02em',
             fontFamily: 'var(--font-sans)',
-            border: '1.5px solid rgba(255, 199, 44, 0.4)',
-            boxShadow: 'inset 0 1px 2px rgba(255, 255, 255, 0.2)'
+            border: '1.5px solid #FFC72C'
           }}
         >
           {getInitials(name)}
@@ -131,9 +130,8 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
             width: `${Math.max(8, Math.round(dimension * 0.26))}px`,
             height: `${Math.max(8, Math.round(dimension * 0.26))}px`,
             borderRadius: '50%',
-            backgroundColor: isOnline ? '#10B981' : '#94A3B8',
-            border: '2px solid #FFFFFF',
-            boxShadow: isOnline ? '0 0 6px rgba(16, 185, 129, 0.6)' : 'none'
+            backgroundColor: isOnline ? '#059669' : '#94A3B8',
+            border: '2px solid #FFFFFF'
           }}
         />
       )}

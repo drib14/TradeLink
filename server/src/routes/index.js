@@ -17,7 +17,6 @@ const swapsRoutes = require('./swaps.routes');
 const transactionsRoutes = require('./transactions.routes');
 const chatRoutes = require('./chat.routes');
 const flashMarketRoutes = require('./flashMarket.routes');
-const wantedRoutes = flashMarketRoutes; // Compatibility alias
 const reviewsRoutes = require('./reviews.routes');
 const adminRoutes = require('./admin.routes');
 const adminAuthRoutes = require('./adminAuth.routes');

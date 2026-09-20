@@ -87,4 +87,22 @@ export const mobileAuthService = {
     });
     return res;
   },
+
+  async forgotPassword(email: string): Promise<{ message: string; resetCode?: string }> {
+    const res = await mobileApi.post('/auth/forgot-password', { email });
+    return {
+      message: res.data?.message || 'Verification code sent to your email.',
+      resetCode: res.data?.resetCode || res.data?.devCode,
+    };
+  },
+
+  async verifyResetCode(email: string, code: string): Promise<{ message: string }> {
+    const res = await mobileApi.post('/auth/verify-reset-code', { email, code });
+    return { message: res.data?.message || 'Code verified successfully.' };
+  },
+
+  async resetPassword(email: string, code: string, newPassword: string): Promise<{ message: string }> {
+    const res = await mobileApi.post('/auth/reset-password', { email, code, newPassword });
+    return { message: res.data?.message || 'Password reset successfully.' };
+  },
 };

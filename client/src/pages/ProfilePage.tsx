@@ -47,7 +47,12 @@ import {
   Building2,
   CreditCard,
   PackageCheck,
-  Share2
+  Share2,
+  List,
+  LayoutGrid,
+  ArrowUpRight,
+  ArrowDownLeft,
+  ExternalLink
 } from 'lucide-react';
 import { StudentVerificationModal } from '../components/verification/StudentVerificationModal';
 import { maskStudentId } from '../utils/security';
@@ -134,6 +139,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   const [storeSearch, setStoreSearch] = useState('');
   const [storeSort, setStoreSort] = useState<'newest' | 'price_asc' | 'price_desc'>('newest');
   const [reviewFilter, setReviewFilter] = useState<'all' | 'seller' | 'buyer'>('all');
+  const [inventoryViewMode, setInventoryViewMode] = useState<'table' | 'grid'>('table');
+  const [transactionViewMode, setTransactionViewMode] = useState<'table' | 'cards'>('table');
 
   // Edit Profile Modal state
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
@@ -729,17 +736,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                   style={{ width: '100%', minWidth: '460px', height: 'auto', display: 'block' }}
                   aria-label="Monthly trade activity chart"
                 >
-                  <defs>
-                    <linearGradient id="tradeVolumeGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#002B7F" stopOpacity="0.22" />
-                      <stop offset="100%" stopColor="#002B7F" stopOpacity="0.01" />
-                    </linearGradient>
-                    <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#FFC72C" />
-                      <stop offset="100%" stopColor="#D97706" />
-                    </linearGradient>
-                  </defs>
-
                   {/* Grid lines */}
                   <line x1="40" y1="20" x2="680" y2="20" stroke="#F1F5F9" strokeWidth="1" strokeDasharray="3 3" />
                   <line x1="40" y1="60" x2="680" y2="60" stroke="#F1F5F9" strokeWidth="1" strokeDasharray="3 3" />
@@ -760,7 +756,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
 
                     return (
                       <>
-                        <path d={areaD} fill="url(#tradeVolumeGrad)" />
+                        <path d={areaD} fill="#EBF1FC" />
                         <path d={pathD} fill="none" stroke="#002B7F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
 
                         {/* Bars for trades completed */}
@@ -773,9 +769,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                                 y={140 - barH}
                                 width="28"
                                 height={barH}
-                                rx="5"
-                                fill="url(#barGrad)"
-                                opacity="0.85"
+                                rx="4"
+                                fill="#FFC72C"
                               />
                               {/* Volume point dot */}
                               <circle cx={pt.x} cy={pt.y} r="4.5" fill="#FFFFFF" stroke="#002B7F" strokeWidth="2.5" />
@@ -1272,6 +1267,49 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 <option value="price_asc">Price: Low to High</option>
                 <option value="price_desc">Price: High to Low</option>
               </select>
+
+              {/* High-density view toggle */}
+              <div style={{ display: 'inline-flex', border: '1px solid var(--border-subtle, #E2E8F0)', borderRadius: '8px', overflow: 'hidden', height: '34px' }}>
+                <button
+                  type="button"
+                  onClick={() => setInventoryViewMode('table')}
+                  style={{
+                    padding: '0 0.65rem',
+                    backgroundColor: inventoryViewMode === 'table' ? 'var(--uc-blue, #002B7F)' : 'var(--bg-surface, #FFFFFF)',
+                    color: inventoryViewMode === 'table' ? '#FFFFFF' : 'var(--text-secondary, #475569)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    fontSize: '0.74rem',
+                    fontWeight: 700
+                  }}
+                  title="Show Dense Data Table"
+                >
+                  <List size={13} /> Table
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInventoryViewMode('grid')}
+                  style={{
+                    padding: '0 0.65rem',
+                    backgroundColor: inventoryViewMode === 'grid' ? 'var(--uc-blue, #002B7F)' : 'var(--bg-surface, #FFFFFF)',
+                    color: inventoryViewMode === 'grid' ? '#FFFFFF' : 'var(--text-secondary, #475569)',
+                    border: 'none',
+                    borderLeft: '1px solid var(--border-subtle, #E2E8F0)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    fontSize: '0.74rem',
+                    fontWeight: 700
+                  }}
+                  title="Show Card Grid"
+                >
+                  <LayoutGrid size={13} /> Cards
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1287,17 +1325,140 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
             </div>
           )}
 
-          {/* Listings Grid */}
+          {/* Listings Presentation (Dense Table or Card Grid) */}
           {filteredActiveListings.length > 0 ? (
-            <div className="grid-responsive-listings">
-              {filteredActiveListings.map((item) => (
-                <ListingCard
-                  key={item.id}
-                  listing={item}
-                  onClick={() => onNavigate('item-detail', { id: item.id })}
-                />
-              ))}
-            </div>
+            inventoryViewMode === 'table' ? (
+              <div className="table-clean-wrapper">
+                <table className="table-clean" style={{ minWidth: '780px' }}>
+                  <thead>
+                    <tr>
+                      <th style={{ width: '38%' }}>Marketplace Item</th>
+                      <th>Category</th>
+                      <th>Trade Mode</th>
+                      <th>Condition</th>
+                      <th style={{ textAlign: 'right' }}>Price</th>
+                      <th>Date Listed</th>
+                      <th style={{ textAlign: 'center' }}>Status</th>
+                      <th style={{ textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredActiveListings.map((item) => (
+                      <tr key={item.id}>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            {item.images && item.images.length > 0 ? (
+                              <img
+                                src={item.images[0]}
+                                alt={item.title}
+                                style={{ width: '44px', height: '44px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0, border: '1px solid var(--border-subtle, #E2E8F0)' }}
+                              />
+                            ) : (
+                              <div style={{ width: '44px', height: '44px', borderRadius: '8px', backgroundColor: 'var(--bg-subtle, #F8FAFC)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', flexShrink: 0 }}>
+                                <ShoppingBag size={18} />
+                              </div>
+                            )}
+                            <div style={{ minWidth: 0 }}>
+                              <div
+                                onClick={() => onNavigate('item-detail', { id: item.id })}
+                                style={{ fontWeight: 800, color: 'var(--text-primary)', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '280px' }}
+                                title={item.title}
+                              >
+                                {item.title}
+                              </div>
+                              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                                <MapPin size={11} /> {item.campus}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                            {item.category}
+                          </span>
+                        </td>
+                        <td>
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              padding: '2px 8px',
+                              borderRadius: '9999px',
+                              fontSize: '0.7rem',
+                              fontWeight: 800,
+                              backgroundColor: item.tradeMode === 'free_donation' ? 'rgba(5, 150, 105, 0.12)' : item.tradeMode === 'swap' ? 'rgba(0, 43, 127, 0.1)' : 'rgba(255, 199, 44, 0.2)',
+                              color: item.tradeMode === 'free_donation' ? '#059669' : item.tradeMode === 'swap' ? '#002B7F' : '#B45309'
+                            }}
+                          >
+                            {item.tradeMode === 'free_donation' ? 'Free Gift' : item.tradeMode === 'swap' ? 'Swap Trade' : 'For Sale'}
+                          </span>
+                        </td>
+                        <td>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                            {item.condition || 'Good'}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <span style={{ fontWeight: 900, color: 'var(--uc-blue, #002B7F)', fontSize: '0.9rem' }}>
+                            ₱{Number(item.price || 0).toLocaleString()}
+                          </span>
+                        </td>
+                        <td>
+                          <span style={{ fontSize: '0.73rem', color: 'var(--text-muted)' }}>
+                            {item.createdAt ? formatRelativeTime(item.createdAt) : 'Recently'}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.72rem', fontWeight: 700, color: 'var(--accent-green, #059669)' }}>
+                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--accent-green, #059669)' }} />
+                            Live
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'flex-end' }}>
+                            <button
+                              onClick={() => onNavigate('item-detail', { id: item.id })}
+                              className="btn-secondary"
+                              style={{ padding: '0.3rem 0.6rem', fontSize: '0.74rem' }}
+                              title="View item detail"
+                            >
+                              <Eye size={12} />
+                            </button>
+                            {isSelf ? (
+                              <button
+                                onClick={() => markAsSold(item.id, true)}
+                                className="btn-primary"
+                                style={{ padding: '0.3rem 0.65rem', fontSize: '0.74rem', fontWeight: 700 }}
+                                title="Mark item as completed trade"
+                              >
+                                <Check size={12} /> Sold
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => openChatWithSeller(item)}
+                                className="btn-gold"
+                                style={{ padding: '0.3rem 0.65rem', fontSize: '0.74rem', fontWeight: 700 }}
+                              >
+                                <MessageSquare size={12} /> Chat
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="grid-responsive-listings">
+                {filteredActiveListings.map((item) => (
+                  <ListingCard
+                    key={item.id}
+                    listing={item}
+                    onClick={() => onNavigate('item-detail', { id: item.id })}
+                  />
+                ))}
+              </div>
+            )
           ) : (
             <div className="empty-state">
               <div className="empty-state-icon">
@@ -1468,47 +1629,223 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
       {/* TAB 4: TRANSACTIONS (when isSelf) */}
       {activeTab === 'transactions' && isSelf && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div style={{ display: 'inline-flex', border: '1px solid var(--border-subtle, #E2E8F0)', borderRadius: '8px', overflow: 'hidden', height: '34px' }}>
+              <button
+                type="button"
+                onClick={() => setTransactionViewMode('table')}
+                style={{
+                  padding: '0 0.75rem',
+                  backgroundColor: transactionViewMode === 'table' ? 'var(--uc-blue, #002B7F)' : 'var(--bg-surface, #FFFFFF)',
+                  color: transactionViewMode === 'table' ? '#FFFFFF' : 'var(--text-secondary, #475569)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 700
+                }}
+              >
+                <List size={13} /> Ledger Table
+              </button>
+              <button
+                type="button"
+                onClick={() => setTransactionViewMode('cards')}
+                style={{
+                  padding: '0 0.75rem',
+                  backgroundColor: transactionViewMode === 'cards' ? 'var(--uc-blue, #002B7F)' : 'var(--bg-surface, #FFFFFF)',
+                  color: transactionViewMode === 'cards' ? '#FFFFFF' : 'var(--text-secondary, #475569)',
+                  border: 'none',
+                  borderLeft: '1px solid var(--border-subtle, #E2E8F0)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 700
+                }}
+              >
+                <LayoutGrid size={13} /> Cards
+              </button>
+            </div>
+
             <button onClick={() => onNavigate('transactions')} className="btn-secondary" style={{ fontSize: '0.82rem' }}>
               View Full Transaction History →
             </button>
           </div>
+
           {userMeetups.length > 0 ? (
-            <div className="grid-responsive-transactions">
-              {userMeetups.map((m) => (
-                <div
-                  key={m.id}
-                  className="clean-card card-interactive"
-                  style={{
-                    display: 'flex',
-                    gap: '0.85rem',
-                    alignItems: 'center',
-                    padding: '0.9rem 1rem',
-                    borderRadius: '14px',
-                    border: '1px solid var(--border-subtle, #E2E8F0)',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
-                  }}
-                  onClick={() => onNavigate('item-detail', { id: m.listingId })}
-                >
-                  {m.listingImage && m.listingImage.trim() !== '' ? (
-                    <img src={m.listingImage} alt={m.listingTitle} style={{ width: '56px', height: '56px', borderRadius: '10px', objectFit: 'cover', flexShrink: 0 }} />
-                  ) : (
-                    <div style={{ width: '56px', height: '56px', borderRadius: '10px', backgroundColor: 'var(--bg-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', flexShrink: 0 }}>
-                      <ShoppingBag size={22} />
-                    </div>
-                  )}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.listingTitle}</div>
-                    <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                      <MapPin size={11} /> <span>{m.landmarkSpot}</span> • <span style={{ textTransform: 'capitalize' }}>{m.status}</span>
-                    </div>
-                    <div style={{ fontSize: '0.95rem', fontWeight: 800, marginTop: '3px', color: m.buyerId === currentUser?.id ? 'var(--accent-red)' : 'var(--accent-green)' }}>
-                      ₱{m.finalPrice.toLocaleString()}
+            transactionViewMode === 'table' ? (
+              <div className="table-clean-wrapper">
+                <table className="table-clean" style={{ minWidth: '780px' }}>
+                  <thead>
+                    <tr>
+                      <th style={{ width: '35%' }}>Listing &amp; Reference</th>
+                      <th>Role</th>
+                      <th>Counterparty</th>
+                      <th>Meetup Location</th>
+                      <th style={{ textAlign: 'right' }}>Agreed Amount</th>
+                      <th style={{ textAlign: 'center' }}>Status</th>
+                      <th style={{ textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {userMeetups.map((m) => {
+                      const isBuyer = m.buyerId === currentUser?.id;
+                      const counterpartyName = isBuyer ? m.sellerName : m.buyerName;
+                      const priceVal = Number(m.finalPrice || m.amount || 0);
+
+                      return (
+                        <tr key={m.id}>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                              {m.listingImage && m.listingImage.trim() !== '' ? (
+                                <img
+                                  src={m.listingImage}
+                                  alt={m.listingTitle}
+                                  style={{ width: '42px', height: '42px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0, border: '1px solid var(--border-subtle, #E2E8F0)' }}
+                                />
+                              ) : (
+                                <div style={{ width: '42px', height: '42px', borderRadius: '8px', backgroundColor: 'var(--bg-subtle, #F8FAFC)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', flexShrink: 0 }}>
+                                  <ShoppingBag size={18} />
+                                </div>
+                              )}
+                              <div style={{ minWidth: 0 }}>
+                                <div
+                                  onClick={() => onNavigate('item-detail', { id: m.listingId })}
+                                  style={{ fontWeight: 800, color: 'var(--text-primary)', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '240px' }}
+                                  title={m.listingTitle}
+                                >
+                                  {m.listingTitle}
+                                </div>
+                                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px', fontFamily: 'monospace' }}>
+                                  {m.referenceNo || `REF-${m.id.substring(0, 8).toUpperCase()}`}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <span
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.25rem',
+                                padding: '2px 8px',
+                                borderRadius: '9999px',
+                                fontSize: '0.72rem',
+                                fontWeight: 800,
+                                backgroundColor: isBuyer ? 'rgba(5, 150, 105, 0.12)' : 'rgba(0, 43, 127, 0.1)',
+                                color: isBuyer ? 'var(--accent-green, #059669)' : 'var(--uc-blue, #002B7F)'
+                              }}
+                            >
+                              {isBuyer ? <ArrowDownLeft size={11} /> : <ArrowUpRight size={11} />}
+                              {isBuyer ? 'Buyer' : 'Seller'}
+                            </span>
+                          </td>
+                          <td>
+                            <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                              {counterpartyName || 'UC Peer'}
+                            </div>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                              {m.campus || targetUser.campus}
+                            </div>
+                          </td>
+                          <td>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                              <MapPin size={12} color="var(--uc-blue)" /> {m.landmarkSpot || 'Campus Spot'}
+                            </div>
+                            <div style={{ fontSize: '0.71rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                              {m.createdAt ? formatRelativeTime(m.createdAt) : 'Recent trade'}
+                            </div>
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <div style={{ fontSize: '0.92rem', fontWeight: 900, color: isBuyer ? 'var(--accent-red, #DC2626)' : 'var(--accent-green, #059669)' }}>
+                              ₱{priceVal.toLocaleString()}
+                            </div>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '2px' }}>
+                              {m.paymentMethod || 'cash'}
+                            </div>
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                padding: '2px 8px',
+                                borderRadius: '9999px',
+                                fontSize: '0.7rem',
+                                fontWeight: 800,
+                                textTransform: 'capitalize',
+                                backgroundColor: m.status === 'completed' ? 'rgba(5, 150, 105, 0.12)' : m.status === 'cancelled' ? 'rgba(220, 38, 38, 0.12)' : 'rgba(255, 199, 44, 0.2)',
+                                color: m.status === 'completed' ? 'var(--accent-green, #059669)' : m.status === 'cancelled' ? 'var(--accent-red, #DC2626)' : '#B45309'
+                              }}
+                            >
+                              {m.status || 'pending'}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', justifyContent: 'flex-end' }}>
+                              <button
+                                onClick={() => onNavigate('item-detail', { id: m.listingId })}
+                                className="btn-secondary"
+                                style={{ padding: '0.3rem 0.6rem', fontSize: '0.74rem' }}
+                                title="View listing detail"
+                              >
+                                <Eye size={12} />
+                              </button>
+                              <button
+                                onClick={() => onNavigate('transactions')}
+                                className="btn-primary"
+                                style={{ padding: '0.3rem 0.65rem', fontSize: '0.74rem', fontWeight: 700 }}
+                                title="Open transaction ledger"
+                              >
+                                <Receipt size={12} /> Details
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="grid-responsive-transactions">
+                {userMeetups.map((m) => (
+                  <div
+                    key={m.id}
+                    className="clean-card card-interactive"
+                    style={{
+                      display: 'flex',
+                      gap: '0.85rem',
+                      alignItems: 'center',
+                      padding: '0.9rem 1rem',
+                      borderRadius: '14px',
+                      border: '1px solid var(--border-subtle, #E2E8F0)',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+                    }}
+                    onClick={() => onNavigate('item-detail', { id: m.listingId })}
+                  >
+                    {m.listingImage && m.listingImage.trim() !== '' ? (
+                      <img src={m.listingImage} alt={m.listingTitle} style={{ width: '56px', height: '56px', borderRadius: '10px', objectFit: 'cover', flexShrink: 0 }} />
+                    ) : (
+                      <div style={{ width: '56px', height: '56px', borderRadius: '10px', backgroundColor: 'var(--bg-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', flexShrink: 0 }}>
+                        <ShoppingBag size={22} />
+                      </div>
+                    )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.listingTitle}</div>
+                      <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                        <MapPin size={11} /> <span>{m.landmarkSpot}</span> • <span style={{ textTransform: 'capitalize' }}>{m.status}</span>
+                      </div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 800, marginTop: '3px', color: m.buyerId === currentUser?.id ? 'var(--accent-red)' : 'var(--accent-green)' }}>
+                        ₱{Number(m.finalPrice || m.amount || 0).toLocaleString()}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )
           ) : (
             <div className="empty-state">
               <div className="empty-state-icon">

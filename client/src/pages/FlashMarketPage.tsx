@@ -407,7 +407,7 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
                       gap: '0.35rem',
                       width: '100%',
                       height: '100%',
-                      background: 'linear-gradient(135deg, #002B7F 0%, #1E3A8A 100%)',
+                      backgroundColor: '#002B7F',
                       color: '#FFFFFF',
                       padding: '1rem',
                       textAlign: 'center'

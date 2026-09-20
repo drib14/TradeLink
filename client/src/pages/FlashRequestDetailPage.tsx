@@ -293,11 +293,11 @@ export const FlashRequestDetailPage: React.FC<FlashRequestDetailPageProps> = ({
       {/* Hero Urgency Banner */}
       <div
         style={{
-          background: isExpired
-            ? 'linear-gradient(135deg, #475569 0%, #1E293B 100%)'
+          backgroundColor: isExpired
+            ? '#334155'
             : isUrgent
-            ? 'linear-gradient(135deg, #991B1B 0%, #7F1D1D 100%)'
-            : 'linear-gradient(135deg, #002B7F 0%, #001D59 100%)',
+            ? '#991B1B'
+            : '#002B7F',
           borderRadius: '20px',
           padding: '1.75rem clamp(1.25rem, 3vw, 2.25rem)',
           color: '#FFFFFF',

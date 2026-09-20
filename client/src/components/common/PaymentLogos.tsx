@@ -26,7 +26,6 @@ export const GCashLogo: React.FC<LogoProps> = ({ size = 24, className = '', styl
       role="img"
     >
       <circle cx="24" cy="24" r="23" fill="#005CEE" />
-      <circle cx="24" cy="24" r="23" fill="url(#gcash-gradient)" />
       {/* GCash stylized 'g' and signal arcs */}
       <path
         d="M24 10C16.268 10 10 16.268 10 24C10 31.732 16.268 38 24 38C29.6 38 34.45 34.73 36.68 30.04L30.98 28.05C29.74 30.7 27.08 32.5 24 32.5C19.306 32.5 15.5 28.694 15.5 24C15.5 19.306 19.306 15.5 24 15.5C27.08 15.5 29.74 17.3 30.98 19.95L36.68 17.96C34.45 13.27 29.6 10 24 10Z"
@@ -36,12 +35,6 @@ export const GCashLogo: React.FC<LogoProps> = ({ size = 24, className = '', styl
         d="M33 22H24V26H38C38 24.6 37.8 23.3 37.4 22H33Z"
         fill="white"
       />
-      <defs>
-        <linearGradient id="gcash-gradient" x1="6" y1="6" x2="42" y2="42" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#007DFE" />
-          <stop offset="1" stopColor="#0046B8" />
-        </linearGradient>
-      </defs>
     </svg>
   );
 };
@@ -66,10 +59,10 @@ export const MayaLogo: React.FC<LogoProps> = ({ size = 24, className = '', style
       role="img"
     >
       <rect width="48" height="48" rx="12" fill="#0A0D14" />
-      {/* Maya signature lime gradient dynamic 'm' ribbon */}
+      {/* Maya signature lime dynamic 'm' ribbon */}
       <path
         d="M11 31V17C11 15.343 12.343 14 14 14C15.657 14 17 15.343 17 17V27C17 28.105 17.895 29 19 29C20.105 29 21 28.105 21 27V19C21 17.343 22.343 16 24 16C25.657 16 27 17.343 27 19V27C27 28.105 27.895 29 29 29C30.105 29 31 28.105 31 27V17C31 15.343 32.343 14 34 14C35.657 14 37 15.343 37 17V31C37 32.657 35.657 34 34 34C32.343 34 31 32.657 31 31V30.5C30.1 31.8 28.6 33 26.5 33C24.4 33 23 31.9 22 30.6C21 31.9 19.6 33 17.5 33C14 33 11 30.5 11 27V31C11 32.657 9.657 34 8 34"
-        fill="url(#maya-neon-gradient)"
+        fill="#00E676"
       />
       <circle cx="15.5" cy="24" r="3.5" fill="#00FF7F" />
       <circle cx="25.5" cy="23" r="3.5" fill="#00FF7F" />
@@ -85,13 +78,6 @@ export const MayaLogo: React.FC<LogoProps> = ({ size = 24, className = '', style
         strokeWidth="3.5"
         strokeLinecap="round"
       />
-      <defs>
-        <linearGradient id="maya-neon-gradient" x1="8" y1="14" x2="40" y2="34" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#00FF7F" />
-          <stop offset="0.5" stopColor="#00E676" />
-          <stop offset="1" stopColor="#A6FF00" />
-        </linearGradient>
-      </defs>
     </svg>
   );
 };

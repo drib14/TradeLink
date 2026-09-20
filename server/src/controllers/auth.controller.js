@@ -9,6 +9,7 @@ const { serializeUser } = require('../serializers/userSerializer');
 const { generate4DigitCode, hashCode, verifyCode } = require('../utils/generateCode');
 const { generateTokens, setRefreshTokenCookie } = require('../utils/authHelpers');
 const emailService = require('../services/email.service');
+const logger = require('../utils/logger');
 
 /**
  * Register a new student account
@@ -205,7 +206,7 @@ const login = asyncHandler(async (req, res, next) => {
  * Refresh access token using HttpOnly refresh token cookie
  */
 const refreshToken = asyncHandler(async (req, res, next) => {
-  const token = req.cookies?.refreshToken || req.body?.refreshToken;
+  const token = req.cookies?.refreshToken || req.headers['x-refresh-token'];
 
   if (!token) {
     return next(new AppError('Refresh token missing. Please log in.', 401));
@@ -330,9 +331,9 @@ const forgotPassword = asyncHandler(async (req, res, next) => {
     console.error('[AUTH] Failed to send password reset email:', err.message);
   }
 
-  console.log(`\n======================================================`);
-  console.log(`[AUTH] 🔑 PASSWORD RESET CODE FOR ${user.email}: [ ${code} ]`);
-  console.log(`======================================================\n`);
+  if (process.env.NODE_ENV !== 'production') {
+    logger.info(`[DEV AUTH] 🔑 PASSWORD RESET CODE FOR ${user.email}: [ ${code} ]`);
+  }
 
   // In non-production, return devCode in response so developer or user testing is never blocked
   const resPayload = {

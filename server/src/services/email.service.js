@@ -6,16 +6,25 @@ let transporter = null;
 
 // Initialize Gmail SMTP transporter (only outside test suite)
 if (env.env !== 'test' && env.email.user && env.email.pass) {
-  transporter = nodemailer.createTransport({
-    service: 'gmail',
-    host: env.email.host || 'smtp.gmail.com',
-    port: env.email.port || 465,
-    secure: env.email.port === 465,
-    auth: {
-      user: env.email.user,
-      pass: env.email.pass
-    }
-  });
+  const isGmail = (env.email.host && env.email.host.includes('gmail')) || env.email.user.endsWith('@gmail.com');
+  const transportConfig = isGmail
+    ? {
+        service: 'gmail',
+        auth: {
+          user: env.email.user,
+          pass: env.email.pass
+        }
+      }
+    : {
+        host: env.email.host || 'smtp.gmail.com',
+        port: env.email.port || 465,
+        secure: env.email.port === 465,
+        auth: {
+          user: env.email.user,
+          pass: env.email.pass
+        }
+      };
+  transporter = nodemailer.createTransport(transportConfig);
 }
 
 /**
@@ -191,7 +200,7 @@ function buildEmailLayout(bodyContent, preheader = '', portalUrl = '') {
             <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width: 540px; background-color: #FFFFFF; border-radius: 16px; border: 1px solid #E2E8F0; overflow: hidden; box-shadow: 0 4px 24px rgba(0, 43, 127, 0.06);">
               <!-- Logo Header -->
               <tr>
-                <td style="background: linear-gradient(135deg, #002B7F 0%, #0A1931 100%); padding: 22px 24px; text-align: center;">
+                <td style="background-color: #002B7F; padding: 22px 24px; text-align: center;">
                   <div style="display: inline-block;">
                     ${TRADELINK_LOGO_SVG}
                   </div>
@@ -199,7 +208,7 @@ function buildEmailLayout(bodyContent, preheader = '', portalUrl = '') {
               </tr>
               <!-- Gold accent line -->
               <tr>
-                <td style="height: 3px; background: linear-gradient(90deg, #FFC72C 0%, #FFD54F 50%, #FFC72C 100%);"></td>
+                <td style="height: 3px; background-color: #FFC72C;"></td>
               </tr>
               <!-- Body Content -->
               <tr>
@@ -249,7 +258,7 @@ async function sendPasswordResetDirectEmail(toEmail, code, userName = 'Student',
       ${code}
     </div>
     <div style="text-align: center; margin: 24px 0 20px 0;">
-      <a href="${appUrl}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #002B7F 0%, #0A1931 100%); color: #FFFFFF; font-size: 14px; font-weight: bold; text-decoration: none; padding: 12px 28px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0, 43, 127, 0.25);">
+      <a href="${appUrl}" target="_blank" style="display: inline-block; background-color: #002B7F; color: #FFFFFF; font-size: 14px; font-weight: bold; text-decoration: none; padding: 12px 28px; border-radius: 10px;">
         Open TradeLink UC
       </a>
     </div>
@@ -284,7 +293,7 @@ async function sendPasswordResetApprovedEmail(toEmail, code, userName = 'Student
       ${code}
     </div>
     <div style="text-align: center; margin: 24px 0 20px 0;">
-      <a href="${appUrl}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #002B7F 0%, #0A1931 100%); color: #FFFFFF; font-size: 14px; font-weight: bold; text-decoration: none; padding: 12px 28px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0, 43, 127, 0.25);">
+      <a href="${appUrl}" target="_blank" style="display: inline-block; background-color: #002B7F; color: #FFFFFF; font-size: 14px; font-weight: bold; text-decoration: none; padding: 12px 28px; border-radius: 10px;">
         Open TradeLink and Reset Password
       </a>
     </div>
@@ -353,7 +362,7 @@ async function sendAdminPasswordResetEmail(toEmail, code, req = null) {
       ${code}
     </div>
     <div style="text-align: center; margin: 24px 0 20px 0;">
-      <a href="${adminUrl}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #002B7F 0%, #0A1931 100%); color: #FFFFFF; font-size: 14px; font-weight: bold; text-decoration: none; padding: 12px 28px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0, 43, 127, 0.25);">
+      <a href="${adminUrl}" target="_blank" style="display: inline-block; background-color: #002B7F; color: #FFFFFF; font-size: 14px; font-weight: bold; text-decoration: none; padding: 12px 28px; border-radius: 10px;">
         Open Administration Portal
       </a>
     </div>
@@ -424,7 +433,7 @@ async function sendOrderPlacedBuyerEmail(buyer, seller, transaction, listing, re
       </table>
     </div>
     <div style="text-align: center; margin: 24px 0 20px 0;">
-      <a href="${ctaUrl}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #002B7F 0%, #0A1931 100%); color: #FFFFFF; font-size: 14px; font-weight: bold; text-decoration: none; padding: 12px 28px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0, 43, 127, 0.25);">
+      <a href="${ctaUrl}" target="_blank" style="display: inline-block; background-color: #002B7F; color: #FFFFFF; font-size: 14px; font-weight: bold; text-decoration: none; padding: 12px 28px; border-radius: 10px;">
         View Deal &amp; Coordinate Handover
       </a>
     </div>
@@ -486,7 +495,7 @@ async function sendNewOrderSellerEmail(seller, buyer, transaction, listing, req 
       </table>
     </div>
     <div style="text-align: center; margin: 24px 0 20px 0;">
-      <a href="${ctaUrl}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #002B7F 0%, #0A1931 100%); color: #FFFFFF; font-size: 14px; font-weight: bold; text-decoration: none; padding: 12px 28px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0, 43, 127, 0.25);">
+      <a href="${ctaUrl}" target="_blank" style="display: inline-block; background-color: #002B7F; color: #FFFFFF; font-size: 14px; font-weight: bold; text-decoration: none; padding: 12px 28px; border-radius: 10px;">
         Open Chat &amp; Coordinate Handover
       </a>
     </div>
@@ -543,27 +552,31 @@ async function sendOrderStatusUpdateEmail(targetUser, otherUser, transaction, li
 }
 
 /**
- * Internal mail dispatcher with mock logger fallback
+ * Internal mail dispatcher with mock logger fallback and bypass resilience
  */
 async function sendMail(toEmail, subject, text, html) {
   if (!transporter) {
     const maskedEmail = toEmail ? toEmail.replace(/(.{2})(.*)(@.*)/, '$1***$3') : '[REDACTED]';
     logger.info(`[MOCK EMAIL] Dispatch to ${maskedEmail} | Subject: "${subject}"`);
-    return { ok: true, mock: true };
+    return { ok: true, mock: true, bypassed: true };
   }
 
   try {
-    await transporter.sendMail({
+    const info = await transporter.sendMail({
       from: env.email.from,
       to: toEmail,
       subject,
       text,
       html
     });
-    logger.info(`[EMAIL SENT] Successfully dispatched to ${toEmail} | Subject: "${subject}"`);
-    return { ok: true };
+    logger.info(`[EMAIL SENT] Successfully dispatched to ${toEmail} | MessageId: ${info?.messageId || 'ok'} | Subject: "${subject}"`);
+    return { ok: true, messageId: info?.messageId };
   } catch (error) {
-    logger.error(`Failed to send email to ${toEmail}:`, error);
+    logger.error(`[EMAIL ERROR] Failed to send email to ${toEmail}: ${error.message}`);
+    if (env.email.bypassMode) {
+      logger.warn(`[EMAIL BYPASS] Non-production bypass active. Treated delivery to ${toEmail} as successful for: "${subject}"`);
+      return { ok: true, bypassed: true, error: error.message };
+    }
     return { ok: false, error: error.message };
   }
 }

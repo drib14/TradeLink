@@ -58,13 +58,6 @@ export default function RootLayout() {
                 headerBackTitle: 'Back',
               }}
             />
-            <Stack.Screen
-              name="modal"
-              options={{
-                presentation: 'modal',
-                title: 'Information',
-              }}
-            />
           </Stack>
 
           {/* Global Auth Modal */}

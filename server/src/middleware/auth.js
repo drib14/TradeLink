@@ -56,6 +56,14 @@ const authenticate = asyncHandler(async (req, res, next) => {
     return next(new AppError('Your session has expired or been revoked. Please log in again.', 401));
   }
 
+  // Reject access tokens issued before password change
+  if (user.password_changed_at && decoded.iat) {
+    const changedTimestamp = Math.floor(new Date(user.password_changed_at).getTime() / 1000);
+    if (decoded.iat < changedTimestamp) {
+      return next(new AppError('Your password was changed recently. Please log in again.', 401));
+    }
+  }
+
   req.user = user;
   next();
 });
@@ -128,6 +136,14 @@ const authenticateAdmin = asyncHandler(async (req, res, next) => {
   // Token revocation check for administrators
   if (decoded.tokenVersion && user.token_version && decoded.tokenVersion < user.token_version) {
     return next(new AppError('Your administrative session has expired or been revoked. Please log in again.', 401));
+  }
+
+  // Reject admin access tokens issued before password change
+  if (user.password_changed_at && decoded.iat) {
+    const changedTimestamp = Math.floor(new Date(user.password_changed_at).getTime() / 1000);
+    if (decoded.iat < changedTimestamp) {
+      return next(new AppError('Your administrator password was changed recently. Please log in again.', 401));
+    }
   }
 
   req.user = user;

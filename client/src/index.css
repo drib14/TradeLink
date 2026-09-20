@@ -419,14 +419,8 @@ input, select, textarea {
 
 /* Skeletons */
 .skeleton {
-  background: linear-gradient(
-    90deg,
-    #F1F5F9 25%,
-    #E2E8F0 37%,
-    #F1F5F9 63%
-  );
-  background-size: 400% 100%;
-  animation: shimmerSweep 1.5s ease-in-out infinite;
+  background-color: #E2E8F0;
+  animation: pulse 1.5s ease-in-out infinite;
   border-radius: var(--radius-md);
 }
 
@@ -894,27 +888,27 @@ input[type="radio"] {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  background: linear-gradient(135deg, #FFC72C 0%, #F59E0B 100%) !important;
+  background-color: var(--uc-gold, #FFC72C) !important;
   color: #002B7F !important;
   padding: 0.65rem 1.35rem !important;
   border-radius: var(--radius-md) !important;
   font-size: 0.88rem !important;
   font-weight: 700 !important;
-  border: 1px solid rgba(245, 158, 11, 0.3) !important;
-  box-shadow: 0 1px 3px rgba(245, 158, 11, 0.25), 0 1px 2px rgba(0, 0, 0, 0.06) !important;
+  border: 1px solid rgba(229, 168, 0, 0.5) !important;
+  box-shadow: 0 1px 3px rgba(229, 168, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.06) !important;
   transition: all var(--transition-fast) !important;
   cursor: pointer;
 }
 
 .btn-gold:hover {
-  background: linear-gradient(135deg, #FCD34D 0%, #F59E0B 100%) !important;
+  background-color: #E5A800 !important;
   transform: translateY(-1px) !important;
-  box-shadow: 0 4px 10px -1px rgba(245, 158, 11, 0.35) !important;
+  box-shadow: 0 4px 10px -1px rgba(229, 168, 0, 0.35) !important;
 }
 
 .btn-gold:active {
   transform: translateY(0) !important;
-  box-shadow: 0 1px 2px rgba(245, 158, 11, 0.2) !important;
+  box-shadow: 0 1px 2px rgba(229, 168, 0, 0.2) !important;
 }
 
 .btn-secondary {
@@ -1225,7 +1219,7 @@ input[type="radio"] {
 }
 .mobile-stepper-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--uc-blue) 0%, var(--color-primary-light) 100%);
+  background-color: var(--uc-blue) !important;
   border-radius: 9999px;
   transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -1282,12 +1276,12 @@ input[type="radio"] {
   width: 50px !important;
   height: 50px !important;
   border-radius: 50% !important;
-  background: linear-gradient(135deg, #FFC72C 0%, #E5A800 100%) !important;
+  background-color: var(--uc-gold, #FFC72C) !important;
   color: #002B7F !important;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 10px 24px rgba(229, 168, 0, 0.52), 0 4px 8px rgba(0, 0, 0, 0.1), inset 2.5px 2.5px 5px rgba(255, 255, 255, 0.85), inset -3px -3px 6px rgba(180, 83, 9, 0.45) !important;
+  box-shadow: 0 8px 20px rgba(229, 168, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.08) !important;
   transform: translateY(-12px) !important;
   border: 3.5px solid #FFFFFF !important;
   transition: all var(--transition-fast) !important;
@@ -1605,7 +1599,7 @@ input[type="radio"] {
 }
 
 .badge-new {
-  background: linear-gradient(135deg, #FFC72C 0%, #F59E0B 100%) !important;
+  background-color: var(--uc-gold, #FFC72C) !important;
   color: #002B7F !important;
   font-weight: 800 !important;
   font-size: 0.65rem !important;
@@ -1613,7 +1607,7 @@ input[type="radio"] {
   border-radius: var(--radius-full) !important;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  box-shadow: 0 3px 8px rgba(229, 168, 0, 0.4), inset 1.5px 1.5px 3px rgba(255, 255, 255, 0.8), inset -1.5px -1.5px 3px rgba(180, 83, 9, 0.35) !important;
+  box-shadow: 0 2px 6px rgba(229, 168, 0, 0.3) !important;
   animation: bounceIn 0.4s ease-out;
 }
 
@@ -1653,8 +1647,7 @@ input[type="radio"] {
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, var(--uc-blue) 0%, var(--uc-gold) 100%);
-  opacity: 0.8;
+  background-color: var(--uc-blue) !important;
   border-radius: 9999px;
   transition: opacity var(--transition-normal);
 }
@@ -1884,18 +1877,18 @@ input[type="radio"] {
 .progress-bar-fill {
   height: 100%;
   border-radius: var(--radius-full);
-  background: linear-gradient(90deg, var(--uc-blue) 0%, var(--uc-blue-light) 100%);
+  background-color: var(--uc-blue) !important;
   transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
   animation: progressFill 1s ease-out;
 }
 .progress-bar-fill.gold {
-  background: linear-gradient(90deg, var(--uc-gold) 0%, #F59E0B 100%);
+  background-color: var(--uc-gold, #FFC72C) !important;
 }
 .progress-bar-fill.green {
-  background: linear-gradient(90deg, var(--accent-green) 0%, #10B981 100%);
+  background-color: var(--accent-green, #059669) !important;
 }
 .progress-bar-fill.red {
-  background: linear-gradient(90deg, var(--accent-red) 0%, #EF4444 100%);
+  background-color: var(--accent-red, #DC2626) !important;
 }
 
 /* =========================================================================
@@ -2187,11 +2180,11 @@ input[type="radio"] {
 }
 
 .card-highlight {
-  background: linear-gradient(135deg, #FFFFFF 0%, var(--uc-blue-subtle) 100%) !important;
-  border: 1.5px solid rgba(188, 209, 247, 0.8) !important;
+  background-color: var(--bg-surface, #FFFFFF) !important;
+  border: 1.5px solid var(--uc-blue-border, #BCD1F7) !important;
   border-radius: var(--radius-xl) !important;
   padding: 1.35rem !important;
-  box-shadow: 0 14px 28px -4px rgba(0, 43, 127, 0.1), inset 3px 3px 6px rgba(255, 255, 255, 1), inset -3px -3px 6px rgba(0, 43, 127, 0.05) !important;
+  box-shadow: 0 4px 16px rgba(0, 43, 127, 0.08) !important;
 }
 
 /* =========================================================================
@@ -2782,7 +2775,7 @@ textarea:focus,
 
 .dropdown-user-card {
   padding: 0.85rem 0.95rem;
-  background: linear-gradient(135deg, #F8FAFC 0%, #EEF2F6 100%);
+  background-color: var(--bg-subtle, #F8FAFC) !important;
   border-radius: 12px;
   border: 1px solid var(--border-subtle, #E2E8F0);
   display: flex;
@@ -2864,7 +2857,7 @@ textarea:focus,
 
 .mobile-stepper-progress {
   height: 100%;
-  background: linear-gradient(90deg, var(--uc-blue), var(--uc-gold));
+  background-color: var(--uc-blue) !important;
   border-radius: 9999px;
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }

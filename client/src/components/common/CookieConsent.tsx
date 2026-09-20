@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Cookie, ShieldCheck, X, ChevronDown, ChevronUp, SlidersHorizontal, Lock, Check } from 'lucide-react';
+import { Cookie, ShieldCheck, ChevronDown, ChevronUp, SlidersHorizontal, Lock, Check } from 'lucide-react';
 
 interface CookieConsentProps {
   onNavigate?: (view: string, params?: any) => void;
@@ -66,79 +66,73 @@ export const CookieConsent: React.FC<CookieConsentProps> = ({ onNavigate }) => {
   return (
     <>
       <style>{`
-        @keyframes cookieCardSlideIn {
+        @keyframes cookieBannerSlideUp {
           0% {
+            transform: translateY(100%);
             opacity: 0;
-            transform: translateY(28px) scale(0.96);
           }
           100% {
+            transform: translateY(0);
             opacity: 1;
-            transform: translateY(0) scale(1);
           }
         }
-        @keyframes cookieCardSlideOut {
+        @keyframes cookieBannerSlideDown {
           0% {
+            transform: translateY(0);
             opacity: 1;
-            transform: translateY(0) scale(1);
           }
           100% {
+            transform: translateY(100%);
             opacity: 0;
-            transform: translateY(24px) scale(0.96);
           }
         }
-        .tradelink-cookie-card {
+        .tradelink-cookie-banner {
           position: fixed;
-          bottom: 24px;
-          right: 24px;
-          width: calc(100% - 32px);
-          max-width: 440px;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          width: 100%;
           z-index: 9999;
           font-family: var(--font-sans, 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif);
-          animation: cookieCardSlideIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          animation: cookieBannerSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
           box-sizing: border-box;
-          pointer-events: auto;
+          background-color: #FFFFFF;
+          border-top: 1px solid #E2E8F0;
+          box-shadow: 0 -4px 24px rgba(0, 43, 127, 0.08);
         }
-        .tradelink-cookie-card.closing {
-          animation: cookieCardSlideOut 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-        @media (max-width: 640px) {
-          .tradelink-cookie-card {
-            bottom: 16px;
-            left: 16px;
-            right: 16px;
-            width: calc(100% - 32px);
-            margin: 0 auto;
-          }
+        .tradelink-cookie-banner.closing {
+          animation: cookieBannerSlideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
         .cookie-btn-primary {
-          background: linear-gradient(135deg, #002B7F 0%, #0A3EA8 100%);
-          border: 1px solid rgba(255, 199, 44, 0.4);
+          background-color: #002B7F;
+          border: 1px solid #001D59;
           color: #FFFFFF;
-          box-shadow: 0 4px 14px rgba(0, 43, 127, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25);
-          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+          font-weight: 700;
+          transition: background-color 0.15s ease, transform 0.15s ease;
         }
         .cookie-btn-primary:hover {
-          filter: brightness(1.15);
-          transform: translateY(-1px);
-          box-shadow: 0 6px 18px rgba(0, 43, 127, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+          background-color: #001D59;
         }
-        .cookie-btn-primary:active {
-          transform: translateY(0);
+        .cookie-btn-secondary {
+          background-color: #F1F5F9;
+          border: 1px solid #CBD5E1;
+          color: #334155;
+          font-weight: 600;
+          transition: background-color 0.15s ease;
+        }
+        .cookie-btn-secondary:hover {
+          background-color: #E2E8F0;
+          color: #0F172A;
         }
         .cookie-btn-ghost {
-          background: rgba(255, 255, 255, 0.06);
-          border: 1px solid rgba(255, 255, 255, 0.14);
-          color: #E2E8F0;
-          transition: all 0.2s ease;
+          background: transparent;
+          border: 1px solid transparent;
+          color: #002B7F;
+          font-weight: 600;
+          transition: background-color 0.15s ease;
         }
         .cookie-btn-ghost:hover {
-          background: rgba(255, 255, 255, 0.12);
-          border-color: rgba(255, 255, 255, 0.28);
-          color: #FFFFFF;
-          transform: translateY(-1px);
-        }
-        .cookie-btn-ghost:active {
-          transform: translateY(0);
+          background-color: #EBF1FC;
         }
         .cookie-toggle-track {
           position: relative;
@@ -146,375 +140,216 @@ export const CookieConsent: React.FC<CookieConsentProps> = ({ onNavigate }) => {
           height: 24px;
           border-radius: 9999px;
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: background-color 0.2s ease;
         }
       `}</style>
 
-      {/* Floating Modern Cookie Card */}
-      <div
-        id="tradelink-cookie-consent-card"
-        className={`tradelink-cookie-card ${isClosing ? 'closing' : ''}`}
-        role="dialog"
-        aria-modal="false"
-        aria-label="Privacy & Cookie Preferences"
-        style={{
-          backgroundColor: 'rgba(15, 23, 42, 0.94)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255, 255, 255, 0.12)',
-          borderRadius: '20px',
-          boxShadow: '0 20px 48px -10px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05), 0 4px 20px -2px rgba(0, 43, 127, 0.3)',
-          overflow: 'hidden',
-          maxHeight: 'calc(100vh - 32px)',
-          display: 'flex',
-          flexDirection: 'column'
-        }}
+      {/* Bottom Fixed Banner */}
+      <aside
+        id="tradelink-cookie-consent-banner"
+        className={`tradelink-cookie-banner ${isClosing ? 'closing' : ''}`}
+        role="region"
+        aria-label="Privacy & Cookie Notice"
       >
-        {/* Subtle glowing accent top border line */}
-        <div
-          style={{
-            height: '2.5px',
-            width: '100%',
-            background: 'linear-gradient(90deg, #FFC72C 0%, #0A3EA8 50%, #FFC72C 100%)',
-            flexShrink: 0
-          }}
-        />
+        {/* Solid Gold Accent Strip at Top */}
+        <div style={{ height: '3px', backgroundColor: '#FFC72C', width: '100%' }} />
 
-        <div style={{ padding: '1.25rem 1.35rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {/* Top Header Row */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.75rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+          {/* Main Banner Row */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.25rem' }}>
+            {/* Notice Text */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.85rem', flex: '1 1 520px', minWidth: '280px' }}>
               <div
                 style={{
                   width: '38px',
                   height: '38px',
-                  borderRadius: '11px',
-                  background: 'linear-gradient(135deg, rgba(255, 199, 44, 0.18) 0%, rgba(255, 199, 44, 0.05) 100%)',
-                  border: '1px solid rgba(255, 199, 44, 0.35)',
+                  borderRadius: '10px',
+                  backgroundColor: '#EBF1FC',
+                  border: '1px solid #BCD1F7',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: '#FFC72C',
+                  color: '#002B7F',
                   flexShrink: 0,
-                  boxShadow: '0 2px 10px rgba(255, 199, 44, 0.15)'
+                  marginTop: '2px'
                 }}
               >
-                <Cookie size={20} />
+                <Cookie size={20} color="#002B7F" />
               </div>
-
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  <h3
-                    style={{
-                      margin: 0,
-                      fontSize: '0.96rem',
-                      fontWeight: 800,
-                      color: '#FFFFFF',
-                      letterSpacing: '-0.02em'
-                    }}
-                  >
-                    Privacy & Cookie Choices
-                  </h3>
-                  <span
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '3px',
-                      padding: '2px 7px',
-                      borderRadius: '9999px',
-                      backgroundColor: 'rgba(16, 185, 129, 0.14)',
-                      border: '1px solid rgba(16, 185, 129, 0.3)',
-                      color: '#34D399',
-                      fontSize: '0.68rem',
-                      fontWeight: 700
-                    }}
-                  >
-                    <ShieldCheck size={11} />
-                    <span>Protected</span>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>
+                    University of Cebu Privacy &amp; Cookie Consent
+                  </h4>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, backgroundColor: '#ECFDF5', color: '#059669', padding: '0.15rem 0.5rem', borderRadius: '4px', border: '1px solid #A7F3D0', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <ShieldCheck size={12} /> Student Privacy Protected
                   </span>
                 </div>
-                <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.74rem', color: '#94A3B8' }}>
-                  Student marketplace security & session integrity
+                <p style={{ fontSize: '0.82rem', color: '#475569', margin: '0.25rem 0 0 0', lineHeight: 1.5 }}>
+                  We use essential cookies to maintain secure authenticated student sessions, CSRF protection, and trade preferences across all 8 UC campuses. Optional telemetry helps us enhance peer-to-peer performance.
                 </p>
               </div>
             </div>
 
-            {/* Dismiss X Icon */}
-            <button
-              onClick={handleEssentialOnly}
-              style={{
-                background: 'rgba(255, 255, 255, 0.06)',
-                border: 'none',
-                borderRadius: '8px',
-                color: '#94A3B8',
-                cursor: 'pointer',
-                padding: '6px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.15s ease',
-                flexShrink: 0
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.14)';
-                e.currentTarget.style.color = '#FFFFFF';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.06)';
-                e.currentTarget.style.color = '#94A3B8';
-              }}
-              title="Dismiss with essential cookies only"
-              aria-label="Dismiss cookie notice"
-            >
-              <X size={16} />
-            </button>
-          </div>
-
-          {/* Description Paragraph */}
-          <p style={{ margin: 0, fontSize: '0.82rem', color: '#CBD5E1', lineHeight: 1.55 }}>
-            TradeLink uses essential cookies to keep your student account securely signed in, authenticate peer-to-peer exchanges, and remember your campus filter. No advertising or cross-site tracking.
-            {onNavigate && (
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
               <button
-                onClick={() => onNavigate('terms', { tab: 'privacy' })}
+                type="button"
+                onClick={() => setShowDetails(!showDetails)}
+                className="cookie-btn-ghost"
                 style={{
-                  marginLeft: '6px',
-                  background: 'none',
-                  border: 'none',
-                  padding: 0,
-                  color: '#FFC72C',
-                  textDecoration: 'underline',
+                  padding: '0.55rem 0.95rem',
+                  borderRadius: '8px',
                   fontSize: '0.82rem',
-                  fontWeight: 700,
                   cursor: 'pointer',
-                  display: 'inline'
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem'
                 }}
               >
-                Privacy details &rarr;
+                <SlidersHorizontal size={14} />
+                <span>{showDetails ? 'Hide Settings' : 'Customize'}</span>
+                {showDetails ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
               </button>
-            )}
-          </p>
 
-          {/* Preferences Accordion Trigger */}
-          <div>
-            <button
-              onClick={() => setShowDetails(!showDetails)}
-              style={{
-                background: 'none',
-                border: 'none',
-                padding: 0,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                color: '#94A3B8',
-                fontSize: '0.78rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'color 0.15s ease'
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = '#FFC72C')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = '#94A3B8')}
-            >
-              <SlidersHorizontal size={13} />
-              <span>{showDetails ? 'Hide preferences' : 'Customize preferences'}</span>
-              {showDetails ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-            </button>
+              <button
+                type="button"
+                onClick={handleEssentialOnly}
+                className="cookie-btn-secondary"
+                style={{
+                  padding: '0.55rem 1.15rem',
+                  borderRadius: '8px',
+                  fontSize: '0.82rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Essential Only
+              </button>
+
+              <button
+                type="button"
+                onClick={handleAcceptAll}
+                className="cookie-btn-primary"
+                style={{
+                  padding: '0.55rem 1.35rem',
+                  borderRadius: '8px',
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem'
+                }}
+              >
+                <Check size={15} />
+                <span>Accept All</span>
+              </button>
+            </div>
           </div>
 
           {/* Expandable Preferences Drawer */}
           {showDetails && (
             <div
               style={{
-                backgroundColor: 'rgba(2, 6, 23, 0.65)',
-                border: '1px solid rgba(51, 65, 85, 0.6)',
-                borderRadius: '14px',
-                padding: '0.9rem',
+                backgroundColor: '#F8FAFC',
+                border: '1px solid #E2E8F0',
+                borderRadius: '12px',
+                padding: '1rem 1.25rem',
+                marginTop: '0.35rem',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '0.85rem'
               }}
             >
-              {/* Category 1: Strictly Necessary */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  justifyContent: 'space-between',
-                  gap: '0.75rem',
-                  paddingBottom: '0.75rem',
-                  borderBottom: '1px solid rgba(51, 65, 85, 0.4)'
-                }}
-              >
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.2rem' }}>
-                    <Lock size={12} color="#10B981" />
-                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#FFFFFF' }}>
-                      Security & Authentication
-                    </span>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+                {/* 1. Strictly Necessary */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <Lock size={14} color="#002B7F" />
+                      <strong style={{ fontSize: '0.84rem', color: '#0F172A' }}>Essential Authentication &amp; CSRF</strong>
+                    </div>
+                    <p style={{ fontSize: '0.78rem', color: '#64748B', margin: '0.2rem 0 0 0', lineHeight: 1.4 }}>
+                      Required for secure sign-in, JWT token refresh, and preventing cross-site request forgery. Cannot be deactivated.
+                    </p>
                   </div>
-                  <p style={{ margin: 0, fontSize: '0.74rem', color: '#94A3B8', lineHeight: 1.4 }}>
-                    CSRF double-submit tokens, JWT student sessions, and anti-tamper security.
-                  </p>
-                </div>
-                <span
-                  style={{
-                    fontSize: '0.68rem',
-                    color: '#10B981',
-                    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-                    border: '1px solid rgba(16, 185, 129, 0.3)',
-                    padding: '2px 7px',
-                    borderRadius: '6px',
-                    fontWeight: 800,
-                    whiteSpace: 'nowrap',
-                    flexShrink: 0
-                  }}
-                >
-                  Always Active
-                </span>
-              </div>
-
-              {/* Category 2: Campus & Preferences */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '0.75rem'
-                }}
-              >
-                <div>
-                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#FFFFFF' }}>
-                    Campus & UI Preferences
+                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#002B7F', backgroundColor: '#EBF1FC', padding: '0.2rem 0.6rem', borderRadius: '6px', flexShrink: 0 }}>
+                    Always Active
                   </span>
-                  <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.74rem', color: '#94A3B8', lineHeight: 1.4 }}>
-                    Remembers your active campus filter and marketplace speed cache.
-                  </p>
                 </div>
 
-                {/* Custom Toggle Switch */}
-                <label
-                  style={{
-                    position: 'relative',
-                    display: 'inline-block',
-                    width: '42px',
-                    height: '24px',
-                    flexShrink: 0,
-                    cursor: 'pointer'
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={analyticsEnabled}
-                    onChange={(e) => setAnalyticsEnabled(e.target.checked)}
-                    style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }}
-                  />
-                  <span
+                {/* 2. Campus Analytics */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <SlidersHorizontal size={14} color="#FFC72C" />
+                      <strong style={{ fontSize: '0.84rem', color: '#0F172A' }}>Performance &amp; Campus Telemetry</strong>
+                    </div>
+                    <p style={{ fontSize: '0.78rem', color: '#64748B', margin: '0.2rem 0 0 0', lineHeight: 1.4 }}>
+                      Aggregated metrics measuring listing load times and search responsiveness across UC Main, Banilad, LM, and METC.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={analyticsEnabled}
+                    onClick={() => setAnalyticsEnabled(!analyticsEnabled)}
                     className="cookie-toggle-track"
                     style={{
-                      display: 'block',
-                      position: 'absolute',
-                      inset: 0,
-                      backgroundColor: analyticsEnabled ? '#0A3EA8' : '#334155',
-                      border: analyticsEnabled ? '1.5px solid #FFC72C' : '1.5px solid #475569',
-                      borderRadius: '24px',
-                      transition: 'all 0.2s ease'
+                      backgroundColor: analyticsEnabled ? '#002B7F' : '#CBD5E1',
+                      border: 'none',
+                      flexShrink: 0
                     }}
                   >
                     <span
                       style={{
                         position: 'absolute',
-                        height: '16px',
-                        width: '16px',
-                        left: analyticsEnabled ? '20px' : '3px',
-                        bottom: '2.5px',
-                        backgroundColor: analyticsEnabled ? '#FFC72C' : '#94A3B8',
+                        top: '2px',
+                        left: analyticsEnabled ? '22px' : '2px',
+                        width: '20px',
+                        height: '20px',
+                        backgroundColor: '#FFFFFF',
                         borderRadius: '50%',
-                        transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-                        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.4)'
+                        transition: 'left 0.2s ease',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
                       }}
                     />
-                  </span>
-                </label>
+                  </button>
+                </div>
               </div>
 
-              {/* Save Preferences Button inside drawer */}
-              <button
-                onClick={handleSaveCustom}
-                style={{
-                  width: '100%',
-                  padding: '0.55rem',
-                  borderRadius: '9px',
-                  border: '1px solid rgba(255, 199, 44, 0.35)',
-                  backgroundColor: 'rgba(255, 199, 44, 0.1)',
-                  color: '#FFC72C',
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.35rem',
-                  marginTop: '0.25rem',
-                  transition: 'all 0.15s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(255, 199, 44, 0.2)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(255, 199, 44, 0.1)';
-                }}
-              >
-                <Check size={13} />
-                <span>Save Selected Preferences</span>
-              </button>
+              {/* Drawer Footer Actions */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #E2E8F0', paddingTop: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
+                  Learn more in our{' '}
+                  <a
+                    href="#terms"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (onNavigate) onNavigate('terms');
+                    }}
+                    style={{ color: '#002B7F', textDecoration: 'underline', fontWeight: 600 }}
+                  >
+                    Campus Community Terms
+                  </a>
+                </span>
+                <button
+                  type="button"
+                  onClick={handleSaveCustom}
+                  className="cookie-btn-primary"
+                  style={{
+                    padding: '0.45rem 1rem',
+                    borderRadius: '6px',
+                    fontSize: '0.78rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Save My Preferences
+                </button>
+              </div>
             </div>
           )}
-
-          {/* Action Buttons Row */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.65rem',
-              width: '100%'
-            }}
-          >
-            <button
-              onClick={handleEssentialOnly}
-              className="cookie-btn-ghost"
-              style={{
-                flex: 1,
-                padding: '0.65rem 0.85rem',
-                borderRadius: '11px',
-                fontSize: '0.82rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                textAlign: 'center',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              Essential Only
-            </button>
-
-            <button
-              onClick={handleAcceptAll}
-              className="cookie-btn-primary"
-              style={{
-                flex: 1.4,
-                padding: '0.65rem 1rem',
-                borderRadius: '11px',
-                fontSize: '0.82rem',
-                fontWeight: 800,
-                cursor: 'pointer',
-                textAlign: 'center',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              Accept All
-            </button>
-          </div>
         </div>
-      </div>
+      </aside>
     </>
   );
 };
-

@@ -63,9 +63,10 @@ const config = {
   email: {
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
     port: parseInt(process.env.SMTP_PORT, 10) || 465,
-    user: process.env.SMTP_USER || '',
-    pass: process.env.SMTP_PASS || '',
-    from: process.env.SMTP_FROM || 'TradeLink UC <noreply@tradelink.app>'
+    user: (process.env.SMTP_USER || '').trim(),
+    pass: (process.env.SMTP_PASS || '').replace(/\s+/g, ''),
+    from: process.env.SMTP_FROM || 'TradeLink UC <noreply@tradelink.app>',
+    bypassMode: process.env.EMAIL_BYPASS_MODE ? process.env.EMAIL_BYPASS_MODE === 'true' : envMode !== 'production'
   },
 
   upload: {

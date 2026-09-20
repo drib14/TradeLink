@@ -33,7 +33,7 @@ export const UnverifiedAccountModal: React.FC<UnverifiedAccountModalProps> = ({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header with UC Gradient */}
+        {/* Header with UC Blue Solid */}
         <div
           style={{
             backgroundColor: '#002B7F',
@@ -42,19 +42,6 @@ export const UnverifiedAccountModal: React.FC<UnverifiedAccountModalProps> = ({
             color: '#FFFFFF'
           }}
         >
-          <div
-            style={{
-              position: 'absolute',
-              top: '-30px',
-              right: '-30px',
-              width: '120px',
-              height: '120px',
-              borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(255, 199, 44, 0.25) 0%, rgba(255, 199, 44, 0) 70%)',
-              pointerEvents: 'none'
-            }}
-          />
-
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', backgroundColor: 'rgba(255, 199, 44, 0.2)', padding: '3px 10px', borderRadius: '9999px', fontSize: '0.74rem', fontWeight: 800, color: '#FFC72C' }}>
               <ShieldAlert size={14} />

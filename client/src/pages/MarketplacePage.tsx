@@ -126,8 +126,8 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({
       {/* Flash Market Dedicated Spotlight Banner */}
       <div
         style={{
-          background: 'linear-gradient(135deg, rgba(0, 43, 127, 0.05) 0%, rgba(255, 199, 44, 0.12) 100%)',
-          border: '1.5px solid rgba(0, 43, 127, 0.12)',
+          backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+          border: '1.5px solid var(--uc-blue-border, #BCD1F7)',
           borderRadius: '16px',
           padding: '0.95rem 1.35rem',
           display: 'flex',

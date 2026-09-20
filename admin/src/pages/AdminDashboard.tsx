@@ -704,119 +704,344 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
       </div>
 
       {/* =========================================================================
-          TAB 1: OVERVIEW & SYSTEM METRICS
+          TAB 1: OVERVIEW & SYSTEM METRICS (DATA-DENSE OPERATIONAL DASHBOARD)
           ========================================================================= */}
       {activeTab === 'overview' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {/* Key Metrics Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '1rem' }}>
-            <div className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Registered UCians</span>
-              <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#002B7F', fontFamily: 'var(--font-display)' }}>
+          {/* High-Density Key Metrics Bar */}
+          <div
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: '12px',
+              border: '1px solid #E2E8F0',
+              padding: '1rem 1.25rem',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+              gap: '1.25rem'
+            }}
+          >
+            <div>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Registered Students
+              </span>
+              <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#002B7F', fontFamily: 'var(--font-display)', marginTop: '0.15rem' }}>
                 {allUsers.length}
               </div>
-              <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 700 }}>
-                {allUsers.filter((u) => u.isVerified).length} Verified Students
+              <span style={{ fontSize: '0.74rem', color: '#059669', fontWeight: 700 }}>
+                {allUsers.filter((u) => u.isVerified).length} verified ({allUsers.length > 0 ? Math.round((allUsers.filter((u) => u.isVerified).length / allUsers.length) * 100) : 0}%)
               </span>
             </div>
 
-            <div className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Active Listings</span>
-              <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#002B7F', fontFamily: 'var(--font-display)' }}>
+            <div style={{ borderLeft: '1px solid #F1F5F9', paddingLeft: '1rem' }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Active Listings
+              </span>
+              <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#002B7F', fontFamily: 'var(--font-display)', marginTop: '0.15rem' }}>
                 {listings.filter((l) => l.status !== 'sold' && !l.isSold).length}
               </div>
-              <span style={{ fontSize: '0.75rem', color: '#D97706', fontWeight: 700 }}>
+              <span style={{ fontSize: '0.74rem', color: '#D97706', fontWeight: 700 }}>
                 {listings.filter((l) => l.tradeMode === 'swap').length} Swaps • {listings.filter((l) => l.tradeMode === 'free_donation').length} Free
               </span>
             </div>
 
-            <div className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Completed Trades</span>
-              <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#059669', fontFamily: 'var(--font-display)' }}>
-                {listings.filter((l) => l.status === 'sold' || l.isSold).length}
+            <div style={{ borderLeft: '1px solid #F1F5F9', paddingLeft: '1rem' }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Gross Inventory Value
+              </span>
+              <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#059669', fontFamily: 'var(--font-display)', marginTop: '0.15rem' }}>
+                ₱{listings
+                  .filter((l) => l.status !== 'sold' && !l.isSold)
+                  .reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 1), 0)
+                  .toLocaleString()}
               </div>
-              <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 700 }}>Successfully transacted</span>
+              <span style={{ fontSize: '0.74rem', color: '#64748B', fontWeight: 600 }}>
+                Across active peer listings
+              </span>
             </div>
 
-            <div className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Pending ID Verifications</span>
-              <div style={{ fontSize: '1.75rem', fontWeight: 900, color: pendingRequests.length > 0 ? '#D97706' : '#059669', fontFamily: 'var(--font-display)' }}>
-                {pendingRequests.length}
+            <div style={{ borderLeft: '1px solid #F1F5F9', paddingLeft: '1rem' }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Completed Trades
+              </span>
+              <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#059669', fontFamily: 'var(--font-display)', marginTop: '0.15rem' }}>
+                {transactions.filter((t) => t.status === 'completed').length || listings.filter((l) => l.status === 'sold' || l.isSold).length}
               </div>
-              <span style={{ fontSize: '0.75rem', color: '#64748B' }}>Awaiting moderator approval</span>
+              <span style={{ fontSize: '0.74rem', color: '#059669', fontWeight: 700 }}>
+                Fulfilled transactions
+              </span>
             </div>
 
-            <div className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Reported / Flagged</span>
-              <div style={{ fontSize: '1.75rem', fontWeight: 900, color: pendingFlags.length > 0 ? '#DC2626' : '#059669', fontFamily: 'var(--font-display)' }}>
-                {pendingFlags.length}
+            <div style={{ borderLeft: '1px solid #F1F5F9', paddingLeft: '1rem' }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Pending Moderation
+              </span>
+              <div style={{ fontSize: '1.6rem', fontWeight: 900, color: (pendingRequests.length + pendingFlags.length + pendingDisputesCount) > 0 ? '#DC2626' : '#059669', fontFamily: 'var(--font-display)', marginTop: '0.15rem' }}>
+                {pendingRequests.length + pendingFlags.length + pendingDisputesCount}
               </div>
-              <span style={{ fontSize: '0.75rem', color: '#DC2626', fontWeight: 700 }}>Action required</span>
-            </div>
-
-            <div className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Active Trade Disputes</span>
-              <div style={{ fontSize: '1.75rem', fontWeight: 900, color: pendingDisputesCount > 0 ? '#D97706' : '#059669', fontFamily: 'var(--font-display)' }}>
-                {pendingDisputesCount}
-              </div>
-              <span style={{ fontSize: '0.75rem', color: '#64748B' }}>Mediation queue</span>
-            </div>
-
-            <div className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Suspended Accounts</span>
-              <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#DC2626', fontFamily: 'var(--font-display)' }}>
-                {bannedUsers.length}
-              </div>
-              <span style={{ fontSize: '0.75rem', color: '#64748B' }}>Restricted access</span>
+              <span style={{ fontSize: '0.74rem', color: '#DC2626', fontWeight: 700 }}>
+                {pendingRequests.length} KYC • {pendingFlags.length} Flags • {pendingDisputesCount} Disputes
+              </span>
             </div>
           </div>
 
-          {/* Campus Breakdown Table */}
-          <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Building2 size={18} color="#002B7F" /> 8 Official Campuses Trading Hub Distribution
-            </h3>
+          {/* TABLE 1: ACTIONABLE LIVE MODERATION QUEUE */}
+          <div className="clean-card" style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+                  <ShieldAlert size={18} color="#DC2626" /> Live Safety &amp; Moderation Queue
+                </h3>
+                <p style={{ fontSize: '0.78rem', color: '#64748B', margin: '0.2rem 0 0 0' }}>
+                  Items requiring immediate moderator attention across student verifications and reported listings
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  onClick={() => setActiveTab('verifications')}
+                  style={{ fontSize: '0.75rem', fontWeight: 700, color: '#002B7F', backgroundColor: '#EBF1FC', border: '1px solid #BCD1F7', padding: '0.35rem 0.75rem', borderRadius: '6px', cursor: 'pointer' }}
+                >
+                  View All KYC ({pendingRequests.length})
+                </button>
+                <button
+                  onClick={() => setActiveTab('listings')}
+                  style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', backgroundColor: '#F1F5F9', border: '1px solid #CBD5E1', padding: '0.35rem 0.75rem', borderRadius: '6px', cursor: 'pointer' }}
+                >
+                  View All Flags ({pendingFlags.length})
+                </button>
+              </div>
+            </div>
+
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.84rem' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
                 <thead>
                   <tr style={{ borderBottom: '2px solid #E2E8F0', color: '#64748B' }}>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>Campus Hub</th>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>Registered Students</th>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>Active Listings</th>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>Flash Requests</th>
-                    <th style={{ padding: '0.65rem 0.75rem' }}>Verification Rate</th>
+                    <th style={{ padding: '0.65rem 0.75rem' }}>Queue Item</th>
+                    <th style={{ padding: '0.65rem 0.75rem' }}>Target User / Student</th>
+                    <th style={{ padding: '0.65rem 0.75rem' }}>Campus</th>
+                    <th style={{ padding: '0.65rem 0.75rem' }}>Details / Note</th>
+                    <th style={{ padding: '0.65rem 0.75rem' }}>Submitted</th>
+                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>Direct Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {([
-                    'UC Main',
-                    'UC Banilad',
-                    'UC LM',
-                    'UC METC',
-                    'UC PRI',
-                    'UC Pardo-Talisay',
-                    'UC South Campus',
-                    'UC Medical Center'
-                  ] as Campus[]).map((campus) => {
-                    const campusUsers = allUsers.filter((u) => u.campus === campus);
-                    const campusVerified = campusUsers.filter((u) => u.isVerified);
-                    const campusListings = listings.filter((l) => l.sellerCampus === campus);
-                    const campusFlash = (flashRequests.length > 0 ? flashRequests : wantedRequests).filter((w) => w.preferredCampus === campus);
-                    const rate = campusUsers.length > 0 ? Math.round((campusVerified.length / campusUsers.length) * 100) : 0;
-                    return (
-                      <tr key={campus} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                        <td style={{ padding: '0.75rem' }}>
-                          <CampusBadge campus={campus} size="sm" />
-                        </td>
-                        <td style={{ padding: '0.75rem', fontWeight: 700, color: '#0F172A' }}>{campusUsers.length}</td>
-                        <td style={{ padding: '0.75rem', color: '#002B7F', fontWeight: 700 }}>{campusListings.length}</td>
-                        <td style={{ padding: '0.75rem', color: '#D97706', fontWeight: 700 }}>{campusFlash.length}</td>
-                        <td style={{ padding: '0.75rem' }}>
-                          <span style={{ fontWeight: 800, color: rate >= 50 ? '#059669' : '#D97706' }}>{rate}%</span>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {pendingRequests.length === 0 && pendingFlags.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} style={{ padding: '2rem 1rem', textAlign: 'center', color: '#059669', fontWeight: 700 }}>
+                        <Check size={18} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: '6px' }} />
+                        All moderation queues are clean! No pending ID verifications or flagged listings.
+                      </td>
+                    </tr>
+                  ) : (
+                    <>
+                      {pendingRequests.slice(0, 5).map((req) => (
+                        <tr key={`req-${req.id}`} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                          <td style={{ padding: '0.75rem' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.72rem', fontWeight: 800, backgroundColor: req.isSuspicious ? '#FEF2F2' : '#EBF1FC', color: req.isSuspicious ? '#DC2626' : '#002B7F', padding: '0.2rem 0.55rem', borderRadius: '4px', border: req.isSuspicious ? '1px solid #FECACA' : '1px solid #BCD1F7' }}>
+                              <BadgeCheck size={12} /> KYC Verification
+                            </span>
+                          </td>
+                          <td style={{ padding: '0.75rem' }}>
+                            <strong style={{ color: '#0F172A', display: 'block' }}>{req.userName}</strong>
+                            <span style={{ fontSize: '0.72rem', color: '#64748B' }}>ID: {req.studentIdNumber} • {req.college}</span>
+                          </td>
+                          <td style={{ padding: '0.75rem' }}>
+                            <CampusBadge campus={req.campus} size="sm" />
+                          </td>
+                          <td style={{ padding: '0.75rem', color: '#475569' }}>
+                            {req.isSuspicious ? <span style={{ color: '#DC2626', fontWeight: 700 }}>⚠️ {req.suspiciousReasons?.join(', ') || 'Suspicious submission'}</span> : 'Standard student ID card upload'}
+                          </td>
+                          <td style={{ padding: '0.75rem', color: '#64748B', fontSize: '0.75rem' }}>
+                            {formatRelativeTime(req.submittedAt)}
+                          </td>
+                          <td style={{ padding: '0.75rem', textAlign: 'right' }}>
+                            <div style={{ display: 'inline-flex', gap: '0.35rem' }}>
+                              <button
+                                onClick={() => approveVerification(req.id)}
+                                style={{ backgroundColor: '#059669', color: '#FFFFFF', border: 'none', borderRadius: '6px', padding: '0.3rem 0.65rem', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer' }}
+                              >
+                                Approve
+                              </button>
+                              <button
+                                onClick={() => setRejectReqModal(req)}
+                                style={{ backgroundColor: '#F1F5F9', color: '#DC2626', border: '1px solid #CBD5E1', borderRadius: '6px', padding: '0.3rem 0.65rem', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer' }}
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+
+                      {pendingFlags.slice(0, 4).map((flag) => (
+                        <tr key={`flag-${flag.id}`} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                          <td style={{ padding: '0.75rem' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.72rem', fontWeight: 800, backgroundColor: '#FEF2F2', color: '#DC2626', padding: '0.2rem 0.55rem', borderRadius: '4px', border: '1px solid #FECACA' }}>
+                              <AlertTriangle size={12} /> Flagged Item
+                            </span>
+                          </td>
+                          <td style={{ padding: '0.75rem' }}>
+                            <strong style={{ color: '#0F172A', display: 'block' }}>{flag.listingTitle}</strong>
+                            <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Reported by: {flag.reporterName || 'Student Peer'}</span>
+                          </td>
+                          <td style={{ padding: '0.75rem' }}>
+                            <span style={{ fontSize: '0.75rem', color: '#475569' }}>Marketplace</span>
+                          </td>
+                          <td style={{ padding: '0.75rem', color: '#DC2626', fontWeight: 600 }}>
+                            {flag.reason}
+                          </td>
+                          <td style={{ padding: '0.75rem', color: '#64748B', fontSize: '0.75rem' }}>
+                            {flag.reportedAt ? formatRelativeTime(flag.reportedAt) : 'Recently'}
+                          </td>
+                          <td style={{ padding: '0.75rem', textAlign: 'right' }}>
+                            <button
+                              onClick={() => resolveFlag(flag.id)}
+                              style={{ backgroundColor: '#002B7F', color: '#FFFFFF', border: 'none', borderRadius: '6px', padding: '0.3rem 0.65rem', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer' }}
+                            >
+                              Resolve
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* TABLE 2 & TABLE 3: TWO-COLUMN DATA TABLES */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(460px, 1fr))', gap: '1.5rem' }}>
+            {/* 8 Campuses Trading Hub Distribution Table */}
+            <div className="clean-card" style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+                <Building2 size={16} color="#002B7F" /> 8 Official Campuses Trading Distribution
+              </h3>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.8rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid #E2E8F0', color: '#64748B' }}>
+                      <th style={{ padding: '0.55rem 0.65rem' }}>Campus Hub</th>
+                      <th style={{ padding: '0.55rem 0.65rem' }}>Students</th>
+                      <th style={{ padding: '0.55rem 0.65rem' }}>Verified</th>
+                      <th style={{ padding: '0.55rem 0.65rem' }}>Listings</th>
+                      <th style={{ padding: '0.55rem 0.65rem' }}>Inventory ₱</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {([
+                      'UC Main',
+                      'UC Banilad',
+                      'UC LM',
+                      'UC METC',
+                      'UC PRI',
+                      'UC Pardo-Talisay',
+                      'UC South Campus',
+                      'UC Medical Center'
+                    ] as Campus[]).map((campus) => {
+                      const campusUsers = allUsers.filter((u) => u.campus === campus);
+                      const campusVerified = campusUsers.filter((u) => u.isVerified);
+                      const campusListings = listings.filter((l) => l.sellerCampus === campus);
+                      const campusInventoryValue = campusListings
+                        .filter((l) => l.status !== 'sold' && !l.isSold)
+                        .reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 1), 0);
+                      const rate = campusUsers.length > 0 ? Math.round((campusVerified.length / campusUsers.length) * 100) : 0;
+                      return (
+                        <tr key={campus} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                          <td style={{ padding: '0.65rem' }}>
+                            <CampusBadge campus={campus} size="sm" />
+                          </td>
+                          <td style={{ padding: '0.65rem', fontWeight: 700, color: '#0F172A' }}>{campusUsers.length}</td>
+                          <td style={{ padding: '0.65rem' }}>
+                            <span style={{ fontWeight: 800, color: rate >= 50 ? '#059669' : '#D97706' }}>{campusVerified.length} ({rate}%)</span>
+                          </td>
+                          <td style={{ padding: '0.65rem', color: '#002B7F', fontWeight: 700 }}>{campusListings.length}</td>
+                          <td style={{ padding: '0.65rem', color: '#059669', fontWeight: 700 }}>₱{campusInventoryValue.toLocaleString()}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Category & Marketplace Breakdown Table */}
+            <div className="clean-card" style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+                <Receipt size={16} color="#002B7F" /> Marketplace Categories &amp; Trade Inventory
+              </h3>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.8rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid #E2E8F0', color: '#64748B' }}>
+                      <th style={{ padding: '0.55rem 0.65rem' }}>Category</th>
+                      <th style={{ padding: '0.55rem 0.65rem' }}>Active</th>
+                      <th style={{ padding: '0.55rem 0.65rem' }}>Sold</th>
+                      <th style={{ padding: '0.55rem 0.65rem' }}>Total Items</th>
+                      <th style={{ padding: '0.55rem 0.65rem' }}>Avg Price</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(Array.from(new Set(listings.map((l) => l.category || 'General'))).slice(0, 8)).map((cat) => {
+                      const catListings = listings.filter((l) => (l.category || 'General') === cat);
+                      const catActive = catListings.filter((l) => l.status !== 'sold' && !l.isSold);
+                      const catSold = catListings.filter((l) => l.status === 'sold' || l.isSold);
+                      const avgPrice = catListings.length > 0
+                        ? Math.round(catListings.reduce((sum, item) => sum + (Number(item.price) || 0), 0) / catListings.length)
+                        : 0;
+                      return (
+                        <tr key={cat} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                          <td style={{ padding: '0.65rem', fontWeight: 700, color: '#0F172A' }}>{cat}</td>
+                          <td style={{ padding: '0.65rem', color: '#002B7F', fontWeight: 700 }}>{catActive.length}</td>
+                          <td style={{ padding: '0.65rem', color: '#059669', fontWeight: 700 }}>{catSold.length}</td>
+                          <td style={{ padding: '0.65rem', color: '#475569' }}>{catListings.length}</td>
+                          <td style={{ padding: '0.65rem', color: '#0F172A', fontWeight: 700 }}>₱{avgPrice.toLocaleString()}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          {/* TABLE 4: RECENT AUDIT & ACTIVITY STREAM */}
+          <div className="clean-card" style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+                <History size={16} color="#002B7F" /> Recent Platform Audit &amp; Event Stream
+              </h3>
+              <button
+                onClick={() => setActiveTab('audit')}
+                style={{ fontSize: '0.75rem', fontWeight: 700, color: '#002B7F', backgroundColor: '#EBF1FC', border: '1px solid #BCD1F7', padding: '0.3rem 0.65rem', borderRadius: '6px', cursor: 'pointer' }}
+              >
+                Full Audit Trail ({auditLogs.length})
+              </button>
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.8rem' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid #E2E8F0', color: '#64748B' }}>
+                    <th style={{ padding: '0.55rem 0.65rem' }}>Action</th>
+                    <th style={{ padding: '0.55rem 0.65rem' }}>Administrator / Actor</th>
+                    <th style={{ padding: '0.55rem 0.65rem' }}>Target Type</th>
+                    <th style={{ padding: '0.55rem 0.65rem' }}>Details</th>
+                    <th style={{ padding: '0.55rem 0.65rem' }}>Timestamp</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {auditLogs.slice(0, 6).map((log) => (
+                    <tr key={log.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                      <td style={{ padding: '0.65rem' }}>
+                        <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#002B7F', backgroundColor: '#EBF1FC', padding: '0.15rem 0.5rem', borderRadius: '4px' }}>
+                          {log.action}
+                        </span>
+                      </td>
+                      <td style={{ padding: '0.65rem', fontWeight: 600, color: '#0F172A' }}>{log.adminName}</td>
+                      <td style={{ padding: '0.65rem', color: '#64748B', textTransform: 'capitalize' }}>{log.targetType}</td>
+                      <td style={{ padding: '0.65rem', color: '#334155' }}>{log.details}</td>
+                      <td style={{ padding: '0.65rem', color: '#94A3B8', fontSize: '0.74rem' }}>{formatRelativeTime(log.timestamp)}</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>

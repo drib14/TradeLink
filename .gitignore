@@ -35,6 +35,10 @@ lerna-debug.log*
 # =========================
 
 dist/
+**/dist/
+**/dist-web/
+**/dist-web-test/
+.expo/
 build/
 .next/
 out/

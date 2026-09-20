@@ -235,12 +235,12 @@ export const CampusCarouselBanner: React.FC<CampusCarouselBannerProps> = ({
         );
       })}
 
-      {/* 2. Layered High-Contrast Gradient Overlay */}
+      {/* 2. Solid High-Contrast Overlay */}
       <div
         style={{
           position: 'absolute',
           inset: 0,
-          background: 'linear-gradient(90deg, rgba(0, 29, 89, 0.95) 0%, rgba(0, 43, 127, 0.88) 50%, rgba(0, 29, 89, 0.6) 100%)',
+          backgroundColor: 'rgba(0, 29, 89, 0.85)',
           backdropFilter: 'blur(2px)',
           zIndex: 2
         }}

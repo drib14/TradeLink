@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Cookie, ShieldCheck, X } from 'lucide-react';
+import { ShieldCheck, Check } from 'lucide-react';
 
 export const CookieConsent: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -27,210 +27,114 @@ export const CookieConsent: React.FC = () => {
   return (
     <>
       <style>{`
-        @keyframes adminCookieCardSlideIn {
+        @keyframes adminCookieBannerSlideUp {
           0% {
+            transform: translateY(100%);
             opacity: 0;
-            transform: translateY(28px) scale(0.96);
           }
           100% {
+            transform: translateY(0);
             opacity: 1;
-            transform: translateY(0) scale(1);
           }
         }
-        @keyframes adminCookieCardSlideOut {
+        @keyframes adminCookieBannerSlideDown {
           0% {
+            transform: translateY(0);
             opacity: 1;
-            transform: translateY(0) scale(1);
           }
           100% {
+            transform: translateY(100%);
             opacity: 0;
-            transform: translateY(24px) scale(0.96);
           }
         }
-        .admin-cookie-card {
+        .admin-cookie-banner {
           position: fixed;
-          bottom: 24px;
-          right: 24px;
-          width: calc(100% - 32px);
-          max-width: 420px;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          width: 100%;
           z-index: 9999;
-          font-family: inherit;
-          animation: adminCookieCardSlideIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          font-family: var(--font-sans, system-ui, -apple-system, sans-serif);
+          animation: adminCookieBannerSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
           box-sizing: border-box;
-          pointer-events: auto;
+          background-color: #FFFFFF;
+          border-top: 1px solid #E2E8F0;
+          box-shadow: 0 -4px 24px rgba(0, 43, 127, 0.08);
         }
-        .admin-cookie-card.closing {
-          animation: adminCookieCardSlideOut 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-        @media (max-width: 640px) {
-          .admin-cookie-card {
-            bottom: 16px;
-            left: 16px;
-            right: 16px;
-            width: calc(100% - 32px);
-            margin: 0 auto;
-          }
+        .admin-cookie-banner.closing {
+          animation: adminCookieBannerSlideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
         .admin-cookie-btn-primary {
-          background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
-          border: 1px solid rgba(147, 197, 253, 0.35);
+          background-color: #002B7F;
+          border: 1px solid #001D59;
           color: #FFFFFF;
-          box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25);
-          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+          font-weight: 700;
+          transition: background-color 0.15s ease;
         }
         .admin-cookie-btn-primary:hover {
-          filter: brightness(1.15);
-          transform: translateY(-1px);
-          box-shadow: 0 6px 18px rgba(37, 99, 235, 0.5);
-        }
-        .admin-cookie-btn-primary:active {
-          transform: translateY(0);
+          background-color: #001D59;
         }
       `}</style>
 
-      {/* Floating Modern Admin Cookie Card */}
-      <div
-        id="tradelink-admin-cookie-card"
-        className={`admin-cookie-card ${isClosing ? 'closing' : ''}`}
-        role="dialog"
-        aria-modal="false"
+      {/* Admin Bottom-Fixed Security Banner */}
+      <aside
+        id="tradelink-admin-cookie-banner"
+        className={`admin-cookie-banner ${isClosing ? 'closing' : ''}`}
+        role="region"
         aria-label="Admin Security and Cookie Notice"
-        style={{
-          backgroundColor: 'rgba(15, 23, 42, 0.94)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255, 255, 255, 0.12)',
-          borderRadius: '20px',
-          boxShadow: '0 20px 48px -10px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05), 0 4px 20px -2px rgba(37, 99, 235, 0.3)',
-          overflow: 'hidden'
-        }}
       >
-        {/* Subtle Blue Accent Top Line */}
-        <div
-          style={{
-            height: '2.5px',
-            width: '100%',
-            background: 'linear-gradient(90deg, #3B82F6 0%, #60A5FA 50%, #3B82F6 100%)',
-            flexShrink: 0
-          }}
-        />
+        {/* Solid Gold Accent Strip at Top */}
+        <div style={{ height: '3px', backgroundColor: '#FFC72C', width: '100%' }} />
 
-        <div style={{ padding: '1.25rem 1.35rem', display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
-          {/* Header Row */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.75rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div
-                style={{
-                  width: '38px',
-                  height: '38px',
-                  borderRadius: '11px',
-                  background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.22) 0%, rgba(37, 99, 235, 0.08) 100%)',
-                  border: '1px solid rgba(96, 165, 250, 0.4)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#60A5FA',
-                  flexShrink: 0,
-                  boxShadow: '0 2px 10px rgba(37, 99, 235, 0.2)'
-                }}
-              >
-                <Cookie size={20} />
-              </div>
-
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
-                  <h3
-                    style={{
-                      margin: 0,
-                      fontSize: '0.96rem',
-                      fontWeight: 800,
-                      color: '#FFFFFF',
-                      letterSpacing: '-0.02em'
-                    }}
-                  >
-                    Admin Session Security
-                  </h3>
-                  <span
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '3px',
-                      padding: '2px 7px',
-                      borderRadius: '9999px',
-                      backgroundColor: 'rgba(16, 185, 129, 0.14)',
-                      border: '1px solid rgba(16, 185, 129, 0.3)',
-                      color: '#34D399',
-                      fontSize: '0.68rem',
-                      fontWeight: 700
-                    }}
-                  >
-                    <ShieldCheck size={11} />
-                    <span>Protected</span>
-                  </span>
-                </div>
-                <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.74rem', color: '#94A3B8' }}>
-                  HttpOnly authentication & CSRF tokens
-                </p>
-              </div>
-            </div>
-
-            {/* Close Button */}
-            <button
-              onClick={closeWithAnimation}
+        <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flex: '1 1 500px', minWidth: '280px' }}>
+            <div
               style={{
-                background: 'rgba(255, 255, 255, 0.06)',
-                border: 'none',
+                width: '36px',
+                height: '36px',
                 borderRadius: '8px',
-                color: '#94A3B8',
-                cursor: 'pointer',
-                padding: '6px',
+                backgroundColor: '#EBF1FC',
+                border: '1px solid #BCD1F7',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                transition: 'all 0.15s ease',
+                color: '#002B7F',
                 flexShrink: 0
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.14)';
-                e.currentTarget.style.color = '#FFFFFF';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.06)';
-                e.currentTarget.style.color = '#94A3B8';
-              }}
-              title="Acknowledge notice"
-              aria-label="Acknowledge notice"
             >
-              <X size={16} />
-            </button>
+              <ShieldCheck size={20} color="#002B7F" />
+            </div>
+            <div>
+              <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>
+                University of Cebu · Administrative Moderation Security Notice
+              </h4>
+              <p style={{ fontSize: '0.8rem', color: '#475569', margin: '0.2rem 0 0 0', lineHeight: 1.4 }}>
+                This portal requires secure HttpOnly session cookies, signed audit tracking, and CSRF authentication to protect campus student moderation and dispute operations.
+              </p>
+            </div>
           </div>
 
-          {/* Description */}
-          <p style={{ margin: 0, fontSize: '0.82rem', color: '#CBD5E1', lineHeight: 1.55 }}>
-            The TradeLink Administration Portal uses strictly necessary HttpOnly cookies and CSRF double-submit tokens to protect administrator sessions and moderation audit logs.
-          </p>
-
-          {/* Action Button */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.2rem' }}>
+          <div>
             <button
+              type="button"
               onClick={closeWithAnimation}
               className="admin-cookie-btn-primary"
               style={{
-                width: '100%',
-                padding: '0.65rem 1.2rem',
-                borderRadius: '11px',
+                padding: '0.55rem 1.35rem',
+                borderRadius: '8px',
                 fontSize: '0.82rem',
-                fontWeight: 800,
                 cursor: 'pointer',
-                textAlign: 'center'
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem'
               }}
             >
-              Acknowledge & Continue
+              <Check size={14} />
+              <span>Acknowledge &amp; Continue</span>
             </button>
           </div>
         </div>
-      </div>
+      </aside>
     </>
   );
 };
-

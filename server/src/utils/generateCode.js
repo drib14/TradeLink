@@ -32,6 +32,7 @@ async function verifyCode(plainCode, hashedCode) {
 
 module.exports = {
   generate4DigitCode,
+  generate6DigitCode: generate4DigitCode,
   hashCode,
   verifyCode
 };

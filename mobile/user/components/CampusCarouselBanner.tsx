@@ -132,8 +132,8 @@ export const CampusCarouselBanner: React.FC = () => {
       {/* Background Image */}
       <Image source={{ uri: slide.imageUrl }} style={styles.bgImage} />
 
-      {/* Deep Navy Glass Gradient Overlay */}
-      <View style={styles.gradientOverlay} />
+      {/* Deep Navy Solid Overlay */}
+      <View style={styles.solidOverlay} />
 
       {/* Slide Content */}
       <View style={styles.content}>
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     opacity: 0.35,
   },
-  gradientOverlay: {
+  solidOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 29, 89, 0.82)',
   },
