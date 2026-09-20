@@ -15,6 +15,43 @@ export interface FlaggedListingItem {
   status: 'pending' | 'resolved' | 'removed';
 }
 
+export interface AdminAnalytics {
+  kpi: {
+    totalUsers: number;
+    verifiedUsers: number;
+    activeListings: number;
+    completedTrades: number;
+    totalVolume: number;
+    grossInventoryValue: number;
+    pendingVerifications: number;
+    pendingFlags: number;
+    pendingDisputes: number;
+  };
+  monthlyTimeline: Array<{
+    label: string;
+    year: number;
+    volume: number;
+    trades: number;
+    newListings: number;
+    newUsers: number;
+  }>;
+  campusDistribution: Array<{
+    campus: string;
+    users: number;
+    verifiedUsers: number;
+    verifiedRate: number;
+    listings: number;
+    inventoryValue: number;
+  }>;
+  categoryDistribution: Array<{
+    category: string;
+    total: number;
+    active: number;
+    sold: number;
+    avgPrice: number;
+  }>;
+}
+
 interface AdminContextType {
   verificationRequests: VerificationRequest[];
   flaggedListings: FlaggedListingItem[];
@@ -30,6 +67,7 @@ interface AdminContextType {
   meetups: MeetupTransaction[];
   systemConfig: any;
   stats: any;
+  analytics: AdminAnalytics | null;
   pendingVerificationsCount: number;
   pendingFlagsCount: number;
   pendingDisputesCount: number;
@@ -88,6 +126,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     pendingFlags: 0,
     pendingDisputes: 0
   });
+  const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const fetchAdminData = useCallback(async () => {
@@ -95,6 +134,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const [
         statsData,
+        analyticsData,
         verifs,
         flags,
         disputeData,
@@ -108,6 +148,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         meetupsData
       ] = await Promise.allSettled([
         adminService.getStats(),
+        adminService.getAnalytics(),
         adminService.getVerifications(),
         adminService.getFlags(),
         adminService.getDisputes(),
@@ -122,6 +163,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       ]);
 
       if (statsData.status === 'fulfilled' && statsData.value) setStats(statsData.value);
+      if (analyticsData.status === 'fulfilled' && analyticsData.value) setAnalytics(analyticsData.value);
       if (verifs.status === 'fulfilled') setVerificationRequests(verifs.value || []);
       if (flags.status === 'fulfilled') setFlaggedListings(flags.value || []);
       if (disputeData.status === 'fulfilled') setDisputes(disputeData.value || []);
@@ -311,6 +353,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         meetups,
         systemConfig,
         stats,
+        analytics,
         pendingVerificationsCount,
         pendingFlagsCount,
         pendingDisputesCount,

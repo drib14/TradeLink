@@ -349,11 +349,135 @@ const getUserReviews = asyncHandler(async (req, res, next) => {
   });
 });
 
+/**
+ * Get dynamic personal trading analytics and monthly volume for profile graphs
+ */
+const getUserAnalytics = asyncHandler(async (req, res, next) => {
+  const targetUserId = req.params.id || req.user?.id;
+
+  if (!targetUserId) {
+    return next(new AppError('User ID is required.', 400));
+  }
+
+  const user = await db('users').where({ id: targetUserId }).first();
+  if (!user) {
+    return next(new AppError('User not found.', 404));
+  }
+
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const now = new Date();
+
+  // Generate 6-month timeline
+  const months = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push({
+      label: monthNames[d.getMonth()],
+      year: d.getFullYear(),
+      monthIndex: d.getMonth(),
+      volume: 0,
+      trades: 0
+    });
+  }
+
+  const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+
+  // Completed transactions involving this user (either buyer or seller) in past 6 months
+  const completedTxs = await db('transactions')
+    .where(function() {
+      this.where('seller_id', targetUserId).orWhere('buyer_id', targetUserId);
+    })
+    .andWhere('status', 'completed')
+    .andWhere('created_at', '>=', sixMonthsAgo)
+    .select('amount', 'created_at', 'completed_at');
+
+  completedTxs.forEach((tx) => {
+    const d = new Date(tx.completed_at || tx.created_at);
+    const m = months.find((m) => m.monthIndex === d.getMonth() && m.year === d.getFullYear());
+    if (m) {
+      m.volume += Number(tx.amount) || 0;
+      m.trades += 1;
+    }
+  });
+
+  // Also include sold listings if they have completed transactions or marked sold
+  const soldListings = await db('listings')
+    .where({ user_id: targetUserId, status: 'sold' })
+    .andWhere('updated_at', '>=', sixMonthsAgo)
+    .select('price', 'updated_at');
+
+  soldListings.forEach((l) => {
+    const d = new Date(l.updated_at);
+    const m = months.find((m) => m.monthIndex === d.getMonth() && m.year === d.getFullYear());
+    if (m && m.trades === 0) {
+      m.volume += Number(l.price) || 0;
+      m.trades += 1;
+    }
+  });
+
+  // Active inventory
+  const activeListings = await db('listings')
+    .where({ user_id: targetUserId })
+    .whereNot({ status: 'sold' })
+    .select('price', 'quantity');
+
+  const activeInventoryValue = activeListings.reduce(
+    (sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 1),
+    0
+  );
+
+  // Total completed trades all-time
+  const totalCompletedTrades = await db('transactions')
+    .where(function() {
+      this.where('seller_id', targetUserId).orWhere('buyer_id', targetUserId);
+    })
+    .where({ status: 'completed' })
+    .count('id as count')
+    .first();
+
+  const totalSoldListings = await db('listings')
+    .where({ user_id: targetUserId, status: 'sold' })
+    .count('id as count')
+    .first();
+
+  const allTimeTrades = Math.max(
+    Number(totalCompletedTrades?.count || 0),
+    Number(totalSoldListings?.count || 0),
+    Number(user.completed_trades || 0)
+  );
+
+  // Reviews summary
+  const reviewStats = await db('reviews')
+    .where({ target_user_id: targetUserId })
+    .avg('rating as avgRating')
+    .count('id as count')
+    .first();
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      userId: targetUserId,
+      activeInventoryCount: activeListings.length,
+      activeInventoryValue: Math.round(activeInventoryValue),
+      completedTradesCount: allTimeTrades,
+      rating: Number(Number(reviewStats?.avgRating || user.rating || 5.0).toFixed(1)),
+      totalReviewsCount: Number(reviewStats?.count || 0),
+      monthlyData: months.map((m) => ({
+        label: m.label,
+        year: m.year,
+        volume: Math.round(m.volume),
+        trades: m.trades
+      }))
+    }
+  });
+});
+
 module.exports = {
   getUserProfile,
   updateProfile,
   getVerificationSession,
   getVerificationStatus,
   submitIdVerification,
-  getUserReviews
+  getUserReviews,
+  getUserAnalytics
 };

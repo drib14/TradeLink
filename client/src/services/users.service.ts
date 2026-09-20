@@ -50,4 +50,23 @@ export const usersService = {
     });
     return res;
   },
+
+  async getUserAnalytics(userId?: string): Promise<{
+    completedTrades: number;
+    totalTradeVolume: number;
+    activeListings: number;
+    activeInventoryValue: number;
+    monthlyTimeline: Array<{
+      label: string;
+      year: number;
+      volume: number;
+      trades: number;
+    }>;
+    reviewsCount: number;
+    rating: number;
+  }> {
+    const endpoint = userId ? `/users/${userId}/analytics` : '/users/me/analytics';
+    const res = await api.get<any>(endpoint, undefined, { skipAuth: !userId });
+    return res.data;
+  },
 };

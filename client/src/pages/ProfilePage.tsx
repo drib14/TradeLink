@@ -177,6 +177,21 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   const isRejectedVerification = !targetUser?.isVerified && (targetUser?.verificationStatus === 'rejected' || !!(targetUser as any)?.verificationRejectionReason);
   const isPendingVerification = !targetUser?.isVerified && !isRejectedVerification && (targetUser?.verificationStatus === 'pending' || !!targetUser?.idPhotoUrl);
 
+  const [userAnalytics, setUserAnalytics] = useState<{
+    completedTrades: number;
+    totalTradeVolume: number;
+    activeListings: number;
+    activeInventoryValue: number;
+    monthlyTimeline: Array<{
+      label: string;
+      year: number;
+      volume: number;
+      trades: number;
+    }>;
+    reviewsCount: number;
+    rating: number;
+  } | null>(null);
+
   useEffect(() => {
     if (targetUser?.id) {
       reviewsService.getReviewsForUser(targetUser.id).then((revs) => {
@@ -184,6 +199,16 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           setUserReviews(revs);
         }
       }).catch(() => {});
+
+      usersService.getUserAnalytics(targetUser.id)
+        .then((analytics) => {
+          if (analytics) {
+            setUserAnalytics(analytics);
+          }
+        })
+        .catch((err) => {
+          console.warn('Could not load user analytics, using local data:', err);
+        });
     }
   }, [targetUser?.id]);
 
@@ -194,19 +219,23 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   const userWanted = userFlash;
   const userMeetups = meetups.filter((m) => m.sellerId === targetUser?.id || m.buyerId === targetUser?.id);
 
-  // Calculate Marketplace Statistics
-  const activeInventoryValue = userActiveListings.reduce(
+  // Calculate Marketplace Statistics dynamically
+  const activeInventoryValue = userAnalytics?.activeInventoryValue ?? userActiveListings.reduce(
     (sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 1),
     0
   );
-  const completedTradesCount = Number(targetUser?.completedTrades ?? userSoldListings.length);
-  const totalReviewsCount = Number(targetUser?.totalReviews ?? userReviews.length);
+  const completedTradesCount = Number(userAnalytics?.completedTrades ?? (targetUser?.completedTrades ?? userSoldListings.length));
+  const totalReviewsCount = Number(userAnalytics?.reviewsCount ?? (targetUser?.totalReviews ?? userReviews.length));
   const hasTransactions = completedTradesCount > 0 || totalReviewsCount > 0;
 
-  const rating = hasTransactions ? (Number(targetUser?.rating) || 0) : 0.0;
+  const rating = userAnalytics?.rating ?? (hasTransactions ? (Number(targetUser?.rating) || 0) : 0.0);
 
-  // Monthly performance dataset for owner analytics graph
+  // Monthly performance dataset for owner analytics graph - strictly dynamic without fake math
   const monthlyData = useMemo(() => {
+    if (userAnalytics?.monthlyTimeline && userAnalytics.monthlyTimeline.length > 0) {
+      return userAnalytics.monthlyTimeline;
+    }
+
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const now = new Date();
     const months = [];
@@ -230,12 +259,13 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
       }
     });
 
-    return months.map((m, idx) => ({
-      ...m,
-      trades: m.trades > 0 ? m.trades : (completedTradesCount > 0 && idx === 5 ? completedTradesCount : Math.min(idx + 1, 3)),
-      volume: m.volume > 0 ? m.volume : (completedTradesCount > 0 && idx === 5 ? Math.max(activeInventoryValue * 0.4, 250) : (idx + 1) * 180),
+    return months.map((m) => ({
+      label: m.label,
+      year: m.year,
+      trades: m.trades,
+      volume: m.volume,
     }));
-  }, [userSoldListings, completedTradesCount, activeInventoryValue]);
+  }, [userAnalytics, userSoldListings]);
 
   // In-store filter counts
   const saleCount = userActiveListings.filter((l) => l.tradeMode === 'buy_sell').length;
@@ -744,10 +774,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
 
                   {/* Area fill and stroke line */}
                   {(() => {
-                    const maxVol = Math.max(...monthlyData.map((m) => m.volume), 800);
+                    const totalVol = monthlyData.reduce((s, m) => s + m.volume, 0);
+                    const totalTrades = monthlyData.reduce((s, m) => s + m.trades, 0);
+                    const maxVol = Math.max(...monthlyData.map((m) => m.volume), 500);
                     const coords = monthlyData.map((m, idx) => {
                       const x = 70 + idx * 115;
-                      const y = 140 - (m.volume / maxVol) * 110;
+                      const y = totalVol > 0 ? 140 - (m.volume / maxVol) * 105 : 140;
                       return { x, y, ...m };
                     });
 
@@ -756,26 +788,51 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
 
                     return (
                       <>
-                        <path d={areaD} fill="#EBF1FC" />
-                        <path d={pathD} fill="none" stroke="#002B7F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                        {totalVol > 0 && <path d={areaD} fill="#EBF1FC" opacity="0.85" />}
+                        <path
+                          d={pathD}
+                          fill="none"
+                          stroke={totalVol > 0 ? '#002B7F' : '#CBD5E1'}
+                          strokeWidth={totalVol > 0 ? '2.5' : '1.5'}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeDasharray={totalVol === 0 ? '4 4' : undefined}
+                        />
 
                         {/* Bars for trades completed */}
                         {coords.map((pt) => {
-                          const barH = Math.max(pt.trades * 14, 6);
+                          const barH = pt.trades > 0 ? Math.min(pt.trades * 16, 95) : 0;
                           return (
                             <g key={pt.label}>
-                              <rect
-                                x={pt.x - 14}
-                                y={140 - barH}
-                                width="28"
-                                height={barH}
-                                rx="4"
-                                fill="#FFC72C"
-                              />
+                              {barH > 0 && (
+                                <rect
+                                  x={pt.x - 14}
+                                  y={140 - barH}
+                                  width="28"
+                                  height={barH}
+                                  rx="4"
+                                  fill="#FFC72C"
+                                  opacity="0.9"
+                                />
+                              )}
                               {/* Volume point dot */}
-                              <circle cx={pt.x} cy={pt.y} r="4.5" fill="#FFFFFF" stroke="#002B7F" strokeWidth="2.5" />
+                              <circle
+                                cx={pt.x}
+                                cy={pt.y}
+                                r={pt.volume > 0 ? 4.5 : 3}
+                                fill={pt.volume > 0 ? '#FFFFFF' : '#F1F5F9'}
+                                stroke={pt.volume > 0 ? '#002B7F' : '#94A3B8'}
+                                strokeWidth={pt.volume > 0 ? 2.5 : 1.5}
+                              />
                               {/* Value label */}
-                              <text x={pt.x} y={pt.y - 8} textAnchor="middle" fontSize="10" fontWeight="700" fill="#002B7F">
+                              <text
+                                x={pt.x}
+                                y={pt.y - 8}
+                                textAnchor="middle"
+                                fontSize="10"
+                                fontWeight="700"
+                                fill={pt.volume > 0 ? '#002B7F' : '#94A3B8'}
+                              >
                                 ₱{pt.volume.toLocaleString()}
                               </text>
                               {/* Month label on X-axis */}
@@ -790,6 +847,24 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                   })()}
                 </svg>
               </div>
+
+              {/* Informative note when no transactions have occurred yet */}
+              {monthlyData.every((m) => m.trades === 0 && m.volume === 0) && (
+                <div
+                  style={{
+                    backgroundColor: '#F8FAFC',
+                    border: '1px dashed #CBD5E1',
+                    borderRadius: '8px',
+                    padding: '0.65rem 1rem',
+                    textAlign: 'center',
+                    fontSize: '0.76rem',
+                    color: '#64748B',
+                    fontWeight: 600
+                  }}
+                >
+                  No campus trades recorded yet for this 6-month period. Real sales and completed swaps will automatically plot here!
+                </div>
+              )}
 
               {/* Chart Legend */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '1.25rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>

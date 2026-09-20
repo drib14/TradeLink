@@ -4,35 +4,101 @@ const logger = require('../utils/logger');
 
 let transporter = null;
 
-// Initialize SMTP transporter (Gmail or custom SMTP)
-if (env.env !== 'test' && env.email.user && env.email.pass) {
-  const isGmail = (env.email.host && env.email.host.includes('gmail')) || env.email.user.endsWith('@gmail.com');
-  const transportConfig = isGmail
-    ? {
-        service: 'gmail',
-        auth: {
-          user: env.email.user,
-          pass: env.email.pass
-        }
+/**
+ * Returns memoized or newly initialized SMTP transporter.
+ * Specifically configured for Vercel/AWS Lambda serverless environments:
+ * - Uses IPv4 explicitly (family: 4) to avoid IPv6 connection hanging
+ * - Configures explicit connection, greeting, and socket timeouts
+ * - Avoids connection pooling (pool: false) so serverless containers close sockets cleanly
+ */
+function getTransporter() {
+  if (transporter) return transporter;
+  if (env.env === 'test') return null;
+
+  if (env.email.user && env.email.pass) {
+    const port = Number(env.email.port) || 465;
+    const isSecure = port === 465;
+
+    const transportConfig = {
+      host: env.email.host || 'smtp.gmail.com',
+      port,
+      secure: isSecure,
+      requireTLS: !isSecure,
+      family: 4, // Forces IPv4 to prevent AWS Lambda / Vercel IPv6 DNS hanging
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
+      pool: false, // Serverless functions must not retain idle connection pools
+      auth: {
+        user: env.email.user,
+        pass: env.email.pass
+      },
+      tls: {
+        rejectUnauthorized: true,
+        minVersion: 'TLSv1.2'
       }
-    : {
-        host: env.email.host || 'smtp.gmail.com',
-        port: env.email.port || 465,
-        secure: env.email.port === 465,
-        auth: {
-          user: env.email.user,
-          pass: env.email.pass
-        }
-      };
+    };
+
+    try {
+      transporter = nodemailer.createTransport(transportConfig);
+      logger.info(`[EMAIL SERVICE] SMTP transporter initialized for ${env.email.user} (${env.email.host}:${port}, IPv4, secure=${isSecure})`);
+      return transporter;
+    } catch (err) {
+      logger.error(`[EMAIL SERVICE] Failed to create SMTP transporter: ${err.message}`);
+      return null;
+    }
+  } else if (env.env !== 'test' && !env.email.resendApiKey) {
+    logger.warn('[EMAIL SERVICE] SMTP credentials not set. Running in development bypass mode.');
+  }
+
+  return null;
+}
+
+// Initial transporter check on startup
+getTransporter();
+
+/**
+ * Dispatches email using Resend HTTP API (via native fetch).
+ * Highly reliable for Vercel Serverless since it uses standard HTTPS (port 443)
+ * and is immune to SMTP port blocks and Google App Password expiration.
+ */
+async function sendViaResend(toEmail, subject, text, html) {
+  if (!env.email.resendApiKey) return null;
 
   try {
-    transporter = nodemailer.createTransport(transportConfig);
-    logger.info(`[EMAIL SERVICE] SMTP transporter initialized for ${env.email.user} (${isGmail ? 'Gmail Service' : env.email.host})`);
+    const fromAddress = env.email.from.includes('<')
+      ? env.email.from
+      : `TradeLink Marketplace <${env.email.from || 'onboarding@resend.dev'}>`;
+
+    const payload = {
+      from: fromAddress,
+      to: [toEmail],
+      subject,
+      html,
+      text
+    };
+
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${env.email.resendApiKey}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await response.json();
+    if (response.ok && data?.id) {
+      logger.info(`[RESEND EMAIL SENT] Dispatched to ${toEmail} | MessageId: ${data.id} | Subject: "${subject}"`);
+      return { ok: true, messageId: data.id, provider: 'resend' };
+    }
+
+    logger.error(`[RESEND ERROR] Failed to send via Resend API: ${data?.message || JSON.stringify(data)}`);
+    return { ok: false, provider: 'resend', error: data?.message || 'Resend delivery failed' };
   } catch (err) {
-    logger.error(`[EMAIL SERVICE] Failed to create SMTP transporter: ${err.message}`);
+    logger.error(`[RESEND EXCEPTION] Network error calling Resend API: ${err.message}`);
+    return { ok: false, provider: 'resend', error: err.message };
   }
-} else if (env.env !== 'test') {
-  logger.warn('[EMAIL SERVICE] SMTP credentials not set. Running in development bypass mode.');
 }
 
 /**
@@ -560,13 +626,31 @@ async function sendOrderStatusUpdateEmail(targetUser, otherUser, transaction, li
 }
 
 /**
- * Dispatches email via Nodemailer SMTP with development bypass resilience
+ * Dispatches email via Resend API (priority) or Nodemailer SMTP with development bypass resilience
  */
 async function sendMail(toEmail, subject, text, html) {
-  // 1. Direct dispatch via Nodemailer SMTP
-  if (transporter) {
+  // 1. Priority: If Resend API Key is configured, use fast, reliable HTTP API
+  if (env.email.resendApiKey) {
+    const resendResult = await sendViaResend(toEmail, subject, text, html);
+    if (resendResult && resendResult.ok) {
+      return resendResult;
+    }
+    // If Resend failed and no SMTP fallback, return error or bypass
+    if (!env.email.user || !env.email.pass) {
+      if (env.email.bypassMode) {
+        logger.warn(`[EMAIL BYPASS] Non-production bypass active for ${toEmail}`);
+        return { ok: true, bypassed: true, error: resendResult?.error };
+      }
+      return resendResult || { ok: false, error: 'Resend delivery failed' };
+    }
+    logger.warn('[EMAIL SERVICE] Resend delivery failed, falling back to SMTP transporter...');
+  }
+
+  // 2. Direct dispatch via Nodemailer SMTP (explicit IPv4, port 465/587)
+  const currentTransporter = getTransporter();
+  if (currentTransporter) {
     try {
-      const info = await transporter.sendMail({
+      const info = await currentTransporter.sendMail({
         from: env.email.from,
         to: toEmail,
         subject,
@@ -576,24 +660,99 @@ async function sendMail(toEmail, subject, text, html) {
       logger.info(`[SMTP EMAIL SENT] Successfully dispatched to ${toEmail} | MessageId: ${info?.messageId || 'ok'} | Subject: "${subject}"`);
       return { ok: true, messageId: info?.messageId, provider: 'smtp' };
     } catch (smtpErr) {
-      logger.error(`[SMTP ERROR] Failed to send email to ${toEmail}: ${smtpErr.message}`);
+      const isBadCreds = smtpErr.message && (smtpErr.message.includes('535') || smtpErr.message.includes('BadCredentials'));
+      if (isBadCreds) {
+        logger.error(`[SMTP AUTH FAILED] Mail server rejected login for ${env.email.user}. Google requires a 16-character App Password (generated at myaccount.google.com/apppasswords), not the standard Gmail password. Error: ${smtpErr.message}`);
+      } else {
+        logger.error(`[SMTP ERROR] Failed to send email to ${toEmail}: ${smtpErr.message}`);
+      }
+
       if (env.email.bypassMode) {
         logger.warn(`[EMAIL BYPASS] Non-production bypass active. Handled delivery to ${toEmail} for: "${subject}"`);
-        return { ok: true, bypassed: true, error: smtpErr.message };
+        return { ok: true, bypassed: true, error: smtpErr.message, isBadCreds };
       }
-      return { ok: false, error: smtpErr.message };
+      return { ok: false, error: smtpErr.message, isBadCreds };
     }
   }
 
-  // 2. Bypass / Mock mode when SMTP is unconfigured or in development
+  // 3. Bypass / Mock mode when SMTP is unconfigured or in development
   const maskedEmail = toEmail ? toEmail.replace(/(.{2})(.*)(@.*)/, '$1***$3') : '[REDACTED]';
   if (env.email.bypassMode) {
     logger.info(`[EMAIL BYPASS] Non-production bypass dispatch to ${maskedEmail} | Subject: "${subject}"`);
     return { ok: true, mock: true, bypassed: true };
   }
 
-  logger.error(`[EMAIL ERROR] SMTP transporter not configured. Cannot dispatch email to ${maskedEmail}`);
-  return { ok: false, error: 'SMTP transporter not configured' };
+  logger.error(`[EMAIL ERROR] Neither SMTP nor Resend API is configured. Cannot dispatch email to ${maskedEmail}`);
+  return { ok: false, error: 'Neither SMTP nor Resend API is configured' };
+}
+
+/**
+ * Diagnostic tool to verify email connection and test live sending
+ */
+async function testEmailConnection(recipientEmail = null) {
+  const diagnostics = {
+    timestamp: new Date().toISOString(),
+    environment: env.env,
+    configured: {
+      smtpHost: env.email.host,
+      smtpPort: env.email.port,
+      smtpUser: env.email.user || null,
+      hasSmtpPass: Boolean(env.email.pass && env.email.pass.length > 0),
+      smtpPassLength: env.email.pass ? env.email.pass.length : 0,
+      fromAddress: env.email.from,
+      hasResendApiKey: Boolean(env.email.resendApiKey),
+      bypassMode: env.email.bypassMode
+    },
+    smtpVerification: null,
+    testSendResult: null
+  };
+
+  // Test SMTP connection verification
+  const currentTransporter = getTransporter();
+  if (currentTransporter) {
+    try {
+      await currentTransporter.verify();
+      diagnostics.smtpVerification = {
+        ok: true,
+        message: 'SMTP handshake and credentials accepted by mail server.'
+      };
+    } catch (err) {
+      const isBadCreds = err.message && (err.message.includes('535') || err.message.includes('BadCredentials'));
+      diagnostics.smtpVerification = {
+        ok: false,
+        error: err.message,
+        code: err.code || null,
+        hint: isBadCreds
+          ? 'Google rejected your password. In Gmail, ensure 2-Step Verification is enabled and generate a fresh 16-character App Password at myaccount.google.com/apppasswords. Do NOT use your regular Gmail password.'
+          : 'Check host, port, or cloud network restrictions.'
+      };
+    }
+  } else {
+    diagnostics.smtpVerification = {
+      ok: false,
+      message: 'SMTP transporter not initialized (SMTP_USER or SMTP_PASS missing).'
+    };
+  }
+
+  // Optionally perform a live test send
+  if (recipientEmail) {
+    const subject = '[TradeLink Diagnostic] Live Email Delivery Test';
+    const text = `This is a diagnostic email from TradeLink deployed on ${env.env}. Delivered successfully!`;
+    const html = `<div style="font-family: Arial, sans-serif; padding: 20px; color: #0F172A;">
+      <h2 style="color: #002B7F; margin: 0 0 10px 0;">TradeLink Email Delivery Diagnostic</h2>
+      <p>This email confirms that your email configuration is operating correctly in <strong>${env.env}</strong> mode.</p>
+      <div style="background: #F1F5F9; border-left: 4px solid #059669; padding: 12px; margin: 15px 0; font-size: 13px;">
+        <strong>Configuration Details:</strong><br/>
+        Host: ${env.email.host}:${env.email.port}<br/>
+        Sender: ${env.email.from}<br/>
+        Time: ${new Date().toLocaleString()}
+      </div>
+    </div>`;
+
+    diagnostics.testSendResult = await sendMail(recipientEmail, subject, text, html);
+  }
+
+  return diagnostics;
 }
 
 module.exports = {
@@ -607,5 +766,6 @@ module.exports = {
   sendPasswordResetEmail: sendPasswordResetDirectEmail,
   sendOrderPlacedBuyerEmail,
   sendNewOrderSellerEmail,
-  sendOrderStatusUpdateEmail
+  sendOrderStatusUpdateEmail,
+  testEmailConnection
 };

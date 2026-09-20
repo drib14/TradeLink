@@ -61,11 +61,12 @@ const config = {
   allowVercelPreviews: process.env.ALLOW_VERCEL_PREVIEWS === 'true',
 
   email: {
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.SMTP_PORT, 10) || 465,
-    user: (process.env.SMTP_USER || '').trim(),
-    pass: (process.env.SMTP_PASS || '').replace(/\s+/g, ''),
-    from: process.env.SMTP_FROM || 'TradeLink UC <noreply@tradelink.app>',
+    host: (process.env.SMTP_HOST || 'smtp.gmail.com').replace(/^["']|["']$/g, '').trim(),
+    port: parseInt((process.env.SMTP_PORT || '465').replace(/^["']|["']$/g, '').trim(), 10) || 465,
+    user: (process.env.SMTP_USER || '').replace(/^["']|["']$/g, '').trim(),
+    pass: (process.env.SMTP_PASS || '').replace(/^["']|["']$/g, '').replace(/\s+/g, ''),
+    from: (process.env.SMTP_FROM || 'TradeLink Marketplace <uc.tradelink@gmail.com>').replace(/^["']|["']$/g, '').trim(),
+    resendApiKey: (process.env.RESEND_API_KEY || '').replace(/^["']|["']$/g, '').trim(),
     bypassMode: process.env.EMAIL_BYPASS_MODE ? process.env.EMAIL_BYPASS_MODE === 'true' : envMode !== 'production'
   },
 

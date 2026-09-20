@@ -6,6 +6,11 @@ export const adminService = {
     return res.data;
   },
 
+  async getAnalytics() {
+    const res = await api.get('/admin/analytics');
+    return res.data;
+  },
+
   async getVerifications(page = 1, limit = 50) {
     const res = await api.get('/admin/verifications', { page, limit });
     return res.data?.verifications || [];

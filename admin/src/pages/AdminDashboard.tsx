@@ -44,6 +44,7 @@ import { CampusBadge } from '../components/common/CampusBadge';
 import { UserAvatar } from '../components/common/UserAvatar';
 import { Logo } from '../components/common/Logo';
 import { TradeLinkIcon } from '../components/common/TradeLinkIcon';
+import { AdminAnalyticsGraphs } from '../components/dashboard/AdminAnalyticsGraphs';
 
 function formatRelativeTime(dateStr?: string) {
   if (!dateStr) return '';
@@ -96,6 +97,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     wantedRequests = [],
     transactions = [],
     meetups,
+    analytics,
+    isLoading,
+    refreshAdminData,
     createListingByAdmin,
     updateListingByAdmin,
     deleteFlashRequest,
@@ -725,10 +729,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 Registered Students
               </span>
               <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#002B7F', fontFamily: 'var(--font-display)', marginTop: '0.15rem' }}>
-                {allUsers.length}
+                {analytics?.kpi?.totalUsers ?? allUsers.length}
               </div>
               <span style={{ fontSize: '0.74rem', color: '#059669', fontWeight: 700 }}>
-                {allUsers.filter((u) => u.isVerified).length} verified ({allUsers.length > 0 ? Math.round((allUsers.filter((u) => u.isVerified).length / allUsers.length) * 100) : 0}%)
+                {analytics?.kpi?.verifiedUsers ?? allUsers.filter((u) => u.isVerified).length} verified ({((analytics?.kpi?.totalUsers ?? allUsers.length) > 0) ? Math.round(((analytics?.kpi?.verifiedUsers ?? allUsers.filter((u) => u.isVerified).length) / (analytics?.kpi?.totalUsers ?? allUsers.length)) * 100) : 0}%)
               </span>
             </div>
 
@@ -737,7 +741,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 Active Listings
               </span>
               <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#002B7F', fontFamily: 'var(--font-display)', marginTop: '0.15rem' }}>
-                {listings.filter((l) => l.status !== 'sold' && !l.isSold).length}
+                {analytics?.kpi?.activeListings ?? listings.filter((l) => l.status !== 'sold' && !l.isSold).length}
               </div>
               <span style={{ fontSize: '0.74rem', color: '#D97706', fontWeight: 700 }}>
                 {listings.filter((l) => l.tradeMode === 'swap').length} Swaps • {listings.filter((l) => l.tradeMode === 'free_donation').length} Free
@@ -749,10 +753,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 Gross Inventory Value
               </span>
               <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#059669', fontFamily: 'var(--font-display)', marginTop: '0.15rem' }}>
-                ₱{listings
+                ₱{(analytics?.kpi?.grossInventoryValue ?? listings
                   .filter((l) => l.status !== 'sold' && !l.isSold)
                   .reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 1), 0)
-                  .toLocaleString()}
+                ).toLocaleString()}
               </div>
               <span style={{ fontSize: '0.74rem', color: '#64748B', fontWeight: 600 }}>
                 Across active peer listings
@@ -764,7 +768,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 Completed Trades
               </span>
               <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#059669', fontFamily: 'var(--font-display)', marginTop: '0.15rem' }}>
-                {transactions.filter((t) => t.status === 'completed').length || listings.filter((l) => l.status === 'sold' || l.isSold).length}
+                {analytics?.kpi?.completedTrades ?? (transactions.filter((t) => t.status === 'completed').length || listings.filter((l) => l.status === 'sold' || l.isSold).length)}
               </div>
               <span style={{ fontSize: '0.74rem', color: '#059669', fontWeight: 700 }}>
                 Fulfilled transactions
@@ -775,14 +779,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
               <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 Pending Moderation
               </span>
-              <div style={{ fontSize: '1.6rem', fontWeight: 900, color: (pendingRequests.length + pendingFlags.length + pendingDisputesCount) > 0 ? '#DC2626' : '#059669', fontFamily: 'var(--font-display)', marginTop: '0.15rem' }}>
-                {pendingRequests.length + pendingFlags.length + pendingDisputesCount}
+              <div style={{ fontSize: '1.6rem', fontWeight: 900, color: ((analytics?.kpi ? (analytics.kpi.pendingVerifications + analytics.kpi.pendingFlags + analytics.kpi.pendingDisputes) : (pendingRequests.length + pendingFlags.length + pendingDisputesCount))) > 0 ? '#DC2626' : '#059669', fontFamily: 'var(--font-display)', marginTop: '0.15rem' }}>
+                {analytics?.kpi ? (analytics.kpi.pendingVerifications + analytics.kpi.pendingFlags + analytics.kpi.pendingDisputes) : (pendingRequests.length + pendingFlags.length + pendingDisputesCount)}
               </div>
               <span style={{ fontSize: '0.74rem', color: '#DC2626', fontWeight: 700 }}>
-                {pendingRequests.length} KYC • {pendingFlags.length} Flags • {pendingDisputesCount} Disputes
+                {analytics?.kpi?.pendingVerifications ?? pendingRequests.length} KYC • {analytics?.kpi?.pendingFlags ?? pendingFlags.length} Flags • {analytics?.kpi?.pendingDisputes ?? pendingDisputesCount} Disputes
               </span>
             </div>
           </div>
+
+          {/* Interactive Dynamic Analytics Graphs */}
+          <AdminAnalyticsGraphs
+            analytics={analytics}
+            isLoading={isLoading}
+            onRefresh={refreshAdminData}
+          />
 
           {/* TABLE 1: ACTIONABLE LIVE MODERATION QUEUE */}
           <div className="clean-card" style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -928,37 +939,49 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     </tr>
                   </thead>
                   <tbody>
-                    {([
-                      'UC Main',
-                      'UC Banilad',
-                      'UC LM',
-                      'UC METC',
-                      'UC PRI',
-                      'UC Pardo-Talisay',
-                      'UC South Campus',
-                      'UC Medical Center'
-                    ] as Campus[]).map((campus) => {
-                      const campusUsers = allUsers.filter((u) => u.campus === campus);
-                      const campusVerified = campusUsers.filter((u) => u.isVerified);
-                      const campusListings = listings.filter((l) => l.sellerCampus === campus);
-                      const campusInventoryValue = campusListings
-                        .filter((l) => l.status !== 'sold' && !l.isSold)
-                        .reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 1), 0);
-                      const rate = campusUsers.length > 0 ? Math.round((campusVerified.length / campusUsers.length) * 100) : 0;
-                      return (
-                        <tr key={campus} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                          <td style={{ padding: '0.65rem' }}>
-                            <CampusBadge campus={campus} size="sm" />
-                          </td>
-                          <td style={{ padding: '0.65rem', fontWeight: 700, color: '#0F172A' }}>{campusUsers.length}</td>
-                          <td style={{ padding: '0.65rem' }}>
-                            <span style={{ fontWeight: 800, color: rate >= 50 ? '#059669' : '#D97706' }}>{campusVerified.length} ({rate}%)</span>
-                          </td>
-                          <td style={{ padding: '0.65rem', color: '#002B7F', fontWeight: 700 }}>{campusListings.length}</td>
-                          <td style={{ padding: '0.65rem', color: '#059669', fontWeight: 700 }}>₱{campusInventoryValue.toLocaleString()}</td>
-                        </tr>
-                      );
-                    })}
+                    {(analytics?.campusDistribution && analytics.campusDistribution.length > 0
+                      ? analytics.campusDistribution
+                      : ([
+                          'UC Main',
+                          'UC Banilad',
+                          'UC LM',
+                          'UC METC',
+                          'UC PRI',
+                          'UC Pardo-Talisay',
+                          'UC South Campus',
+                          'UC Medical Center'
+                        ] as Campus[]).map((campus) => {
+                          const campusUsers = allUsers.filter((u) => u.campus === campus);
+                          const campusVerified = campusUsers.filter((u) => u.isVerified);
+                          const campusListings = listings.filter((l) => l.sellerCampus === campus);
+                          const campusInventoryValue = campusListings
+                            .filter((l) => l.status !== 'sold' && !l.isSold)
+                            .reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 1), 0);
+                          const rate = campusUsers.length > 0 ? Math.round((campusVerified.length / campusUsers.length) * 100) : 0;
+                          return {
+                            campus,
+                            users: campusUsers.length,
+                            verifiedUsers: campusVerified.length,
+                            verifiedRate: rate,
+                            listings: campusListings.length,
+                            inventoryValue: campusInventoryValue
+                          };
+                        })
+                    ).map((item) => (
+                      <tr key={item.campus} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                        <td style={{ padding: '0.65rem' }}>
+                          <CampusBadge campus={item.campus as Campus} size="sm" />
+                        </td>
+                        <td style={{ padding: '0.65rem', fontWeight: 700, color: '#0F172A' }}>{item.users}</td>
+                        <td style={{ padding: '0.65rem' }}>
+                          <span style={{ fontWeight: 800, color: item.verifiedRate >= 50 ? '#059669' : '#D97706' }}>
+                            {item.verifiedUsers} ({item.verifiedRate}%)
+                          </span>
+                        </td>
+                        <td style={{ padding: '0.65rem', color: '#002B7F', fontWeight: 700 }}>{item.listings}</td>
+                        <td style={{ padding: '0.65rem', color: '#059669', fontWeight: 700 }}>₱{item.inventoryValue.toLocaleString()}</td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -981,23 +1004,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     </tr>
                   </thead>
                   <tbody>
-                    {(Array.from(new Set(listings.map((l) => l.category || 'General'))).slice(0, 8)).map((cat) => {
-                      const catListings = listings.filter((l) => (l.category || 'General') === cat);
-                      const catActive = catListings.filter((l) => l.status !== 'sold' && !l.isSold);
-                      const catSold = catListings.filter((l) => l.status === 'sold' || l.isSold);
-                      const avgPrice = catListings.length > 0
-                        ? Math.round(catListings.reduce((sum, item) => sum + (Number(item.price) || 0), 0) / catListings.length)
-                        : 0;
-                      return (
-                        <tr key={cat} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                          <td style={{ padding: '0.65rem', fontWeight: 700, color: '#0F172A' }}>{cat}</td>
-                          <td style={{ padding: '0.65rem', color: '#002B7F', fontWeight: 700 }}>{catActive.length}</td>
-                          <td style={{ padding: '0.65rem', color: '#059669', fontWeight: 700 }}>{catSold.length}</td>
-                          <td style={{ padding: '0.65rem', color: '#475569' }}>{catListings.length}</td>
-                          <td style={{ padding: '0.65rem', color: '#0F172A', fontWeight: 700 }}>₱{avgPrice.toLocaleString()}</td>
-                        </tr>
-                      );
-                    })}
+                    {(analytics?.categoryDistribution && analytics.categoryDistribution.length > 0
+                      ? analytics.categoryDistribution
+                      : (Array.from(new Set(listings.map((l) => l.category || 'General'))).slice(0, 8)).map((cat) => {
+                          const catListings = listings.filter((l) => (l.category || 'General') === cat);
+                          const catActive = catListings.filter((l) => l.status !== 'sold' && !l.isSold);
+                          const catSold = catListings.filter((l) => l.status === 'sold' || l.isSold);
+                          const avgPrice = catListings.length > 0
+                            ? Math.round(catListings.reduce((sum, item) => sum + (Number(item.price) || 0), 0) / catListings.length)
+                            : 0;
+                          return {
+                            category: cat,
+                            active: catActive.length,
+                            sold: catSold.length,
+                            total: catListings.length,
+                            avgPrice
+                          };
+                        })
+                    ).map((cat) => (
+                      <tr key={cat.category} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                        <td style={{ padding: '0.65rem', fontWeight: 700, color: '#0F172A' }}>{cat.category}</td>
+                        <td style={{ padding: '0.65rem', color: '#002B7F', fontWeight: 700 }}>{cat.active}</td>
+                        <td style={{ padding: '0.65rem', color: '#059669', fontWeight: 700 }}>{cat.sold}</td>
+                        <td style={{ padding: '0.65rem', color: '#475569' }}>{cat.total}</td>
+                        <td style={{ padding: '0.65rem', color: '#0F172A', fontWeight: 700 }}>₱{cat.avgPrice.toLocaleString()}</td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>

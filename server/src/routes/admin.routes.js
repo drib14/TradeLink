@@ -28,6 +28,7 @@ router.use(authenticateAdmin);
 
 // Stats & Overview
 router.get('/stats', adminController.getStats);
+router.get('/analytics', adminController.getAnalytics);
 
 // Listings Full Admin CRUD
 router.get('/listings', adminController.getAllListingsAdmin);
@@ -81,5 +82,7 @@ router.delete('/keywords/:keyword', adminController.removeKeyword);
 // System Configuration & Feature Flags
 router.patch('/config', validate(updateSystemConfigSchema), adminController.updateSystemConfig);
 router.patch('/feature-flags/:id/toggle', adminController.toggleFeatureFlag);
+router.get('/system/test-email', adminController.testEmail);
+router.post('/system/test-email', adminController.testEmail);
 
 module.exports = router;
