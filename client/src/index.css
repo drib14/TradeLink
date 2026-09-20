@@ -189,20 +189,60 @@ html, body {
   box-sizing: border-box !important;
 }
 
-/* Touch Ergonomics & Fast Tap Response (Eliminates 300ms mobile tap delay) */
+/* Touch Ergonomics & Fast Tap Response (Eliminates 300ms mobile tap delay & gray tap flash) */
+*, *::before, *::after {
+  -webkit-tap-highlight-color: transparent !important;
+}
+
 button,
 a,
 input,
 select,
 textarea,
+summary,
+[role="button"],
+[role="tab"],
 .btn-primary,
 .btn-secondary,
 .btn-gold,
 .btn-ghost,
+.btn-neutral,
+.btn-success,
+.social-btn,
+.clean-card,
 .card-interactive,
 .mobile-nav-item,
+.mobile-sell-btn,
+.campus-pill,
+.touch-scroll-row,
 .product-card-modern {
   touch-action: manipulation;
+}
+
+/* Mobile Tactile Feedback & Active States (Native app feel) */
+button, a, [role="button"], .social-btn, .mobile-nav-item, .mobile-sell-btn, .card-interactive {
+  cursor: pointer;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  button:active,
+  a:active,
+  [role="button"]:active,
+  .btn-primary:active,
+  .btn-secondary:active,
+  .btn-gold:active,
+  .btn-ghost:active,
+  .btn-neutral:active,
+  .btn-success:active,
+  .social-btn:active,
+  .card-interactive:active,
+  .clean-card:active,
+  .product-card-modern:active,
+  .mobile-nav-item:active,
+  .mobile-sell-btn:active {
+    transform: scale(0.96) !important;
+    transition: transform 0.08s ease-out !important;
+  }
 }
 
 /* Responsive Modals & Dialogs */
@@ -1388,6 +1428,7 @@ input[type="radio"] {
     width: 100vw !important;
     max-height: 90dvh !important;
     padding: 0 !important;
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom, 24px)) !important;
     margin: 0 !important;
     border-bottom: none !important;
     border-left: none !important;
@@ -1404,6 +1445,24 @@ input[type="radio"] {
     background-color: #CBD5E1;
     margin: 0.65rem auto 0.4rem auto;
   }
+}
+
+/* Ensure mobile bottom navigation bar & sticky detail bar NEVER overlay or clash with any open drawers/modals */
+body:has(.modal-backdrop-custom) .mobile-nav-bar,
+body:has(.modal-backdrop-custom) .mobile-detail-sticky-bar,
+body:has([role="dialog"]) .mobile-nav-bar,
+body:has([role="dialog"]) .mobile-detail-sticky-bar,
+body.modal-open .mobile-nav-bar,
+body.modal-open .mobile-detail-sticky-bar,
+body.drawer-open .mobile-nav-bar,
+body.drawer-open .mobile-detail-sticky-bar,
+.modal-open .mobile-nav-bar,
+.modal-open .mobile-detail-sticky-bar {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: translateY(100%) !important;
 }
 
 @keyframes drawerSlideUpAnim {

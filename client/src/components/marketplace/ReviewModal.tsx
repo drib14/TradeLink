@@ -40,6 +40,17 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
   const [selectedBadges, setSelectedBadges] = useState<string[]>(['Super Punctual', 'Mint Condition']);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  React.useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.classList.add('modal-open');
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+      document.body.classList.remove('modal-open');
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const targetUserName = currentUser?.id === meetup.sellerId ? meetup.buyerName : meetup.sellerName;

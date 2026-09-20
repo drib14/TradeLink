@@ -77,7 +77,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setNewPassword('');
       setConfirmPassword('');
       setResendCountdown(0);
+      document.body.style.overflow = 'hidden';
+      document.body.classList.add('modal-open');
     }
+    return () => {
+      document.body.style.overflow = 'unset';
+      document.body.classList.remove('modal-open');
+    };
   }, [isOpen, initialMode]);
 
   // Resend countdown timer

@@ -26,9 +26,11 @@ export const Modal: React.FC<ModalProps> = ({
       setShouldRender(true);
       setIsClosing(false);
       document.body.style.overflow = 'hidden';
+      document.body.classList.add('modal-open');
     }
     return () => {
       document.body.style.overflow = 'unset';
+      document.body.classList.remove('modal-open');
     };
   }, [isOpen]);
 
@@ -38,6 +40,7 @@ export const Modal: React.FC<ModalProps> = ({
       setIsClosing(false);
       setShouldRender(false);
       document.body.style.overflow = 'unset';
+      document.body.classList.remove('modal-open');
       onClose();
     }, 220); // Match CSS animation duration
   }, [onClose]);

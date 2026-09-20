@@ -100,6 +100,19 @@ export const CookieConsent: React.FC<CookieConsentProps> = ({ onNavigate }) => {
           border-top: 1px solid #E2E8F0;
           box-shadow: 0 -4px 24px rgba(0, 43, 127, 0.08);
         }
+        @media (max-width: 768px) {
+          .tradelink-cookie-banner {
+            bottom: calc(78px + var(--safe-bottom, 0px)) !important;
+            left: 12px !important;
+            right: 12px !important;
+            width: calc(100% - 24px) !important;
+            border-radius: 20px !important;
+            border: 1px solid #CBD5E1 !important;
+            box-shadow: 0 12px 36px rgba(0, 43, 127, 0.22) !important;
+            max-height: 80vh;
+            overflow-y: auto;
+          }
+        }
         .tradelink-cookie-banner.closing {
           animation: cookieBannerSlideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }

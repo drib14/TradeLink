@@ -44,6 +44,17 @@ export const ManageListingModal: React.FC<ManageListingModalProps> = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  React.useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.classList.add('modal-open');
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+      document.body.classList.remove('modal-open');
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleToggleSold = async () => {

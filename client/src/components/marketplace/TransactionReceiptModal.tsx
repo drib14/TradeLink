@@ -17,7 +17,18 @@ export const TransactionReceiptModal: React.FC<TransactionReceiptModalProps> = (
 }) => {
   const { showToast } = useToast();
 
-  if (!transaction) return null;
+  React.useEffect(() => {
+    if (isOpen && transaction) {
+      document.body.style.overflow = 'hidden';
+      document.body.classList.add('modal-open');
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+      document.body.classList.remove('modal-open');
+    };
+  }, [isOpen, transaction]);
+
+  if (!isOpen || !transaction) return null;
 
   const handleCopyRef = () => {
     if (navigator.clipboard) {

@@ -57,6 +57,18 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
+  // Modal open body locking & modal-open class
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.classList.add('modal-open');
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+      document.body.classList.remove('modal-open');
+    };
+  }, [isOpen]);
+
   // Fetch cryptographic session token silently in background on modal open
   useEffect(() => {
     if (!isOpen) return;

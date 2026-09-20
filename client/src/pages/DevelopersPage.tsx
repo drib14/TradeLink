@@ -188,6 +188,33 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
     setCarouselIndex((prev) => (prev === teamMembers.length - 1 ? 0 : prev + 1));
   };
 
+  // Mobile Touch Swipe Support
+  const touchStartXRef = React.useRef<number | null>(null);
+  const touchEndXRef = React.useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartXRef.current = e.touches[0].clientX;
+    touchEndXRef.current = e.touches[0].clientX;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndXRef.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStartXRef.current === null || touchEndXRef.current === null) return;
+    const diff = touchStartXRef.current - touchEndXRef.current;
+    if (Math.abs(diff) > 40) {
+      if (diff > 0) {
+        handleNext();
+      } else {
+        handlePrev();
+      }
+    }
+    touchStartXRef.current = null;
+    touchEndXRef.current = null;
+  };
+
   // Keyboard navigation support
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -202,6 +229,14 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
   return (
     <div className="container" style={{ maxWidth: '1100px', padding: '2rem 1.5rem 5rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
       <style>{`
+        .dev-carousel-stage {
+          height: 630px;
+          overflow: hidden;
+        }
+        .dev-carousel-card {
+          width: 410px;
+          max-width: 92%;
+        }
         .dev-card-wrapper {
           transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
@@ -210,10 +245,14 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
         }
         .social-btn {
           transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+          touch-action: manipulation;
         }
         .social-btn:hover {
           transform: translateY(-2px);
           filter: brightness(1.08);
+        }
+        .social-btn:active {
+          transform: scale(0.96) !important;
         }
         .campus-pill {
           display: inline-flex;
@@ -229,9 +268,48 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
         }
         .member-thumb-btn {
           transition: all 0.2s ease;
+          touch-action: manipulation;
         }
         .member-thumb-btn:hover {
           transform: translateY(-2px);
+        }
+        .member-thumb-btn:active {
+          transform: scale(0.95);
+        }
+        @media (max-width: 640px) {
+          .dev-carousel-stage {
+            height: auto !important;
+            min-height: 620px !important;
+            overflow-x: clip !important;
+            overflow-y: visible !important;
+            padding-bottom: 1.5rem !important;
+          }
+          .dev-carousel-card {
+            width: calc(100vw - 32px) !important;
+            max-width: 390px !important;
+          }
+          .dev-carousel-card .dev-card-header {
+            height: 80px !important;
+          }
+          .dev-carousel-card .dev-avatar {
+            width: 80px !important;
+            height: 80px !important;
+            font-size: 1.7rem !important;
+          }
+          .dev-carousel-card .dev-card-body {
+            padding: 0 1.15rem 1.35rem 1.15rem !important;
+            margin-top: -40px !important;
+            gap: 0.9rem !important;
+          }
+          .dev-carousel-card .dev-bio {
+            padding: 0.75rem 0.85rem !important;
+            font-size: 0.82rem !important;
+            line-height: 1.5 !important;
+          }
+          .dev-cards-grid {
+            grid-template-columns: 1fr !important;
+            gap: 1rem !important;
+          }
         }
       `}</style>
 
@@ -386,16 +464,18 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2.25rem', padding: '0.5rem 0 1rem 0' }}>
           {/* 3D Carousel Stage */}
           <div
+            className="dev-carousel-stage"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
             style={{
               position: 'relative',
               width: '100%',
               maxWidth: '920px',
-              height: '590px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              perspective: '1400px',
-              overflow: 'hidden'
+              perspective: '1400px'
             }}
           >
             {teamMembers.map((member, idx) => {
@@ -418,13 +498,12 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
               return (
                 <div
                   key={member.id}
+                  className="dev-carousel-card"
                   onClick={() => {
                     if (!isCenter) setCarouselIndex(idx);
                   }}
                   style={{
                     position: 'absolute',
-                    width: '410px',
-                    maxWidth: '92%',
                     backgroundColor: '#FFFFFF',
                     borderRadius: '24px',
                     border: isCenter ? '2px solid rgba(0, 43, 127, 0.3)' : '1px solid #E2E8F0',
@@ -437,7 +516,6 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
                     opacity,
                     zIndex,
                     cursor: isCenter ? 'default' : 'pointer',
-                    userSelect: 'none',
                     overflow: 'hidden',
                     display: 'flex',
                     flexDirection: 'column'
@@ -445,6 +523,7 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
                 >
                   {/* Top Header Accent */}
                   <div
+                    className="dev-card-header"
                     style={{
                       height: '96px',
                       background: member.badgeColor,
@@ -479,7 +558,7 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
                   </div>
 
                   {/* Card Content Container */}
-                  <div style={{ padding: '0 1.5rem 1.5rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.1rem', marginTop: '-48px' }}>
+                  <div className="dev-card-body" style={{ padding: '0 1.5rem 1.5rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.1rem', marginTop: '-48px' }}>
                     {/* Avatar & Identifiers */}
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
                       <div style={{ position: 'relative' }}>
@@ -487,6 +566,7 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
                           <img
                             src={member.avatarUrl}
                             alt={member.name}
+                            className="dev-avatar"
                             style={{
                               width: '96px',
                               height: '96px',
@@ -502,6 +582,7 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
                           />
                         ) : (
                           <div
+                            className="dev-avatar"
                             style={{
                               width: '96px',
                               height: '96px',
@@ -581,6 +662,7 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
 
                     {/* Bio Card Inset (High Readability) */}
                     <div
+                      className="dev-bio"
                       style={{
                         backgroundColor: '#F8FAFC',
                         borderRadius: '14px',
@@ -622,14 +704,15 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
 
                     {/* Card Bottom: Official Social Buttons */}
                     <div
+                      className="dev-card-ctas"
                       style={{
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: '0.75rem',
+                        gap: '0.65rem',
                         borderTop: '1px solid #E2E8F0',
-                        paddingTop: '0.9rem',
-                        flexWrap: 'wrap'
+                        paddingTop: '0.85rem',
+                        width: '100%'
                       }}
                     >
                       {/* Official Facebook Button */}
@@ -641,13 +724,14 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
                           title={`${member.name} on Facebook`}
                           className="social-btn"
                           style={{
-                            flex: 1,
-                            minWidth: '130px',
+                            flex: '1 1 0',
+                            minWidth: 0,
+                            minHeight: '44px',
                             display: 'inline-flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             gap: '0.45rem',
-                            padding: '0.55rem 1rem',
+                            padding: '0.55rem 0.85rem',
                             borderRadius: '10px',
                             backgroundColor: '#1877F2',
                             color: '#FFFFFF',
@@ -673,13 +757,14 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
                           title={`${member.name} on GitHub`}
                           className="social-btn"
                           style={{
-                            flex: 1,
-                            minWidth: '130px',
+                            flex: '1 1 0',
+                            minWidth: 0,
+                            minHeight: '44px',
                             display: 'inline-flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             gap: '0.45rem',
-                            padding: '0.55rem 1rem',
+                            padding: '0.55rem 0.85rem',
                             borderRadius: '10px',
                             backgroundColor: '#0F172A',
                             color: '#FFFFFF',
@@ -798,7 +883,7 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
       {/* VIEW MODE 2: FULL GRID VIEW                             */}
       {/* ======================================================== */}
       {viewMode === 'grid' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.5rem' }}>
+        <div className="dev-cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))', gap: '1.25rem' }}>
           {teamMembers.map((member) => (
             <div
               key={member.id}
@@ -940,7 +1025,7 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
                 </div>
 
                 {/* Social Buttons */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', borderTop: '1px solid #F1F5F9', paddingTop: '0.85rem', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', borderTop: '1px solid #F1F5F9', paddingTop: '0.85rem', width: '100%' }}>
                   {member.facebookUrl && member.facebookUrl.trim() !== '' && (
                     <a
                       href={member.facebookUrl}
@@ -949,21 +1034,23 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
                       title="Facebook"
                       className="social-btn"
                       style={{
-                        flex: 1,
+                        flex: '1 1 0',
+                        minWidth: 0,
+                        minHeight: '44px',
                         display: 'inline-flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: '0.35rem',
-                        padding: '0.45rem 0.85rem',
-                        borderRadius: '8px',
+                        gap: '0.45rem',
+                        padding: '0.55rem 0.85rem',
+                        borderRadius: '10px',
                         backgroundColor: '#1877F2',
                         color: '#FFF',
-                        fontSize: '0.78rem',
+                        fontSize: '0.82rem',
                         fontWeight: 800,
                         textDecoration: 'none'
                       }}
                     >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
                       </svg>
                       <span>Facebook</span>
@@ -977,21 +1064,23 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
                       title="GitHub"
                       className="social-btn"
                       style={{
-                        flex: 1,
+                        flex: '1 1 0',
+                        minWidth: 0,
+                        minHeight: '44px',
                         display: 'inline-flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: '0.35rem',
-                        padding: '0.45rem 0.85rem',
-                        borderRadius: '8px',
+                        gap: '0.45rem',
+                        padding: '0.55rem 0.85rem',
+                        borderRadius: '10px',
                         backgroundColor: '#0F172A',
                         color: '#FFF',
-                        fontSize: '0.78rem',
+                        fontSize: '0.82rem',
                         fontWeight: 800,
                         textDecoration: 'none'
                       }}
                     >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
                         <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
                       </svg>
                       <span>GitHub</span>

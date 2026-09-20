@@ -10,6 +10,7 @@ import {
   Bookmark,
   ArrowLeftRight,
   ShoppingBag,
+  Zap,
   Building2,
   X
 } from 'lucide-react';
@@ -71,15 +72,15 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenChat: _onO
 
           <div
             className="clean-card card-interactive"
-            onClick={() => onNavigate('marketplace')}
+            onClick={() => onNavigate('flash-market')}
             style={{ padding: '1rem 1.15rem', display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}
           >
-            <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', color: 'var(--uc-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <ShoppingBag size={18} />
+            <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--color-secondary-light, #FFF2CC)', color: 'var(--uc-blue, #002B7F)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Zap size={18} fill="var(--color-secondary, #FFC72C)" color="var(--color-secondary-dark, #E5A800)" />
             </div>
             <div>
-              <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)' }}>Full Catalog</div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Browse all student items</div>
+              <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)' }}>Flash Requests</div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Urgent peer needs &amp; pasabuy</div>
             </div>
           </div>
 

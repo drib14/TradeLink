@@ -32,6 +32,17 @@ export const CreateFlashRequestModal: React.FC<CreateFlashRequestModalProps> = (
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  React.useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.classList.add('modal-open');
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+      document.body.classList.remove('modal-open');
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -59,25 +70,20 @@ export const CreateFlashRequestModal: React.FC<CreateFlashRequestModalProps> = (
     setIsSubmitting(true);
     try {
       await addRequest({
-        itemTitle: itemTitle.trim(),
+        itemTitle: `${itemTitle.trim()}${priceLabel}`,
         category,
-        targetBudget: budgetValue,
         urgency,
-        durationHours,
-        description: (description.trim() || `Looking for ${itemTitle} in ${preferredCampus}.`) + priceLabel,
         preferredCampus,
+        targetBudget: budgetValue,
+        description: description.trim() || `Urgent request for ${itemTitle} in ${preferredCampus}.`,
+        durationHours,
         imageUrl: images[0] || undefined
       });
 
-      showToast('Flash Request Posted!', `"${itemTitle}" is now live on the Flash Market.`, 'success');
+      showToast('Flash Request Posted!', 'Campus peers have been notified.', 'success');
       onClose();
-      setItemTitle('');
-      setTargetBudget('');
-      setPriceMode('fixed');
-      setDescription('');
-      setImages([]);
     } catch (err: any) {
-      showToast('Posting Failed', err?.message || 'Unable to post flash request.', 'error');
+      showToast('Error', err?.message || 'Failed to post flash request.', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -86,27 +92,12 @@ export const CreateFlashRequestModal: React.FC<CreateFlashRequestModalProps> = (
   return (
     <div
       className="modal-backdrop-custom"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: 'rgba(15, 23, 42, 0.65)',
-        backdropFilter: 'blur(6px)',
-        zIndex: 9999,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '16px'
-      }}
       onClick={onClose}
     >
       <div
         className="modal-card-custom"
         style={{
-          backgroundColor: '#FFFFFF',
-          borderRadius: '16px',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
           maxWidth: '520px',
-          maxHeight: '90vh',
           width: '100%',
           overflow: 'hidden',
           display: 'flex',

@@ -54,6 +54,17 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmedTransaction, setConfirmedTransaction] = useState<any>(null);
 
+  React.useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.classList.add('modal-open');
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+      document.body.classList.remove('modal-open');
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   if (!isAuthenticated || !currentUser) {
