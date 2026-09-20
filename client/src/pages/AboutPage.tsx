@@ -154,8 +154,8 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
       {/* Campus Hub Explorer */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <div>
-          <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-            <Building2 size={20} color="var(--uc-blue)" /> Campus Trading Hubs
+          <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+            Campus Trading Hubs
           </h3>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
             Select any campus hub to filter items and find fellow students near you.

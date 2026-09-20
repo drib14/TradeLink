@@ -18,10 +18,13 @@ import { ListingCard } from '../components/ListingCard';
 export default function ProfileScreen() {
   const { currentUser, isAuthenticated, logout, openAuthModal } = useAuth();
   const { listings, favorites } = useMarket();
-  const [activeTab, setActiveTab] = useState<'listings' | 'favorites'>('listings');
+  const [activeTab, setActiveTab] = useState<'listings' | 'sold' | 'favorites'>('listings');
 
   const myListings = currentUser
-    ? listings.filter((l) => (l.seller?.id || l.sellerId) === currentUser.id)
+    ? listings.filter((l) => (l.seller?.id || l.sellerId) === currentUser.id && !l.isSold)
+    : [];
+  const mySoldListings = currentUser
+    ? listings.filter((l) => (l.seller?.id || l.sellerId) === currentUser.id && l.isSold)
     : [];
   const myFavoriteListings = listings.filter((l) => favorites.includes(l.id));
 
@@ -139,19 +142,23 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      {/* 2. Tabs: My Listings / Saved Favorites */}
+      {/* 2. Tabs: Active / Fulfilled / Saved */}
       <View style={styles.tabSwitcher}>
         <TouchableOpacity
           style={[styles.switchTab, activeTab === 'listings' && styles.switchTabActive]}
           onPress={() => setActiveTab('listings')}
         >
-          <Ionicons
-            name="pricetags-outline"
-            size={16}
-            color={activeTab === 'listings' ? '#002B7F' : '#64748B'}
-          />
           <Text style={[styles.switchTabText, activeTab === 'listings' && styles.switchTabTextActive]}>
-            My Listings ({myListings.length})
+            Active ({myListings.length})
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.switchTab, activeTab === 'sold' && styles.switchTabActive]}
+          onPress={() => setActiveTab('sold')}
+        >
+          <Text style={[styles.switchTabText, activeTab === 'sold' && styles.switchTabTextActive]}>
+            Fulfilled ({mySoldListings.length})
           </Text>
         </TouchableOpacity>
 
@@ -159,11 +166,6 @@ export default function ProfileScreen() {
           style={[styles.switchTab, activeTab === 'favorites' && styles.switchTabActive]}
           onPress={() => setActiveTab('favorites')}
         >
-          <Ionicons
-            name="heart-outline"
-            size={16}
-            color={activeTab === 'favorites' ? '#002B7F' : '#64748B'}
-          />
           <Text style={[styles.switchTabText, activeTab === 'favorites' && styles.switchTabTextActive]}>
             Saved ({myFavoriteListings.length})
           </Text>
@@ -191,6 +193,22 @@ export default function ProfileScreen() {
           ) : (
             <View style={styles.feedGrid}>
               {myListings.map((l) => (
+                <ListingCard key={l.id} listing={l} />
+              ))}
+            </View>
+          )
+        ) : activeTab === 'sold' ? (
+          mySoldListings.length === 0 ? (
+            <View style={styles.emptyItemsBox}>
+              <Ionicons name="checkmark-circle-outline" size={42} color="#CBD5E1" />
+              <Text style={styles.emptyItemsTitle}>No fulfilled trades yet</Text>
+              <Text style={styles.emptyItemsSub}>
+                Items you sell or swap will appear here once marked as fulfilled.
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.feedGrid}>
+              {mySoldListings.map((l) => (
                 <ListingCard key={l.id} listing={l} />
               ))}
             </View>

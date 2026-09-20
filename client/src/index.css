@@ -2871,4 +2871,167 @@ textarea:focus,
   }
 }
 
+/* =========================================================================
+   MOBILE-FIRST PROFILE LAYOUT PRIMITIVES & ALIGNMENT
+   ========================================================================= */
+
+/* Profile Header Card */
+.profile-details-wrapper {
+  padding: 0 1rem 1.25rem 1rem;
+  margin-top: -42px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .profile-details-wrapper {
+    padding: 0 1.75rem 1.75rem 1.75rem;
+    margin-top: -48px;
+  }
+}
+
+/* Avatar, Identity & Primary Actions Row */
+.profile-avatar-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1rem;
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .profile-avatar-row {
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+    text-align: left;
+    gap: 1.25rem;
+  }
+}
+
+.profile-identity-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .profile-identity-col {
+    align-items: flex-start;
+    width: auto;
+  }
+}
+
+.profile-meta-chips {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  color: var(--text-muted, #64748B);
+  margin-top: 0.35rem;
+}
+
+@media (min-width: 640px) {
+  .profile-meta-chips {
+    justify-content: flex-start;
+  }
+}
+
+/* Actions Grid: 2-column touch buttons on mobile, horizontal flex on desktop */
+.profile-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  width: 100%;
+  gap: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .profile-actions-grid {
+    display: flex;
+    align-items: center;
+    width: auto;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+  }
+}
+
+/* Stats: Responsive 3-card grid on mobile, flex row on desktop */
+.profile-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  width: 100%;
+  gap: 0.5rem;
+  text-align: center;
+}
+
+@media (min-width: 640px) {
+  .profile-stats-grid {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    text-align: left;
+    width: auto;
+  }
+}
+
+.profile-stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--bg-subtle, #F8FAFC);
+  padding: 0.6rem 0.4rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle, #E2E8F0);
+}
+
+@media (min-width: 640px) {
+  .profile-stat-item {
+    background: transparent;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+  }
+}
+
+/* Fluid Touch Toolbar for In-Store Search & Filters */
+.profile-store-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .profile-store-toolbar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.profile-search-field {
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .profile-search-field {
+    width: 240px;
+  }
+}
+
+.profile-sort-field {
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .profile-sort-field {
+    width: 140px;
+  }
+}
+
 

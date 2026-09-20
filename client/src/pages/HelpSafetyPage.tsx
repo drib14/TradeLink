@@ -166,8 +166,8 @@ export const HelpSafetyPage: React.FC<HelpSafetyPageProps> = ({ onNavigate }) =>
 
       {/* Safe Trade Checklist */}
       <div className="clean-card" style={{ padding: '1.5rem' }}>
-        <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-          <CheckCircle2 size={20} color="var(--accent-green)" /> Safe Trading Checklist for Students
+        <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.85rem' }}>
+          Safe Trading Checklist for Students
         </h3>
         <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.86rem', color: 'var(--text-secondary)', padding: 0, margin: 0 }}>
           {SAFE_MEETUP_CHECKLIST.map((tip, idx) => (

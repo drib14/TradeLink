@@ -8,7 +8,6 @@ import { Campus, Listing } from '../types';
 import {
   ArrowRight,
   Bookmark,
-  Zap,
   ArrowLeftRight,
   ShoppingBag,
   Building2,
@@ -72,15 +71,15 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenChat: _onO
 
           <div
             className="clean-card card-interactive"
-            onClick={() => onNavigate('flash-market')}
+            onClick={() => onNavigate('marketplace')}
             style={{ padding: '1rem 1.15rem', display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}
           >
-            <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--color-danger-subtle, #FEF2F2)', color: 'var(--color-danger, #DC2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Zap size={18} />
+            <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', color: 'var(--uc-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <ShoppingBag size={18} />
             </div>
             <div>
-              <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)' }}>Flash Market</div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Urgent campus requests</div>
+              <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)' }}>Full Catalog</div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Browse all student items</div>
             </div>
           </div>
 
@@ -89,7 +88,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenChat: _onO
             onClick={() => onNavigate('swaps')}
             style={{ padding: '1rem 1.15rem', display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}
           >
-            <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', color: 'var(--uc-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--color-success-subtle, #ECFDF5)', color: 'var(--accent-green, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <ArrowLeftRight size={18} />
             </div>
             <div>
@@ -104,9 +103,8 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenChat: _onO
       <section className="container">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.85rem', marginBottom: '1.25rem' }}>
           <div>
-            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-display)', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-              <ShoppingBag size={20} color="var(--uc-blue)" />
-              <span>Campus Marketplace Feed</span>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
+              Campus Marketplace Feed
             </h2>
             <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
               Verified items from UC students across all colleges & campuses

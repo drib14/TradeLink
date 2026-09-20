@@ -129,7 +129,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
 
   const isSelf = !!currentUser && !!targetUser && currentUser.id === targetUser.id;
 
-  const [activeTab, setActiveTab] = useState<'listings' | 'sold' | 'saved' | 'transactions' | 'reviews' | 'flash' | 'wanted'>('listings');
+  const [activeTab, setActiveTab] = useState<'listings' | 'sold' | 'saved' | 'transactions' | 'reviews'>('listings');
   const [listingFilter, setListingFilter] = useState<'all' | 'buy_sell' | 'swap' | 'free_donation'>('all');
   const [bioInput, setBioInput] = useState(targetUser?.bio || '');
   const [isEditingBio, setIsEditingBio] = useState(false);
@@ -453,43 +453,19 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
             padding: '1.25rem 1.75rem',
             display: 'flex',
             alignItems: 'flex-start',
-            justifyContent: 'space-between'
+            justifyContent: 'flex-end'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#FFC72C', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            <ShieldCheck size={15} /> Verified Student Peer
-          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
             <CampusBadge campus={targetUser.campus} size="sm" />
-            <button
-              onClick={handleShareProfile}
-              style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                backdropFilter: 'blur(6px)',
-                border: '1px solid rgba(255, 255, 255, 0.25)',
-                color: '#FFFFFF',
-                borderRadius: '8px',
-                padding: '0.35rem 0.65rem',
-                fontSize: '0.74rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.35rem'
-              }}
-              title="Share Profile"
-            >
-              {isCopiedLink ? <Check size={14} color="#86EFAC" /> : <Share2 size={14} />}
-              <span>{isCopiedLink ? 'Copied' : 'Share'}</span>
-            </button>
           </div>
         </div>
 
         {/* Profile Details Container */}
-        <div style={{ padding: '0 1.75rem 1.75rem 1.75rem', marginTop: '-48px', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div className="profile-details-wrapper">
           {/* Avatar, Identity & Primary Actions Row */}
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.25rem' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: '1.25rem' }}>
+          <div className="profile-avatar-row">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
               <div style={{ position: 'relative' }}>
                 <UserAvatar
                   src={targetUser.avatar}
@@ -507,54 +483,46 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 )}
               </div>
 
-              <div>
+              <div className="profile-identity-col">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  <h1 style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--text-primary, #0F172A)', fontFamily: 'var(--font-display)' }}>
+                  <h1 style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--text-primary, #0F172A)', fontFamily: 'var(--font-display)', margin: 0 }}>
                     {targetUser.name}
                   </h1>
                   {targetUser.isVerified ? (
-                    <span style={{ backgroundColor: 'var(--accent-green-subtle, #ECFDF5)', color: 'var(--accent-green, #059669)', padding: '0.2rem 0.55rem', borderRadius: '9999px', fontSize: '0.72rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                      <Check size={12} /> Official Verified Peer
-                    </span>
+                    <VerifiedBadge size="md" variant="green" />
                   ) : (
-                    <span style={{ backgroundColor: 'rgba(255, 199, 44, 0.15)', color: '#B45309', padding: '0.2rem 0.55rem', borderRadius: '9999px', fontSize: '0.72rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                      <Clock size={12} /> Unverified Student
+                    <span style={{ backgroundColor: 'rgba(255, 199, 44, 0.15)', color: '#B45309', padding: '0.2rem 0.55rem', borderRadius: '9999px', fontSize: '0.72rem', fontWeight: 800 }}>
+                      Unverified Student
                     </span>
                   )}
                 </div>
 
-                <div style={{ fontSize: '0.84rem', color: 'var(--text-muted, #64748B)', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+                <div className="profile-meta-chips">
                   <span style={{ color: 'var(--uc-blue, #002B7F)', fontWeight: 800 }}>ID: {maskStudentId(targetUser.studentId, isSelf)}</span>
-                  <span>•</span>
                   <span>{targetUser.campus}</span>
-                  <span>•</span>
                   <span style={{ color: 'var(--text-primary, #0F172A)', fontWeight: 600 }}>{targetUser.college}</span>
-                  <span>•</span>
                   <span>{targetUser.yearLevel}</span>
                 </div>
 
                 {/* Marketplace Status Indicator */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginTop: '0.4rem', fontSize: '0.75rem', color: 'var(--text-secondary, #475569)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginTop: '0.4rem', fontSize: '0.75rem', color: 'var(--text-secondary, #475569)', flexWrap: 'wrap' }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: 'var(--accent-green, #059669)', fontWeight: 700 }}>
                     <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: 'var(--accent-green, #059669)', display: 'inline-block' }} />
                     Active Trader
                   </span>
-                  <span>•</span>
-                  <span>Fast Response</span>
-                  <span>•</span>
                   <span>Member since {targetUser.joinedDate ? new Date(targetUser.joinedDate).getFullYear() : '2024'}</span>
                 </div>
               </div>
             </div>
 
             {/* Header Actions */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+            <div className="profile-actions-grid">
               {!isSelf ? (
                 <>
                   <button
                     onClick={handleStartChatWithUser}
                     className="btn-primary"
-                    style={{ padding: '0.65rem 1.35rem', fontSize: '0.85rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
+                    style={{ padding: '0.65rem 1.35rem', fontSize: '0.85rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem', minHeight: '44px' }}
                   >
                     <MessageSquare size={16} /> Message Seller
                   </button>
@@ -562,7 +530,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                   <button
                     onClick={handleShareProfile}
                     className="btn-secondary"
-                    style={{ padding: '0.65rem 1rem', fontSize: '0.82rem', fontWeight: 700 }}
+                    style={{ padding: '0.65rem 1rem', fontSize: '0.82rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', minHeight: '44px' }}
                   >
                     {isCopiedLink ? <Check size={15} color="var(--accent-green)" /> : <Copy size={15} />}
                     <span>{isCopiedLink ? 'Copied' : 'Share Store'}</span>
@@ -580,17 +548,19 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                       fontWeight: 800,
                       display: 'inline-flex',
                       alignItems: 'center',
+                      justifyContent: 'center',
                       gap: '0.45rem',
-                      boxShadow: '0 4px 14px rgba(255, 199, 44, 0.35)'
+                      boxShadow: '0 4px 14px rgba(255, 199, 44, 0.35)',
+                      minHeight: '44px'
                     }}
                   >
-                    <PlusCircle size={16} /> + Post New Item
+                    <PlusCircle size={16} /> Post New Item
                   </button>
 
                   <button
                     onClick={() => setIsEditProfileModalOpen(true)}
                     className="btn-secondary"
-                    style={{ padding: '0.65rem 1rem', fontSize: '0.82rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                    style={{ padding: '0.65rem 1rem', fontSize: '0.82rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', minHeight: '44px' }}
                   >
                     <Edit3 size={15} /> Edit Profile
                   </button>
@@ -598,7 +568,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                   <button
                     onClick={() => onNavigate('settings')}
                     className="btn-ghost"
-                    style={{ padding: '0.65rem 0.85rem', fontSize: '0.82rem' }}
+                    style={{ padding: '0.65rem 0.85rem', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: '44px' }}
                     title="Account Settings"
                   >
                     <Settings size={17} />
@@ -607,7 +577,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                   <button
                     onClick={handleShareProfile}
                     className="btn-ghost"
-                    style={{ padding: '0.65rem 0.85rem', fontSize: '0.82rem' }}
+                    style={{ padding: '0.65rem 0.85rem', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: '44px' }}
                     title="Share Profile Link"
                   >
                     {isCopiedLink ? <Check size={17} color="var(--accent-green)" /> : <Copy size={17} />}
@@ -626,22 +596,24 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                       fontWeight: 800,
                       display: 'inline-flex',
                       alignItems: 'center',
+                      justifyContent: 'center',
                       gap: '0.45rem',
                       backgroundColor: 'rgba(255, 199, 44, 0.15)',
                       borderColor: 'rgba(229, 168, 0, 0.4)',
-                      color: '#B45309'
+                      color: '#B45309',
+                      minHeight: '44px'
                     }}
                     title="Click to view submission status"
                   >
-                    <Clock size={15} /> Verification Pending Review
+                    Verification Pending Review
                   </button>
                 ) : (
                   <button
                     onClick={() => setIsVerificationModalOpen(true)}
                     className="btn-gold"
-                    style={{ padding: '0.65rem 1.2rem', fontSize: '0.82rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                    style={{ padding: '0.65rem 1.2rem', fontSize: '0.82rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', minHeight: '44px' }}
                   >
-                    <AlertCircle size={15} /> Verify Student ID
+                    Verify Student ID
                   </button>
                 )
               )}
@@ -670,20 +642,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 </div>
               </div>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary, #334155)', lineHeight: 1.5, margin: 0 }}>
-                  {targetUser.bio || 'Verified student active in campus marketplace exchanges, course gear, and textbook swaps.'}
-                </p>
-                {isSelf && (
-                  <button
-                    onClick={() => setIsEditingBio(true)}
-                    title="Edit Bio"
-                    style={{ color: 'var(--uc-blue, #002B7F)', padding: '0.2rem 0.4rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.25rem', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0, marginLeft: '0.5rem' }}
-                  >
-                    <Edit3 size={13} /> Edit
-                  </button>
-                )}
-              </div>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary, #334155)', lineHeight: 1.5, margin: 0 }}>
+                {targetUser.bio || 'Verified student active in campus marketplace exchanges, course gear, and textbook swaps.'}
+              </p>
             )}
           </div>
 
@@ -703,67 +664,60 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
             >
               {/* Header with summary stats */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <TrendingUp size={18} color="var(--uc-blue)" />
-                  <div>
-                    <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary, #0F172A)', margin: 0 }}>
-                      Sales &amp; Trade Volume Activity
-                    </h3>
-                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted, #64748B)', margin: '2px 0 0 0' }}>
-                      Recent 6-month transaction and inventory trends
-                    </p>
-                  </div>
+                <div>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary, #0F172A)', margin: 0 }}>
+                    Sales &amp; Trade Volume Activity
+                  </h3>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted, #64748B)', margin: '2px 0 0 0' }}>
+                    Recent 6-month transaction and inventory trends
+                  </p>
                 </div>
 
-                {/* Inline Stats Summary */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
-                  <div>
+                {/* Responsive Mobile-First Stats Grid */}
+                <div className="profile-stats-grid">
+                  <div className="profile-stat-item">
                     <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 700 }}>
                       Active Inventory
                     </span>
                     <span style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--uc-blue, #002B7F)' }}>
                       ₱{activeInventoryValue.toLocaleString()}
                     </span>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: '0.35rem' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                       ({userActiveListings.length} items)
                     </span>
                   </div>
 
-                  <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--border-subtle, #E2E8F0)' }} />
-
-                  <div>
+                  <div className="profile-stat-item">
                     <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 700 }}>
                       Completed Trades
                     </span>
                     <span style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--accent-green, #059669)' }}>
                       {completedTradesCount}
                     </span>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: '0.35rem' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                       fulfilled
                     </span>
                   </div>
 
-                  <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--border-subtle, #E2E8F0)' }} />
-
-                  <div>
+                  <div className="profile-stat-item">
                     <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 700 }}>
-                      Product Reviews
+                      Reviews
                     </span>
                     <span style={{ fontSize: '1.15rem', fontWeight: 900, color: '#D97706' }}>
                       {rating > 0 ? rating.toFixed(1) : '5.0'} ★
                     </span>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: '0.35rem' }}>
-                      ({totalReviewsCount} ratings)
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                      ({totalReviewsCount})
                     </span>
                   </div>
                 </div>
               </div>
 
               {/* Responsive SVG Chart */}
-              <div style={{ width: '100%', overflowX: 'auto' }}>
+              <div style={{ width: '100%', overflowX: 'hidden' }}>
                 <svg
                   viewBox="0 0 700 170"
-                  style={{ width: '100%', minWidth: '460px', height: 'auto', display: 'block' }}
+                  style={{ width: '100%', height: 'auto', display: 'block' }}
                   aria-label="Monthly trade activity chart"
                 >
                   {/* Grid lines */}
@@ -1083,12 +1037,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
             )}
 
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <BadgeCheck size={18} color="var(--accent-green, #059669)" />
-                <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--uc-blue, #002B7F)' }}>
-                  Campus Student ID Verified
-                </h3>
-              </div>
+              <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--uc-blue, #002B7F)', margin: 0 }}>
+                Campus Student ID Verified
+              </h3>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary, #475569)', marginTop: '0.15rem', margin: 0 }}>
                 ID Number: <strong>{maskStudentId(targetUser.studentId, isSelf || currentUser?.role === 'admin')}</strong> • Enrolled at <strong>{targetUser.campus}</strong> ({targetUser.college})
               </p>
@@ -1127,12 +1078,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
             }}
           >
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                <ShieldAlert size={18} color="#DC2626" />
-                <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: '#DC2626' }}>
-                  Verification Resubmission Needed
-                </h3>
-              </div>
+              <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: '#DC2626', margin: 0 }}>
+                Verification Resubmission Needed
+              </h3>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem', margin: 0 }}>
                 Moderator Note: <strong>{(targetUser as any)?.verificationRejectionReason || 'Uploaded ID document or selfie was unreadable.'}</strong>
               </p>
@@ -1160,12 +1108,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
             }}
           >
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                <Clock size={18} color="var(--uc-blue)" />
-                <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--uc-blue)' }}>
-                  Verification Request In Progress
-                </h3>
-              </div>
+              <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--uc-blue)', margin: 0 }}>
+                Verification Request In Progress
+              </h3>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem', margin: 0 }}>
                 Your student credentials and live biometric selfie have been submitted for campus moderation. Please allow <strong>1–3 business days</strong> for campus safety administrators to complete verification.
               </p>
@@ -1193,12 +1138,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
             }}
           >
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                <ShieldAlert size={18} color="#B45309" />
-                <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--uc-blue)' }}>
-                  Account Status: Unverified Student
-                </h3>
-              </div>
+              <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--uc-blue)', margin: 0 }}>
+                Account Status: Unverified Student
+              </h3>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem', margin: 0 }}>
                 Complete the 2-step verification (Student ID + Live Selfie) to unlock marketplace listing and barter privileges.
               </p>
@@ -1265,13 +1207,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
         >
           <Star size={14} style={{ flexShrink: 0 }} /> <span>Reviews ({userReviews.length})</span>
         </button>
-
-        <button
-          onClick={() => setActiveTab('flash')}
-          className={`segmented-tab ${activeTab === 'flash' || activeTab === 'wanted' ? 'active' : ''}`}
-        >
-          <Zap size={14} style={{ flexShrink: 0, color: 'var(--uc-gold)' }} /> <span>Flash Requests ({userFlash.length})</span>
-        </button>
       </div>
 
       {/* 6. TAB CONTENTS */}
@@ -1280,16 +1215,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
       {activeTab === 'listings' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {/* In-store Search & Filtering Bar */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '0.75rem',
-              padding: '0.5rem 0'
-            }}
-          >
+          <div className="profile-store-toolbar" style={{ padding: '0.5rem 0' }}>
             {/* Mode filter pills */}
             <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
               {[
@@ -1310,8 +1236,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
             </div>
 
             {/* In-store Search Input & Sort Dropdown */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <div style={{ position: 'relative', width: '220px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', width: '100%', maxWidth: '420px' }}>
+              <div className="profile-search-field" style={{ position: 'relative', flex: 1, minWidth: '150px' }}>
                 <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                 <input
                   type="text"
@@ -1319,7 +1245,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                   onChange={(e) => setStoreSearch(e.target.value)}
                   placeholder={`Search ${targetUser.name.split(' ')[0]}'s items...`}
                   className="clean-input"
-                  style={{ paddingLeft: '34px', paddingRight: storeSearch ? '28px' : '10px', height: '34px', fontSize: '0.78rem' }}
+                  style={{ paddingLeft: '34px', paddingRight: storeSearch ? '28px' : '10px', height: '34px', fontSize: '0.78rem', width: '100%' }}
                 />
                 {storeSearch && (
                   <button
@@ -1335,8 +1261,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
               <select
                 value={storeSort}
                 onChange={(e: any) => setStoreSort(e.target.value)}
-                className="clean-input"
-                style={{ height: '34px', fontSize: '0.78rem', padding: '0 0.5rem', width: '135px' }}
+                className="clean-input profile-sort-field"
+                style={{ height: '34px', fontSize: '0.78rem', padding: '0 0.5rem' }}
               >
                 <option value="newest">Newest First</option>
                 <option value="price_asc">Price: Low to High</option>
@@ -2063,51 +1989,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
               <h4 className="empty-state-title">No Peer Reviews Yet</h4>
               <p className="empty-state-desc">
                 Ratings and comments from other students after completing transactions will be published here.
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* TAB 6: FLASH REQUESTS */}
-      {(activeTab === 'flash' || activeTab === 'wanted') && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {userFlash.length > 0 ? (
-            <div className="grid-responsive-wanted">
-              {userFlash.map((w) => (
-                <div key={w.id} className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', borderRadius: '14px', borderLeft: '4px solid var(--uc-gold)' }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                    <CampusBadge campus={w.preferredCampus} size="sm" />
-                    <span style={{ fontSize: '0.86rem', fontWeight: 900, color: 'var(--uc-blue)' }}>
-                      {w.targetBudget <= 0 && w.targetBudget !== 0 ? (
-                        <span style={{ color: 'var(--accent-green, #059669)' }}>FREE / Donation</span>
-                      ) : w.targetBudget === 0 ? (
-                        <span style={{ color: '#D97706' }}>Open to Offers</span>
-                      ) : (
-                        `₱${w.targetBudget.toLocaleString()}`
-                      )}
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Zap size={14} color="var(--uc-gold)" />
-                    <h4 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>{w.itemTitle}</h4>
-                  </div>
-                  <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.45, margin: 0 }}>{w.description}</p>
-                  <div style={{ marginTop: 'auto', paddingTop: '0.5rem', borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    <span>Category: {w.category}</span>
-                    <span style={{ color: 'var(--accent-green)', fontWeight: 700 }}>{w.offersCount} Offers Received</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="empty-state">
-              <div className="empty-state-icon">
-                <Zap size={28} color="var(--uc-gold)" />
-              </div>
-              <h4 className="empty-state-title">No Open Flash Requests</h4>
-              <p className="empty-state-desc">
-                Post urgent needs for books, tools, or uniform parts so other students on campus can offer them quickly.
               </p>
             </div>
           )}

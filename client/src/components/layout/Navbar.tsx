@@ -19,7 +19,6 @@ import {
   Receipt,
   Settings,
   Shield,
-  Zap,
   Clock,
   Check
 } from 'lucide-react';
@@ -279,26 +278,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               }}
             >
               Explore
-            </button>
-
-            <button
-              onClick={() => onNavigate('flash-market')}
-              style={{
-                padding: '0.45rem 0.75rem',
-                borderRadius: '8px',
-                fontSize: '0.84rem',
-                fontWeight: currentView === 'flash-market' || currentView === 'wanted' ? 800 : 600,
-                color: currentView === 'flash-market' || currentView === 'wanted' ? 'var(--uc-blue, #002B7F)' : 'var(--text-secondary, #475569)',
-                backgroundColor: currentView === 'flash-market' || currentView === 'wanted' ? 'var(--uc-blue-subtle, #EBF1FC)' : 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}
-            >
-              <Zap size={14} />
-              <span>Flash Market</span>
             </button>
 
             <button

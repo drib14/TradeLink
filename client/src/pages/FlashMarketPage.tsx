@@ -192,11 +192,8 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
         }}
       >
         <div style={{ maxWidth: '640px' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#FFC72C', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            <Zap size={16} style={{ flexShrink: 0 }} /> <span>Urgent Campus Marketplace</span>
-          </div>
-          <h1 style={{ fontSize: 'clamp(1.5rem, 3vw, 2.2rem)', fontWeight: 900, color: '#FFFFFF', marginTop: '0.4rem', lineHeight: 1.2, fontFamily: 'var(--font-display)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Zap size={28} color="#FFC72C" /> <span>Flash Market</span>
+          <h1 style={{ fontSize: 'clamp(1.5rem, 3vw, 2.2rem)', fontWeight: 900, color: '#FFFFFF', marginTop: '0.2rem', lineHeight: 1.2, fontFamily: 'var(--font-display)' }}>
+            Flash Market
           </h1>
           <p style={{ fontSize: '0.88rem', color: '#E2E8F0', marginTop: '0.55rem', lineHeight: 1.6 }}>
             Need an item today or this week? Broadcast urgent requests for uniforms, calculators, reviewers, or tools. Verified students respond with what they have!

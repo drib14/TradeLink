@@ -208,9 +208,8 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
               {conversations.length}
             </span>
           </h1>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <ShieldCheck size={14} color="#059669" />
-            <span>Direct Peer Messaging • Coordinate Safe Campus Meetups</span>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+            Direct Peer Messaging • Coordinate Safe Campus Meetups
           </p>
         </div>
 

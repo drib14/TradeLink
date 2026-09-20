@@ -11,7 +11,6 @@ import {
   RotateCcw,
   ChevronLeft,
   ChevronRight,
-  Zap,
   ArrowRight
 } from 'lucide-react';
 
@@ -122,42 +121,6 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({
             <Plus size={15} /> Sell / Swap Item
           </button>
         </div>
-      </div>
-      {/* Flash Market Dedicated Spotlight Banner */}
-      <div
-        style={{
-          backgroundColor: 'var(--bg-subtle, #F8FAFC)',
-          border: '1.5px solid var(--uc-blue-border, #BCD1F7)',
-          borderRadius: '16px',
-          padding: '0.95rem 1.35rem',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '0.85rem'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#FFC72C', color: '#002B7F', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(255, 199, 44, 0.35)' }}>
-            <Zap size={20} />
-          </div>
-          <div>
-            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--uc-blue)' }}>
-              Looking for Urgent Academic Needs or Fulfilling Peer Requests?
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-              Need urgent supplies for clinicals or exams? Visit the UC Flash Market &rarr;
-            </div>
-          </div>
-        </div>
-        <button
-          onClick={() => onNavigate('flash-market')}
-          className="btn-primary"
-          style={{ padding: '0.5rem 1.15rem', fontSize: '0.82rem', fontWeight: 800, borderRadius: '10px', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-        >
-          <span>Visit Flash Market</span>
-          <ArrowRight size={14} />
-        </button>
       </div>
 
       {/* Filter Bar with Trade Mode selection */}
