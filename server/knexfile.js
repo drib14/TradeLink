@@ -76,11 +76,11 @@ module.exports = {
     client: 'mysql2',
     connection: buildConnection('tradelink_db'),
     pool: {
-      min: 2,
-      max: 25,
+      min: process.env.VERCEL ? 0 : 2,
+      max: process.env.VERCEL ? 10 : 25,
       acquireTimeoutMillis: 30000,
       createTimeoutMillis: 30000,
-      idleTimeoutMillis: 30000
+      idleTimeoutMillis: process.env.VERCEL ? 10000 : 30000
     },
     migrations: {
       directory: './migrations',

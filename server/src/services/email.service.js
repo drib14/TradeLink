@@ -4,7 +4,7 @@ const logger = require('../utils/logger');
 
 let transporter = null;
 
-// Initialize Gmail SMTP transporter (only outside test suite)
+// Initialize SMTP transporter (Gmail or custom SMTP)
 if (env.env !== 'test' && env.email.user && env.email.pass) {
   const isGmail = (env.email.host && env.email.host.includes('gmail')) || env.email.user.endsWith('@gmail.com');
   const transportConfig = isGmail
@@ -24,7 +24,15 @@ if (env.env !== 'test' && env.email.user && env.email.pass) {
           pass: env.email.pass
         }
       };
-  transporter = nodemailer.createTransport(transportConfig);
+
+  try {
+    transporter = nodemailer.createTransport(transportConfig);
+    logger.info(`[EMAIL SERVICE] SMTP transporter initialized for ${env.email.user} (${isGmail ? 'Gmail Service' : env.email.host})`);
+  } catch (err) {
+    logger.error(`[EMAIL SERVICE] Failed to create SMTP transporter: ${err.message}`);
+  }
+} else if (env.env !== 'test') {
+  logger.warn('[EMAIL SERVICE] SMTP credentials not set. Running in development bypass mode.');
 }
 
 /**
@@ -552,33 +560,40 @@ async function sendOrderStatusUpdateEmail(targetUser, otherUser, transaction, li
 }
 
 /**
- * Internal mail dispatcher with mock logger fallback and bypass resilience
+ * Dispatches email via Nodemailer SMTP with development bypass resilience
  */
 async function sendMail(toEmail, subject, text, html) {
-  if (!transporter) {
-    const maskedEmail = toEmail ? toEmail.replace(/(.{2})(.*)(@.*)/, '$1***$3') : '[REDACTED]';
-    logger.info(`[MOCK EMAIL] Dispatch to ${maskedEmail} | Subject: "${subject}"`);
+  // 1. Direct dispatch via Nodemailer SMTP
+  if (transporter) {
+    try {
+      const info = await transporter.sendMail({
+        from: env.email.from,
+        to: toEmail,
+        subject,
+        text,
+        html
+      });
+      logger.info(`[SMTP EMAIL SENT] Successfully dispatched to ${toEmail} | MessageId: ${info?.messageId || 'ok'} | Subject: "${subject}"`);
+      return { ok: true, messageId: info?.messageId, provider: 'smtp' };
+    } catch (smtpErr) {
+      logger.error(`[SMTP ERROR] Failed to send email to ${toEmail}: ${smtpErr.message}`);
+      if (env.email.bypassMode) {
+        logger.warn(`[EMAIL BYPASS] Non-production bypass active. Handled delivery to ${toEmail} for: "${subject}"`);
+        return { ok: true, bypassed: true, error: smtpErr.message };
+      }
+      return { ok: false, error: smtpErr.message };
+    }
+  }
+
+  // 2. Bypass / Mock mode when SMTP is unconfigured or in development
+  const maskedEmail = toEmail ? toEmail.replace(/(.{2})(.*)(@.*)/, '$1***$3') : '[REDACTED]';
+  if (env.email.bypassMode) {
+    logger.info(`[EMAIL BYPASS] Non-production bypass dispatch to ${maskedEmail} | Subject: "${subject}"`);
     return { ok: true, mock: true, bypassed: true };
   }
 
-  try {
-    const info = await transporter.sendMail({
-      from: env.email.from,
-      to: toEmail,
-      subject,
-      text,
-      html
-    });
-    logger.info(`[EMAIL SENT] Successfully dispatched to ${toEmail} | MessageId: ${info?.messageId || 'ok'} | Subject: "${subject}"`);
-    return { ok: true, messageId: info?.messageId };
-  } catch (error) {
-    logger.error(`[EMAIL ERROR] Failed to send email to ${toEmail}: ${error.message}`);
-    if (env.email.bypassMode) {
-      logger.warn(`[EMAIL BYPASS] Non-production bypass active. Treated delivery to ${toEmail} as successful for: "${subject}"`);
-      return { ok: true, bypassed: true, error: error.message };
-    }
-    return { ok: false, error: error.message };
-  }
+  logger.error(`[EMAIL ERROR] SMTP transporter not configured. Cannot dispatch email to ${maskedEmail}`);
+  return { ok: false, error: 'SMTP transporter not configured' };
 }
 
 module.exports = {

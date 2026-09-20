@@ -12,197 +12,148 @@ This guide details the complete production deployment procedure for the **Univer
 
 ```mermaid
 graph TD
-    Client["Student Web App (Vercel)<br/>https://tradelink-uc.vercel.app"] -->|REST / HTTPS| Render["TradeLink API Server (Render)<br/>https://tradelink-api.onrender.com"]
-    Client -->|WebSockets (wss://)| Render
-    Admin["Admin Portal (Vercel)<br/>https://tradelink-admin.vercel.app"] -->|REST / HTTPS| Render
-    Render -->|SSL Encrypted Pool (3306)| DB[(Managed MySQL 8.0<br/>Aiven / Railway / TiDB)]
-    Render -->|SMTP (Port 465 SSL)| Gmail["Gmail SMTP<br/>uc.tradelink@gmail.com"]
-    Render -->|Direct Uploads SDK| Cloudinary["Cloudinary CDN<br/>Images & Biometrics"]
+    Client["Student Web App (Vercel)<br/>https://tradelink-uc.vercel.app"] -->|REST / HTTPS| VercelAPI["TradeLink API Server (Vercel)<br/>https://tradelink-server.vercel.app"]
+    Admin["Admin Portal (Vercel)<br/>https://tradelink-admin.vercel.app"] -->|REST / HTTPS| VercelAPI
+    VercelAPI -->|SSL Encrypted Pool (4000/3306)| DB[(Managed MySQL 8.0 / TiDB Cloud<br/>gateway01.ap-southeast-1...)]
+    VercelAPI -->|SMTP (Port 465 SSL)| Gmail["Gmail SMTP<br/>uc.tradelink@gmail.com"]
+    VercelAPI -->|Direct Uploads SDK| Cloudinary["Cloudinary CDN<br/>Images & Biometrics"]
 ```
 
 ---
 
 ## 💾 1. Recommended Database Deployment
 
-Because the backend is hosted on **Render** (which does not provide a managed MySQL service natively on its free tier), you need an external MySQL 8.0 database accessible over the internet with SSL.
+TradeLink uses a managed cloud MySQL 8.0 database (such as **TiDB Cloud Serverless**, **Aiven**, or **Railway**).
 
-### 🏆 Top Recommendation: Aiven for MySQL
-- **Website**: [https://aiven.io/mysql](https://aiven.io/mysql)
-- **Why it's best for TradeLink**:
-  - **Singapore Region (`ap-southeast-1`)**: Nearest data center to Cebu, Philippines, delivering low network latency (<40ms).
-  - **Native MySQL 8.0**: 100% binary compatibility with all TradeLink JSON columns, check constraints, and fulltext indexes.
-  - **Automated SSL/TLS**: Pre-configured SSL certificates.
-  - **Daily Automated Backups**: Point-in-time recovery.
-  - **Free Trial**: $300 free credits or free tier plan.
-
-#### Setup Steps on Aiven:
-1. Create a free account at [aiven.io](https://aiven.io).
-2. Click **Create Service** → Select **MySQL**.
-3. Choose cloud provider **AWS** or **Google Cloud**, and select region **Singapore (`ap-southeast-1`)**.
-4. Select the **Free** or **Startup** plan.
-5. In your service dashboard, note your:
-   - **Host** (e.g. `mysql-xxxxxx.aivencloud.com`)
-   - **Port** (e.g. `12345`)
-   - **User** (default `avnadmin`)
-   - **Password**
-   - **Service URI** (looks like `mysql://avnadmin:password@host:port/defaultdb?ssl-mode=REQUIRED`)
-6. Download the **CA Certificate** (`ca.pem`) if connecting via Workbench/CLI, or use the connection URI directly with `DB_SSL=true`.
-
-### 🥈 Alternative 1: Railway MySQL
-- **Website**: [https://railway.app](https://railway.app)
-- **Setup**: Click **New Project** → **Provision MySQL** → Click on the MySQL service → **Variables** → Copy `DATABASE_URL`.
-- **Note**: Ensure you use the Public TCP proxy domain (`roundhouse.proxy.rlwy.net`) when connecting from outside Railway.
-
-### 🥉 Alternative 2: TiDB Cloud (Serverless)
-- **Website**: [https://tidbcloud.com](https://tidbcloud.com)
-- **Setup**: Create a **Serverless Tier** cluster (permanently free 5GB) in **Singapore** or **Tokyo**. TiDB is wire-compatible with MySQL 8.0.
+### 🏆 Configured Database: TiDB Cloud (Serverless)
+- **Region**: Singapore (`ap-southeast-1`) — optimal latency for Philippines/Southeast Asia.
+- **SSL**: Enforced (`DB_SSL=true`).
+- **Connection URI Format**:
+  `mysql://<user>:<password>@gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000/tradelink_db`
 
 ---
 
-## 🗄️ 2. Database Schema Initialization & Seeding
+## 🚀 2. Backend API Deployment on Vercel (`tradelink-server`)
 
-Once your database is created, run the schema creation and clean seed scripts.
+The TradeLink server is pre-configured with a Vercel Serverless Function entrypoint ([server/api/index.js](file:///c:/Users/jhond/Documents/TradeLink/server/api/index.js)) and rewrite rules ([server/vercel.json](file:///c:/Users/jhond/Documents/TradeLink/server/vercel.json)).
 
-### Option A: Using MySQL CLI
-```bash
-mysql -h <YOUR_DB_HOST> -P <YOUR_DB_PORT> -u <YOUR_DB_USER> -p <YOUR_DB_NAME> < DB/schema.sql
-mysql -h <YOUR_DB_HOST> -P <YOUR_DB_PORT> -u <YOUR_DB_USER> -p <YOUR_DB_NAME> < DB/seed.sql
-```
-
-### Option B: Using Knex Migrations (Automated from `server/`)
-In your terminal, set your production `DATABASE_URL` and run:
-```bash
-cd server
-npm install
-DATABASE_URL="mysql://<user>:<password>@<host>:<port>/<dbname>" DB_SSL=true npx knex migrate:latest
-DATABASE_URL="mysql://<user>:<password>@<host>:<port>/<dbname>" DB_SSL=true npx knex seed:run
-```
-
-> [!NOTE]
-> The database initialization seeds **ONLY** the initial administrator account (`ADMIN001` configured via `ADMIN_SEED_EMAIL` and `ADMIN_SEED_PASSWORD` in `.env`), system safety rules, and baseline announcements. It contains **zero dummy students** and **zero mock listings**.
-
----
-
-## 🚀 3. Backend Deployment on Render
-
-### Step 1: Connect Repository to Render
-1. Log in to your [Render Dashboard](https://dashboard.render.com).
-2. Click **New +** → **Web Service**.
-3. Connect your GitHub repository: `drib14/TradeLink`.
-
-### Step 2: Configure Service Settings
-- **Name**: `tradelink-api`
-- **Region**: `Singapore (Southeast Asia)`
-- **Branch**: `main` (or your active branch)
-- **Root Directory**: `server`
-- **Runtime**: `Node`
-- **Build Command**: `npm install`
-- **Start Command**: `node src/index.js`
-- **Health Check Path**: `/api/health`
-
-### Step 3: Configure Environment Variables on Render
-Under the **Environment** tab of your Web Service, add the following variables:
-
-| Variable | Value | Description |
-|---|---|---|
-| `NODE_ENV` | `production` | Enables production optimizations & security checks |
-| `PORT` | `3001` | Internal server listen port |
-| `DATABASE_URL` | `mysql://avnadmin:<pwd>@<host>:<port>/defaultdb` | Connection string to your cloud MySQL |
-| `DB_SSL` | `true` | Enforce SSL database connection |
-| `JWT_ACCESS_SECRET` | *(Click "Generate" or 64-char hex string)* | Secret for signing student access tokens |
-| `JWT_REFRESH_SECRET` | *(Click "Generate" or 64-char hex string)* | Secret for signing student refresh tokens |
-| `JWT_ADMIN_ACCESS_SECRET` | *(Click "Generate" or 64-char hex string)* | Secret for signing admin access tokens |
-| `JWT_ADMIN_REFRESH_SECRET` | *(Click "Generate" or 64-char hex string)* | Secret for signing admin refresh tokens |
-| `COOKIE_SECRET` | *(Click "Generate" or 64-char hex string)* | Secret for signing HTTP cookies |
-| `VERIFICATION_SESSION_SECRET` | *(Click "Generate" or 64-char hex string)* | Secret for biometric session tokens |
-| `CLIENT_URL` | `https://<your-client-app>.vercel.app` | Comma-separated allowed frontend origins |
-| `ADMIN_URL` | `https://<your-admin-app>.vercel.app` | Comma-separated allowed admin origins |
-| `APP_URL` | `https://<your-client-app>.vercel.app` | Base URL used in student email CTA links |
-| `ADMIN_APP_URL` | `https://<your-admin-app>.vercel.app` | Base URL used in admin email CTA links |
-| `ALLOW_VERCEL_PREVIEWS` | `true` | Allows preview PR deployments (`*.vercel.app`) |
-| `COOKIE_SAME_SITE` | `none` | **Critical for cross-origin cookies between Vercel & Render** |
-| `SMTP_HOST` | `smtp.gmail.com` | Gmail SMTP host |
-| `SMTP_PORT` | `465` | SSL Port |
-| `SMTP_USER` | `your_email@gmail.com` | Official TradeLink sender Gmail address |
-| `SMTP_PASS` | `your_16_char_app_password` | Google App Password (16 characters) |
-| `SMTP_FROM` | `TradeLink Marketplace <noreply@yourdomain.com>` | Sender display header |
-| `CLOUDINARY_CLOUD_NAME` | `your_cloudinary_cloud_name` | Cloudinary account name |
-| `CLOUDINARY_API_KEY` | `your_cloudinary_api_key` | Cloudinary API Key |
-| `CLOUDINARY_API_SECRET` | `your_cloudinary_api_secret` | Cloudinary API Secret |
-| `DAILY_UPLOAD_QUOTA_MB` | `50` | Per-user daily upload limit |
-
-> [!IMPORTANT]
-> Because the backend is hosted on Render (`onrender.com`) and the frontends on Vercel (`vercel.app`), they are cross-domain. Setting `COOKIE_SAME_SITE=none` ensures browsers accept the `refreshToken` and `XSRF-TOKEN` cookies.
-
----
-
-## ⚡ 4. Client Deployment on Vercel (Student Web App)
-
-### Step 1: Create Project on Vercel
-1. Log in to [Vercel](https://vercel.com).
+### Step 1: Create Backend Project on Vercel
+1. Log in to your [Vercel Dashboard](https://vercel.com).
 2. Click **Add New...** → **Project**.
-3. Import repository `drib14/TradeLink`.
+3. Select your GitHub repository: `drib14/TradeLink`.
 
-### Step 2: Project Settings
-- **Project Name**: `tradelink-client` (or `tradelink-uc`)
-- **Framework Preset**: `Vite`
-- **Root Directory**: Click **Edit** and choose `client`.
-- **Build Command**: `npm run build`
-- **Output Directory**: `dist`
+### Step 2: Configure Project Settings
+- **Project Name**: `tradelink-server` (or `tradelink-api`)
+- **Framework Preset**: Select **Other**
+- **Root Directory**: Click **Edit** and choose `server`
+- **Build Command**: Leave empty / default (Vercel automatically packages Node.js functions)
+- **Output Directory**: Leave empty / default
 - **Install Command**: `npm install`
 
-### Step 3: Environment Variables
-Add the following in **Settings** → **Environment Variables**:
+### Step 3: Configure Environment Variables on Vercel
+In the project configuration screen (or under **Settings** → **Environment Variables**), add the following environment variables:
 
-| Variable | Value |
-|---|---|
-| `VITE_API_BASE_URL` | `https://<your-render-service>.onrender.com/api` |
-| `VITE_SOCKET_URL` | `https://<your-render-service>.onrender.com` |
+| Variable | Recommended / Production Value | Description |
+|---|---|---|
+| `NODE_ENV` | `production` | Enables production security checks & optimizations |
+| `DATABASE_URL` | `mysql://rdRnYx87dCaQ2M7.root:pSDFeYAI8FpFJey0@gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000/tradelink_db` | TiDB Cloud connection URI |
+| `DB_SSL` | `true` | Enforce TLS 1.2+ database encryption |
+| `JWT_ACCESS_SECRET` | `144423dfdaf4cfc1b0fdabf2df283c8af47f759661e4523f7b0baa48344838e0b6ab378c1a9ae5b893ddcc11050cf69c` | Student JWT access signing secret |
+| `JWT_REFRESH_SECRET` | `18accf38990a9a3245e4c933a8dfe12178fa0c70eb26064640b24135059be8235f1bca37169f6579295b891c4f02fa1e` | Student JWT refresh signing secret |
+| `JWT_ADMIN_ACCESS_SECRET` | `fc230fd45c421b26fc26b7950bc21e015398f7087566df56267cff7e00aaaffebdccff9824687858f1136de9887c6353` | Admin JWT access signing secret |
+| `JWT_ADMIN_REFRESH_SECRET` | `bb30c87a122ef474f39c601699479dc9f72f2030db8698ebaff5199a7fe817a3700631346dc94b41f837bad3c576f268` | Admin JWT refresh signing secret |
+| `JWT_ACCESS_EXPIRY` | `15m` | Access token lifespan |
+| `JWT_REFRESH_EXPIRY` | `7d` | Refresh token lifespan |
+| `COOKIE_SECRET` | `8e826b0d91d6ecb1c0839c6341c87add9c1534534dd80363a4ebede8a3a9d87bd7771227ddecb4cffe5e6f0412264d46` | Signed cookie secret |
+| `VERIFICATION_SESSION_SECRET` | `a839bc4e08c2bf80b91d6ecb1c0839c6341c87add9c1534534dd80363a4ebede8a3a9d87bd7771227ddecb4cffe5e6f0412264d46` | Biometric session secret |
+| `CLIENT_URL` | `https://tradelink-uc.vercel.app` | Allowed client origin(s) for CORS |
+| `ADMIN_URL` | `https://tradelink-admin.vercel.app` | Allowed admin origin(s) for CORS |
+| `APP_URL` | `https://tradelink-uc.vercel.app` | Base URL used in student email links |
+| `ADMIN_APP_URL` | `https://tradelink-admin.vercel.app` | Base URL used in admin email links |
+| `ALLOW_VERCEL_PREVIEWS` | `true` | Allows preview PR branches (`*.vercel.app`) |
+| `COOKIE_SAME_SITE` | `none` | Cross-origin cookie policy for Vercel subdomains |
+| `SMTP_HOST` | `smtp.gmail.com` | SMTP host |
+| `SMTP_PORT` | `465` | SSL SMTP port |
+| `SMTP_USER` | `uc.tradelink@gmail.com` | Official TradeLink Gmail sender |
+| `SMTP_PASS` | `otjsxmiakiqqqoup` | 16-character Google App Password |
+| `SMTP_FROM` | `TradeLink Marketplace <uc.tradelink@gmail.com>` | Sender header |
+| `SUPPORT_EMAIL` | `uc.tradelink@gmail.com` | Support contact email |
+| `CLOUDINARY_CLOUD_NAME` | `uyytbpe1` | Cloudinary storage account |
+| `CLOUDINARY_API_KEY` | `444765518329932` | Cloudinary API Key |
+| `CLOUDINARY_API_SECRET` | `8bzdy9kQjlWHTx6DhOsxOGHqSEo` | Cloudinary API Secret |
+| `DAILY_UPLOAD_QUOTA_MB` | `50` | Daily upload limit per student |
+| `ADMIN_SEED_EMAIL` | `uc.tradelink@gmail.com` | Initial administrator account email |
+| `ADMIN_SEED_PASSWORD` | `TradeLink@2026` | Initial administrator account password |
+| `ADMIN_SEED_NAME` | `TradeLink Community Moderation` | Administrator display name |
 
-*(Optional: If `client/vercel.json` rewrite proxy is used, you can leave `VITE_API_BASE_URL` blank and it will automatically proxy `/api/*` through Vercel's edge network to Render.)*
-
-### Step 4: Deploy
-Click **Deploy**. Vercel will build and assign your domain (e.g. `https://tradelink-client.vercel.app`).
+### Step 4: Deploy and Verify
+1. Click **Deploy**. Vercel will build the serverless package and assign your production URL (e.g. `https://tradelink-server.vercel.app`).
+2. Test health: Open `https://<your-server-domain>.vercel.app/api/health` in your browser. You should receive:
+   ```json
+   { "status": "ok" }
+   ```
 
 ---
 
-## 🛡️ 5. Admin Portal Deployment on Vercel
+## ⚡ 3. Client Deployment on Vercel (Student Web App)
 
-### Step 1: Create Second Project on Vercel
-1. In your Vercel Dashboard, click **Add New...** → **Project**.
-2. Select the same repository `drib14/TradeLink`.
+### Step 1: Configure / Verify Project on Vercel
+1. Log in to [Vercel](https://vercel.com).
+2. Select your `tradelink-client` project (or import `drib14/TradeLink` with Root Directory: `client`).
+3. Set **Framework Preset**: `Vite`, **Root Directory**: `client`.
 
-### Step 2: Project Settings
-- **Project Name**: `tradelink-admin`
-- **Framework Preset**: `Vite`
-- **Root Directory**: Click **Edit** and select `admin`.
-- **Build Command**: `npm run build`
-- **Output Directory**: `dist`
-- **Install Command**: `npm install`
-
-### Step 3: Environment Variables
-Add in **Settings** → **Environment Variables**:
+### Step 2: Environment Variables
+Under **Settings** → **Environment Variables**:
 
 | Variable | Value |
 |---|---|
-| `VITE_API_BASE_URL` | `https://<your-render-service>.onrender.com/api` |
+| `VITE_API_BASE_URL` | `https://<your-server-domain>.vercel.app/api` |
 
-### Step 4: Deploy
-Click **Deploy**. Vercel will provide your admin URL (e.g. `https://tradelink-admin.vercel.app`).
+Click **Save** and trigger a **Redeploy** to ensure the build embeds the new Vercel server URL.
 
 ---
 
-## 🔄 6. Post-Deployment Coordination
+## 🛡️ 4. Admin Portal Deployment on Vercel
 
-After both Vercel apps are deployed:
-1. Copy the **Client URL** (e.g. `https://tradelink-client.vercel.app`).
-2. Copy the **Admin URL** (e.g. `https://tradelink-admin.vercel.app`).
-3. In your **Render Dashboard** → `tradelink-api` service → **Environment**:
-   - Update `CLIENT_URL` to `https://tradelink-client.vercel.app`
-   - Update `APP_URL` to `https://tradelink-client.vercel.app`
-   - Update `ADMIN_URL` to `https://tradelink-admin.vercel.app`
-   - Update `ADMIN_APP_URL` to `https://tradelink-admin.vercel.app`
-4. Render will trigger a quick redeploy with the updated CORS whitelist.
+### Step 1: Configure / Verify Project on Vercel
+1. Select your `tradelink-admin` project (or import `drib14/TradeLink` with Root Directory: `admin`).
+2. Set **Framework Preset**: `Vite`, **Root Directory**: `admin`.
+
+### Step 2: Environment Variables
+Under **Settings** → **Environment Variables**:
+
+| Variable | Value |
+|---|---|
+| `VITE_API_BASE_URL` | `https://<your-server-domain>.vercel.app/api` |
+
+Click **Save** and trigger a **Redeploy**.
+
+---
+
+## 🔄 5. Decommissioning Render & Final Coordination
+
+Once your `tradelink-server` Vercel deployment is active:
+
+1. **Verify Vercel Server Health**:
+   Visit `https://<your-server-domain>.vercel.app/api/health` — it should return:
+   ```json
+   { "status": "ok" }
+   ```
+2. **Update Server CORS Whitelist**:
+   In your `tradelink-server` Vercel project **Settings** → **Environment Variables**:
+   - `CLIENT_URL`: `https://<your-client-domain>.vercel.app`
+   - `ADMIN_URL`: `https://<your-admin-domain>.vercel.app`
+   - `APP_URL`: `https://<your-client-domain>.vercel.app`
+   - `ADMIN_APP_URL`: `https://<your-admin-domain>.vercel.app`
+   Trigger a Redeploy of the server to apply the updated CORS origins.
+3. **Shutdown / Decommission Render**:
+   - Log in to your [Render Dashboard](https://dashboard.render.com).
+   - Click on your `tradelink-api` service.
+   - Navigate to **Settings** (left sidebar).
+   - Scroll to the bottom of the page:
+     - Click **Suspend Service** (pauses the service immediately so no resources or spin-up time is consumed), OR
+     - Click **Delete Service** (permanently deletes the Render service).
+   - Render is now completely decommissioned, and your entire TradeLink architecture (Client, Admin, Server) runs 100% on Vercel!
 
 ---
 

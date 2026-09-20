@@ -11,9 +11,13 @@ const uploadBase = path.resolve(__dirname, '../../uploads');
 const folders = ['listings', 'avatars', 'id-photos', 'chat'];
 
 folders.forEach((folder) => {
-  const dir = path.join(uploadBase, folder);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+  try {
+    const dir = path.join(uploadBase, folder);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+  } catch (_) {
+    // Read-only filesystem in serverless environments (Vercel)
   }
 });
 
