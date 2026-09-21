@@ -17,11 +17,19 @@ const buildConnection = (defaultDbName = 'tradelink_db_test') => {
   // In production: use DATABASE_URL (cloud) if available
   // In development: ALWAYS use local host/port — never DATABASE_URL
   if (isProd && process.env.DATABASE_URL) {
+    // Parse DATABASE_URL into individual properties because mysql2 does not
+    // reliably apply SSL when the connection is passed as a URI string/object.
+    const dbUrl = new URL(process.env.DATABASE_URL);
     return {
-      // mysql2 expects the connection string directly, not wrapped in { uri: ... }
-      connectionString: process.env.DATABASE_URL,
-      // TiDB Cloud Serverless requires TLS — without this, connections are rejected
+      host: dbUrl.hostname,
+      port: Number(dbUrl.port) || 4000,
+      user: decodeURIComponent(dbUrl.username),
+      password: decodeURIComponent(dbUrl.password),
+      database: dbUrl.pathname.replace(/^\//, ''),
+      // TiDB Cloud Serverless REQUIRES TLS — always enforce it
       ssl: ssl || { minVersion: 'TLSv1.2', rejectUnauthorized: true },
+      charset: 'utf8mb4',
+      timezone: '+00:00',
       enableKeepAlive: true,
       keepAliveInitialDelay: 10000
     };

@@ -31,6 +31,25 @@ const errorHandler = (err, req, res, next) => {
     message = 'Referenced record does not exist.';
   }
 
+  // Handle database connection / SSL / network errors — never expose raw driver messages
+  const errMsg = (err.message || '').toLowerCase();
+  const errCode = err.code || '';
+  if (
+    errCode === 'ECONNREFUSED' || errCode === 'ENOTFOUND' || errCode === 'ETIMEDOUT' ||
+    errCode === 'PROTOCOL_CONNECTION_LOST' || errCode === 'ER_ACCESS_DENIED_ERROR' ||
+    errCode === 'ER_DBACCESS_DENIED_ERROR' || errCode === 'ER_CON_COUNT_ERROR' ||
+    errMsg.includes('insecure transport') ||
+    errMsg.includes('ssl') && (errMsg.includes('required') || errMsg.includes('prohibited')) ||
+    errMsg.includes('econnrefused') || errMsg.includes('enotfound') ||
+    errMsg.includes('connect etimedout') ||
+    errMsg.includes('too many connections') ||
+    errMsg.includes('connection lost')
+  ) {
+    statusCode = 503;
+    status = 'error';
+    message = 'Service temporarily unavailable. Please try again in a few moments.';
+  }
+
   // Handle JWT specific errors
   if (err.name === 'JsonWebTokenError') {
     statusCode = 401;
