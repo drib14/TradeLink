@@ -1,6 +1,20 @@
-require('dotenv').config();
+const path = require('path');
+const dotenv = require('dotenv');
 
+// Determine environment before loading any .env file
 const envMode = process.env.NODE_ENV || 'development';
+
+// Load environment-specific .env file first, then fall back to .env for shared/override values
+const envSpecificFile = path.resolve(__dirname, `../../.env.${envMode}`);
+const envDefaultFile = path.resolve(__dirname, '../../.env');
+
+// Load .env.{development|production|test} — this takes priority
+const specificResult = dotenv.config({ path: envSpecificFile });
+
+// Fall back to .env if the environment-specific file doesn't exist
+if (specificResult.error) {
+  dotenv.config({ path: envDefaultFile });
+}
 
 if (envMode === 'production') {
   const missing = [];

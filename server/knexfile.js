@@ -1,4 +1,15 @@
-require('dotenv').config();
+const path = require('path');
+const dotenv = require('dotenv');
+
+// Load environment-specific .env file, then fall back to .env
+const envMode = process.env.NODE_ENV || 'development';
+const envSpecificFile = path.resolve(__dirname, `.env.${envMode}`);
+const envDefaultFile = path.resolve(__dirname, '.env');
+
+const specificResult = dotenv.config({ path: envSpecificFile });
+if (specificResult.error) {
+  dotenv.config({ path: envDefaultFile });
+}
 
 const getSslConfig = () => {
   if (process.env.DB_SSL === 'true') {
