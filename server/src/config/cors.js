@@ -24,14 +24,17 @@ const normalizeOrigin = (url) => (url ? url.trim().replace(/\/+$/, '') : '');
 function getAllowedOrigins() {
   const origins = new Set();
 
-  // In development and testing, allow standard local dev servers
-  if (!env.isProduction) {
-    defaultOrigins.map(normalizeOrigin).forEach((url) => {
-      if (url) origins.add(url);
-    });
-  }
+  // Always allow standard local dev servers
+  defaultOrigins.map(normalizeOrigin).forEach((url) => {
+    if (url) origins.add(url);
+  });
 
-  // Parse CLIENT_URL (e.g. "https://tradelink-uc.vercel.app" or comma-separated)
+  // Always allow official live frontend domains
+  origins.add('https://uc-tradelink.vercel.app');
+  origins.add('https://tradelink-uc.vercel.app');
+  origins.add('https://tradelink-admin.vercel.app');
+
+  // Parse CLIENT_URL (e.g. "https://uc-tradelink.vercel.app" or comma-separated)
   if (env.clientUrl && env.clientUrl !== '*') {
     env.clientUrl.split(',').forEach((url) => {
       const normalized = normalizeOrigin(url);
@@ -39,7 +42,7 @@ function getAllowedOrigins() {
     });
   }
 
-  // Parse ADMIN_URL (e.g. "https://admin-tradelink.vercel.app" or comma-separated)
+  // Parse ADMIN_URL (e.g. "https://tradelink-admin.vercel.app" or comma-separated)
   if (env.adminUrl && env.adminUrl !== '*') {
     env.adminUrl.split(',').forEach((url) => {
       const normalized = normalizeOrigin(url);

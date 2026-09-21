@@ -1,58 +1,144 @@
 require('dotenv').config();
 
-const envMode = process.env.NODE_ENV || 'development';
-const isProd = envMode === 'production';
+const cleanStr = (val) => (val ? String(val).replace(/^["']|["']$/g, '').trim() : '');
 
-const getSslConfig = () => {
-  // Only enable SSL in production
-  if (isProd && process.env.DB_SSL === 'true') {
-    return { minVersion: 'TLSv1.2', rejectUnauthorized: true };
-  }
-  return false;
+const envMode = cleanStr(process.env.NODE_ENV) || 'development';
+const isProd = envMode === 'production' || Boolean(process.env.VERCEL) || Boolean(process.env.RENDER);
+
+// TiDB Cloud fallback credentials for live cloud deployment
+const TIDB_DEFAULT = {
+  host: 'gateway01.ap-southeast-1.prod.aws.tidbcloud.com',
+  port: 4000,
+  user: 'rdRnYx87dCaQ2M7.root',
+  password: 'pSDFeYAI8FpFJey0',
+  database: 'tradelink_db'
 };
 
-const buildConnection = (defaultDbName = 'tradelink_db_test') => {
-  const ssl = getSslConfig();
+const isRemoteHost = (host) => {
+  if (!host) return false;
+  const h = host.toLowerCase().trim();
+  return h !== 'localhost' && h !== '127.0.0.1' && h !== '0.0.0.0' && h !== '';
+};
 
-  // In production: use DATABASE_URL (cloud) if available
-  // In development: ALWAYS use local host/port — never DATABASE_URL
-  if (isProd && process.env.DATABASE_URL) {
-    // Parse DATABASE_URL into individual properties because mysql2 does not
-    // reliably apply SSL when the connection is passed as a URI string/object.
-    const dbUrl = new URL(process.env.DATABASE_URL);
+const isTidbHost = (host) => {
+  if (!host) return false;
+  return host.toLowerCase().includes('tidbcloud.com');
+};
+
+const buildConnection = (targetEnv = 'development') => {
+  const isTargetProd = targetEnv === 'production' || isProd;
+  const rawDbUrl = cleanStr(process.env.DATABASE_URL);
+  const rawHost = cleanStr(process.env.DB_HOST);
+  const rawPort = Number(process.env.DB_PORT);
+  const rawUser = cleanStr(process.env.DB_USER);
+  const rawPass = cleanStr(process.env.DB_PASSWORD);
+  const rawDbName = cleanStr(process.env.DB_NAME);
+  const rawSsl = cleanStr(process.env.DB_SSL).toLowerCase();
+
+  // 1. If DATABASE_URL is provided, parse it
+  if (rawDbUrl) {
+    try {
+      const parsedUrl = new URL(rawDbUrl);
+      const host = parsedUrl.hostname;
+      const port = Number(parsedUrl.port) || (isTidbHost(host) ? 4000 : 3306);
+      const user = decodeURIComponent(parsedUrl.username || '');
+      const password = decodeURIComponent(parsedUrl.password || '');
+      const database = decodeURIComponent(parsedUrl.pathname.replace(/^\//, '').split('?')[0]) || 'tradelink_db';
+
+      // TiDB Cloud Serverless ALWAYS requires TLS/SSL regardless of NODE_ENV
+      const requiresSsl =
+        rawSsl === 'true' ||
+        rawSsl === '1' ||
+        isTidbHost(host) ||
+        port === 4000 ||
+        (isRemoteHost(host) && isTargetProd);
+
+      return {
+        host,
+        port,
+        user,
+        password,
+        database,
+        ssl: requiresSsl ? { minVersion: 'TLSv1.2', rejectUnauthorized: true } : false,
+        charset: 'utf8mb4',
+        timezone: '+00:00',
+        connectTimeout: 20000,
+        enableKeepAlive: true,
+        keepAliveInitialDelay: 10000
+      };
+    } catch (err) {
+      console.warn(`[KNEX] Could not parse DATABASE_URL: ${err.message}. Falling back to DB_* variables.`);
+    }
+  }
+
+  // 2. If DB_HOST is provided
+  if (rawHost) {
+    const host = rawHost;
+    const port = rawPort || (isTidbHost(host) ? 4000 : 3306);
+    const user = rawUser || 'root';
+    const password = rawPass || '';
+    const database = rawDbName || (isTargetProd ? 'tradelink_db' : 'tradelink_db_test');
+
+    // TiDB Cloud Serverless ALWAYS requires TLS/SSL regardless of NODE_ENV
+    const requiresSsl =
+      rawSsl === 'true' ||
+      rawSsl === '1' ||
+      isTidbHost(host) ||
+      port === 4000 ||
+      (isRemoteHost(host) && isTargetProd);
+
     return {
-      host: dbUrl.hostname,
-      port: Number(dbUrl.port) || 4000,
-      user: decodeURIComponent(dbUrl.username),
-      password: decodeURIComponent(dbUrl.password),
-      database: dbUrl.pathname.replace(/^\//, ''),
-      // TiDB Cloud Serverless REQUIRES TLS — always enforce it
-      ssl: ssl || { minVersion: 'TLSv1.2', rejectUnauthorized: true },
+      host,
+      port,
+      user,
+      password,
+      database,
+      ssl: requiresSsl ? { minVersion: 'TLSv1.2', rejectUnauthorized: true } : false,
       charset: 'utf8mb4',
       timezone: '+00:00',
+      connectTimeout: 20000,
       enableKeepAlive: true,
       keepAliveInitialDelay: 10000
     };
   }
 
+  // 3. If in production / Vercel / Render without explicit DB vars, connect to TiDB Cloud
+  if (isTargetProd && (process.env.VERCEL || process.env.RENDER || isProd)) {
+    return {
+      host: TIDB_DEFAULT.host,
+      port: TIDB_DEFAULT.port,
+      user: TIDB_DEFAULT.user,
+      password: TIDB_DEFAULT.password,
+      database: TIDB_DEFAULT.database,
+      ssl: { minVersion: 'TLSv1.2', rejectUnauthorized: true },
+      charset: 'utf8mb4',
+      timezone: '+00:00',
+      connectTimeout: 20000,
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 10000
+    };
+  }
+
+  // 4. Default local development MySQL (XAMPP / local MariaDB)
   return {
-    host: process.env.DB_HOST || 'localhost',
-    port: Number(process.env.DB_PORT) || 3306,
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || defaultDbName,
+    host: '127.0.0.1',
+    port: 3306,
+    user: 'root',
+    password: '',
+    database: 'tradelink_db_test',
     charset: 'utf8mb4',
     timezone: '+00:00',
+    connectTimeout: 20000,
     enableKeepAlive: true,
     keepAliveInitialDelay: 10000,
-    ssl
+    ssl: false
   };
 };
 
 module.exports = {
   development: {
     client: 'mysql2',
-    connection: buildConnection('tradelink_db_test'),
+    connection: buildConnection('development'),
     pool: {
       min: 0,
       max: 10,
@@ -72,8 +158,8 @@ module.exports = {
   test: {
     client: 'mysql2',
     connection: process.env.TEST_DATABASE_URL
-      ? (getSslConfig() ? { uri: process.env.TEST_DATABASE_URL, ssl: getSslConfig() } : process.env.TEST_DATABASE_URL)
-      : buildConnection(process.env.TEST_DB_NAME || process.env.DB_NAME || 'tradelink_db_test'),
+      ? { uri: process.env.TEST_DATABASE_URL, ssl: { minVersion: 'TLSv1.2', rejectUnauthorized: true } }
+      : buildConnection('test'),
     pool: {
       min: 1,
       max: 10,
@@ -91,10 +177,10 @@ module.exports = {
 
   production: {
     client: 'mysql2',
-    connection: buildConnection('tradelink_db'),
+    connection: buildConnection('production'),
     pool: {
-      min: process.env.VERCEL ? 0 : 2,
-      max: process.env.VERCEL ? 10 : 25,
+      min: 0,
+      max: process.env.VERCEL ? 5 : 15,
       acquireTimeoutMillis: 30000,
       createTimeoutMillis: 30000,
       idleTimeoutMillis: process.env.VERCEL ? 10000 : 30000

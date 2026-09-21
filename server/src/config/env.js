@@ -64,14 +64,13 @@ const config = {
   cookieSecret: process.env.COOKIE_SECRET || (envMode === 'test' ? 'test_cookie_secret_1234567890' : crypto.randomBytes(48).toString('hex')),
   verificationSessionSecret: process.env.VERIFICATION_SESSION_SECRET || process.env.JWT_ACCESS_SECRET || (envMode === 'test' ? 'test_verif_secret_1234567890' : crypto.randomBytes(48).toString('hex')),
 
-  // Development: always use localhost URLs regardless of what .env says
-  // Production: use live Vercel URLs from .env
-  clientUrl: isDev ? 'http://localhost:5173,http://localhost:3000' : (process.env.CLIENT_URL || 'https://uc-tradelink.vercel.app'),
-  adminUrl: isDev ? 'http://localhost:5174' : (process.env.ADMIN_URL || 'https://tradelink-admin.vercel.app'),
-  appUrl: isDev ? 'http://localhost:5173' : (process.env.APP_URL || 'https://uc-tradelink.vercel.app'),
-  adminAppUrl: isDev ? 'http://localhost:5174' : (process.env.ADMIN_APP_URL || 'https://tradelink-admin.vercel.app'),
-  cookieSameSite: isDev ? 'lax' : (process.env.COOKIE_SAME_SITE || 'none'),
-  allowVercelPreviews: isDev ? false : (process.env.ALLOW_VERCEL_PREVIEWS === 'true'),
+  // Support both local dev server and live Vercel deployments
+  clientUrl: process.env.CLIENT_URL || 'https://uc-tradelink.vercel.app,https://tradelink-uc.vercel.app,http://localhost:5173,http://localhost:3000',
+  adminUrl: process.env.ADMIN_URL || 'https://tradelink-admin.vercel.app,http://localhost:5174',
+  appUrl: process.env.APP_URL || 'https://uc-tradelink.vercel.app',
+  adminAppUrl: process.env.ADMIN_APP_URL || 'https://tradelink-admin.vercel.app',
+  cookieSameSite: process.env.COOKIE_SAME_SITE || (isDev ? 'lax' : 'none'),
+  allowVercelPreviews: process.env.ALLOW_VERCEL_PREVIEWS ? process.env.ALLOW_VERCEL_PREVIEWS === 'true' : true,
 
   email: {
     host: (process.env.SMTP_HOST || 'smtp.gmail.com').replace(/^["']|["']$/g, '').trim(),

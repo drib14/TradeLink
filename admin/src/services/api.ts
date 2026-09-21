@@ -1,14 +1,15 @@
 // Admin Portal API Client
 const getApiBaseUrl = () => {
-  if (import.meta.env.VITE_API_BASE_URL) {
-    return import.meta.env.VITE_API_BASE_URL;
+  const envUrl = import.meta.env.VITE_API_BASE_URL;
+  if (envUrl && envUrl.trim() !== '') {
+    return envUrl.trim().replace(/\/+$/, '');
   }
   if (typeof window !== 'undefined' && window.location.hostname) {
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
       return `${window.location.protocol}//${window.location.hostname}:3001/api`;
     }
-    // In production deployment (e.g., Vercel), fall back to relative /api to use reverse-proxy rewrites
-    return '/api';
+    // In live production: target the live TradeLink backend
+    return 'https://tradelink-backend.vercel.app/api';
   }
   return 'http://localhost:3001/api';
 };

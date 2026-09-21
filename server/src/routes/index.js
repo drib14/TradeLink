@@ -26,7 +26,10 @@ const newsletterRoutes = require('./newsletter.routes');
 router.get('/health', async (req, res) => {
   const dbHealth = await db.testConnection();
   res.status(dbHealth.ok ? 200 : 503).json({
-    status: dbHealth.ok ? 'ok' : 'degraded'
+    status: dbHealth.ok ? 'ok' : 'degraded',
+    database: dbHealth.ok ? 'connected' : 'error',
+    message: dbHealth.ok ? 'TradeLink MySQL/TiDB database connection established.' : dbHealth.error,
+    environment: env.env
   });
 });
 
