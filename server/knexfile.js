@@ -5,15 +5,6 @@ const cleanStr = (val) => (val ? String(val).replace(/^["']|["']$/g, '').trim() 
 const envMode = cleanStr(process.env.NODE_ENV) || 'development';
 const isProd = envMode === 'production' || Boolean(process.env.VERCEL) || Boolean(process.env.RENDER);
 
-// TiDB Cloud fallback credentials for live cloud deployment
-const TIDB_DEFAULT = {
-  host: 'gateway01.ap-southeast-1.prod.aws.tidbcloud.com',
-  port: 4000,
-  user: 'rdRnYx87dCaQ2M7.root',
-  password: 'pSDFeYAI8FpFJey0',
-  database: 'tradelink_db'
-};
-
 const isRemoteHost = (host) => {
   if (!host) return false;
   const h = host.toLowerCase().trim();
@@ -102,30 +93,13 @@ const buildConnection = (targetEnv = 'development') => {
     };
   }
 
-  // 3. If in production / Vercel / Render without explicit DB vars, connect to TiDB Cloud
-  if (isTargetProd && (process.env.VERCEL || process.env.RENDER || isProd)) {
-    return {
-      host: TIDB_DEFAULT.host,
-      port: TIDB_DEFAULT.port,
-      user: TIDB_DEFAULT.user,
-      password: TIDB_DEFAULT.password,
-      database: TIDB_DEFAULT.database,
-      ssl: { minVersion: 'TLSv1.2', rejectUnauthorized: true },
-      charset: 'utf8mb4',
-      timezone: '+00:00',
-      connectTimeout: 20000,
-      enableKeepAlive: true,
-      keepAliveInitialDelay: 10000
-    };
-  }
-
-  // 4. Default local development MySQL (XAMPP / local MariaDB)
+  // 3. Fallback for local development MySQL (XAMPP / local MariaDB)
   return {
     host: '127.0.0.1',
     port: 3306,
     user: 'root',
     password: '',
-    database: 'tradelink_db_test',
+    database: isTargetProd ? 'tradelink_db' : 'tradelink_db_test',
     charset: 'utf8mb4',
     timezone: '+00:00',
     connectTimeout: 20000,

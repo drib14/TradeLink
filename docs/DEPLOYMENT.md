@@ -56,16 +56,16 @@ In the project configuration screen (or under **Settings** → **Environment Var
 | Variable | Recommended / Production Value | Description |
 |---|---|---|
 | `NODE_ENV` | `production` | Enables production security checks & optimizations |
-| `DATABASE_URL` | `mysql://rdRnYx87dCaQ2M7.root:pSDFeYAI8FpFJey0@gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000/tradelink_db` | TiDB Cloud connection URI |
+| `DATABASE_URL` | `mysql://<db_user>:<db_password>@<tidb_host>:4000/<db_name>` | TiDB Cloud connection URI |
 | `DB_SSL` | `true` | Enforce TLS 1.2+ database encryption |
-| `JWT_ACCESS_SECRET` | `144423dfdaf4cfc1b0fdabf2df283c8af47f759661e4523f7b0baa48344838e0b6ab378c1a9ae5b893ddcc11050cf69c` | Student JWT access signing secret |
-| `JWT_REFRESH_SECRET` | `18accf38990a9a3245e4c933a8dfe12178fa0c70eb26064640b24135059be8235f1bca37169f6579295b891c4f02fa1e` | Student JWT refresh signing secret |
-| `JWT_ADMIN_ACCESS_SECRET` | `fc230fd45c421b26fc26b7950bc21e015398f7087566df56267cff7e00aaaffebdccff9824687858f1136de9887c6353` | Admin JWT access signing secret |
-| `JWT_ADMIN_REFRESH_SECRET` | `bb30c87a122ef474f39c601699479dc9f72f2030db8698ebaff5199a7fe817a3700631346dc94b41f837bad3c576f268` | Admin JWT refresh signing secret |
+| `JWT_ACCESS_SECRET` | `<generated_64_char_hex_secret>` | Student JWT access signing secret |
+| `JWT_REFRESH_SECRET` | `<generated_64_char_hex_secret>` | Student JWT refresh signing secret |
+| `JWT_ADMIN_ACCESS_SECRET` | `<generated_64_char_hex_secret>` | Admin JWT access signing secret |
+| `JWT_ADMIN_REFRESH_SECRET` | `<generated_64_char_hex_secret>` | Admin JWT refresh signing secret |
 | `JWT_ACCESS_EXPIRY` | `15m` | Access token lifespan |
 | `JWT_REFRESH_EXPIRY` | `7d` | Refresh token lifespan |
-| `COOKIE_SECRET` | `8e826b0d91d6ecb1c0839c6341c87add9c1534534dd80363a4ebede8a3a9d87bd7771227ddecb4cffe5e6f0412264d46` | Signed cookie secret |
-| `VERIFICATION_SESSION_SECRET` | `a839bc4e08c2bf80b91d6ecb1c0839c6341c87add9c1534534dd80363a4ebede8a3a9d87bd7771227ddecb4cffe5e6f0412264d46` | Biometric session secret |
+| `COOKIE_SECRET` | `<generated_64_char_hex_secret>` | Signed cookie secret |
+| `VERIFICATION_SESSION_SECRET` | `<generated_64_char_hex_secret>` | Biometric session secret |
 | `CLIENT_URL` | `https://uc-tradelink.vercel.app` | Allowed client origin(s) for CORS |
 | `ADMIN_URL` | `https://tradelink-admin.vercel.app` | Allowed admin origin(s) for CORS |
 | `APP_URL` | `https://uc-tradelink.vercel.app` | Base URL used in student email links |
@@ -75,16 +75,16 @@ In the project configuration screen (or under **Settings** → **Environment Var
 | `COOKIE_SAME_SITE` | `none` | Cross-origin cookie policy for Vercel subdomains |
 | `SMTP_HOST` | `smtp.gmail.com` | SMTP host |
 | `SMTP_PORT` | `465` | SSL SMTP port |
-| `SMTP_USER` | `uc.tradelink@gmail.com` | Official TradeLink Gmail sender |
-| `SMTP_PASS` | `otjsxmiakiqqqoup` | 16-character Google App Password |
-| `SMTP_FROM` | `TradeLink Marketplace <uc.tradelink@gmail.com>` | Sender header |
-| `SUPPORT_EMAIL` | `uc.tradelink@gmail.com` | Support contact email |
-| `CLOUDINARY_CLOUD_NAME` | `uyytbpe1` | Cloudinary storage account |
-| `CLOUDINARY_API_KEY` | `444765518329932` | Cloudinary API Key |
-| `CLOUDINARY_API_SECRET` | `8bzdy9kQjlWHTx6DhOsxOGHqSEo` | Cloudinary API Secret |
+| `SMTP_USER` | `your-email@gmail.com` | Official TradeLink Gmail sender |
+| `SMTP_PASS` | `<your_google_app_password>` | 16-character Google App Password |
+| `SMTP_FROM` | `TradeLink Marketplace <your-email@gmail.com>` | Sender header |
+| `SUPPORT_EMAIL` | `your-email@gmail.com` | Support contact email |
+| `CLOUDINARY_CLOUD_NAME` | `your_cloud_name` | Cloudinary storage account |
+| `CLOUDINARY_API_KEY` | `your_cloudinary_api_key` | Cloudinary API Key |
+| `CLOUDINARY_API_SECRET` | `<your_cloudinary_api_secret>` | Cloudinary API Secret |
 | `DAILY_UPLOAD_QUOTA_MB` | `50` | Daily upload limit per student |
-| `ADMIN_SEED_EMAIL` | `uc.tradelink@gmail.com` | Initial administrator account email |
-| `ADMIN_SEED_PASSWORD` | `TradeLink@2026` | Initial administrator account password |
+| `ADMIN_SEED_EMAIL` | `admin@tradelink.ph` | Initial administrator account email |
+| `ADMIN_SEED_PASSWORD` | `<your_strong_admin_password>` | Initial administrator account password |
 | `ADMIN_SEED_NAME` | `TradeLink Community Moderation` | Administrator display name |
 
 ### Step 4: Deploy and Verify
