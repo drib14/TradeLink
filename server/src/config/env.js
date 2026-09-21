@@ -1,22 +1,10 @@
-const path = require('path');
-const dotenv = require('dotenv');
+require('dotenv').config();
 
-// Determine environment before loading any .env file
 const envMode = process.env.NODE_ENV || 'development';
+const isDev = envMode === 'development';
+const isProd = envMode === 'production';
 
-// Load environment-specific .env file first, then fall back to .env for shared/override values
-const envSpecificFile = path.resolve(__dirname, `../../.env.${envMode}`);
-const envDefaultFile = path.resolve(__dirname, '../../.env');
-
-// Load .env.{development|production|test} — this takes priority
-const specificResult = dotenv.config({ path: envSpecificFile });
-
-// Fall back to .env if the environment-specific file doesn't exist
-if (specificResult.error) {
-  dotenv.config({ path: envDefaultFile });
-}
-
-if (envMode === 'production') {
+if (isProd) {
   const missing = [];
   if (!process.env.JWT_ACCESS_SECRET) missing.push('JWT_ACCESS_SECRET');
   if (!process.env.JWT_REFRESH_SECRET) missing.push('JWT_REFRESH_SECRET');
@@ -30,7 +18,7 @@ if (envMode === 'production') {
 const crypto = require('crypto');
 
 // Validate critical secrets in production
-if (envMode === 'production') {
+if (isProd) {
   if (!process.env.CLOUDINARY_API_SECRET) {
     console.warn('[SECURITY WARNING] CLOUDINARY_API_SECRET is not set in production environment.');
   }
@@ -39,20 +27,29 @@ if (envMode === 'production') {
   }
 }
 
+// ============================================================================
+// Development vs Production logic — all controlled by NODE_ENV in .env
+// ============================================================================
+// Development: localhost DB (no DATABASE_URL), localhost URLs, lax cookies
+// Production:  DATABASE_URL (cloud), live Vercel URLs, none cookies
+// ============================================================================
+
 const config = {
   env: envMode,
-  isProduction: envMode === 'production',
+  isProduction: isProd,
   port: parseInt(process.env.PORT, 10) || 3001,
   host: process.env.HOST || '0.0.0.0',
   
   db: {
-    connectionString: process.env.DATABASE_URL || null,
+    // In development: ignore DATABASE_URL even if present in .env, use local host/port
+    // In production: use DATABASE_URL for cloud DB
+    connectionString: isProd ? (process.env.DATABASE_URL || null) : null,
     host: process.env.DB_HOST || 'localhost',
     port: parseInt(process.env.DB_PORT, 10) || 3306,
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
     database: process.env.DB_NAME || 'tradelink_db_test',
-    ssl: process.env.DB_SSL === 'true'
+    ssl: isProd ? (process.env.DB_SSL === 'true') : false
   },
 
   jwt: {
@@ -67,12 +64,14 @@ const config = {
   cookieSecret: process.env.COOKIE_SECRET || (envMode === 'test' ? 'test_cookie_secret_1234567890' : crypto.randomBytes(48).toString('hex')),
   verificationSessionSecret: process.env.VERIFICATION_SESSION_SECRET || process.env.JWT_ACCESS_SECRET || (envMode === 'test' ? 'test_verif_secret_1234567890' : crypto.randomBytes(48).toString('hex')),
 
-  clientUrl: process.env.CLIENT_URL || 'http://localhost:5173',
-  adminUrl: process.env.ADMIN_URL || 'http://localhost:5174',
-  appUrl: process.env.APP_URL || process.env.CLIENT_URL || 'http://localhost:5173',
-  adminAppUrl: process.env.ADMIN_APP_URL || process.env.ADMIN_URL || 'http://localhost:5174',
-  cookieSameSite: process.env.COOKIE_SAME_SITE || (envMode === 'production' ? 'none' : 'lax'),
-  allowVercelPreviews: process.env.ALLOW_VERCEL_PREVIEWS === 'true',
+  // Development: always use localhost URLs regardless of what .env says
+  // Production: use live Vercel URLs from .env
+  clientUrl: isDev ? 'http://localhost:5173,http://localhost:3000' : (process.env.CLIENT_URL || 'https://uc-tradelink.vercel.app'),
+  adminUrl: isDev ? 'http://localhost:5174' : (process.env.ADMIN_URL || 'https://tradelink-admin.vercel.app'),
+  appUrl: isDev ? 'http://localhost:5173' : (process.env.APP_URL || 'https://uc-tradelink.vercel.app'),
+  adminAppUrl: isDev ? 'http://localhost:5174' : (process.env.ADMIN_APP_URL || 'https://tradelink-admin.vercel.app'),
+  cookieSameSite: isDev ? 'lax' : (process.env.COOKIE_SAME_SITE || 'none'),
+  allowVercelPreviews: isDev ? false : (process.env.ALLOW_VERCEL_PREVIEWS === 'true'),
 
   email: {
     host: (process.env.SMTP_HOST || 'smtp.gmail.com').replace(/^["']|["']$/g, '').trim(),
@@ -81,7 +80,7 @@ const config = {
     pass: (process.env.SMTP_PASS || '').replace(/^["']|["']$/g, '').replace(/\s+/g, ''),
     from: (process.env.SMTP_FROM || 'TradeLink Marketplace <uc.tradelink@gmail.com>').replace(/^["']|["']$/g, '').trim(),
     resendApiKey: (process.env.RESEND_API_KEY || '').replace(/^["']|["']$/g, '').trim(),
-    bypassMode: process.env.EMAIL_BYPASS_MODE ? process.env.EMAIL_BYPASS_MODE === 'true' : envMode !== 'production'
+    bypassMode: process.env.EMAIL_BYPASS_MODE ? process.env.EMAIL_BYPASS_MODE === 'true' : !isProd
   },
 
   upload: {
@@ -97,5 +96,7 @@ const config = {
   }
 };
 
-module.exports = config;
+// Startup log so you can verify what's active
+console.log(`[ENV] Mode: ${envMode} | DB: ${config.db.connectionString ? 'DATABASE_URL (cloud)' : `${config.db.host}:${config.db.port}/${config.db.database} (local)`} | App: ${config.appUrl} | Cookie: ${config.cookieSameSite}`);
 
+module.exports = config;

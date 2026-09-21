@@ -1,18 +1,11 @@
-const path = require('path');
-const dotenv = require('dotenv');
+require('dotenv').config();
 
-// Load environment-specific .env file, then fall back to .env
 const envMode = process.env.NODE_ENV || 'development';
-const envSpecificFile = path.resolve(__dirname, `.env.${envMode}`);
-const envDefaultFile = path.resolve(__dirname, '.env');
-
-const specificResult = dotenv.config({ path: envSpecificFile });
-if (specificResult.error) {
-  dotenv.config({ path: envDefaultFile });
-}
+const isProd = envMode === 'production';
 
 const getSslConfig = () => {
-  if (process.env.DB_SSL === 'true') {
+  // Only enable SSL in production
+  if (isProd && process.env.DB_SSL === 'true') {
     return { minVersion: 'TLSv1.2', rejectUnauthorized: true };
   }
   return false;
@@ -20,7 +13,10 @@ const getSslConfig = () => {
 
 const buildConnection = (defaultDbName = 'tradelink_db_test') => {
   const ssl = getSslConfig();
-  if (process.env.DATABASE_URL) {
+
+  // In production: use DATABASE_URL (cloud) if available
+  // In development: ALWAYS use local host/port — never DATABASE_URL
+  if (isProd && process.env.DATABASE_URL) {
     const connObj = {
       uri: process.env.DATABASE_URL,
       enableKeepAlive: true,
@@ -29,6 +25,7 @@ const buildConnection = (defaultDbName = 'tradelink_db_test') => {
     if (ssl) connObj.ssl = ssl;
     return connObj;
   }
+
   return {
     host: process.env.DB_HOST || 'localhost',
     port: Number(process.env.DB_PORT) || 3306,
@@ -46,7 +43,7 @@ const buildConnection = (defaultDbName = 'tradelink_db_test') => {
 module.exports = {
   development: {
     client: 'mysql2',
-    connection: buildConnection('tradelink_db'),
+    connection: buildConnection('tradelink_db_test'),
     pool: {
       min: 0,
       max: 10,
@@ -67,7 +64,7 @@ module.exports = {
     client: 'mysql2',
     connection: process.env.TEST_DATABASE_URL
       ? (getSslConfig() ? { uri: process.env.TEST_DATABASE_URL, ssl: getSslConfig() } : process.env.TEST_DATABASE_URL)
-      : buildConnection(process.env.TEST_DB_NAME || process.env.DB_NAME || 'tradelink_db'),
+      : buildConnection(process.env.TEST_DB_NAME || process.env.DB_NAME || 'tradelink_db_test'),
     pool: {
       min: 1,
       max: 10,
