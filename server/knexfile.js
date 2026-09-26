@@ -153,8 +153,8 @@ module.exports = {
     client: 'mysql2',
     connection: buildConnection('production'),
     pool: {
-      min: 0,
-      max: process.env.VERCEL ? 5 : 15,
+      min: process.env.VERCEL ? 0 : 2,
+      max: process.env.VERCEL ? 5 : 20,
       acquireTimeoutMillis: 30000,
       createTimeoutMillis: 30000,
       idleTimeoutMillis: process.env.VERCEL ? 10000 : 30000

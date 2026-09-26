@@ -145,6 +145,17 @@ export interface ListingMediaItem {
   isPrimary?: boolean;
 }
 
+export interface ListingVariation {
+  id: string;
+  listingId?: string;
+  title: string;
+  price?: number | null;
+  imageUrl?: string | null;
+  imageIndex?: number | null;
+  quantity?: number;
+  isAvailable?: boolean;
+}
+
 export interface Listing {
   id: string;
   title: string;
@@ -158,6 +169,7 @@ export interface Listing {
   media?: ListingMediaItem[];
   images: string[];
   hasVideo?: boolean;
+  variations?: ListingVariation[];
   sellerId: string;
   sellerName: string;
   sellerAvatar: string;
@@ -200,6 +212,7 @@ export interface SwapOffer {
   offeredListingImage?: string;
   offeredDescription: string;
   cashTopUp: number;
+  selectedVariation?: string | null;
   status: 'pending' | 'accepted' | 'declined' | 'completed';
   createdAt: string;
 }
@@ -220,6 +233,8 @@ export interface Transaction {
   paymentStatus: 'unpaid' | 'paid' | 'refunded';
   status: 'pending' | 'completed' | 'cancelled' | 'disputed';
   notes?: string;
+  selectedVariation?: string | null;
+  variationId?: string | null;
   completedAt?: string;
   cancelledAt?: string;
   cancellationReason?: string;
@@ -283,6 +298,15 @@ export interface Conversation {
     referenceNo: string;
     amount: number;
     status: string;
+    listingId?: string;
+    listingTitle?: string;
+    paymentMethod?: string;
+    selectedVariation?: string | null;
+    verificationCode?: string;
+    buyerId?: string;
+    sellerId?: string;
+    notes?: string | null;
+    isBuyer?: boolean;
   } | null;
   activeSwap?: {
     id: string;

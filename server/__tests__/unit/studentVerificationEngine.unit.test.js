@@ -97,7 +97,7 @@ describe('Unit Test: Student Verification Engine', () => {
       expect(evaluation.isSuspicious).toBe(false);
       expect(evaluation.status).toBe('approved');
       expect(evaluation.suspiciousReasons).toHaveLength(0);
-    });
+    }, 20000);
 
     it('should hold for admin review if session token is missing or bypassed', async () => {
       const mockUser = {

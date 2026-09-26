@@ -102,6 +102,17 @@ export interface ListingSeller {
   trustRating?: number;
 }
 
+export interface ListingVariation {
+  id: string;
+  listingId?: string;
+  title: string;
+  price?: number | null;
+  imageUrl?: string | null;
+  imageIndex?: number | null;
+  quantity?: number;
+  isAvailable?: boolean;
+}
+
 export interface Listing {
   id: string;
   title: string;
@@ -115,6 +126,7 @@ export interface Listing {
   tags?: string[];
   condition: ConditionGrade;
   images: string[];
+  variations?: ListingVariation[];
   sellerId?: string;
   sellerName?: string;
   sellerAvatar?: string;

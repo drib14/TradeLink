@@ -94,7 +94,7 @@ export default function HomeScreen() {
               <Ionicons name="flash" size={16} color="#B45309" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.utilityTitle}>⚡ Flash Market</Text>
+              <Text style={styles.utilityTitle}>Flash Market</Text>
               <Text style={styles.utilitySub}>Urgent buying, selling & trading</Text>
             </View>
             <Ionicons name="chevron-forward" size={14} color="#94A3B8" />

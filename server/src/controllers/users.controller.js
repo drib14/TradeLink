@@ -453,6 +453,11 @@ const getUserAnalytics = asyncHandler(async (req, res, next) => {
     .count('id as count')
     .first();
 
+  const reviewsCount = Number(reviewStats?.count || 0);
+  const avgRating = reviewsCount > 0
+    ? Number(Number(reviewStats?.avgRating || 0).toFixed(1))
+    : (Number(user.total_reviews || 0) > 0 ? Number(Number(user.rating || 0).toFixed(1)) : 0.0);
+
   res.status(200).json({
     status: 'success',
     data: {
@@ -460,8 +465,8 @@ const getUserAnalytics = asyncHandler(async (req, res, next) => {
       activeInventoryCount: activeListings.length,
       activeInventoryValue: Math.round(activeInventoryValue),
       completedTradesCount: allTimeTrades,
-      rating: Number(Number(reviewStats?.avgRating || user.rating || 5.0).toFixed(1)),
-      totalReviewsCount: Number(reviewStats?.count || 0),
+      rating: avgRating,
+      totalReviewsCount: reviewsCount,
       monthlyData: months.map((m) => ({
         label: m.label,
         year: m.year,

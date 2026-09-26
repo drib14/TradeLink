@@ -15,9 +15,10 @@ interface ListingCardProps {
   listing: Listing;
   onClick: () => void;
   layout?: 'grid' | 'list';
+  onNavigate?: (view: string, params?: any) => void;
 }
 
-export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) => {
+export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick, onNavigate }) => {
   const { currentUser, isAuthenticated } = useAuth();
   const { markAsSold } = useMarket();
   const { showToast } = useToast();
@@ -515,6 +516,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) =>
           isOpen={isBuyModalOpen}
           onClose={() => setIsBuyModalOpen(false)}
           listing={listing}
+          onNavigate={onNavigate}
         />
       )}
 

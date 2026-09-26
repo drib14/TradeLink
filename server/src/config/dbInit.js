@@ -177,22 +177,8 @@ async function autoInitDatabase() {
       await db.raw('ALTER TABLE `listings` MODIFY COLUMN `category` VARCHAR(100) NOT NULL;');
     } catch (_) {}
 
-    // 1f. Ensure newsletter_subscribers table exists
-    const hasNewsletterTable = await db.schema.hasTable('newsletter_subscribers').catch(() => false);
-    if (!hasNewsletterTable) {
-      await db.raw(`
-        CREATE TABLE IF NOT EXISTS \`newsletter_subscribers\` (
-          \`id\` VARCHAR(36) NOT NULL PRIMARY KEY,
-          \`email\` VARCHAR(150) NOT NULL UNIQUE,
-          \`status\` ENUM('active', 'unsubscribed') NOT NULL DEFAULT 'active',
-          \`ip_address\` VARCHAR(45) DEFAULT NULL,
-          \`created_at\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          INDEX \`idx_newsletter_email\` (\`email\`),
-          INDEX \`idx_newsletter_status\` (\`status\`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-      `).catch(() => {});
-      logger.info('[DB Init] Created newsletter_subscribers table.');
-    }
+    // Drop legacy newsletter_subscribers table if exists
+    await db.raw('DROP TABLE IF EXISTS `newsletter_subscribers`;').catch(() => {});
 
     // 1g. Ensure listing_views table exists for persistent unique view tracking
     const hasListingViewsTable = await db.schema.hasTable('listing_views').catch(() => false);
@@ -217,6 +203,22 @@ async function autoInitDatabase() {
         t.string('image_url', 500).nullable();
       }).catch(() => {});
       logger.info('[DB Init] Added image_url column to flash_requests table.');
+    }
+
+    // 1i. Ensure transactions verification handshake columns exist
+    const hasTransactionsTable = await db.schema.hasTable('transactions').catch(() => false);
+    if (hasTransactionsTable) {
+      const hasCodeHash = await db.schema.hasColumn('transactions', 'verification_code_hash').catch(() => false);
+      if (!hasCodeHash) {
+        await db.schema.alterTable('transactions', (t) => {
+          t.string('verification_code_hash', 255).nullable();
+          t.integer('failed_handshake_attempts').unsigned().notNullable().defaultTo(0);
+          t.dateTime('handshake_locked_until').nullable();
+        }).catch((err) => {
+          logger.warn(`[DB Init] Could not alter transactions table: ${err.message}`);
+        });
+        logger.info('[DB Init] Added verification_code_hash and security columns to transactions table.');
+      }
     }
 
     // Self-healing: Backfill missing or null flash_requests images with high-resolution academic photos
@@ -272,6 +274,52 @@ async function autoInitDatabase() {
         t.index('listing_id', 'idx_reviews_listing');
       }).catch(() => {});
       logger.info('[DB Init] Added listing_id column to reviews table.');
+    }
+
+    // 1k. Ensure listing_variations table exists
+    const hasVariationsTable = await db.schema.hasTable('listing_variations').catch(() => false);
+    if (!hasVariationsTable) {
+      await db.raw(`
+        CREATE TABLE IF NOT EXISTS \`listing_variations\` (
+          \`id\` VARCHAR(36) NOT NULL PRIMARY KEY,
+          \`listing_id\` VARCHAR(36) NOT NULL,
+          \`title\` VARCHAR(150) NOT NULL,
+          \`price\` DECIMAL(10, 2) DEFAULT NULL,
+          \`image_url\` VARCHAR(500) DEFAULT NULL,
+          \`image_index\` INT DEFAULT 0,
+          \`quantity\` INT DEFAULT 1,
+          \`is_available\` BOOLEAN DEFAULT TRUE,
+          \`display_order\` INT DEFAULT 0,
+          \`created_at\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          INDEX \`idx_variations_listing\` (\`listing_id\`),
+          CONSTRAINT \`fk_variations_listing\` FOREIGN KEY (\`listing_id\`) REFERENCES \`listings\` (\`id\`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      `).catch((err) => {
+        logger.warn(`[DB Init] Notice on creating listing_variations table: ${err.message}`);
+      });
+      logger.info('[DB Init] Initialized listing_variations table.');
+    }
+
+    // 1l. Ensure transactions.selected_variation and variation_id exist
+    const hasTxVarCol = await db.schema.hasColumn('transactions', 'selected_variation').catch(() => false);
+    if (!hasTxVarCol) {
+      await db.schema.alterTable('transactions', (t) => {
+        t.string('selected_variation', 150).nullable();
+        t.string('variation_id', 36).nullable();
+      }).catch(() => {});
+      logger.info('[DB Init] Added selected_variation and variation_id to transactions table.');
+    }
+
+    // 1m. Ensure swaps.selected_variation exists
+    const hasSwaps = await db.schema.hasTable('swaps').catch(() => false);
+    if (hasSwaps) {
+      const hasSwapVarCol = await db.schema.hasColumn('swaps', 'selected_variation').catch(() => false);
+      if (!hasSwapVarCol) {
+        await db.schema.alterTable('swaps', (t) => {
+          t.string('selected_variation', 150).nullable();
+        }).catch(() => {});
+        logger.info('[DB Init] Added selected_variation to swaps table.');
+      }
     }
 
 

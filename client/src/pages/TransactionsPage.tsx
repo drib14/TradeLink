@@ -7,6 +7,7 @@ import { TransactionReceiptModal } from '../components/marketplace/TransactionRe
 import { ConfirmModal } from '../components/common/ConfirmModal';
 import { PromptModal } from '../components/common/PromptModal';
 import { PaymentMethodBadge } from '../components/common/PaymentLogos';
+import { TradeLinkIcon } from '../components/common/TradeLinkIcon';
 import { formatRelativeTime } from '../utils/date';
 import {
   FileText,
@@ -29,9 +30,10 @@ import {
 interface TransactionsPageProps {
   onNavigate: (view: string, param?: any) => void;
   onOpenChat: () => void;
+  onOpenAuth?: () => void;
 }
 
-export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, onOpenChat }) => {
+export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, onOpenChat, onOpenAuth }) => {
   const { transactions, completeTransaction, cancelTransaction, openChatWithSeller, openChatForTransaction } = useChat();
   const { currentUser, isAuthenticated } = useAuth();
   const { showToast } = useToast();
@@ -47,23 +49,35 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
   if (!isAuthenticated || !currentUser) {
     return (
       <div className="container page-enter" style={{ padding: '5rem 1.5rem', textAlign: 'center', maxWidth: '540px' }}>
-        <div className="clean-card" style={{ padding: '2.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: 'var(--uc-blue-subtle)', color: 'var(--uc-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Receipt size={28} />
+        <div className="clean-card" style={{ padding: '2.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.15rem' }}>
+          <TradeLinkIcon size={56} />
+          <div>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+              Sign In to View Transactions
+            </h2>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.5, marginTop: '0.35rem' }}>
+              Access your campus orders, trade receipts, and settlement history with verified UC peers.
+            </p>
           </div>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-            Sign In to View Transactions
-          </h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-            Access your campus orders, trade receipts, and settlement history with verified UC peers.
-          </p>
-          <button
-            onClick={() => onNavigate('home')}
-            className="btn-gold"
-            style={{ padding: '0.65rem 1.5rem', fontSize: '0.86rem', fontWeight: 800 }}
-          >
-            Go to Login
-          </button>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center', width: '100%', marginTop: '0.25rem' }}>
+            <button
+              onClick={() => {
+                if (onOpenAuth) onOpenAuth();
+                else onNavigate('home');
+              }}
+              className="btn-gold"
+              style={{ padding: '0.75rem 1.5rem', fontSize: '0.88rem', fontWeight: 800 }}
+            >
+              Sign In to TradeLink
+            </button>
+            <button
+              onClick={() => onNavigate('marketplace')}
+              className="btn-secondary"
+              style={{ padding: '0.75rem 1.25rem', fontSize: '0.88rem', fontWeight: 700 }}
+            >
+              Browse Marketplace
+            </button>
+          </div>
         </div>
       </div>
     );

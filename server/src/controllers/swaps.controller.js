@@ -164,7 +164,8 @@ const proposeSwap = asyncHandler(async (req, res, next) => {
     offeredItemTitle = 'Offered Student Item',
     offeredDescription,
     offeredImage,
-    cashTopUp = 0
+    cashTopUp = 0,
+    selectedVariation
   } = req.body;
 
   const targetListing = await db('listings').where({ id: targetListingId }).first();
@@ -208,6 +209,7 @@ const proposeSwap = asyncHandler(async (req, res, next) => {
     offered_listing_id: offeredListingId || null,
     cash_adjustment: parseFloat(cashTopUp || 0),
     adjustment_type: parseFloat(cashTopUp || 0) > 0 ? 'proposer_adds_cash' : 'none',
+    selected_variation: selectedVariation ? String(selectedVariation).trim() : null,
     status: 'pending',
     status_note: null
   };
@@ -216,7 +218,8 @@ const proposeSwap = asyncHandler(async (req, res, next) => {
 
   // Sync to chat conversation thread
   const io = req.app.get('io');
-  const chatContent = `[Barter Proposal] Offered "${finalOfferedTitle}" ${newSwap.cash_adjustment > 0 ? `with +₱${newSwap.cash_adjustment} cash adjustment` : ''} in exchange for "${targetListing.title}". Review and accept or decline below!`;
+  const variationSuffix = selectedVariation ? ` [Option requested: ${selectedVariation}]` : '';
+  const chatContent = `[Barter Proposal] Offered "${finalOfferedTitle}" ${newSwap.cash_adjustment > 0 ? `with +₱${newSwap.cash_adjustment} cash adjustment` : ''} in exchange for "${targetListing.title}"${variationSuffix}. Review and accept or decline below!`;
 
   await syncSwapToChat({
     listingId: targetListingId,
@@ -294,7 +297,8 @@ const respondToSwap = asyncHandler(async (req, res, next) => {
         payment_method: 'barter',
         payment_status: 'paid',
         status: 'pending',
-        notes: `Barter trade: ${swap.offered_item_title} for ${swap.target_title}`
+        selected_variation: swap.selected_variation || null,
+        notes: `Barter trade: ${swap.offered_item_title} for ${swap.target_title}${swap.selected_variation ? ` [Option: ${swap.selected_variation}]` : ''}`
       });
     });
 

@@ -1,4 +1,4 @@
-import { mobileApi, setMobileAccessToken } from './api';
+import { mobileApi, setMobileTokens, clearMobileTokens } from './api';
 import { User, Campus, College } from '../types';
 
 export interface MobileRegisterPayload {
@@ -15,29 +15,38 @@ export interface MobileRegisterPayload {
 
 export const mobileAuthService = {
   async login(idNumber: string, password?: string): Promise<{ user: User; accessToken: string }> {
+    if (!password) {
+      throw new Error('Please enter your account password.');
+    }
+
     const res = await mobileApi.post('/auth/login', {
       studentId: idNumber,
       idNumber,
       emailOrStudentId: idNumber,
-      password: password || 'default123',
+      password,
     });
 
     const user = res.data?.user;
     const accessToken = res.data?.accessToken;
+    const refreshToken = res.data?.refreshToken;
 
     if (accessToken) {
-      await setMobileAccessToken(accessToken);
+      await setMobileTokens(accessToken, refreshToken);
     }
 
     return { user, accessToken };
   },
 
   async register(payload: MobileRegisterPayload): Promise<{ user: User; accessToken: string }> {
+    if (!payload.password) {
+      throw new Error('Please choose a secure account password.');
+    }
+
     const res = await mobileApi.post('/auth/register', {
       name: payload.name,
       studentId: payload.studentId,
       email: payload.email,
-      password: payload.password || 'Student@123',
+      password: payload.password,
       campus: payload.campus,
       college: payload.college,
       yearLevel: payload.yearLevel || '1st Year',
@@ -47,9 +56,10 @@ export const mobileAuthService = {
 
     const user = res.data?.user;
     const accessToken = res.data?.accessToken;
+    const refreshToken = res.data?.refreshToken;
 
     if (accessToken) {
-      await setMobileAccessToken(accessToken);
+      await setMobileTokens(accessToken, refreshToken);
     }
 
     return { user, accessToken };
@@ -70,7 +80,7 @@ export const mobileAuthService = {
     } catch {
       // Ignore network errors on logout
     } finally {
-      await setMobileAccessToken(null);
+      await clearMobileTokens();
     }
   },
 
@@ -88,11 +98,10 @@ export const mobileAuthService = {
     return res;
   },
 
-  async forgotPassword(email: string): Promise<{ message: string; resetCode?: string }> {
+  async forgotPassword(email: string): Promise<{ message: string }> {
     const res = await mobileApi.post('/auth/forgot-password', { email });
     return {
       message: res.data?.message || 'Verification code sent to your email.',
-      resetCode: res.data?.resetCode || res.data?.devCode,
     };
   },
 

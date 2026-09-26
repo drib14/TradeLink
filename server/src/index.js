@@ -32,6 +32,7 @@ app.set('trust proxy', 1);
 // 1. Security Headers (Helmet)
 app.use(
   helmet({
+    xFrameOptions: { action: 'sameorigin' },
     crossOriginResourcePolicy: { policy: 'cross-origin' },
     referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
     contentSecurityPolicy: {
@@ -62,7 +63,7 @@ app.use((req, res, next) => {
   req.id = req.headers['x-request-id'] || uuidv4();
   res.setHeader('X-Request-ID', req.id);
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   if (env.isProduction) {
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');

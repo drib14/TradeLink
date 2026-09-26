@@ -54,7 +54,7 @@ async function main() {
       'transactions', 'swap_offers', 'flash_requests', 'wanted_requests',
       'listing_media', 'listings', 'verification_requests', 'flagged_listings',
       'trade_disputes', 'announcements', 'admin_audit_logs', 'prohibited_keywords',
-      'password_reset_requests', 'feature_flags', 'system_config', 'newsletter_subscribers',
+      'password_reset_requests', 'feature_flags', 'system_config',
       'users'
     ];
 

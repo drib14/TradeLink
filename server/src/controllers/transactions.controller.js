@@ -4,6 +4,7 @@ const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
 const { serializeTransaction } = require('../serializers');
 const emailService = require('../services/email.service');
+const { generate4DigitCode, hashCode, verifyCode } = require('../utils/generateCode');
 
 /**
  * Generates a human-friendly unique reference code e.g. TL-2026-B8A2
@@ -72,6 +73,7 @@ async function syncTransactionToChat({
 
     if (io) {
       const tx = await db('transactions').where({ id: transactionId }).first();
+      const listing = listingId ? await db('listings').where({ id: listingId }).first() : null;
       io.to(`conv:${conv.id}`).emit('chat:message', {
         id: msgId,
         conversationId: conv.id,
@@ -84,8 +86,11 @@ async function syncTransactionToChat({
         transaction: tx ? {
           id: tx.id,
           referenceNo: tx.reference_no,
+          listingId: tx.listing_id,
+          listingTitle: listing?.title || '',
           amount: parseFloat(tx.amount || 0),
           paymentMethod: tx.payment_method,
+          selectedVariation: tx.selected_variation,
           status: tx.status
         } : null,
         timestamp: newMsg.created_at.toISOString()
@@ -94,6 +99,7 @@ async function syncTransactionToChat({
       io.to(`conv:${conv.id}`).emit('chat:deal_updated', {
         transactionId,
         referenceNo,
+        listingTitle: listing?.title || '',
         status: tx ? tx.status : 'updated'
       });
     }
@@ -209,7 +215,9 @@ const createTransaction = asyncHandler(async (req, res, next) => {
     finalPrice,
     paymentMethod = 'cash',
     swapOfferId,
-    notes
+    notes,
+    selectedVariation,
+    variationId
   } = req.body;
 
   const targetListingId = listingId;
@@ -251,6 +259,10 @@ const createTransaction = asyncHandler(async (req, res, next) => {
   const txId = uuidv4();
   const referenceNo = generateReferenceNo();
 
+  // Generate cryptographically secure 4-digit handshake code for buyer verification
+  const handshakeCode = generate4DigitCode().slice(0, 4);
+  const handshakeCodeHash = await hashCode(handshakeCode);
+
   const newTx = {
     id: txId,
     reference_no: referenceNo,
@@ -263,6 +275,10 @@ const createTransaction = asyncHandler(async (req, res, next) => {
     payment_method: paymentMethod || 'cash',
     payment_status: paymentMethod === 'free' ? 'paid' : 'unpaid',
     status: 'pending',
+    verification_code_hash: handshakeCodeHash,
+    failed_handshake_attempts: 0,
+    selected_variation: selectedVariation ? String(selectedVariation).trim() : null,
+    variation_id: variationId || null,
     notes: notes ? notes.trim() : null
   };
 
@@ -274,7 +290,9 @@ const createTransaction = asyncHandler(async (req, res, next) => {
 
   // Sync to chat conversation
   const io = req.app.get('io');
-  const dealMessageContent = `[Confirmed Deal] Reference ${referenceNo} for ₱${targetAmount.toLocaleString()} (${paymentMethod.toUpperCase()}). Let's coordinate meetup location and time right here!`;
+  const variationText = selectedVariation ? `\n• Option: ${selectedVariation}` : '';
+  const itemTitle = listing.title || 'Item';
+  const dealMessageContent = `[ORDER CONFIRMED]\n• Item: "${itemTitle}"${variationText}\n• Amount: ₱${Number(targetAmount).toLocaleString()} (${paymentMethod.toUpperCase()})\n• Order Reference: #${referenceNo}\n\nLet's coordinate our campus meetup location and time right here!`;
   await syncTransactionToChat({
     listingId: targetListingId,
     buyerId: targetBuyerId,
@@ -305,12 +323,15 @@ const createTransaction = asyncHandler(async (req, res, next) => {
   const media = await db('listing_media').where({ listing_id: targetListingId }).first();
   const serialized = serializeTransaction(newTx, media?.media_url || '');
 
+  const isBuyer = req.user.id === targetBuyerId;
+
   res.status(201).json({
     status: 'success',
     message: `Transaction ${referenceNo} created successfully. Coordinate meeting details with the student directly in chat!`,
     data: {
       transaction: serialized,
-      meetup: serialized
+      meetup: serialized,
+      handshakeCode: isBuyer ? handshakeCode : undefined
     }
   });
 });
@@ -335,10 +356,42 @@ const completeTransaction = asyncHandler(async (req, res, next) => {
     return next(new AppError('Transaction is already completed.', 400));
   }
 
+  // Check if handshake verification is currently locked due to brute force attempts
+  if (tx.handshake_locked_until && new Date() < new Date(tx.handshake_locked_until)) {
+    const remainingMins = Math.ceil((new Date(tx.handshake_locked_until).getTime() - Date.now()) / 60000);
+    return next(new AppError(`Handshake verification is temporarily locked. Please try again in ${remainingMins} minute(s).`, 429));
+  }
+
+  // Enforce Handshake Code verification for student completions (administrators can bypass in disputes)
+  if (req.user.role !== 'admin' && tx.verification_code_hash) {
+    const { handshakeCode } = req.body;
+    if (!handshakeCode) {
+      return next(new AppError('Buyer handshake verification code is required to finalize this trade.', 400));
+    }
+
+    const isMatch = await verifyCode(String(handshakeCode).trim(), tx.verification_code_hash);
+    if (!isMatch) {
+      const attempts = (tx.failed_handshake_attempts || 0) + 1;
+      if (attempts >= 3) {
+        await db('transactions').where({ id }).update({
+          failed_handshake_attempts: attempts,
+          handshake_locked_until: new Date(Date.now() + 15 * 60 * 1000)
+        });
+        return next(new AppError('Invalid handshake code. Maximum attempts exceeded (3/3). Handshake verification is locked for 15 minutes.', 429));
+      }
+      await db('transactions').where({ id }).update({
+        failed_handshake_attempts: attempts
+      });
+      return next(new AppError(`Invalid handshake code. You have ${3 - attempts} attempt(s) remaining.`, 400));
+    }
+  }
+
   await db.transaction(async (trx) => {
     await trx('transactions').where({ id }).update({
       status: 'completed',
       payment_status: 'paid',
+      failed_handshake_attempts: 0,
+      handshake_locked_until: null,
       completed_at: new Date()
     });
 
@@ -348,13 +401,15 @@ const completeTransaction = asyncHandler(async (req, res, next) => {
 
   // Sync completion system event to chat
   const io = req.app.get('io');
+  const completedListing = await db('listings').where({ id: tx.listing_id }).first();
+  const completedTitle = completedListing?.title || 'Item';
   await syncTransactionToChat({
     listingId: tx.listing_id,
     buyerId: tx.buyer_id,
     sellerId: tx.seller_id,
     transactionId: tx.id,
     referenceNo: tx.reference_no,
-    content: `[Deal Completed] Reference ${tx.reference_no} is officially COMPLETED! Thank you for trading safely on campus. The buyer can now submit a product review for this item.`,
+    content: `[Deal Completed] Order #${tx.reference_no} for "${completedTitle}" is officially COMPLETED! Thank you for trading safely on campus. The buyer can now submit a product review for this item.`,
     isSystem: true,
     io
   });
@@ -417,13 +472,15 @@ const cancelTransaction = asyncHandler(async (req, res, next) => {
 
   // Sync cancellation system event to chat
   const io = req.app.get('io');
+  const cancelledListing = await db('listings').where({ id: tx.listing_id }).first();
+  const cancelledTitle = cancelledListing?.title || 'Item';
   await syncTransactionToChat({
     listingId: tx.listing_id,
     buyerId: tx.buyer_id,
     sellerId: tx.seller_id,
     transactionId: tx.id,
     referenceNo: tx.reference_no,
-    content: `[Deal Cancelled] Order ${tx.reference_no} was CANCELLED (${reason.trim()}). The item has been re-listed on the campus catalog.`,
+    content: `[Deal Cancelled] Order #${tx.reference_no} for "${cancelledTitle}" was CANCELLED (${reason.trim()}). The item has been re-listed on the campus catalog.`,
     isSystem: true,
     io
   });

@@ -55,46 +55,43 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenChat: _onO
 
       {/* 2. Quick Feature Navigation Cards */}
       <section className="container">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '0.85rem' }}>
+        <div className="home-quick-nav-grid">
           <div
-            className="clean-card card-interactive"
+            className="clean-card card-interactive home-quick-nav-card"
             onClick={() => onNavigate('favorites')}
-            style={{ padding: '1rem 1.15rem', display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}
           >
-            <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--uc-gold-light, #FEF3C7)', color: '#B45309', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div className="nav-card-icon" style={{ backgroundColor: 'var(--uc-gold-light, #FEF3C7)', color: '#B45309' }}>
               <Bookmark size={18} />
             </div>
-            <div>
-              <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)' }}>Saved Items</div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{favorites.length} items bookmarked</div>
+            <div className="nav-card-text">
+              <div className="nav-card-title">Saved Items</div>
+              <div className="nav-card-sub">{favorites.length} saved</div>
             </div>
           </div>
 
           <div
-            className="clean-card card-interactive"
+            className="clean-card card-interactive home-quick-nav-card"
             onClick={() => onNavigate('flash-market')}
-            style={{ padding: '1rem 1.15rem', display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}
           >
-            <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--color-secondary-light, #FFF2CC)', color: 'var(--uc-blue, #002B7F)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div className="nav-card-icon" style={{ backgroundColor: 'var(--color-secondary-light, #FFF2CC)', color: 'var(--uc-blue, #002B7F)' }}>
               <Zap size={18} fill="var(--color-secondary, #FFC72C)" color="var(--color-secondary-dark, #E5A800)" />
             </div>
-            <div>
-              <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)' }}>Flash Requests</div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Urgent peer needs &amp; pasabuy</div>
+            <div className="nav-card-text">
+              <div className="nav-card-title">Flash Market</div>
+              <div className="nav-card-sub">Urgent requests</div>
             </div>
           </div>
 
           <div
-            className="clean-card card-interactive"
+            className="clean-card card-interactive home-quick-nav-card"
             onClick={() => onNavigate('swaps')}
-            style={{ padding: '1rem 1.15rem', display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}
           >
-            <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'var(--color-success-subtle, #ECFDF5)', color: 'var(--accent-green, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div className="nav-card-icon" style={{ backgroundColor: 'var(--color-success-subtle, #ECFDF5)', color: 'var(--accent-green, #059669)' }}>
               <ArrowLeftRight size={18} />
             </div>
-            <div>
-              <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)' }}>Direct Swaps</div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Barter gear & textbooks</div>
+            <div className="nav-card-text">
+              <div className="nav-card-title">Direct Swaps</div>
+              <div className="nav-card-sub">Barter & trade</div>
             </div>
           </div>
         </div>
@@ -212,6 +209,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenChat: _onO
                   key={item.id}
                   listing={item}
                   onClick={() => onNavigate('item-detail', { id: item.id })}
+                  onNavigate={onNavigate}
                 />
               ))}
         </div>

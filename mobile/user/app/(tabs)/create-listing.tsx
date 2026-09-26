@@ -19,6 +19,13 @@ import { useAuth } from '../../context/AuthContext';
 import { Campus, College, ConditionGrade, TradeMode } from '../../types';
 import { CATEGORIES, CONDITIONS, CAMPUSES } from '../../constants';
 
+interface DraftVariation {
+  id: string;
+  title: string;
+  imageIndex: number;
+  price?: string;
+}
+
 export default function CreateListingScreen() {
   const router = useRouter();
   const { addListing } = useMarket();
@@ -35,7 +42,54 @@ export default function CreateListingScreen() {
   const [campus, setCampus] = useState<Campus>(currentUser?.campus || 'UC Main');
   const [meetupSpot, setMeetupSpot] = useState('');
   const [images, setImages] = useState<string[]>([]);
+  const [variations, setVariations] = useState<DraftVariation[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const applyPreset = (presetType: 'pe' | 'math' | 'uniform') => {
+    if (presetType === 'pe') {
+      setVariations([
+        { id: 'pe101', title: 'PE 101 Book', imageIndex: 0 },
+        { id: 'pe102', title: 'PE 102 Book', imageIndex: Math.min(1, Math.max(0, images.length - 1)) },
+        { id: 'pe103', title: 'PE 103 Book', imageIndex: Math.min(2, Math.max(0, images.length - 1)) },
+        { id: 'pe104', title: 'PE 104 Book', imageIndex: Math.min(3, Math.max(0, images.length - 1)) },
+      ]);
+    } else if (presetType === 'math') {
+      setVariations([
+        { id: 'math101', title: 'Math 101 (Algebra)', imageIndex: 0 },
+        { id: 'math102', title: 'Math 102 (Trigonometry)', imageIndex: Math.min(1, Math.max(0, images.length - 1)) },
+        { id: 'math103', title: 'Math 103 (Calculus 1)', imageIndex: Math.min(2, Math.max(0, images.length - 1)) },
+        { id: 'math104', title: 'Math 104 (Calculus 2)', imageIndex: Math.min(3, Math.max(0, images.length - 1)) },
+      ]);
+    } else if (presetType === 'uniform') {
+      setVariations([
+        { id: 'u_s', title: 'Size Small (S)', imageIndex: 0 },
+        { id: 'u_m', title: 'Size Medium (M)', imageIndex: 0 },
+        { id: 'u_l', title: 'Size Large (L)', imageIndex: 0 },
+        { id: 'u_xl', title: 'Size XL', imageIndex: 0 },
+      ]);
+    }
+  };
+
+  const handleAddVariation = () => {
+    setVariations((prev) => [
+      ...prev,
+      {
+        id: `var_${Date.now()}_${prev.length}`,
+        title: `Option ${prev.length + 1}`,
+        imageIndex: Math.min(prev.length, Math.max(0, images.length - 1)),
+      },
+    ]);
+  };
+
+  const handleUpdateVariation = (id: string, field: keyof DraftVariation, value: any) => {
+    setVariations((prev) =>
+      prev.map((v) => (v.id === id ? { ...v, [field]: value } : v))
+    );
+  };
+
+  const handleRemoveVariation = (id: string) => {
+    setVariations((prev) => prev.filter((v) => v.id !== id));
+  };
 
   const handlePickImage = async () => {
     try {
@@ -107,6 +161,15 @@ export default function CreateListingScreen() {
 
     setIsSubmitting(true);
     try {
+      const mappedVariations = variations.map((v, i) => ({
+        title: v.title.trim(),
+        imageIndex: v.imageIndex,
+        imageUrl: images[v.imageIndex] || undefined,
+        price: v.price && !isNaN(Number(v.price)) ? Number(v.price) : undefined,
+        quantity: 1,
+        displayOrder: i,
+      }));
+
       const newListing = await addListing({
         title: title.trim(),
         description: description.trim(),
@@ -117,6 +180,7 @@ export default function CreateListingScreen() {
         category,
         condition,
         images,
+        variations: mappedVariations.length > 0 ? (mappedVariations as any) : undefined,
         sellerId: currentUser.id,
         sellerName: currentUser.name,
         sellerAvatar: currentUser.avatar,
@@ -142,6 +206,7 @@ export default function CreateListingScreen() {
         setPrice('');
         setOriginalSrp('');
         setImages([]);
+        setVariations([]);
         setMeetupSpot('');
       } else {
         Alert.alert('Submission Error', 'Failed to publish listing. Please check your network connection.');
@@ -322,7 +387,99 @@ export default function CreateListingScreen() {
           </View>
         )}
 
-        {/* 5. Condition Grade */}
+        {/* 5. Item Variations & Photo Matching */}
+        <View style={styles.section}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Ionicons name="albums-outline" size={16} color="#002B7F" />
+              <Text style={styles.sectionLabel}>Item Options & Photo Match (Optional)</Text>
+            </View>
+            {variations.length > 0 && (
+              <TouchableOpacity onPress={() => setVariations([])}>
+                <Text style={{ fontSize: 11, color: '#DC2626', fontWeight: '700' }}>Clear</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          <Text style={{ fontSize: 11, color: '#64748B', marginBottom: 10 }}>
+            List books or sizes separately so buyers can pick the exact one and see its matched photo.
+          </Text>
+
+          {/* Quick presets */}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+            <TouchableOpacity style={styles.presetBtn} onPress={() => applyPreset('pe')}>
+              <Text style={styles.presetBtnText}>+ PE Books (101-104)</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.presetBtn} onPress={() => applyPreset('math')}>
+              <Text style={styles.presetBtnText}>+ Math Books (101-104)</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.presetBtn} onPress={() => applyPreset('uniform')}>
+              <Text style={styles.presetBtnText}>+ Uniform (S-XL)</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Variations list */}
+          {variations.map((v) => (
+            <View key={v.id} style={styles.variationRow}>
+              <View style={{ flex: 1, gap: 6 }}>
+                <TextInput
+                  style={[styles.input, { height: 38, fontSize: 12 }]}
+                  placeholder="Option title (e.g. PE 101 Book)"
+                  placeholderTextColor="#94A3B8"
+                  value={v.title}
+                  onChangeText={(txt) => handleUpdateVariation(v.id, 'title', txt)}
+                />
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={{ fontSize: 11, color: '#475569', fontWeight: '600' }}>Photo:</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    <View style={{ flexDirection: 'row', gap: 4 }}>
+                      {images.map((imgUri, imgIdx) => {
+                        const isMatch = v.imageIndex === imgIdx;
+                        return (
+                          <TouchableOpacity
+                            key={imgIdx}
+                            style={[styles.miniPhotoThumb, isMatch && styles.miniPhotoThumbActive]}
+                            onPress={() => handleUpdateVariation(v.id, 'imageIndex', imgIdx)}
+                          >
+                            <Image source={{ uri: imgUri }} style={{ width: 26, height: 26, borderRadius: 4 }} />
+                            {isMatch && (
+                              <View style={styles.miniPhotoBadge}>
+                                <Ionicons name="checkmark" size={10} color="#FFFFFF" />
+                              </View>
+                            )}
+                          </TouchableOpacity>
+                        );
+                      })}
+                      {images.length === 0 && (
+                        <Text style={{ fontSize: 10, color: '#94A3B8', fontStyle: 'italic' }}>Upload photos first</Text>
+                      )}
+                    </View>
+                  </ScrollView>
+                  <TextInput
+                    style={[styles.input, { width: 75, height: 38, fontSize: 11, textAlign: 'center' }]}
+                    placeholder="₱ Price"
+                    placeholderTextColor="#94A3B8"
+                    keyboardType="numeric"
+                    value={v.price || ''}
+                    onChangeText={(txt) => handleUpdateVariation(v.id, 'price', txt)}
+                  />
+                </View>
+              </View>
+              <TouchableOpacity
+                style={{ padding: 6, alignSelf: 'center' }}
+                onPress={() => handleRemoveVariation(v.id)}
+              >
+                <Ionicons name="trash-outline" size={18} color="#DC2626" />
+              </TouchableOpacity>
+            </View>
+          ))}
+
+          <TouchableOpacity style={styles.addVariationBtn} onPress={handleAddVariation}>
+            <Ionicons name="add-circle-outline" size={16} color="#002B7F" />
+            <Text style={styles.addVariationBtnText}>Add Custom Option</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* 6. Condition Grade */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Condition Grade</Text>
           <View style={styles.chipRow}>
@@ -558,5 +715,67 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '800',
+  },
+  presetBtn: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  presetBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#002B7F',
+  },
+  variationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 8,
+    gap: 8,
+  },
+  miniPhotoThumb: {
+    position: 'relative',
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+  },
+  miniPhotoThumbActive: {
+    borderColor: '#002B7F',
+  },
+  miniPhotoBadge: {
+    position: 'absolute',
+    top: -3,
+    right: -3,
+    backgroundColor: '#002B7F',
+    borderRadius: 6,
+    width: 12,
+    height: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addVariationBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: '#94A3B8',
+    borderRadius: 10,
+    paddingVertical: 10,
+    marginTop: 4,
+    backgroundColor: '#F8FAFC',
+  },
+  addVariationBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#002B7F',
   },
 });

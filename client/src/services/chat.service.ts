@@ -189,6 +189,7 @@ export const chatService = {
         offeredListingImage: s.offeredListingImage || s.offered_listing_image,
         offeredDescription: s.offeredDescription || s.offered_description || '',
         cashTopUp: parseFloat(s.cashTopUp ?? s.cash_top_up) || 0,
+        selectedVariation: s.selectedVariation || s.selected_variation || null,
         status: s.status || 'pending',
         createdAt: s.createdAt || s.created_at || new Date().toISOString()
       }));
@@ -227,6 +228,8 @@ export const chatService = {
         paymentStatus: t.paymentStatus || t.payment_status || 'unpaid',
         status: t.status || 'pending',
         notes: t.notes || '',
+        selectedVariation: t.selectedVariation || t.selected_variation || null,
+        variationId: t.variationId || t.variation_id || null,
         completedAt: t.completedAt || t.completed_at,
         cancelledAt: t.cancelledAt || t.cancelled_at,
         cancellationReason: t.cancellationReason || t.cancellation_reason,
@@ -243,6 +246,8 @@ export const chatService = {
     paymentMethod?: string;
     notes?: string;
     swapOfferId?: string;
+    selectedVariation?: string;
+    variationId?: string;
   }): Promise<Transaction> {
     const res = await api.post<{ transaction: any }>('/transactions', data);
     return res.data?.transaction || res.data;

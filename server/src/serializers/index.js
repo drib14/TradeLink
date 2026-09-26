@@ -20,6 +20,7 @@ function serializeSwap(s, targetImage = '', offeredImage = '') {
     offeredListingImage: offeredImage || s.offeredListingImage || '',
     offeredDescription: s.offered_description || s.offeredDescription || '',
     cashTopUp: parseFloat(s.cash_top_up ?? s.cashTopUp ?? 0),
+    selectedVariation: s.selected_variation || s.selectedVariation || null,
     status: s.status || 'pending',
     statusNote: s.status_note || s.statusNote || null,
     createdAt: s.created_at || s.createdAt || new Date().toISOString()
@@ -43,6 +44,7 @@ function serializeTransaction(t, listingImage = '') {
     tradeMode: t.trade_mode || t.tradeMode || 'buy_sell',
     amount: parseFloat(t.amount ?? t.final_price ?? t.finalPrice ?? 0),
     finalPrice: parseFloat(t.amount ?? t.final_price ?? t.finalPrice ?? 0),
+    selectedVariation: t.selected_variation || t.selectedVariation || null,
     paymentMethod: t.payment_method || t.paymentMethod || 'cash',
     paymentStatus: t.payment_status || t.paymentStatus || 'unpaid',
     swapOfferId: t.swap_offer_id || t.swapOfferId || null,

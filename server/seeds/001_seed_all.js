@@ -12,7 +12,7 @@ exports.seed = async function(knex) {
     'listing_media', 'listings', 'verification_requests', 'flagged_listings',
     'trade_disputes', 'announcements', 'admin_audit_logs', 'prohibited_keywords',
     'feature_flags', 'system_config', 'password_reset_requests',
-    'newsletter_subscribers', 'users'
+    'users'
   ];
 
   await knex.raw('SET FOREIGN_KEY_CHECKS = 0');

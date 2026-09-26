@@ -108,6 +108,18 @@ const getOrCreateConversation = asyncHandler(async (req, res, next) => {
     .count('id as count')
     .first();
 
+  // Active pending transaction if applicable
+  let matchingTx = null;
+  if (conv.listing_id) {
+    matchingTx = await db('transactions')
+      .where({ listing_id: conv.listing_id, status: 'pending' })
+      .where((b) => {
+        b.where({ buyer_id: currentUserId, seller_id: targetUserId })
+          .orWhere({ buyer_id: targetUserId, seller_id: currentUserId });
+      })
+      .first();
+  }
+
   const formatted = {
     id: conv.id,
     participantIds: [conv.user_one_id, conv.user_two_id],
@@ -145,6 +157,20 @@ const getOrCreateConversation = asyncHandler(async (req, res, next) => {
       category: flashReq.category,
       urgency: flashReq.urgency,
       campus: flashReq.target_campus
+    } : null,
+    activeTransaction: matchingTx ? {
+      id: matchingTx.id,
+      referenceNo: matchingTx.reference_no,
+      listingId: matchingTx.listing_id,
+      listingTitle: listing?.title || '',
+      amount: parseFloat(matchingTx.amount || 0),
+      paymentMethod: matchingTx.payment_method || 'cash',
+      selectedVariation: matchingTx.selected_variation || null,
+      status: matchingTx.status,
+      buyerId: matchingTx.buyer_id,
+      sellerId: matchingTx.seller_id,
+      notes: matchingTx.notes || null,
+      isBuyer: matchingTx.buyer_id === currentUserId
     } : null,
     lastMessage: conv.last_message || '',
     lastMessageTimestamp: conv.last_message_at || conv.created_at,
@@ -264,7 +290,7 @@ const getConversations = asyncHandler(async (req, res) => {
     ? await db('transactions')
         .whereIn('listing_id', listingIds)
         .where('status', 'pending')
-        .select('id', 'reference_no', 'listing_id', 'amount', 'buyer_id', 'seller_id', 'status')
+        .select('id', 'reference_no', 'listing_id', 'amount', 'buyer_id', 'seller_id', 'status', 'payment_method', 'selected_variation', 'notes')
     : [];
 
   // Bulk fetch active swap offers
@@ -344,8 +370,16 @@ const getConversations = asyncHandler(async (req, res) => {
       activeTransaction: matchingTx ? {
         id: matchingTx.id,
         referenceNo: matchingTx.reference_no,
+        listingId: matchingTx.listing_id,
+        listingTitle,
         amount: parseFloat(matchingTx.amount || 0),
-        status: matchingTx.status
+        paymentMethod: matchingTx.payment_method || 'cash',
+        selectedVariation: matchingTx.selected_variation || null,
+        status: matchingTx.status,
+        buyerId: matchingTx.buyer_id,
+        sellerId: matchingTx.seller_id,
+        notes: matchingTx.notes || null,
+        isBuyer: matchingTx.buyer_id === userId
       } : null,
       activeSwap: matchingSwap ? {
         id: matchingSwap.id,

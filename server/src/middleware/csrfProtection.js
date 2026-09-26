@@ -12,8 +12,7 @@ const EXEMPT_PREFIXES = [
   '/auth/verify-reset-code',
   '/auth/reset-password',
   '/admin-auth/login',
-  '/admin-auth/forgot-password',
-  '/newsletter/subscribe'
+  '/admin-auth/forgot-password'
 ];
 
 /**

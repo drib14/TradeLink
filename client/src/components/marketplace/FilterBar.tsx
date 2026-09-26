@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useMarket } from '../../context/MarketContext';
-import { RotateCcw, X, SlidersHorizontal, Tag, DollarSign, Building2 } from 'lucide-react';
+import { RotateCcw, X, SlidersHorizontal, DollarSign, Building2, Tag } from 'lucide-react';
 import { ConditionGrade } from '../../types';
 
 export const FilterBar: React.FC = () => {

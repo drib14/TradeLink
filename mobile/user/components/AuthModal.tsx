@@ -97,9 +97,6 @@ export const AuthModal: React.FC = () => {
       const res = await mobileAuthService.forgotPassword(forgotEmail.trim().toLowerCase());
       setLoading(false);
       setSuccessMessage(res.message || 'Verification code sent to your email.');
-      if (res.resetCode) {
-        setResetCode(res.resetCode);
-      }
       setForgotStep('verify');
     } catch (err: any) {
       setLoading(false);

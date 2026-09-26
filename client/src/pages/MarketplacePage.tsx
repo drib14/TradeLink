@@ -151,6 +151,7 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({
                 key={item.id}
                 listing={item.data as any}
                 onClick={() => onNavigate('item-detail', { id: item.data.id })}
+                onNavigate={onNavigate}
               />
             ))}
           </div>

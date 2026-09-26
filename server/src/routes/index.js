@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const env = require('../config/env');
 const db = require('../config/db');
 const { authenticate } = require('../middleware/auth');
 const upload = require('../middleware/upload');
@@ -20,7 +21,7 @@ const flashMarketRoutes = require('./flashMarket.routes');
 const reviewsRoutes = require('./reviews.routes');
 const adminRoutes = require('./admin.routes');
 const adminAuthRoutes = require('./adminAuth.routes');
-const newsletterRoutes = require('./newsletter.routes');
+const aiRoutes = require('./ai.routes');
 
 // System Health Check
 router.get('/health', async (req, res) => {
@@ -92,6 +93,6 @@ router.use('/wanted', flashMarketRoutes); // Compatibility alias
 router.use('/reviews', reviewsRoutes);
 router.use('/admin', adminRoutes);
 router.use('/admin-auth', adminAuthRoutes);
-router.use('/newsletter', newsletterRoutes);
+router.use('/ai', aiRoutes);
 
 module.exports = router;

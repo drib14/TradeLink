@@ -34,8 +34,13 @@ const requireVerified = (req, res, next) => {
     return next();
   }
 
-  // MVP: Verification temporarily disabled for open access to all users
-  return next();
+  if (!req.user.is_verified) {
+    return next(
+      new AppError('Student ID verification required to perform this action.', 403)
+    );
+  }
+
+  next();
 };
 
 const { requireStudent } = require('./requireStudent');

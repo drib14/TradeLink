@@ -20,7 +20,9 @@ import {
   Settings,
   Shield,
   Clock,
-  Check
+  Check,
+  Zap,
+  ArrowLeftRight
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -281,6 +283,33 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
 
             <button
+              onClick={() => onNavigate('flash-market')}
+              style={{
+                position: 'relative',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                padding: '0.45rem 0.75rem',
+                borderRadius: '8px',
+                fontSize: '0.84rem',
+                fontWeight: currentView === 'flash-market' || currentView === 'flash-detail' ? 800 : 600,
+                color: currentView === 'flash-market' || currentView === 'flash-detail' ? 'var(--uc-blue, #002B7F)' : 'var(--text-secondary, #475569)',
+                backgroundColor: currentView === 'flash-market' || currentView === 'flash-detail' ? 'var(--uc-blue-subtle, #EBF1FC)' : 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <Zap
+                size={14}
+                fill={currentView === 'flash-market' || currentView === 'flash-detail' ? '#FFC72C' : 'none'}
+                color={currentView === 'flash-market' || currentView === 'flash-detail' ? '#B45309' : '#E5A800'}
+                style={{ flexShrink: 0 }}
+              />
+              <span>Flash Market</span>
+            </button>
+
+            <button
               onClick={handleSwapsClick}
               style={{
                 position: 'relative',
@@ -381,6 +410,8 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           </div>
 
+
+
           {isAuthenticated && currentUser ? (
             <>
               {/* User Menu */}
@@ -457,6 +488,30 @@ export const Navbar: React.FC<NavbarProps> = ({
                     >
                       <User size={16} color="var(--uc-blue, #002B7F)" style={{ flexShrink: 0 }} />
                       <span>My Profile</span>
+                    </button>
+
+                    {/* Flash Market */}
+                    <button
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        onNavigate('flash-market');
+                      }}
+                      className="dropdown-item"
+                    >
+                      <Zap size={16} color="#E5A800" style={{ flexShrink: 0 }} />
+                      <span>Flash Market & Requests</span>
+                    </button>
+
+                    {/* Campus Swaps */}
+                    <button
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        onNavigate('swaps');
+                      }}
+                      className="dropdown-item"
+                    >
+                      <ArrowLeftRight size={16} color="#059669" style={{ flexShrink: 0 }} />
+                      <span>Campus Swaps</span>
                     </button>
 
                     {/* 2. Transaction History */}

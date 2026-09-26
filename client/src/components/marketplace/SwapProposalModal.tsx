@@ -1,24 +1,30 @@
 import React, { useState } from 'react';
+import { ArrowLeftRight } from 'lucide-react';
 import { Listing } from '../../types';
 import { Modal } from '../common/Modal';
+import { TradeLinkIcon } from '../common/TradeLinkIcon';
 import { useAuth } from '../../context/AuthContext';
 import { useMarket } from '../../context/MarketContext';
 import { useChat } from '../../context/ChatContext';
 import { useToast } from '../common/Toast';
-import { ArrowLeftRight, MessageSquare } from 'lucide-react';
+import { aiService, BarterAppraisal } from '../../services/ai.service';
 
 interface SwapProposalModalProps {
   isOpen: boolean;
   onClose: () => void;
   targetListing: Listing;
+  initialVariation?: string | null;
   onOpenVerification?: () => void;
+  onOpenAuth?: () => void;
 }
 
 export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
   isOpen,
   onClose,
   targetListing,
-  onOpenVerification
+  initialVariation,
+  onOpenVerification,
+  onOpenAuth
 }) => {
   const { currentUser, isAuthenticated } = useAuth();
   const { listings } = useMarket();
@@ -29,8 +35,22 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
   const myListings = currentUser ? listings.filter((l) => l.sellerId === currentUser.id && !l.isSold) : [];
 
   const [selectedMyListingId, setSelectedMyListingId] = useState<string>(myListings[0]?.id || '');
+  const [selectedVariation, setSelectedVariation] = useState<string | null>(
+    initialVariation || (targetListing.variations && targetListing.variations.length > 0 ? targetListing.variations[0].title : null)
+  );
+
+  React.useEffect(() => {
+    if (initialVariation) {
+      setSelectedVariation(initialVariation);
+    } else if (targetListing.variations && targetListing.variations.length > 0 && !selectedVariation) {
+      setSelectedVariation(targetListing.variations[0].title);
+    }
+  }, [initialVariation, targetListing]);
+
   const [customDescription, setCustomDescription] = useState('');
   const [cashTopUp, setCashTopUp] = useState<number>(0);
+  const [isEvaluating, setIsEvaluating] = useState<boolean>(false);
+  const [appraisal, setAppraisal] = useState<BarterAppraisal | null>(null);
 
   React.useEffect(() => {
     if (isOpen) {
@@ -48,12 +68,39 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
   if (!isAuthenticated || !currentUser) {
     return (
       <div className="modal-backdrop-custom" onClick={onClose}>
-        <div className="modal-card-custom" style={{ maxWidth: '440px', textAlign: 'center', padding: '2rem' }} onClick={(e) => e.stopPropagation()}>
-          <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--uc-blue)' }}>Sign In Required</h3>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0.75rem 0 1.25rem 0' }}>
-            Please log in with your University of Cebu student account to propose a swap.
-          </p>
-          <button onClick={onClose} className="btn-gold" style={{ width: '100%' }}>Close</button>
+        <div
+          className="modal-card-custom"
+          style={{ maxWidth: '440px', textAlign: 'center', padding: '2.5rem 2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.15rem' }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <TradeLinkIcon size={56} />
+          <div>
+            <h3 style={{ fontSize: '1.28rem', fontWeight: 800, color: 'var(--text-primary, #0F172A)', margin: 0, letterSpacing: '-0.01em' }}>
+              Sign In Required
+            </h3>
+            <p style={{ fontSize: '0.86rem', color: 'var(--text-secondary, #64748B)', marginTop: '0.45rem', lineHeight: 1.55 }}>
+              Please sign in with your verified University of Cebu student account to propose a barter swap with peers.
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: '0.75rem', width: '100%', marginTop: '0.25rem' }}>
+            <button
+              onClick={() => {
+                onClose();
+                if (onOpenAuth) onOpenAuth();
+              }}
+              className="btn-gold"
+              style={{ flex: 1, padding: '0.75rem 1rem', fontSize: '0.88rem', fontWeight: 800 }}
+            >
+              Sign In to TradeLink
+            </button>
+            <button
+              onClick={onClose}
+              className="btn-secondary"
+              style={{ padding: '0.75rem 1.25rem', fontSize: '0.88rem', fontWeight: 700 }}
+            >
+              Close
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -86,7 +133,8 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
       offeredListingTitle: selectedMyListing?.title,
       offeredListingImage: selectedMyListing?.images[0],
       offeredDescription: offeredDesc,
-      cashTopUp
+      cashTopUp,
+      selectedVariation: selectedVariation || undefined
     });
 
     showToast(
@@ -95,6 +143,51 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
       'success'
     );
     onClose();
+  };
+
+  const handleEvaluateFairTrade = async () => {
+    const offeredDesc = selectedMyListing ? selectedMyListing.title : customDescription.trim();
+    if (!offeredDesc) {
+      showToast('Item Needed', 'Please select or describe the item you want to offer first.', 'warning');
+      return;
+    }
+
+    setIsEvaluating(true);
+    try {
+      const offeredItem = selectedMyListing
+        ? {
+            title: selectedMyListing.title,
+            condition: selectedMyListing.condition,
+            price: selectedMyListing.price,
+            description: selectedMyListing.description
+          }
+        : {
+            title: customDescription.trim(),
+            condition: 'Good',
+            price: 0,
+            description: customDescription.trim()
+          };
+
+      const requestedItem = {
+        title: targetListing.title,
+        condition: targetListing.condition,
+        price: targetListing.price,
+        description: targetListing.description
+      };
+
+      const result = await aiService.estimateBarter({
+        offeredItem,
+        requestedItem,
+        offeredListingId: selectedMyListing?.id,
+        requestedListingId: targetListing.id
+      });
+
+      setAppraisal(result);
+    } catch {
+      showToast('Appraisal Unavailable', 'Could not complete fair-trade evaluation at this time.', 'error');
+    } finally {
+      setIsEvaluating(false);
+    }
   };
 
   return (
@@ -193,6 +286,59 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
             </div>
           </div>
         </div>
+
+        {/* Target Item Variation Selector (if seller listed variations e.g. PE 101, PE 102) */}
+        {targetListing.variations && targetListing.variations.length > 0 && (
+          <div
+            style={{
+              padding: '0.85rem 1rem',
+              backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+              borderRadius: '10px',
+              border: '1px solid var(--border-subtle, #E2E8F0)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.45rem'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', margin: 0 }}>
+                Option
+              </label>
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem' }}>
+              {targetListing.variations.map((v) => {
+                const isSelected = selectedVariation === v.title;
+                const vImg = v.imageUrl || (v.imageIndex !== null && v.imageIndex !== undefined && targetListing.images ? targetListing.images[v.imageIndex] : null);
+                return (
+                  <button
+                    type="button"
+                    key={v.id}
+                    onClick={() => setSelectedVariation(v.title)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.45rem',
+                      padding: '0.45rem 0.75rem',
+                      borderRadius: '8px',
+                      border: isSelected ? '2px solid var(--uc-blue)' : '1px solid var(--border-subtle)',
+                      backgroundColor: isSelected ? 'var(--uc-blue-subtle, #EBF1FC)' : '#FFFFFF',
+                      color: isSelected ? 'var(--uc-blue)' : 'var(--text-primary)',
+                      fontWeight: isSelected ? 800 : 600,
+                      fontSize: '0.8rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    {vImg && (
+                      <img src={vImg} alt="" style={{ width: '22px', height: '22px', borderRadius: '4px', objectFit: 'cover' }} />
+                    )}
+                    <span>{v.title}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Section 1: Choose Item to Offer */}
         <div>
@@ -306,9 +452,86 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
           </div>
         </div>
 
+        {/* Section 2.5: AI Fair-Trade Appraisal Integration */}
+        <div style={{ border: '1px solid var(--border-subtle, #E2E8F0)', borderRadius: '10px', padding: '0.85rem', backgroundColor: '#FAFAFB' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                Fair-Trade Valuation Check
+              </span>
+              <p style={{ margin: 0, fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                Powered by campus valuation intelligence
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleEvaluateFairTrade}
+              disabled={isEvaluating}
+              style={{
+                padding: '0.35rem 0.75rem',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                borderRadius: '6px',
+                border: '1px solid var(--uc-blue)',
+                backgroundColor: isEvaluating ? '#E2E8F0' : '#FFFFFF',
+                color: 'var(--uc-blue)',
+                cursor: isEvaluating ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {isEvaluating ? 'Evaluating...' : 'Evaluate Trade Fairness'}
+            </button>
+          </div>
+
+          {appraisal && (
+            <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-subtle, #E2E8F0)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
+                <span
+                  style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    textTransform: 'uppercase',
+                    padding: '0.15rem 0.5rem',
+                    borderRadius: '4px',
+                    backgroundColor: appraisal.fair ? '#ECFDF5' : '#FFFBEB',
+                    color: appraisal.fair ? '#047857' : '#B45309',
+                    border: `1px solid ${appraisal.fair ? '#A7F3D0' : '#FDE68A'}`
+                  }}
+                >
+                  {appraisal.fair ? 'Balanced Trade' : 'Unequal Value'} ({appraisal.fairness_score}/100)
+                </span>
+                {appraisal.suggested_cash_top_up_php > 0 && (
+                  <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                    Suggested Top-up: ₱{appraisal.suggested_cash_top_up_php.toLocaleString()}
+                  </span>
+                )}
+              </div>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: '0 0 0.5rem 0', lineHeight: 1.4 }}>
+                {appraisal.analysis}
+              </p>
+              {appraisal.suggested_cash_top_up_php > 0 && appraisal.cash_top_up_payer === 'offered_party' && (
+                <button
+                  type="button"
+                  onClick={() => setCashTopUp(appraisal.suggested_cash_top_up_php)}
+                  style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    padding: '0.25rem 0.6rem',
+                    borderRadius: '5px',
+                    backgroundColor: 'var(--uc-gold, #FFC72C)',
+                    border: 'none',
+                    color: '#002B7F',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Set Suggested Top-up (+₱{appraisal.suggested_cash_top_up_php.toLocaleString()})
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Section 3: Campus Chat Coordination Note */}
-        <div style={{ backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', border: '1px solid rgba(0, 43, 127, 0.15)', borderRadius: '8px', padding: '0.75rem 0.95rem', display: 'flex', gap: '0.65rem', alignItems: 'flex-start' }}>
-          <MessageSquare size={18} color="var(--uc-blue)" style={{ flexShrink: 0, marginTop: '2px' }} />
+        <div style={{ backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', border: '1px solid rgba(0, 43, 127, 0.15)', borderRadius: '8px', padding: '0.75rem 0.95rem' }}>
           <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
             <strong style={{ color: 'var(--uc-blue)' }}>Direct Chat Coordination:</strong> Once the seller reviews and accepts your swap proposal, you can agree on the exact meeting spot and time on campus directly in Campus Chat.
           </div>
@@ -327,9 +550,9 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
           <button
             type="submit"
             className="btn-primary"
-            style={{ padding: '0.55rem 1.35rem', fontSize: '0.84rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+            style={{ padding: '0.55rem 1.35rem', fontSize: '0.84rem', fontWeight: 800 }}
           >
-            <ArrowLeftRight size={15} /> Send Swap Proposal
+            Send Swap Proposal
           </button>
         </div>
       </form>

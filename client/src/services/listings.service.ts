@@ -90,7 +90,17 @@ function mapListingFromApi(raw: any): Listing {
     })(),
     campus: raw.campus || raw.sellerCampus || raw.seller_campus || 'UC Main',
     createdAt: raw.createdAt || raw.created_at || new Date().toISOString(),
-    views: Number(raw.views ?? 0)
+    views: Number(raw.views ?? 0),
+    variations: Array.isArray(raw.variations) ? raw.variations.map((v: any, idx: number) => ({
+      id: v.id || `var-${idx}`,
+      listingId: v.listingId || v.listing_id,
+      title: v.title || v.name || '',
+      price: v.price !== null && v.price !== undefined ? parseFloat(v.price) : null,
+      imageUrl: v.imageUrl || v.image_url || null,
+      imageIndex: v.imageIndex !== undefined ? Number(v.imageIndex) : (v.image_index !== undefined ? Number(v.image_index) : null),
+      quantity: Number(v.quantity ?? 1),
+      isAvailable: Boolean(v.isAvailable ?? v.is_available ?? true)
+    })) : []
   };
 }
 
@@ -124,7 +134,8 @@ export const listingsService = {
       images: data.images || [],
       campus: data.campus,
       department: data.department,
-      acceptedPaymentMethods: data.acceptedPaymentMethods
+      acceptedPaymentMethods: data.acceptedPaymentMethods,
+      variations: data.variations || []
     };
     const idempotencyKey = data.idempotencyKey || `list_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     const res = await api.post<{ listing: any }>('/listings', payload, {

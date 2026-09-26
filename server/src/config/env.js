@@ -92,6 +92,12 @@ const config = {
     cloudName: process.env.CLOUDINARY_CLOUD_NAME || '',
     apiKey: process.env.CLOUDINARY_API_KEY || '',
     apiSecret: process.env.CLOUDINARY_API_SECRET || ''
+  },
+
+  groq: {
+    apiKey: process.env.GROQ_API_KEY || '',
+    baseUrl: process.env.GROQ_BASE_URL || 'https://api.groq.com/openai/v1',
+    model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile'
   }
 };
 

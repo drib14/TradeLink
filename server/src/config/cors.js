@@ -83,9 +83,9 @@ function isOriginAllowed(origin) {
     return true;
   }
 
-  // Optional: Allow Vercel preview deployments if explicitly configured or in non-production
+  // Restrict Vercel preview deployments to authorized project domains only
   const allowVercelPreviews = process.env.ALLOW_VERCEL_PREVIEWS === 'true';
-  if (allowVercelPreviews && /^https:\/\/[a-z0-9-]+.*\.vercel\.app$/i.test(normalized)) {
+  if (allowVercelPreviews && /^https:\/\/(uc-tradelink|tradelink-admin|tradelink-[a-z0-9-]+-drib14|tradelink-[a-z0-9-]+)\.vercel\.app$/i.test(normalized)) {
     return true;
   }
 

@@ -169,15 +169,21 @@ const getListings = asyncHandler(async (req, res) => {
   const offset = (parsedPage - 1) * parsedLimit;
   const listings = await query.limit(parsedLimit).offset(offset);
 
-  // Fetch media for returned listings with single bulk query
+  // Fetch media and variations for returned listings with bulk queries
   const listingIds = listings.map((l) => l.id);
-  const mediaRows = listingIds.length > 0
-    ? await db('listing_media').whereIn('listing_id', listingIds).orderBy('display_order', 'asc')
-    : [];
+  const [mediaRows, variationRows] = await Promise.all([
+    listingIds.length > 0
+      ? db('listing_media').whereIn('listing_id', listingIds).orderBy('display_order', 'asc')
+      : [],
+    listingIds.length > 0
+      ? db('listing_variations').whereIn('listing_id', listingIds).orderBy('display_order', 'asc').catch(() => [])
+      : []
+  ]);
 
   const formatted = listings.map((l) => {
     const lMedia = mediaRows.filter((m) => m.listing_id === l.id);
-    return serializeListing(l, lMedia);
+    const lVars = variationRows.filter((v) => v.listing_id === l.id);
+    return serializeListing(l, lMedia, lVars);
   });
 
   res.status(200).json({
@@ -217,12 +223,15 @@ const getListingById = asyncHandler(async (req, res, next) => {
   // Record unique view: excludes owner and deduplicates repeat views
   await recordUniqueView(id, req, listing);
 
-  const media = await db('listing_media').where({ listing_id: id }).orderBy('display_order', 'asc');
+  const [media, variations] = await Promise.all([
+    db('listing_media').where({ listing_id: id }).orderBy('display_order', 'asc'),
+    db('listing_variations').where({ listing_id: id }).orderBy('display_order', 'asc').catch(() => [])
+  ]);
 
   res.status(200).json({
     status: 'success',
     data: {
-      listing: serializeListing(listing, media)
+      listing: serializeListing(listing, media, variations)
     }
   });
 });
@@ -245,7 +254,8 @@ const createListing = asyncHandler(async (req, res, next) => {
     quantity = 1,
     media = [],
     images = [],
-    acceptedPaymentMethods
+    acceptedPaymentMethods,
+    variations = []
   } = req.body;
 
   // Unicode normalization (NFKC) prevents homoglyph bypasses of prohibited keywords
@@ -275,11 +285,14 @@ const createListing = asyncHandler(async (req, res, next) => {
       .andWhere('created_at', '>', new Date(Date.now() - 60000))
       .first();
     if (existingListing) {
-      const existingMedia = await db('listing_media').where({ listing_id: existingListing.id }).orderBy('display_order', 'asc');
+      const [existingMedia, existingVars] = await Promise.all([
+        db('listing_media').where({ listing_id: existingListing.id }).orderBy('display_order', 'asc'),
+        db('listing_variations').where({ listing_id: existingListing.id }).orderBy('display_order', 'asc').catch(() => [])
+      ]);
       return res.status(200).json({
         status: 'success',
         message: 'Listing retrieved (idempotent request).',
-        data: { listing: serializeListing(existingListing, existingMedia) }
+        data: { listing: serializeListing(existingListing, existingMedia, existingVars) }
       });
     }
   }
@@ -358,11 +371,49 @@ const createListing = asyncHandler(async (req, res, next) => {
     })
   );
 
+  // Build resolved variations matching with uploaded images
+  const resolvedVariations = [];
+  const rawVariations = Array.isArray(variations)
+    ? variations
+    : (typeof variations === 'string' ? (() => { try { return JSON.parse(variations); } catch { return []; } })() : []);
+
+  if (Array.isArray(rawVariations) && rawVariations.length > 0) {
+    rawVariations.forEach((v, index) => {
+      if (!v || (!v.title && !v.name)) return;
+      const vTitle = String(v.title || v.name).trim();
+      const imgIdx = (v.imageIndex !== undefined && v.imageIndex !== null && !isNaN(Number(v.imageIndex)))
+        ? Number(v.imageIndex)
+        : (v.image_index !== undefined && v.image_index !== null && !isNaN(Number(v.image_index)) ? Number(v.image_index) : 0);
+
+      let matchedImageUrl = v.imageUrl || v.image_url || null;
+      if (!matchedImageUrl && resolvedMedia.length > 0) {
+        const targetMedia = resolvedMedia[imgIdx] || resolvedMedia[0];
+        matchedImageUrl = targetMedia ? targetMedia.media_url : null;
+      }
+
+      resolvedVariations.push({
+        id: uuidv4(),
+        listing_id: listingId,
+        title: vTitle,
+        price: (v.price !== undefined && v.price !== null && !isNaN(Number(v.price))) ? parseFloat(v.price) : null,
+        image_url: matchedImageUrl,
+        image_index: imgIdx,
+        quantity: Math.max(1, parseInt(v.quantity, 10) || 1),
+        is_available: v.isAvailable !== undefined ? Boolean(v.isAvailable) : (v.is_available !== undefined ? Boolean(v.is_available) : true),
+        display_order: index
+      });
+    });
+  }
+
   await db.transaction(async (trx) => {
     await trx('listings').insert(newListing);
 
     if (resolvedMedia.length > 0) {
       await trx('listing_media').insert(resolvedMedia);
+    }
+
+    if (resolvedVariations.length > 0) {
+      await trx('listing_variations').insert(resolvedVariations);
     }
   });
 
@@ -384,7 +435,7 @@ const createListing = asyncHandler(async (req, res, next) => {
     status: 'success',
     message: 'Listing created successfully.',
     data: {
-      listing: serializeListing(createdListing, resolvedMedia)
+      listing: serializeListing(createdListing, resolvedMedia, resolvedVariations)
     }
   });
 });
@@ -509,6 +560,40 @@ const updateListing = asyncHandler(async (req, res, next) => {
         await trx('listing_media').insert(resolvedMedia);
       }
     }
+
+    if (req.body.variations !== undefined) {
+      const rawVars = Array.isArray(req.body.variations)
+        ? req.body.variations
+        : (typeof req.body.variations === 'string' ? (() => { try { return JSON.parse(req.body.variations); } catch { return []; } })() : []);
+      await trx('listing_variations').where({ listing_id: id }).delete().catch(() => {});
+      if (Array.isArray(rawVars) && rawVars.length > 0) {
+        const curMedia = await trx('listing_media').where({ listing_id: id }).orderBy('display_order', 'asc');
+        const updatedVariations = rawVars.map((v, index) => {
+          const vTitle = String(v.title || v.name || '').trim();
+          const imgIdx = (v.imageIndex !== undefined && !isNaN(Number(v.imageIndex)))
+            ? Number(v.imageIndex)
+            : (v.image_index !== undefined && !isNaN(Number(v.image_index)) ? Number(v.image_index) : 0);
+          let matchedUrl = v.imageUrl || v.image_url || null;
+          if (!matchedUrl && curMedia.length > 0) {
+            matchedUrl = curMedia[imgIdx]?.media_url || curMedia[0]?.media_url || null;
+          }
+          return {
+            id: uuidv4(),
+            listing_id: id,
+            title: vTitle,
+            price: (v.price !== undefined && v.price !== null && !isNaN(Number(v.price))) ? parseFloat(v.price) : null,
+            image_url: matchedUrl,
+            image_index: imgIdx,
+            quantity: Math.max(1, parseInt(v.quantity, 10) || 1),
+            is_available: v.isAvailable !== undefined ? Boolean(v.isAvailable) : true,
+            display_order: index
+          };
+        }).filter(v => v.title);
+        if (updatedVariations.length > 0) {
+          await trx('listing_variations').insert(updatedVariations);
+        }
+      }
+    }
   });
 
   res.status(200).json({
@@ -556,6 +641,7 @@ const deleteListing = asyncHandler(async (req, res, next) => {
   // Clean up dependent child rows in a single transaction to prevent orphans
   await db.transaction(async (trx) => {
     await trx('listing_media').where({ listing_id: id }).delete();
+    await trx('listing_variations').where({ listing_id: id }).delete().catch(() => {});
     await trx('flagged_listings').where({ listing_id: id }).delete();
     await trx('listings').where({ id }).delete();
   });

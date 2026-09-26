@@ -236,6 +236,7 @@ export const MainApp: React.FC = () => {
                 <TransactionsPage
                   onNavigate={handleNavigate}
                   onOpenChat={() => handleNavigate('messages')}
+                  onOpenAuth={() => setIsAuthModalOpen(true)}
                 />
               );
             case 'profile':

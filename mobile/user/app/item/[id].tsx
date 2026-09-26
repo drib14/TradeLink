@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -18,7 +18,10 @@ import { useAuth } from '../../context/AuthContext';
 import { VerifiedBadge } from '../../components/VerifiedBadge';
 
 import { mobileListingsService } from '../../services/listings.service';
-import { Listing } from '../../types';
+import { mobileTransactionsService } from '../../services/transactions.service';
+import { mobileSwapsService } from '../../services/swaps.service';
+import { aiService, SafeMeetupSuggestion } from '../../services/ai.service';
+import { Listing, ListingVariation } from '../../types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -42,11 +45,56 @@ export default function ItemDetailScreen() {
   const { listings, favorites, toggleFavorite } = useMarket();
   const { currentUser, openAuthModal } = useAuth();
 
+  const carouselRef = useRef<ScrollView>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [selectedVariationId, setSelectedVariationId] = useState<string | null>(null);
   const [asyncListing, setAsyncListing] = useState<Listing | null>(null);
   const [loadingItem, setLoadingItem] = useState(false);
+  const [safeMeetupModal, setSafeMeetupModal] = useState<SafeMeetupSuggestion | null>(null);
+  const [loadingSafety, setLoadingSafety] = useState(false);
 
   const listing = listings.find((l) => l.id === id) || asyncListing;
+
+  const variations = listing?.variations || [];
+  const selectedVariation = variations.find((v) => v.id === selectedVariationId) || variations[0] || null;
+
+  useEffect(() => {
+    if (listing?.variations && listing.variations.length > 0 && !selectedVariationId) {
+      setSelectedVariationId(listing.variations[0].id);
+    }
+  }, [listing?.variations, selectedVariationId]);
+
+  const handleSelectVariation = (v: ListingVariation) => {
+    setSelectedVariationId(v.id);
+    if (typeof v.imageIndex === 'number' && v.imageIndex >= 0 && listing && v.imageIndex < listing.images.length) {
+      setActiveImageIndex(v.imageIndex);
+      carouselRef.current?.scrollTo({ x: v.imageIndex * SCREEN_WIDTH, animated: true });
+    }
+  };
+
+  const activePrice = (selectedVariation?.price !== undefined && selectedVariation.price !== null)
+    ? selectedVariation.price
+    : (listing?.price || 0);
+
+  const handleCheckSafeMeetup = async () => {
+    if (safeMeetupModal) {
+      setSafeMeetupModal(null);
+      return;
+    }
+    setLoadingSafety(true);
+    try {
+      const res = await aiService.suggestSafeMeetup({
+        buyerCampus: currentUser?.campus || 'UC Main',
+        sellerCampus: listing?.sellerCampus || listing?.campus || 'UC Main',
+        proposedTime: 'Daytime',
+      });
+      setSafeMeetupModal(res);
+    } catch {
+      Alert.alert('Campus Safety Tip', 'Always conduct handshakes during daylight hours at guarded main lobby checkpoints.');
+    } finally {
+      setLoadingSafety(false);
+    }
+  };
 
   useEffect(() => {
     if (!listings.find((l) => l.id === id) && id) {
@@ -137,52 +185,115 @@ export default function ItemDetailScreen() {
     );
   };
 
-  const handleAction = () => {
+  const handleAction = async () => {
+    if (!currentUser) {
+      openAuthModal();
+      return;
+    }
+
+    const sellerId = listing.seller?.id || listing.sellerId;
+    if (sellerId === currentUser.id) {
+      Alert.alert('Your Listing', 'You cannot purchase or swap for your own item.');
+      return;
+    }
+
     if (isSold) {
       Alert.alert('Item Sold', 'This item has already been purchased or completed.');
       return;
     }
+
     if (listing.tradeMode === 'swap') {
+      const promptTitle = selectedVariation
+        ? `Propose a peer-to-peer swap for "${listing.title}" (Option: ${selectedVariation.title}) with ${listing.sellerName}?`
+        : `Propose a peer-to-peer swap for "${listing.title}" with ${listing.sellerName}?`;
+
       Alert.alert(
-        'Propose Swap',
-        `Propose a trade for "${listing.title}" with ${listing.sellerName}?`,
+        'Propose Barter Swap',
+        promptTitle,
         [
           { text: 'Cancel', style: 'cancel' },
           {
-            text: 'Start Proposal',
-            onPress: () => {
-              Alert.alert('Proposal Sent', 'Your swap proposal was submitted to the seller.');
+            text: 'Submit Proposal',
+            onPress: async () => {
+              try {
+                await mobileSwapsService.proposeSwap({
+                  targetListingId: listing.id,
+                  offeredDescription: selectedVariation
+                    ? `Swap proposed for ${listing.title} (Option: ${selectedVariation.title}) on campus.`
+                    : `Swap proposed for ${listing.title} on campus.`,
+                  cashTopUp: 0,
+                  selectedVariation: selectedVariation?.title,
+                });
+                Alert.alert('Swap Proposed!', 'Your swap proposal has been sent to the seller. You can coordinate details in Messages.');
+              } catch (err: any) {
+                Alert.alert('Swap Error', err.message || 'Could not submit swap proposal.');
+              }
             },
           },
         ]
       );
     } else if (listing.tradeMode === 'free_donation') {
       Alert.alert(
-        'Claim Free Item',
+        'Claim Free Donation',
         `Claim "${listing.title}" donated by ${listing.sellerName}?`,
         [
           { text: 'Cancel', style: 'cancel' },
           {
-            text: 'Claim & Arrange Meetup',
-            onPress: () => {
-              Alert.alert('Claimed!', 'Please coordinate meetup at the campus guarded hub.');
+            text: 'Claim Item',
+            onPress: async () => {
+              try {
+                const res = await mobileTransactionsService.createTransaction({
+                  listingId: listing.id,
+                  sellerId,
+                  amount: 0,
+                  paymentMethod: 'free',
+                  notes: 'Free donation claimed on TradeLink Mobile.',
+                });
+                const code = res?.handshakeCode;
+                Alert.alert(
+                  'Item Claimed!',
+                  `Reference: ${res?.transaction?.referenceNo || 'Pending'}${code ? `\nHandshake Code: [ ${code} ]` : ''}\n\nCoordinate with the student in Messages to schedule handover.`
+                );
+              } catch (err: any) {
+                Alert.alert('Claim Error', err.message || 'Could not claim free item.');
+              }
             },
           },
         ]
       );
     } else {
+      const promptTitle = selectedVariation
+        ? `Proceed to purchase "${listing.title}" (${selectedVariation.title}) for ₱${activePrice.toLocaleString()} via Cash on Meetup?`
+        : `Proceed to purchase "${listing.title}" for ₱${activePrice.toLocaleString()} via Cash on Meetup?`;
+
       Alert.alert(
-        'Buy & Safe Handshake',
-        `Proceed to purchase "${listing.title}" for ₱${listing.price.toLocaleString()}?`,
+        'Confirm Campus Order',
+        promptTitle,
         [
           { text: 'Cancel', style: 'cancel' },
           {
-            text: 'Schedule Guarded Meetup',
-            onPress: () => {
-              Alert.alert(
-                'Meetup Initiated',
-                'Your handshake code is generated. Coordinate in Messages to confirm the time.'
-              );
+            text: 'Place Order',
+            onPress: async () => {
+              try {
+                const res = await mobileTransactionsService.createTransaction({
+                  listingId: listing.id,
+                  sellerId,
+                  amount: activePrice,
+                  paymentMethod: 'cash',
+                  notes: selectedVariation
+                    ? `Option: ${selectedVariation.title}. Cash on Meetup scheduled via TradeLink Mobile.`
+                    : 'Cash on Meetup scheduled via TradeLink Mobile.',
+                  selectedVariation: selectedVariation?.title,
+                  variationId: selectedVariation?.id,
+                });
+                const code = res?.handshakeCode;
+                Alert.alert(
+                  'Order Confirmed!',
+                  `Reference: ${res?.transaction?.referenceNo || 'Pending'}${code ? `\n\nVERIFICATION HANDSHAKE CODE:\n[ ${code} ]\n\nGive this 4-digit code to the seller only during your meetup after inspection.` : ''}`
+                );
+              } catch (err: any) {
+                Alert.alert('Order Error', err.message || 'Could not place order.');
+              }
             },
           },
         ]
@@ -196,6 +307,7 @@ export default function ItemDetailScreen() {
         {/* 1. Image Carousel */}
         <View style={styles.carouselContainer}>
           <ScrollView
+            ref={carouselRef}
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
@@ -293,12 +405,17 @@ export default function ItemDetailScreen() {
             {listing.tradeMode === 'free_donation' || listing.tradeMode === 'FREE' ? (
               <Text style={styles.freePriceText}>FREE DONATION</Text>
             ) : (
-              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
-                <Text style={styles.priceText}>₱{listing.price.toLocaleString()}</Text>
-                {(listing.originalSrp || listing.originalPrice || 0) > listing.price && (
+              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
+                <Text style={styles.priceText}>₱{activePrice.toLocaleString()}</Text>
+                {(listing.originalSrp || listing.originalPrice || 0) > activePrice && (
                   <Text style={styles.srpText}>
                     ₱{(listing.originalSrp || listing.originalPrice || 0).toLocaleString()}
                   </Text>
+                )}
+                {selectedVariation && (
+                  <View style={styles.selectedVariationBadge}>
+                    <Text style={styles.selectedVariationBadgeText}>{selectedVariation.title}</Text>
+                  </View>
                 )}
               </View>
             )}
@@ -356,6 +473,57 @@ export default function ItemDetailScreen() {
             )}
           </View>
 
+          {/* Item Variations Selector (Match of Image) */}
+          {variations.length > 0 && (
+            <View style={styles.variationsSection}>
+              <View style={styles.variationsHeader}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Ionicons name="albums" size={15} color="#002B7F" />
+                  <Text style={styles.variationsTitle}>Available Options / Books</Text>
+                </View>
+                <Text style={styles.variationsSubtitle}>Tap to match photo</Text>
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.variationPillsList}>
+                {variations.map((v) => {
+                  const isSelected = selectedVariation?.id === v.id;
+                  const vImg = v.imageUrl || (typeof v.imageIndex === 'number' && listing.images[v.imageIndex]);
+                  return (
+                    <TouchableOpacity
+                      key={v.id}
+                      style={[styles.variationPill, isSelected && styles.variationPillActive]}
+                      onPress={() => handleSelectVariation(v)}
+                      activeOpacity={0.8}
+                    >
+                      {vImg ? (
+                        <Image source={{ uri: vImg }} style={styles.variationPillImg} />
+                      ) : (
+                        <Ionicons
+                          name="book-outline"
+                          size={14}
+                          color={isSelected ? '#002B7F' : '#64748B'}
+                          style={{ marginRight: 4 }}
+                        />
+                      )}
+                      <View>
+                        <Text style={[styles.variationPillText, isSelected && styles.variationPillTextActive]}>
+                          {v.title}
+                        </Text>
+                        {v.price !== undefined && v.price !== null && (
+                          <Text style={[styles.variationPillPrice, isSelected && styles.variationPillPriceActive]}>
+                            ₱{v.price.toLocaleString()}
+                          </Text>
+                        )}
+                      </View>
+                      {isSelected && (
+                        <Ionicons name="checkmark-circle" size={15} color="#002B7F" style={{ marginLeft: 6 }} />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
+
           {/* Swap Preference Note */}
           {listing.tradeMode === 'swap' && listing.swapPreference && (
             <View style={styles.swapNoteBox}>
@@ -387,6 +555,48 @@ export default function ItemDetailScreen() {
                 </Text>
               </View>
             </View>
+
+            <TouchableOpacity
+              onPress={handleCheckSafeMeetup}
+              disabled={loadingSafety}
+              style={{
+                marginTop: 8,
+                paddingVertical: 7,
+                paddingHorizontal: 12,
+                backgroundColor: '#F8FAFC',
+                borderRadius: 8,
+                alignSelf: 'flex-start',
+                borderWidth: 1,
+                borderColor: '#E2E8F0',
+              }}
+            >
+              <Text style={{ fontSize: 11, fontWeight: '700', color: '#002B7F' }}>
+                {loadingSafety ? 'Loading Safe Hubs...' : safeMeetupModal ? 'Hide Safety Advice' : 'Campus Safety & Safe Hubs (AI)'}
+              </Text>
+            </TouchableOpacity>
+
+            {safeMeetupModal && (
+              <View style={{ marginTop: 10, padding: 12, backgroundColor: '#F8FAFC', borderRadius: 10, borderWidth: 1, borderColor: '#E2E8F0' }}>
+                <Text style={{ fontSize: 12, fontWeight: '800', color: '#002B7F', marginBottom: 4 }}>
+                  Verified UC Exchange Zones
+                </Text>
+                {safeMeetupModal.recommended_locations?.map((loc, idx) => (
+                  <View key={idx} style={{ marginTop: 4 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#1E293B' }}>
+                      • {loc.name} ({loc.campus})
+                    </Text>
+                    <Text style={{ fontSize: 10, color: '#64748B', marginLeft: 8 }}>
+                      {loc.landmark} — Best: {loc.best_hours}
+                    </Text>
+                  </View>
+                ))}
+                {safeMeetupModal.time_assessment?.advice && (
+                  <Text style={{ fontSize: 10, color: '#059669', fontWeight: '600', marginTop: 8 }}>
+                    {safeMeetupModal.time_assessment.advice}
+                  </Text>
+                )}
+              </View>
+            )}
           </View>
 
           {/* Verified Seller Profile Card */}
@@ -449,7 +659,7 @@ export default function ItemDetailScreen() {
             ) : (
               <>
                 <Ionicons name="bag-check" size={18} color="#FFFFFF" />
-                <Text style={styles.actionMainBtnText}>Buy Now • ₱{listing.price.toLocaleString()}</Text>
+                <Text style={styles.actionMainBtnText}>Buy Now • ₱{activePrice.toLocaleString()}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -776,5 +986,84 @@ const styles = StyleSheet.create({
   backBtnText: {
     color: '#FFFFFF',
     fontWeight: '700',
+  },
+  selectedVariationBadge: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    marginLeft: 4,
+  },
+  selectedVariationBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#002B7F',
+  },
+  variationsSection: {
+    marginTop: 14,
+    padding: 12,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  variationsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  variationsTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  variationsSubtitle: {
+    fontSize: 11,
+    color: '#64748B',
+  },
+  variationPillsList: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingRight: 10,
+  },
+  variationPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  variationPillActive: {
+    borderColor: '#002B7F',
+    backgroundColor: '#EFF6FF',
+  },
+  variationPillImg: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    marginRight: 8,
+    backgroundColor: '#F1F5F9',
+  },
+  variationPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  variationPillTextActive: {
+    color: '#002B7F',
+  },
+  variationPillPrice: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#059669',
+  },
+  variationPillPriceActive: {
+    color: '#002B7F',
   },
 });

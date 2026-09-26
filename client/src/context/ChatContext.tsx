@@ -40,12 +40,17 @@ interface ChatContextType {
     offeredListingImage?: string;
     offeredDescription: string;
     cashTopUp: number;
+    selectedVariation?: string;
   }) => Promise<SwapOffer>;
   respondToSwap: (swapId: string, status: 'accepted' | 'declined') => Promise<void>;
   createDirectOrder: (params: {
     listing: Listing;
     paymentMethod?: 'cash' | 'gcash' | 'maya' | 'free';
     notes?: string;
+    selectedVariation?: string;
+    variationId?: string;
+    quantity?: number;
+    amount?: number;
   }) => Promise<Transaction>;
   completeTransaction: (transactionId: string) => Promise<void>;
   cancelTransaction: (transactionId: string, reason?: string) => Promise<void>;
@@ -489,6 +494,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     offeredListingImage?: string;
     offeredDescription: string;
     cashTopUp: number;
+    selectedVariation?: string;
   }): Promise<SwapOffer> => {
     if (!currentUser) {
       throw new Error('Authentication required to propose a swap offer.');
@@ -500,7 +506,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       offeredItemTitle: params.offeredListingTitle,
       offeredImage: params.offeredListingImage,
       offeredDescription: params.offeredDescription,
-      cashTopUp: params.cashTopUp
+      cashTopUp: params.cashTopUp,
+      selectedVariation: params.selectedVariation
     };
 
     const created = await chatService.proposeSwap(payload);
@@ -521,6 +528,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     listing: Listing;
     paymentMethod?: 'cash' | 'gcash' | 'maya' | 'free';
     notes?: string;
+    selectedVariation?: string;
+    variationId?: string;
+    quantity?: number;
+    amount?: number;
   }): Promise<Transaction> => {
     if (!currentUser) {
       throw new Error('Authentication required to transact.');
@@ -529,9 +540,11 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const created = await chatService.createTransaction({
       listingId: params.listing.id,
       sellerId: params.listing.sellerId,
-      amount: params.listing.price,
+      amount: params.amount !== undefined ? params.amount : params.listing.price,
       paymentMethod: params.paymentMethod || 'cash',
-      notes: params.notes
+      notes: params.notes,
+      selectedVariation: params.selectedVariation,
+      variationId: params.variationId
     });
 
     setTransactions((prev) => [created, ...prev]);
@@ -568,7 +581,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await chatService.submitReview(params);
     if (activeConversation) {
       await sendMessage(
-        `⭐ Left a ${params.rating}-Star Review: "${params.comment || 'Smooth and hassle-free campus trade!'}" Thank you!`,
+        `[REVIEW] Left a ${params.rating}-Star Review: "${params.comment || 'Smooth and hassle-free campus trade!'}" Thank you!`,
         true,
         undefined,
         params.transactionId

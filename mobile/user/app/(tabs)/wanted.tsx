@@ -21,7 +21,7 @@ import { CATEGORIES, CAMPUSES } from '../../constants';
 export default function FlashMarketScreen() {
   const { flashRequests, wantedRequests, addFlashRequest, addWantedRequest } = useMarket();
   const requests = flashRequests && flashRequests.length > 0 ? flashRequests : wantedRequests;
-  const { currentUser } = useAuth();
+  const { currentUser, openAuthModal } = useAuth();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [itemTitle, setItemTitle] = useState('');
@@ -32,6 +32,12 @@ export default function FlashMarketScreen() {
   const [preferredCampus, setPreferredCampus] = useState<Campus>(currentUser?.campus || 'UC Main');
 
   const handleCreateRequest = () => {
+    if (!currentUser) {
+      Alert.alert('Sign In Required', 'Please log in with your verified student account to post a flash request.');
+      openAuthModal();
+      return;
+    }
+
     if (!itemTitle.trim()) {
       Alert.alert('Missing Title', 'Please enter the item you are looking for.');
       return;
@@ -43,13 +49,11 @@ export default function FlashMarketScreen() {
 
     const postFn = addFlashRequest || addWantedRequest;
     postFn({
-      requesterId: currentUser?.id || 'user-alex',
-      requesterName: currentUser?.name || 'Alex Rivera',
-      requesterAvatar:
-        currentUser?.avatar ||
-        'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=300&q=80',
+      requesterId: currentUser.id,
+      requesterName: currentUser.name,
+      requesterAvatar: currentUser.avatar || undefined,
       requesterCampus: preferredCampus,
-      requesterCollege: currentUser?.college || 'CCS',
+      requesterCollege: currentUser.college || 'UC Campus',
       title: itemTitle.trim(),
       itemTitle: itemTitle.trim(),
       category,
@@ -75,7 +79,7 @@ export default function FlashMarketScreen() {
       {/* Screen Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerTitle}>⚡ Campus Flash Market</Text>
+          <Text style={styles.headerTitle}>Campus Flash Market</Text>
           <Text style={styles.headerSubtitle}>Urgent Needs, Fast Barter & Peer Fulfillment</Text>
         </View>
 

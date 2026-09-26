@@ -1,8 +1,26 @@
 /**
  * Listing Serializer with Multi-Media (Images & Product Sample Videos)
  */
-function serializeListing(row, mediaItems = []) {
+function serializeListing(row, mediaItems = [], variations = []) {
   if (!row) return null;
+
+  // Format variations
+  let resolvedVariations = [];
+  const rawVars = variations && variations.length > 0 ? variations : row.variations;
+  if (rawVars) {
+    const varArray = typeof rawVars === 'string' ? JSON.parse(rawVars) : rawVars;
+    if (Array.isArray(varArray)) {
+      resolvedVariations = varArray.map((v, idx) => ({
+        id: v.id || `var-${idx}`,
+        title: v.title || v.name || '',
+        price: v.price !== null && v.price !== undefined && !isNaN(Number(v.price)) ? parseFloat(v.price) : null,
+        imageUrl: v.image_url || v.imageUrl || null,
+        imageIndex: v.image_index !== undefined ? Number(v.image_index) : (v.imageIndex !== undefined ? Number(v.imageIndex) : null),
+        quantity: Number(v.quantity ?? 1),
+        isAvailable: Boolean(v.is_available ?? v.isAvailable ?? true)
+      }));
+    }
+  }
 
   // Format mediaItems into normalized array
   let resolvedMedia = [];
@@ -78,7 +96,10 @@ function serializeListing(row, mediaItems = []) {
       }
     })(),
     views: Number(row.views_count ?? row.views ?? 0),
-    acceptedPaymentMethods: ['cash'],
+    acceptedPaymentMethods: row.accepted_payment_methods
+      ? (typeof row.accepted_payment_methods === 'string' ? row.accepted_payment_methods.split(',').map(s => s.trim()) : row.accepted_payment_methods)
+      : ['cash'],
+    variations: resolvedVariations,
     createdAt: row.created_at || row.createdAt || new Date().toISOString()
   };
 }

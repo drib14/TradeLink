@@ -109,10 +109,41 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
   const isFavorite = favorites.includes(listing?.id || '');
 
   const [activeImageIdx, setActiveImageIdx] = useState(0);
+  const [selectedVariationId, setSelectedVariationId] = useState<string | null>(null);
   const [isSwapModalOpen, setIsSwapModalOpen] = useState(false);
   const [isBuyModalOpen, setIsBuyModalOpen] = useState(false);
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (listing?.variations && listing.variations.length > 0) {
+      setSelectedVariationId((prev) => {
+        if (prev && listing.variations?.some((v) => v.id === prev)) return prev;
+        const firstVar = listing.variations![0];
+        if (firstVar.imageIndex !== null && firstVar.imageIndex !== undefined) {
+          setActiveImageIdx(firstVar.imageIndex);
+        }
+        return firstVar.id;
+      });
+    }
+  }, [listing]);
+
+  const selectedVariation = listing?.variations?.find((v) => v.id === selectedVariationId);
+  const displayPrice = (selectedVariation && selectedVariation.price !== null && selectedVariation.price !== undefined)
+    ? selectedVariation.price
+    : (listing?.price || 0);
+
+  const handleSelectVariation = (varItem: any) => {
+    setSelectedVariationId(varItem.id);
+    if (
+      varItem.imageIndex !== null &&
+      varItem.imageIndex !== undefined &&
+      listing?.images &&
+      listing.images[varItem.imageIndex]
+    ) {
+      setActiveImageIdx(varItem.imageIndex);
+    }
+  };
 
   // Product reviews state
   const [reviewsList, setReviewsList] = useState<any[]>([]);
@@ -310,35 +341,28 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
   return (
     <div className="container page-enter" style={{ padding: '2rem 1.5rem 5rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
       {/* Back Navigation & Breadcrumb */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+      <div className="product-breadcrumb-bar">
         <button
           onClick={() => onNavigate('marketplace')}
           className="btn-ghost"
-          style={{ padding: '0.4rem 0.65rem', fontSize: '0.82rem' }}
+          style={{ padding: '0.45rem 0.75rem', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
         >
           <ChevronLeft size={16} /> Back to Catalog
         </button>
 
         <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-          <span style={{ cursor: 'pointer', color: 'var(--uc-blue)' }} onClick={() => onNavigate('home')}>Home</span> /{' '}
-          <span style={{ cursor: 'pointer', color: 'var(--uc-blue)' }} onClick={() => onNavigate('marketplace')}>{listing.category}</span> /{' '}
-          <span style={{ color: 'var(--text-secondary)' }}>
+          <span style={{ cursor: 'pointer', color: 'var(--uc-blue)', fontWeight: 600 }} onClick={() => onNavigate('home')}>Home</span> /{' '}
+          <span style={{ cursor: 'pointer', color: 'var(--uc-blue)', fontWeight: 600 }} onClick={() => onNavigate('marketplace')}>{listing.category}</span> /{' '}
+          <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>
             {listing.title.length > 35 ? `${listing.title.slice(0, 35)}...` : listing.title}
           </span>
         </div>
       </div>
 
       {/* Main Grid: Gallery Left + Details Right */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
-          gap: 'clamp(1.25rem, 3vw, 2.5rem)',
-          alignItems: 'start'
-        }}
-      >
-        {/* Left Column: Image & Video Gallery */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', maxWidth: '600px', width: '100%' }}>
+      <div className="product-detail-grid">
+        {/* Left Column: Sticky Image & Video Gallery */}
+        <div className="product-gallery-sticky">
           {/* Main Media with Video Support and Lightbox Trigger */}
           {(() => {
             const currentMediaUrl = listing.images[activeImageIdx] || listing.images[0] || '';
@@ -352,18 +376,7 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
               <div
                 onTouchStart={handleGalleryTouchStart}
                 onTouchEnd={handleGalleryTouchEnd}
-                style={{
-                  backgroundColor: 'var(--bg-subtle, #0F172A)',
-                  borderRadius: '14px',
-                  border: '1px solid var(--border-subtle, #CBD5E1)',
-                  overflow: 'hidden',
-                  height: 'clamp(240px, 35vw, 420px)',
-                  position: 'relative',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  touchAction: 'pan-y'
-                }}
+                className="product-gallery-main"
               >
                 {currentIsVideo ? (
                   <video
@@ -507,7 +520,7 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
 
           {/* Thumbnail Strip */}
           {listing.images.length > 1 && (
-            <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.25rem' }}>
+            <div className="product-gallery-thumbs">
               {listing.images.map((img: string, idx: number) => {
                 const isThumbVid = Boolean(
                   (listing.media && listing.media[idx]?.mediaType === 'video') ||
@@ -547,10 +560,32 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
               })}
             </div>
           )}
+
+          {/* Campus Meetup Safety Guarantee */}
+          <div
+            style={{
+              backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+              border: '1px solid var(--border-subtle, #E2E8F0)',
+              borderRadius: '12px',
+              padding: '0.85rem 1rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.35rem',
+              marginTop: '0.25rem'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: 'var(--uc-blue, #002B7F)', fontWeight: 800, fontSize: '0.82rem' }}>
+              <ShieldCheck size={16} />
+              <span>UC TradeLink Campus Safety</span>
+            </div>
+            <p style={{ fontSize: '0.76rem', color: 'var(--text-muted, #64748B)', margin: 0, lineHeight: 1.45 }}>
+              Meet at designated campus spots: Library Entrance, Campus Canteen, or Student Affairs Lobby. Hand over payments only after in-person inspection.
+            </p>
+          </div>
         </div>
 
         {/* Right Column: Listing Details & Seller Card */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div className="product-info-column">
           {/* Category & Actions */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.4rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
@@ -624,26 +659,17 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
           </div>
 
           {/* Price Box */}
-          <div
-            className="clean-card"
-            style={{
-              padding: '1.15rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              backgroundColor: 'var(--bg-subtle, #F8FAFC)'
-            }}
-          >
+          <div className="product-price-card">
             <div>
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 Asking Price
               </span>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginTop: '0.15rem' }}>
-                <span style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--uc-blue, #002B7F)', fontFamily: 'var(--font-display)' }}>
-                  {listing.tradeMode === 'free_donation' ? 'FREE' : `₱${listing.price.toLocaleString()}`}
+                <span style={{ fontSize: '1.95rem', fontWeight: 900, color: 'var(--uc-blue, #002B7F)', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}>
+                  {listing.tradeMode === 'free_donation' ? 'FREE' : `₱${displayPrice.toLocaleString()}`}
                 </span>
-                {listing.originalSrp > listing.price && (
-                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted, #94A3B8)', textDecoration: 'line-through' }}>
+                {listing.originalSrp > displayPrice && (
+                  <span style={{ fontSize: '0.86rem', color: 'var(--text-muted, #94A3B8)', textDecoration: 'line-through' }}>
                     SRP ₱{listing.originalSrp.toLocaleString()}
                   </span>
                 )}
@@ -661,13 +687,82 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
                 </span>
               ) : null}
 
-              {listing.originalSrp > listing.price && !isSoldOut && (
+              {listing.originalSrp > displayPrice && !isSoldOut && (
                 <span className="badge-pill badge-green" style={{ fontSize: '0.82rem', padding: '0.3rem 0.75rem' }}>
-                  Save {Math.round(((listing.originalSrp - listing.price) / listing.originalSrp) * 100)}%
+                  Save {Math.round(((listing.originalSrp - displayPrice) / listing.originalSrp) * 100)}%
                 </span>
               )}
             </div>
           </div>
+
+          {/* Item Variations (e.g. PE 101, PE 102, Math 101-104, Uniform Sizes) */}
+          {listing.variations && listing.variations.length > 0 && (
+            <div
+              className="clean-card"
+              style={{
+                padding: '1rem 1.15rem',
+                backgroundColor: '#FFFFFF',
+                border: '1.5px solid var(--border-subtle, #E2E8F0)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.65rem'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.35rem' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                  Options ({listing.variations.length})
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                {listing.variations.map((v) => {
+                  const isSelected = selectedVariationId === v.id;
+                  const vImg = v.imageUrl || (v.imageIndex !== null && v.imageIndex !== undefined && listing.images ? listing.images[v.imageIndex] : null);
+                  return (
+                    <button
+                      type="button"
+                      key={v.id}
+                      onClick={() => handleSelectVariation(v)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        padding: '0.55rem 0.85rem',
+                        borderRadius: '9px',
+                        border: isSelected ? '2px solid var(--uc-blue)' : '1px solid var(--border-subtle)',
+                        backgroundColor: isSelected ? 'var(--uc-blue-subtle, #EBF1FC)' : 'var(--bg-subtle, #F8FAFC)',
+                        color: isSelected ? 'var(--uc-blue)' : 'var(--text-primary)',
+                        cursor: 'pointer',
+                        fontWeight: isSelected ? 800 : 600,
+                        fontSize: '0.82rem',
+                        transition: 'all 0.15s ease',
+                        boxShadow: isSelected ? '0 2px 6px rgba(0, 43, 127, 0.12)' : 'none'
+                      }}
+                    >
+                      {vImg && (
+                        <img
+                          src={vImg}
+                          alt={v.title}
+                          style={{
+                            width: '26px',
+                            height: '26px',
+                            borderRadius: '5px',
+                            objectFit: 'cover',
+                            border: isSelected ? '1px solid var(--uc-blue)' : '1px solid #CBD5E1'
+                          }}
+                        />
+                      )}
+                      <span>{v.title}</span>
+                      {v.price !== null && v.price !== undefined && (
+                        <span style={{ fontSize: '0.74rem', opacity: 0.85, fontWeight: 700 }}>
+                          ₱{v.price.toLocaleString()}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Price vs SRP Value Comparison Bar */}
           {listing.originalSrp > listing.price && listing.tradeMode !== 'free_donation' && (
@@ -741,55 +836,44 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
             </p>
           </div>
 
-          {/* Listing Specifications Table */}
+          {/* Listing Specifications Grid */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
             <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
               Listing Specifications
             </h4>
-            <div
-              style={{
-                border: '1px solid var(--border-subtle, #E2E8F0)',
-                borderRadius: '8px',
-                overflow: 'hidden',
-                fontSize: '0.8rem'
-              }}
-            >
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                <tbody>
-                  <tr style={{ borderBottom: '1px solid var(--border-subtle, #E2E8F0)' }}>
-                    <td style={{ padding: '0.55rem 0.8rem', color: 'var(--text-muted)', width: '38%', backgroundColor: 'var(--bg-subtle, #F8FAFC)', fontWeight: 600 }}>Condition</td>
-                    <td style={{ padding: '0.55rem 0.8rem', color: 'var(--text-primary)', fontWeight: 700 }}>{listing.condition}</td>
-                  </tr>
-                  <tr style={{ borderBottom: '1px solid var(--border-subtle, #E2E8F0)' }}>
-                    <td style={{ padding: '0.55rem 0.8rem', color: 'var(--text-muted)', backgroundColor: 'var(--bg-subtle, #F8FAFC)', fontWeight: 600 }}>Category</td>
-                    <td style={{ padding: '0.55rem 0.8rem', color: 'var(--text-primary)', fontWeight: 700 }}>{listing.category}</td>
-                  </tr>
-                  <tr style={{ borderBottom: '1px solid var(--border-subtle, #E2E8F0)' }}>
-                    <td style={{ padding: '0.55rem 0.8rem', color: 'var(--text-muted)', backgroundColor: 'var(--bg-subtle, #F8FAFC)', fontWeight: 600 }}>Trade Format</td>
-                    <td style={{ padding: '0.55rem 0.8rem', color: 'var(--text-primary)', fontWeight: 700 }}>
-                      {listing.tradeMode === 'swap' ? 'Barter / Trade Swap' : listing.tradeMode === 'free_donation' ? 'Free Student Donation' : 'Direct Campus Purchase'}
-                    </td>
-                  </tr>
-                  <tr style={{ borderBottom: '1px solid var(--border-subtle, #E2E8F0)' }}>
-                    <td style={{ padding: '0.55rem 0.8rem', color: 'var(--text-muted)', backgroundColor: 'var(--bg-subtle, #F8FAFC)', fontWeight: 600 }}>Available Quantity</td>
-                    <td style={{ padding: '0.55rem 0.8rem', color: 'var(--text-primary)', fontWeight: 700 }}>
-                      {listing.quantity !== undefined ? `${listing.quantity} available` : '1 available'}
-                    </td>
-                  </tr>
-                  <tr style={{ borderBottom: '1px solid var(--border-subtle, #E2E8F0)' }}>
-                    <td style={{ padding: '0.55rem 0.8rem', color: 'var(--text-muted)', backgroundColor: 'var(--bg-subtle, #F8FAFC)', fontWeight: 600 }}>Campus Location</td>
-                    <td style={{ padding: '0.55rem 0.8rem', color: 'var(--text-primary)', fontWeight: 700 }}>{listing.sellerCampus}</td>
-                  </tr>
-                  <tr style={{ borderBottom: '1px solid var(--border-subtle, #E2E8F0)' }}>
-                    <td style={{ padding: '0.55rem 0.8rem', color: 'var(--text-muted)', backgroundColor: 'var(--bg-subtle, #F8FAFC)', fontWeight: 600 }}>Seller College</td>
-                    <td style={{ padding: '0.55rem 0.8rem', color: 'var(--text-primary)', fontWeight: 700 }}>{listing.sellerCollege || 'University of Cebu'}</td>
-                  </tr>
-                  <tr>
-                    <td style={{ padding: '0.55rem 0.8rem', color: 'var(--text-muted)', backgroundColor: 'var(--bg-subtle, #F8FAFC)', fontWeight: 600 }}>Date Listed</td>
-                    <td style={{ padding: '0.55rem 0.8rem', color: 'var(--text-primary)', fontWeight: 700 }}>{formatRelativeTime(listing.createdAt) || 'Recent'}</td>
-                  </tr>
-                </tbody>
-              </table>
+            <div className="product-specs-card">
+              <div className="product-spec-row">
+                <span className="product-spec-label">Condition</span>
+                <span className="product-spec-value">{listing.condition}</span>
+              </div>
+              <div className="product-spec-row">
+                <span className="product-spec-label">Category</span>
+                <span className="product-spec-value">{listing.category}</span>
+              </div>
+              <div className="product-spec-row">
+                <span className="product-spec-label">Trade Format</span>
+                <span className="product-spec-value">
+                  {listing.tradeMode === 'swap' ? 'Barter / Trade Swap' : listing.tradeMode === 'free_donation' ? 'Free Student Donation' : 'Direct Campus Purchase'}
+                </span>
+              </div>
+              <div className="product-spec-row">
+                <span className="product-spec-label">Available Quantity</span>
+                <span className="product-spec-value">
+                  {listing.quantity !== undefined ? `${listing.quantity} available` : '1 available'}
+                </span>
+              </div>
+              <div className="product-spec-row">
+                <span className="product-spec-label">Campus Location</span>
+                <span className="product-spec-value">{listing.sellerCampus}</span>
+              </div>
+              <div className="product-spec-row">
+                <span className="product-spec-label">Seller College</span>
+                <span className="product-spec-value">{listing.sellerCollege || 'University of Cebu'}</span>
+              </div>
+              <div className="product-spec-row">
+                <span className="product-spec-label">Date Listed</span>
+                <span className="product-spec-value">{formatRelativeTime(listing.createdAt) || 'Recent'}</span>
+              </div>
             </div>
           </div>
 
@@ -817,7 +901,7 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
           </div>
 
           {/* Actions: Buy Now as primary, Swap, Chat */}
-          <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', paddingTop: '0.5rem' }}>
+          <div className="product-actions-group">
             {!isOwner ? (
               <>
                 {isSoldOut ? (
@@ -852,17 +936,6 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
                         <button
                           onClick={handleSwapClick}
                           className="btn-gold"
-                          style={{
-                            flex: 1,
-                            minWidth: '160px',
-                            padding: '0.75rem 1.25rem',
-                            fontSize: '0.92rem',
-                            fontWeight: 800,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '0.45rem'
-                          }}
                         >
                           <ArrowLeftRight size={17} style={{ flexShrink: 0 }} />
                           <span>Propose Swap</span>
@@ -872,14 +945,6 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
                         <button
                           onClick={handleContactSeller}
                           className="btn-secondary"
-                          style={{
-                            padding: '0.75rem 1.25rem',
-                            fontSize: '0.88rem',
-                            fontWeight: 700,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.45rem'
-                          }}
                         >
                           <MessageSquare size={16} style={{ flexShrink: 0 }} />
                           <span>Chat with Seller</span>
@@ -891,17 +956,6 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
                         <button
                           onClick={handleBuyClick}
                           className="btn-gold"
-                          style={{
-                            flex: 1,
-                            minWidth: '160px',
-                            padding: '0.75rem 1.25rem',
-                            fontSize: '0.92rem',
-                            fontWeight: 800,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '0.45rem'
-                          }}
                         >
                           {listing.tradeMode === 'free_donation' ? (
                             <>
@@ -920,14 +974,6 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
                         <button
                           onClick={handleContactSeller}
                           className="btn-secondary"
-                          style={{
-                            padding: '0.75rem 1.25rem',
-                            fontSize: '0.88rem',
-                            fontWeight: 700,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.45rem'
-                          }}
                         >
                           <MessageSquare size={16} style={{ flexShrink: 0 }} />
                           <span>Chat with Seller</span>
@@ -1044,53 +1090,48 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
           </div>
 
           {/* Seller Trust Profile Card */}
-          <div
-            className="clean-card"
-            style={{
-              padding: '1.25rem',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.95rem',
-              marginTop: '0.5rem'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div className="product-seller-card">
+            <div className="product-seller-header">
               <div
-                style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}
+                className="product-seller-info"
                 onClick={() => onNavigate('profile', { userId: listing.sellerId })}
               >
                 <UserAvatar
                   src={listing.sellerAvatar}
                   name={listing.sellerName}
                   size="md"
-                  style={{ border: '1.5px solid var(--border-subtle)' }}
+                  style={{ border: '2px solid var(--border-subtle)' }}
                 />
-                <div>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', lineHeight: 1.2 }}>
-                    <span style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                      {listing.sellerName}
-                    </span>
+                <div className="product-seller-meta">
+                  <div className="product-seller-name">
+                    <span>{listing.sellerName}</span>
+                    {listing.isVerified && <VerifiedBadge size="xs" variant="green" />}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                    {listing.sellerCollege} • {listing.sellerCampus}
+                  <div className="product-seller-sub">
+                    {listing.sellerCollege || 'University of Cebu'} • {listing.sellerCampus}
                   </div>
                 </div>
               </div>
 
               <button
                 onClick={() => onNavigate('profile', { userId: listing.sellerId })}
-                style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--uc-blue)', cursor: 'pointer', background: 'none', border: 'none' }}
+                className="btn-secondary"
+                style={{ padding: '0.45rem 0.95rem', fontSize: '0.8rem', fontWeight: 800, borderRadius: '8px' }}
               >
                 View Profile →
               </button>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <div className="product-seller-footer">
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: 'var(--accent-green, #059669)', fontWeight: 700 }}>
+                <ShieldCheck size={14} />
+                <span>Verified University Trader</span>
+              </div>
               <button
                 onClick={() => setIsReportModalOpen(true)}
                 style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', cursor: 'pointer', background: 'none', border: 'none' }}
               >
-                <AlertTriangle size={13} style={{ flexShrink: 0 }} /> Report safety concern
+                <AlertTriangle size={13} style={{ flexShrink: 0 }} /> Report listing
               </button>
             </div>
           </div>
@@ -1222,6 +1263,8 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
           isOpen={isBuyModalOpen}
           onClose={() => setIsBuyModalOpen(false)}
           listing={listing}
+          initialVariation={selectedVariation?.title}
+          onNavigate={onNavigate}
         />
       )}
 
@@ -1230,6 +1273,7 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
           isOpen={isSwapModalOpen}
           onClose={() => setIsSwapModalOpen(false)}
           targetListing={listing}
+          initialVariation={selectedVariation?.title}
         />
       )}
 

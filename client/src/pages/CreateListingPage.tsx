@@ -6,9 +6,10 @@ import { DragDropUpload } from '../components/common/DragDropUpload';
 import { StudentVerificationModal } from '../components/verification/StudentVerificationModal';
 import { ConfirmModal } from '../components/common/ConfirmModal';
 import { PaymentMethodCheckboxGroup, PaymentMethodBadge } from '../components/common/PaymentLogos';
+import { TradeLinkIcon } from '../components/common/TradeLinkIcon';
 import { TradeMode, ConditionGrade } from '../types';
+import { aiService } from '../services/ai.service';
 import {
-  ShoppingBag,
   Film,
   Tag,
   CheckCircle2,
@@ -96,6 +97,65 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
 
+  // Item Variations state (matching images to options, e.g. PE 101-104, Math 101-104)
+  const [hasVariations, setHasVariations] = useState(false);
+  const [variations, setVariations] = useState<{
+    id: string;
+    title: string;
+    price?: number | '';
+    imageIndex: number;
+  }[]>([]);
+
+  const applyVariationPreset = (type: 'pe' | 'math' | 'sizes') => {
+    setHasVariations(true);
+    if (type === 'pe') {
+      setVariations([
+        { id: `pe-101-${Date.now()}`, title: 'PE 101', price: '', imageIndex: 0 },
+        { id: `pe-102-${Date.now() + 1}`, title: 'PE 102', price: '', imageIndex: Math.min(1, Math.max(0, images.length - 1)) },
+        { id: `pe-103-${Date.now() + 2}`, title: 'PE 103', price: '', imageIndex: Math.min(2, Math.max(0, images.length - 1)) },
+        { id: `pe-104-${Date.now() + 3}`, title: 'PE 104', price: '', imageIndex: Math.min(3, Math.max(0, images.length - 1)) },
+      ]);
+    } else if (type === 'math') {
+      setVariations([
+        { id: `math-101-${Date.now()}`, title: 'Math 101', price: '', imageIndex: 0 },
+        { id: `math-102-${Date.now() + 1}`, title: 'Math 102', price: '', imageIndex: Math.min(1, Math.max(0, images.length - 1)) },
+        { id: `math-103-${Date.now() + 2}`, title: 'Math 103', price: '', imageIndex: Math.min(2, Math.max(0, images.length - 1)) },
+        { id: `math-104-${Date.now() + 3}`, title: 'Math 104', price: '', imageIndex: Math.min(3, Math.max(0, images.length - 1)) },
+      ]);
+    } else if (type === 'sizes') {
+      setVariations([
+        { id: `size-s-${Date.now()}`, title: 'S', price: '', imageIndex: 0 },
+        { id: `size-m-${Date.now() + 1}`, title: 'M', price: '', imageIndex: Math.min(1, Math.max(0, images.length - 1)) },
+        { id: `size-l-${Date.now() + 2}`, title: 'L', price: '', imageIndex: Math.min(2, Math.max(0, images.length - 1)) },
+        { id: `size-xl-${Date.now() + 3}`, title: 'XL', price: '', imageIndex: Math.min(3, Math.max(0, images.length - 1)) },
+      ]);
+    }
+  };
+
+  const addCustomVariation = () => {
+    setHasVariations(true);
+    setVariations((prev) => {
+      const nextIdx = prev.length % Math.max(1, images.length);
+      return [
+        ...prev,
+        { id: `var-${Date.now()}-${prev.length}`, title: '', price: '', imageIndex: nextIdx }
+      ];
+    });
+  };
+
+  const updateVariation = (id: string, updates: Partial<{ title: string; price: number | ''; imageIndex: number }>) => {
+    setVariations((prev) => prev.map((v) => (v.id === id ? { ...v, ...updates } : v)));
+  };
+
+  const removeVariation = (id: string) => {
+    setVariations((prev) => prev.filter((v) => v.id !== id));
+  };
+
+  // AI Assistant states
+  const [aiQuery, setAiQuery] = useState('');
+  const [isAutofilling, setIsAutofilling] = useState(false);
+  const [aiNotice, setAiNotice] = useState<string | null>(null);
+
   // Sync initialMode if passed or navigated
   useEffect(() => {
     if (initialMode && (initialMode === 'swap' || initialMode === 'sell')) {
@@ -109,7 +169,8 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
     images.length > 0 ||
     customTagInput.trim() ||
     (Number(price) || 0) > 0 ||
-    swapPreference.trim()
+    swapPreference.trim() ||
+    variations.length > 0
   );
 
   useEffect(() => {
@@ -224,6 +285,16 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
             : swapPreference.trim()
           : undefined;
 
+      const formattedVariations = (hasVariations ? variations : [])
+        .filter((v) => v.title.trim())
+        .map((v, idx) => ({
+          title: v.title.trim(),
+          price: typeof v.price === 'number' && v.price > 0 ? v.price : null,
+          imageIndex: v.imageIndex,
+          imageUrl: images[v.imageIndex] || images[0] || null,
+          displayOrder: idx
+        }));
+
       const newListing = await addListing({
         title: title.trim(),
         category: category.trim(),
@@ -235,6 +306,7 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
         tradeMode: computedTradeMode,
         swapPreference: combinedSwapPreference,
         images,
+        variations: formattedVariations,
         media: images.map((url, idx) => ({
           url,
           mediaType: (url.match(/\.(mp4|webm|mov|mkv)$/i) || url.includes('/video/upload/')) ? 'video' : 'image',
@@ -272,13 +344,48 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
     }
   };
 
+  const handleAiAutofill = async () => {
+    const q = (aiQuery || title).trim();
+    if (!q) {
+      showToast('Item Name Required', 'Enter an item keyword (e.g. Calculus Stewart or UC PE Shirt) to auto-fill.', 'warning');
+      return;
+    }
+    setIsAutofilling(true);
+    setAiNotice(null);
+    try {
+      const draft = await aiService.autofillListing(q);
+      if (draft.title) setTitle(draft.title);
+      if (draft.description) setDescription(draft.description);
+      if (draft.suggested_price && !price) {
+        setPrice(draft.suggested_price);
+      }
+      if (draft.condition) {
+        setCondition(draft.condition as ConditionGrade);
+      }
+      if (draft.category) {
+        const found = CATEGORY_OPTIONS.find((c) =>
+          c.toLowerCase().includes(draft.category.toLowerCase()) ||
+          draft.category.toLowerCase().includes(c.toLowerCase())
+        );
+        if (found) setCategory(found);
+      }
+      if (Array.isArray(draft.tags) && draft.tags.length > 0) {
+        setTags((prev) => [...new Set([...prev, ...draft.tags])].slice(0, 5));
+      }
+      setAiNotice('Listing draft populated. Review and adjust any details as needed.');
+      showToast('Draft Generated', 'Listing details autofilled by AI.', 'success');
+    } catch {
+      showToast('Autofill Unavailable', 'Could not generate draft right now. Please fill details manually.', 'error');
+    } finally {
+      setIsAutofilling(false);
+    }
+  };
+
   if (!isAuthenticated || !currentUser) {
     return (
       <div className="container page-enter" style={{ padding: '5rem 1.5rem', textAlign: 'center', maxWidth: '560px' }}>
         <div className="clean-card" style={{ padding: '2.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
-          <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'var(--uc-blue-subtle)', color: 'var(--uc-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <ShoppingBag size={32} />
-          </div>
+          <TradeLinkIcon size={56} />
           <div>
             <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)' }}>
               Sign In Required to Post Items
@@ -322,16 +429,16 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
 
   const stepsConfig = formMode === 'sell'
     ? [
-        { num: 1, label: 'Item Details', icon: <ShoppingBag size={15} /> },
-        { num: 2, label: 'Photos & Media', icon: <Film size={15} /> },
-        { num: 3, label: 'Pricing & Value', icon: <Tag size={15} /> },
-        { num: 4, label: 'Preview & Post', icon: <Eye size={15} /> }
+        { num: 1, label: 'Item Details' },
+        { num: 2, label: 'Photos & Media' },
+        { num: 3, label: 'Pricing & Value' },
+        { num: 4, label: 'Preview & Post' }
       ]
     : [
-        { num: 1, label: 'Item for Barter', icon: <ShoppingBag size={15} /> },
-        { num: 2, label: 'Photos & Media', icon: <Film size={15} /> },
-        { num: 3, label: 'Barter Terms', icon: <ArrowLeftRight size={15} /> },
-        { num: 4, label: 'Preview & Post', icon: <Eye size={15} /> }
+        { num: 1, label: 'Item for Barter' },
+        { num: 2, label: 'Photos & Media' },
+        { num: 3, label: 'Barter Terms' },
+        { num: 4, label: 'Preview & Post' }
       ];
 
   return (
@@ -513,11 +620,71 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
       {/* STEP 1: ITEM DETAILS */}
       {currentStep === 1 && (
         <div className="clean-card" style={{ padding: '1.75rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', borderBottom: '1px solid var(--border-subtle, #E2E8F0)', paddingBottom: '0.75rem' }}>
-            <ShoppingBag size={18} color="var(--uc-blue)" />
+          <div style={{ borderBottom: '1px solid var(--border-subtle, #E2E8F0)', paddingBottom: '0.75rem' }}>
             <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
               {formMode === 'sell' ? 'Step 1: Item Details for Sale' : 'Step 1: Details of Item Offered for Barter'}
             </h3>
+          </div>
+
+          {/* AI Listing Assistant Card */}
+          <div
+            style={{
+              padding: '0.85rem 1rem',
+              borderRadius: '10px',
+              backgroundColor: '#F8FAFC',
+              border: '1px solid var(--border-subtle, #E2E8F0)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.5rem'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--uc-blue)' }}>
+                AI Listing Assistant
+              </span>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                Autofill specs & pricing in 1 click
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <input
+                type="text"
+                value={aiQuery}
+                onChange={(e) => setAiQuery(e.target.value)}
+                placeholder="Item name (e.g. Calculus 8th Stewart or UC Maroon Polo L)"
+                className="clean-input"
+                style={{ fontSize: '0.82rem', padding: '0.45rem 0.75rem', flex: 1 }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAiAutofill();
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={handleAiAutofill}
+                disabled={isAutofilling}
+                style={{
+                  padding: '0.45rem 1rem',
+                  fontSize: '0.8rem',
+                  fontWeight: 800,
+                  borderRadius: '8px',
+                  backgroundColor: 'var(--uc-blue)',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  cursor: isAutofilling ? 'not-allowed' : 'pointer',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {isAutofilling ? 'Generating...' : 'Auto-Fill Details'}
+              </button>
+            </div>
+            {aiNotice && (
+              <span style={{ fontSize: '0.74rem', color: 'var(--accent-green, #059669)', fontWeight: 600 }}>
+                {aiNotice}
+              </span>
+            )}
           </div>
 
           {/* Title */}
@@ -702,6 +869,222 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
               </p>
             </div>
           </div>
+
+          {/* ITEM VARIATIONS BUILDER */}
+          <div
+            style={{
+              padding: '1.25rem',
+              borderRadius: '12px',
+              border: hasVariations ? '1.5px solid var(--uc-blue)' : '1px solid var(--border-subtle, #E2E8F0)',
+              backgroundColor: hasVariations ? '#F8FAFC' : '#FAFAFA'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
+              <div>
+                <h4 style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <span>Variations</span>
+                  {hasVariations && (
+                    <span className="badge-pill badge-blue" style={{ fontSize: '0.7rem' }}>
+                      {variations.length}
+                    </span>
+                  )}
+                </h4>
+                <p style={{ fontSize: '0.76rem', color: 'var(--text-muted)', margin: '0.2rem 0 0 0' }}>
+                  e.g. editions or sizes
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.4rem' }}>
+                {!hasVariations ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHasVariations(true);
+                      if (variations.length === 0) {
+                        addCustomVariation();
+                      }
+                    }}
+                    className="btn-secondary"
+                    style={{ fontSize: '0.78rem', padding: '0.35rem 0.75rem', fontWeight: 700 }}
+                  >
+                    + Add Options
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHasVariations(false);
+                      setVariations([]);
+                    }}
+                    style={{
+                      fontSize: '0.75rem',
+                      padding: '0.3rem 0.6rem',
+                      color: '#DC2626',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontWeight: 700
+                    }}
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {hasVariations && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {/* Fast Presets */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                    Presets:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => applyVariationPreset('pe')}
+                    className="badge-pill"
+                    style={{ backgroundColor: '#E0F2FE', color: '#0369A1', border: '1px solid #BAE6FD', cursor: 'pointer', fontSize: '0.72rem', padding: '0.2rem 0.55rem', fontWeight: 600 }}
+                  >
+                    PE 101–104
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyVariationPreset('math')}
+                    className="badge-pill"
+                    style={{ backgroundColor: '#FEF3C7', color: '#B45309', border: '1px solid #FDE68A', cursor: 'pointer', fontSize: '0.72rem', padding: '0.2rem 0.55rem', fontWeight: 600 }}
+                  >
+                    Math 101–104
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyVariationPreset('sizes')}
+                    className="badge-pill"
+                    style={{ backgroundColor: '#F1F5F9', color: '#334155', border: '1px solid #CBD5E1', cursor: 'pointer', fontSize: '0.72rem', padding: '0.2rem 0.55rem', fontWeight: 600 }}
+                  >
+                    Sizes S–XL
+                  </button>
+                  <button
+                    type="button"
+                    onClick={addCustomVariation}
+                    className="badge-pill badge-blue"
+                    style={{ cursor: 'pointer', fontSize: '0.72rem', padding: '0.2rem 0.55rem', fontWeight: 600 }}
+                  >
+                    + Add option
+                  </button>
+                </div>
+
+                {/* Variations Rows */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {variations.map((v) => {
+                    const matchedImg = images[v.imageIndex] || images[0] || null;
+                    return (
+                      <div
+                        key={v.id}
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: formMode === 'sell' ? 'auto 1fr 130px 90px auto' : 'auto 1fr 140px auto',
+                          gap: '0.55rem',
+                          alignItems: 'center',
+                          backgroundColor: '#FFFFFF',
+                          padding: '0.55rem 0.75rem',
+                          borderRadius: '8px',
+                          border: '1px solid #E2E8F0',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+                        }}
+                      >
+                        {/* Matched Photo Thumbnail */}
+                        <div
+                          style={{
+                            width: '36px',
+                            height: '36px',
+                            borderRadius: '6px',
+                            overflow: 'hidden',
+                            backgroundColor: '#0F172A',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            border: '1px solid #CBD5E1'
+                          }}
+                        >
+                          {matchedImg ? (
+                            <img src={matchedImg} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            <Film size={16} color="#94A3B8" />
+                          )}
+                        </div>
+
+                        {/* Title input */}
+                        <div>
+                          <input
+                            type="text"
+                            placeholder="e.g. PE 101"
+                            value={v.title}
+                            onChange={(e) => updateVariation(v.id, { title: e.target.value })}
+                            className="clean-input"
+                            style={{ width: '100%', fontSize: '0.82rem', padding: '0.4rem 0.6rem' }}
+                          />
+                        </div>
+
+                        {/* Matched Image Selector */}
+                        <div>
+                          <select
+                            value={v.imageIndex}
+                            onChange={(e) => updateVariation(v.id, { imageIndex: Number(e.target.value) })}
+                            className="clean-input"
+                            style={{ width: '100%', fontSize: '0.78rem', padding: '0.4rem 0.5rem' }}
+                          >
+                            {images.length === 0 ? (
+                              <option value={0}>Photo 1</option>
+                            ) : (
+                              images.map((_, imgIdx) => (
+                                <option key={imgIdx} value={imgIdx}>
+                                  Photo {imgIdx + 1}
+                                </option>
+                              ))
+                            )}
+                          </select>
+                        </div>
+
+                        {/* Price override (if sell form) */}
+                        {formMode === 'sell' && (
+                          <div>
+                            <input
+                              type="number"
+                              placeholder="Price (optional)"
+                              value={v.price === undefined ? '' : v.price}
+                              onChange={(e) => updateVariation(v.id, { price: e.target.value === '' ? '' : parseFloat(e.target.value) })}
+                              className="clean-input"
+                              style={{ width: '100%', fontSize: '0.8rem', padding: '0.4rem 0.5rem' }}
+                            />
+                          </div>
+                        )}
+
+                        {/* Delete Button */}
+                        <button
+                          type="button"
+                          onClick={() => removeVariation(v.id)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#94A3B8',
+                            cursor: 'pointer',
+                            padding: '0.35rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                          title="Remove option"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -829,7 +1212,7 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
                 Payment Mode
               </label>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 0.85rem', backgroundColor: 'var(--bg-subtle)', border: '1px solid var(--border-subtle)', borderRadius: '8px' }}>
-                <span style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-primary)' }}>💵 Cash on Meetup</span>
+                <span style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-primary)' }}>Cash on Meetup</span>
                 <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>(Standard campus peer settlement upon meetup)</span>
               </div>
             </div>
@@ -1208,6 +1591,22 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
                     <span>Verified</span>
                   </span>
                 </div>
+
+                {/* Variations Preview */}
+                {hasVariations && variations.length > 0 && (
+                  <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '0.45rem', marginTop: '0.2rem' }}>
+                    <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                      Options ({variations.length}):
+                    </span>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginTop: '0.25rem' }}>
+                      {variations.filter((v) => v.title).map((v) => (
+                        <span key={v.id} style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', backgroundColor: '#EBF1FC', color: 'var(--uc-blue)' }}>
+                          {v.title}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

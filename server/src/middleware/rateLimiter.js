@@ -132,6 +132,18 @@ const chatMessageLimiter = rateLimit({
   legacyHeaders: false
 });
 
+// AI features rate limiter (prevent token exhaustion / cost spam)
+const aiLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 20, // max 20 AI queries per minute per IP
+  message: {
+    status: 'fail',
+    message: 'AI request limit reached. Please wait a moment before trying again.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
 module.exports = {
   authLimiter,
   passwordResetLimiter,
@@ -143,6 +155,7 @@ module.exports = {
   uploadLimiter,
   viewListingLimiter,
   adminAuthLimiter,
-  chatMessageLimiter
+  chatMessageLimiter,
+  aiLimiter
 };
 

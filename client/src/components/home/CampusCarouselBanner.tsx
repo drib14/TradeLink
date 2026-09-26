@@ -258,7 +258,7 @@ export const CampusCarouselBanner: React.FC<CampusCarouselBannerProps> = ({
           paddingLeft: 'clamp(1.5rem, 4.5vw, 4rem)',
           paddingRight: 'clamp(1.5rem, 4.5vw, 4rem)',
           zIndex: 5,
-          maxWidth: '1200px',
+          maxWidth: '100%',
           width: '100%',
           boxSizing: 'border-box'
         }}

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/common/Toast';
 import { UserAvatar } from '../components/common/UserAvatar';
+import { TradeLinkIcon } from '../components/common/TradeLinkIcon';
 import { College } from '../types';
 import {
   Settings as SettingsIcon,
@@ -63,9 +64,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate, onOpenAu
     return (
       <div className="container page-enter" style={{ padding: '5rem 1.5rem', textAlign: 'center', maxWidth: '520px' }}>
         <div className="clean-card" style={{ padding: '3rem 2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
-          <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', color: 'var(--uc-blue, #002B7F)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <SettingsIcon size={28} />
-          </div>
+          <TradeLinkIcon size={56} />
           <div>
             <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary, #0F172A)' }}>
               Sign In Required for Settings

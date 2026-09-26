@@ -5,6 +5,7 @@ import { useChat } from '../context/ChatContext';
 import { useToast } from '../components/common/Toast';
 import { ListingCard } from '../components/marketplace/ListingCard';
 import { SwapProposalModal } from '../components/marketplace/SwapProposalModal';
+import { TradeLinkIcon } from '../components/common/TradeLinkIcon';
 import { Listing, SwapOffer } from '../types';
 import { formatRelativeTime } from '../utils/date';
 import {
@@ -219,10 +220,8 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({
       {activeTab === 'proposals' && (
         <div className="grid-responsive-proposals">
           {!currentUser ? (
-            <div className="clean-card" style={{ gridColumn: '1 / -1', padding: '3.5rem 1.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', borderRadius: '14px' }}>
-              <div style={{ width: '54px', height: '54px', borderRadius: '50%', backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', color: 'var(--uc-blue, #002B7F)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <ArrowLeftRight size={26} />
-              </div>
+            <div className="clean-card" style={{ gridColumn: '1 / -1', padding: '3.5rem 1.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.15rem', borderRadius: '14px' }}>
+              <TradeLinkIcon size={56} />
               <div>
                 <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                   Sign In Required to View Proposals

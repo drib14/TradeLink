@@ -56,7 +56,7 @@ describe('Security Test: Hardened Authentication & Attack Prevention', () => {
         yearLevel: '3rd Year'
       });
       expect(error).toBeDefined();
-      expect(error.details[0].message).toContain('one uppercase letter, one lowercase letter, and one number');
+      expect(error.details[0].message).toContain('one uppercase letter, one lowercase letter, one number');
     });
 
     it('should accept strong passwords meeting complexity requirements', () => {

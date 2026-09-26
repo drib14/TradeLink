@@ -332,18 +332,15 @@ const forgotPassword = asyncHandler(async (req, res, next) => {
     console.error('[AUTH] Failed to send password reset email:', err.message);
   }
 
-  if (process.env.NODE_ENV !== 'production') {
+  if (process.env.NODE_ENV === 'development') {
     logger.info(`[DEV AUTH] 🔑 PASSWORD RESET CODE FOR ${user.email}: [ ${code} ]`);
   }
 
-  // In non-production, return devCode in response so developer or user testing is never blocked
+  // Security: Never expose verification code in HTTP response payload
   const resPayload = {
     status: 'success',
     message: 'If an account with that email exists, a 6-digit verification code has been dispatched. Please check your inbox or spam folder.'
   };
-  if (process.env.NODE_ENV !== 'production') {
-    resPayload.devCode = code;
-  }
 
   return res.status(200).json(resPayload);
 });

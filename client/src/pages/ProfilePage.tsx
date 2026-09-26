@@ -7,6 +7,7 @@ import { useToast } from '../components/common/Toast';
 import { VerifiedBadge } from '../components/common/VerifiedBadge';
 import { UserAvatar } from '../components/common/UserAvatar';
 import { CampusBadge } from '../components/common/CampusBadge';
+import { TradeLinkIcon } from '../components/common/TradeLinkIcon';
 import { ListingCard } from '../components/marketplace/ListingCard';
 import { Modal } from '../components/common/Modal';
 import { reviewsService } from '../services/reviews.service';
@@ -19,44 +20,34 @@ import {
   Clock,
   Edit3,
   MessageSquare,
-  Flame,
   Search,
   ShoppingBag,
   CheckCircle2,
   Eye,
   X,
-  BadgeCheck,
-  Award,
-  Check,
   Bookmark,
   Receipt,
   Settings,
   Save,
   MapPin,
-  ShieldAlert,
-  AlertCircle,
-  Copy,
   Camera,
   User as UserIcon,
   PlusCircle,
-  TrendingUp,
-  Zap,
   RotateCcw,
-  DollarSign,
-  ArrowUpDown,
-  Building2,
   CreditCard,
   PackageCheck,
   Share2,
-  List,
-  LayoutGrid,
+  Check,
   ArrowUpRight,
   ArrowDownLeft,
-  ExternalLink
+  Info,
+  Sparkles,
+  List,
+  LayoutGrid
 } from 'lucide-react';
 import { StudentVerificationModal } from '../components/verification/StudentVerificationModal';
 import { maskStudentId } from '../utils/security';
-import { PaymentMethodBadge, CashLogo, GCashLogo, MayaLogo, BankTransferLogo, PaymentMethodCheckboxGroup } from '../components/common/PaymentLogos';
+import { PaymentMethodBadge } from '../components/common/PaymentLogos';
 
 const parsePaymentMethods = (str?: string): ('cash' | 'gcash' | 'maya' | 'bank_transfer')[] => {
   if (!str) return ['cash', 'gcash', 'maya', 'bank_transfer'];
@@ -121,7 +112,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
     : (currentUser || null);
 
   useEffect(() => {
-    // Only redirect to not-found when user fetch has fully finished and no user exists
     if (userId && !isLoadingUser && !targetUser) {
       onNavigate('not-found');
     }
@@ -129,18 +119,17 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
 
   const isSelf = !!currentUser && !!targetUser && currentUser.id === targetUser.id;
 
-  const [activeTab, setActiveTab] = useState<'listings' | 'sold' | 'saved' | 'transactions' | 'reviews'>('listings');
+  // Tabs state
+  const [activeTab, setActiveTab] = useState<'listings' | 'sold' | 'saved' | 'transactions' | 'reviews' | 'about'>('listings');
   const [listingFilter, setListingFilter] = useState<'all' | 'buy_sell' | 'swap' | 'free_donation'>('all');
   const [bioInput, setBioInput] = useState(targetUser?.bio || '');
   const [isEditingBio, setIsEditingBio] = useState(false);
-  const [inspectedIdImage, setInspectedIdImage] = useState<string | null>(null);
 
   // In-store search & sort state
   const [storeSearch, setStoreSearch] = useState('');
   const [storeSort, setStoreSort] = useState<'newest' | 'price_asc' | 'price_desc'>('newest');
   const [reviewFilter, setReviewFilter] = useState<'all' | 'seller' | 'buyer'>('all');
-  const [inventoryViewMode, setInventoryViewMode] = useState<'table' | 'grid'>('table');
-  const [transactionViewMode, setTransactionViewMode] = useState<'table' | 'cards'>('table');
+  const [inventoryViewMode, setInventoryViewMode] = useState<'grid' | 'table'>('grid');
 
   // Edit Profile Modal state
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
@@ -156,10 +145,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   );
 
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
-  const [isPendingInfoModalOpen, setIsPendingInfoModalOpen] = useState(false);
   const [userReviews, setUserReviews] = useState<Review[]>([]);
 
-  // Synchronize edit modal fields when targetUser changes or modal opens
   useEffect(() => {
     if (targetUser) {
       setBioInput(targetUser.bio || '');
@@ -174,20 +161,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
     }
   }, [targetUser]);
 
-  const isRejectedVerification = !targetUser?.isVerified && (targetUser?.verificationStatus === 'rejected' || !!(targetUser as any)?.verificationRejectionReason);
-  const isPendingVerification = !targetUser?.isVerified && !isRejectedVerification && (targetUser?.verificationStatus === 'pending' || !!targetUser?.idPhotoUrl);
-
   const [userAnalytics, setUserAnalytics] = useState<{
     completedTrades: number;
     totalTradeVolume: number;
     activeListings: number;
     activeInventoryValue: number;
-    monthlyTimeline: Array<{
-      label: string;
-      year: number;
-      volume: number;
-      trades: number;
-    }>;
     reviewsCount: number;
     rating: number;
   } | null>(null);
@@ -215,8 +193,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   const userActiveListings = listings.filter((l: Listing) => l.sellerId === targetUser?.id && !l.isSold);
   const userSoldListings = listings.filter((l: Listing) => l.sellerId === targetUser?.id && l.isSold);
   const userSavedListings = listings.filter((l: Listing) => favorites.includes(l.id));
-  const userFlash = flashRequests.filter((w: FlashRequest) => w.requesterId === targetUser?.id);
-  const userWanted = userFlash;
   const userMeetups = meetups.filter((m) => m.sellerId === targetUser?.id || m.buyerId === targetUser?.id);
 
   // Calculate Marketplace Statistics dynamically
@@ -224,48 +200,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
     (sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 1),
     0
   );
-  const completedTradesCount = Number(userAnalytics?.completedTrades ?? (targetUser?.completedTrades ?? userSoldListings.length));
-  const totalReviewsCount = Number(userAnalytics?.reviewsCount ?? (targetUser?.totalReviews ?? userReviews.length));
-  const hasTransactions = completedTradesCount > 0 || totalReviewsCount > 0;
-
-  const rating = userAnalytics?.rating ?? (hasTransactions ? (Number(targetUser?.rating) || 0) : 0.0);
-
-  // Monthly performance dataset for owner analytics graph - strictly dynamic without fake math
-  const monthlyData = useMemo(() => {
-    if (userAnalytics?.monthlyTimeline && userAnalytics.monthlyTimeline.length > 0) {
-      return userAnalytics.monthlyTimeline;
-    }
-
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const now = new Date();
-    const months = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      months.push({
-        label: monthNames[d.getMonth()],
-        year: d.getFullYear(),
-        monthIndex: d.getMonth(),
-        trades: 0,
-        volume: 0,
-      });
-    }
-
-    userSoldListings.forEach((l) => {
-      const d = new Date(l.updatedAt || l.createdAt || Date.now());
-      const mMatch = months.find((m) => m.monthIndex === d.getMonth() && m.year === d.getFullYear());
-      if (mMatch) {
-        mMatch.trades += 1;
-        mMatch.volume += Number(l.price) || 0;
-      }
-    });
-
-    return months.map((m) => ({
-      label: m.label,
-      year: m.year,
-      trades: m.trades,
-      volume: m.volume,
-    }));
-  }, [userAnalytics, userSoldListings]);
+  const completedTradesCount = Number(userAnalytics?.completedTrades ?? targetUser?.completedTrades ?? userSoldListings.length);
+  const totalReviewsCount = Number(userAnalytics?.reviewsCount ?? targetUser?.totalReviews ?? userReviews.length);
+  const rating = totalReviewsCount > 0
+    ? Number(userAnalytics?.rating ?? targetUser?.rating ?? 0.0)
+    : 0.0;
 
   // In-store filter counts
   const saleCount = userActiveListings.filter((l) => l.tradeMode === 'buy_sell').length;
@@ -292,11 +231,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
         return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
       });
   }, [userActiveListings, listingFilter, storeSearch, storeSort]);
-
-  const filteredValue = filteredActiveListings.reduce(
-    (sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 1),
-    0
-  );
 
   // Reviews filtering
   const filteredReviews = useMemo(() => {
@@ -377,9 +311,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
       return (
         <div className="container page-enter" style={{ padding: '5rem 1.5rem', textAlign: 'center', maxWidth: '520px' }}>
           <div className="clean-card" style={{ padding: '3rem 2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
-            <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', color: 'var(--uc-blue, #002B7F)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <UserIcon size={28} />
-            </div>
+            <TradeLinkIcon size={56} />
             <div>
               <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary, #0F172A)' }}>
                 Sign In to View Your Profile
@@ -431,154 +363,148 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   }
 
   return (
-    <div className="container page-enter" style={{ padding: '2rem 1.5rem 6rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      {/* 1. STUDENT PROFILE HERO CARD */}
-      <div
-        className="clean-card"
-        style={{
-          overflow: 'hidden',
-          padding: 0,
-          border: '1.5px solid var(--border-subtle, #E2E8F0)',
-          position: 'relative',
-          borderRadius: '18px'
-        }}
-      >
+    <div className="container page-enter" style={{ padding: '1.5rem 1.25rem 5rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      {/* 1. SIMPLIFIED & RESPONSIVE STUDENT PROFILE HERO CARD */}
+      <div className="profile-card-hero">
         {/* Campus Cover Banner */}
-        <div
-          style={{
-            height: '145px',
-            backgroundColor: '#002B7F',
-            borderBottom: '1px solid #001D59',
-            position: 'relative',
-            padding: '1.25rem 1.75rem',
-            display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'flex-end'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <CampusBadge campus={targetUser.campus} size="sm" />
-          </div>
+        <div className="profile-cover-banner">
+          <CampusBadge campus={targetUser.campus} size="sm" />
         </div>
 
         {/* Profile Details Container */}
         <div className="profile-details-wrapper">
           {/* Avatar, Identity & Primary Actions Row */}
           <div className="profile-avatar-row">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
-              <div style={{ position: 'relative' }}>
+            <div className="profile-avatar-and-info">
+              {/* Avatar with optional edit badge for owner */}
+              <div className="profile-avatar-container">
                 <UserAvatar
                   src={targetUser.avatar}
                   name={targetUser.name}
-                  size={96}
+                  size={92}
                   style={{
                     border: '4px solid var(--bg-surface, #FFFFFF)',
-                    boxShadow: '0 8px 24px rgba(0, 43, 127, 0.22)'
+                    boxShadow: '0 6px 20px rgba(0, 43, 127, 0.2)'
                   }}
                 />
+                {isSelf && (
+                  <button
+                    onClick={() => setIsEditProfileModalOpen(true)}
+                    title="Change Profile Photo"
+                    style={{
+                      position: 'absolute',
+                      bottom: '2px',
+                      right: '2px',
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '50%',
+                      backgroundColor: 'var(--uc-blue, #002B7F)',
+                      color: '#FFFFFF',
+                      border: '2px solid #FFFFFF',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
+                    }}
+                  >
+                    <Camera size={13} />
+                  </button>
+                )}
               </div>
 
+              {/* Student Identity Column */}
               <div className="profile-identity-col">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  <h1 style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--text-primary, #0F172A)', fontFamily: 'var(--font-display)', margin: 0 }}>
-                    {targetUser.name}
-                  </h1>
+                <div className="profile-name-row">
+                  <h1 className="profile-name-title">{targetUser.name}</h1>
+                  {targetUser.isVerified && (
+                    <VerifiedBadge size="sm" variant="green" />
+                  )}
                 </div>
 
                 <div className="profile-meta-chips">
-                  <span style={{ color: 'var(--uc-blue, #002B7F)', fontWeight: 800 }}>ID: {maskStudentId(targetUser.studentId, isSelf)}</span>
-                  <span>{targetUser.campus}</span>
-                  <span style={{ color: 'var(--text-primary, #0F172A)', fontWeight: 600 }}>{targetUser.college}</span>
-                  <span>{targetUser.yearLevel}</span>
+                  <span className="profile-meta-chip" style={{ backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', color: 'var(--uc-blue, #002B7F)', fontWeight: 800, borderColor: 'rgba(0, 43, 127, 0.2)' }}>
+                    ID: {maskStudentId(targetUser.studentId, isSelf)}
+                  </span>
+                  <span className="profile-meta-chip">{targetUser.campus}</span>
+                  <span className="profile-meta-chip">{targetUser.college}</span>
+                  <span className="profile-meta-chip">{targetUser.yearLevel}</span>
                 </div>
 
-                {/* Marketplace Status Indicator */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginTop: '0.4rem', fontSize: '0.75rem', color: 'var(--text-secondary, #475569)', flexWrap: 'wrap' }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: 'var(--accent-green, #059669)', fontWeight: 700 }}>
-                    <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: 'var(--accent-green, #059669)', display: 'inline-block' }} />
+                {/* Rating & Trust Line */}
+                <div className="profile-reputation-chip">
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', color: rating > 0 ? '#D97706' : 'var(--text-muted)', fontWeight: 800 }}>
+                    <Star size={13} fill={rating > 0 ? '#D97706' : 'transparent'} color={rating > 0 ? '#D97706' : 'var(--text-muted)'} />
+                    {rating > 0 ? rating.toFixed(1) : '0.0'}
+                  </span>
+                  <span>&bull;</span>
+                  <span>{totalReviewsCount} {totalReviewsCount === 1 ? 'Review' : 'Reviews'}</span>
+                  <span>&bull;</span>
+                  <span style={{ color: 'var(--accent-green, #059669)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--accent-green, #059669)' }} />
                     Active Trader
                   </span>
-                  <span>Member since {targetUser.joinedDate ? new Date(targetUser.joinedDate).getFullYear() : '2024'}</span>
+                  <span>&bull;</span>
+                  <span>Joined {targetUser.joinedDate ? new Date(targetUser.joinedDate).getFullYear() : '2024'}</span>
                 </div>
               </div>
             </div>
 
-            {/* Header Actions */}
-            <div className="profile-actions-grid">
+            {/* Header Action Buttons (Fully responsive) */}
+            <div className="profile-actions-group">
               {!isSelf ? (
                 <>
                   <button
                     onClick={handleStartChatWithUser}
                     className="btn-primary"
-                    style={{ padding: '0.65rem 1.35rem', fontSize: '0.85rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem', minHeight: '44px' }}
                   >
                     <MessageSquare size={16} /> Message Seller
                   </button>
-
                   <button
                     onClick={handleShareProfile}
                     className="btn-secondary"
-                    style={{ padding: '0.65rem 1rem', fontSize: '0.82rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', minHeight: '44px' }}
                   >
-                    {isCopiedLink ? <Check size={15} color="var(--accent-green)" /> : <Copy size={15} />}
-                    <span>{isCopiedLink ? 'Copied' : 'Share Store'}</span>
+                    {isCopiedLink ? <Check size={15} color="var(--accent-green)" /> : <Share2 size={15} />}
+                    <span>{isCopiedLink ? 'Copied' : 'Share'}</span>
                   </button>
                 </>
               ) : (
                 <>
-                  {/* SELLER PRIMARY CTA: POST NEW LISTING */}
                   <button
                     onClick={() => onNavigate('create-listing')}
                     className="btn-gold"
-                    style={{
-                      padding: '0.65rem 1.25rem',
-                      fontSize: '0.85rem',
-                      fontWeight: 800,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.45rem',
-                      boxShadow: '0 4px 14px rgba(255, 199, 44, 0.35)',
-                      minHeight: '44px'
-                    }}
                   >
-                    <PlusCircle size={16} /> Post New Item
+                    <PlusCircle size={16} /> Post Item
                   </button>
-
                   <button
                     onClick={() => setIsEditProfileModalOpen(true)}
                     className="btn-secondary"
-                    style={{ padding: '0.65rem 1rem', fontSize: '0.82rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', minHeight: '44px' }}
                   >
                     <Edit3 size={15} /> Edit Profile
                   </button>
-
+                  <button
+                    onClick={handleShareProfile}
+                    className="btn-secondary"
+                    title="Share Profile Link"
+                  >
+                    {isCopiedLink ? <Check size={15} color="var(--accent-green)" /> : <Share2 size={15} />}
+                    <span>{isCopiedLink ? 'Copied' : 'Share'}</span>
+                  </button>
                   <button
                     onClick={() => onNavigate('settings')}
                     className="btn-ghost"
-                    style={{ padding: '0.65rem 0.85rem', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: '44px' }}
                     title="Account Settings"
+                    style={{ minHeight: '44px', padding: '0 0.85rem' }}
                   >
-                    <Settings size={17} />
-                  </button>
-
-                  <button
-                    onClick={handleShareProfile}
-                    className="btn-ghost"
-                    style={{ padding: '0.65rem 0.85rem', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: '44px' }}
-                    title="Share Profile Link"
-                  >
-                    {isCopiedLink ? <Check size={17} color="var(--accent-green)" /> : <Copy size={17} />}
+                    <Settings size={18} />
                   </button>
                 </>
               )}
-
-              {/* Verification button disabled for MVP */}
             </div>
           </div>
 
           {/* Student Bio */}
-          <div style={{ backgroundColor: 'var(--bg-subtle, #F8FAFC)', borderRadius: '12px', padding: '0.9rem 1.15rem', border: '1px solid var(--border-subtle, #E2E8F0)' }}>
+          <div style={{ backgroundColor: 'var(--bg-subtle, #F8FAFC)', borderRadius: '12px', padding: '0.85rem 1.15rem', border: '1px solid var(--border-subtle, #E2E8F0)' }}>
             {isEditingBio ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <textarea
@@ -587,7 +513,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                   rows={2}
                   className="clean-input"
                   style={{ fontSize: '0.85rem' }}
-                  placeholder="Share a short bio about what items you trade, textbooks, or course gear..."
+                  placeholder="Share what items or course gear you trade..."
                 />
                 <div style={{ display: 'flex', gap: '0.4rem' }}>
                   <button onClick={handleSaveBio} className="btn-primary" style={{ padding: '0.4rem 0.85rem', fontSize: '0.78rem' }}>
@@ -599,355 +525,93 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 </div>
               </div>
             ) : (
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary, #334155)', lineHeight: 1.5, margin: 0 }}>
-                {targetUser.bio || 'No bio provided yet.'}
-              </p>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                <p style={{ fontSize: '0.84rem', color: targetUser.bio ? 'var(--text-secondary, #334155)' : 'var(--text-muted, #94A3B8)', lineHeight: 1.5, margin: 0 }}>
+                  {targetUser.bio || (isSelf ? 'No bio added yet. Add a short bio to let classmates know what textbooks or gear you trade!' : 'No bio provided yet.')}
+                </p>
+                {isSelf && !targetUser.bio && (
+                  <button
+                    onClick={() => setIsEditingBio(true)}
+                    className="btn-ghost"
+                    style={{ fontSize: '0.76rem', color: 'var(--uc-blue)', fontWeight: 700, padding: '0.2rem 0.5rem', whiteSpace: 'nowrap' }}
+                  >
+                    + Add Bio
+                  </button>
+                )}
+              </div>
             )}
           </div>
 
-          {/* 2. PERFORMANCE & REPUTATION DASHBOARD */}
-          {isSelf ? (
-            <div
-              className="clean-card"
-              style={{
-                padding: '1.25rem 1.5rem',
-                borderRadius: '16px',
-                border: '1px solid var(--border-subtle, #E2E8F0)',
-                backgroundColor: 'var(--bg-surface, #FFFFFF)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '1rem'
-              }}
-            >
-              {/* Header with summary stats */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
-                <div>
-                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary, #0F172A)', margin: 0 }}>
-                    Sales &amp; Trade Volume Activity
-                  </h3>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted, #64748B)', margin: '2px 0 0 0' }}>
-                    Recent 6-month transaction and inventory trends
-                  </p>
-                </div>
-
-                {/* Responsive Mobile-First Stats Grid */}
-                <div className="profile-stats-grid">
-                  <div className="profile-stat-item">
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 700 }}>
-                      Active Inventory
-                    </span>
-                    <span style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--uc-blue, #002B7F)' }}>
-                      ₱{activeInventoryValue.toLocaleString()}
-                    </span>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                      ({userActiveListings.length} items)
-                    </span>
-                  </div>
-
-                  <div className="profile-stat-item">
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 700 }}>
-                      Completed Trades
-                    </span>
-                    <span style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--accent-green, #059669)' }}>
-                      {completedTradesCount}
-                    </span>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                      fulfilled
-                    </span>
-                  </div>
-
-                  <div className="profile-stat-item">
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 700 }}>
-                      Reviews
-                    </span>
-                    <span style={{ fontSize: '1.15rem', fontWeight: 900, color: '#D97706' }}>
-                      {rating > 0 ? rating.toFixed(1) : '0.0'} ★
-                    </span>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                      ({totalReviewsCount})
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Responsive SVG Chart */}
-              <div style={{ width: '100%', overflowX: 'hidden' }}>
-                <svg
-                  viewBox="0 0 700 170"
-                  style={{ width: '100%', height: 'auto', display: 'block' }}
-                  aria-label="Monthly trade activity chart"
-                >
-                  {/* Grid lines */}
-                  <line x1="40" y1="20" x2="680" y2="20" stroke="#F1F5F9" strokeWidth="1" strokeDasharray="3 3" />
-                  <line x1="40" y1="60" x2="680" y2="60" stroke="#F1F5F9" strokeWidth="1" strokeDasharray="3 3" />
-                  <line x1="40" y1="100" x2="680" y2="100" stroke="#F1F5F9" strokeWidth="1" strokeDasharray="3 3" />
-                  <line x1="40" y1="140" x2="680" y2="140" stroke="#E2E8F0" strokeWidth="1.5" />
-
-                  {/* Area fill and stroke line */}
-                  {(() => {
-                    const totalVol = monthlyData.reduce((s, m) => s + m.volume, 0);
-                    const totalTrades = monthlyData.reduce((s, m) => s + m.trades, 0);
-                    const maxVol = Math.max(...monthlyData.map((m) => m.volume), 500);
-                    const coords = monthlyData.map((m, idx) => {
-                      const x = 70 + idx * 115;
-                      const y = totalVol > 0 ? 140 - (m.volume / maxVol) * 105 : 140;
-                      return { x, y, ...m };
-                    });
-
-                    const pathD = coords.reduce((acc, pt, i) => `${acc} ${i === 0 ? 'M' : 'L'} ${pt.x} ${pt.y}`, '');
-                    const areaD = `${pathD} L ${coords[coords.length - 1].x} 140 L ${coords[0].x} 140 Z`;
-
-                    return (
-                      <>
-                        {totalVol > 0 && <path d={areaD} fill="#EBF1FC" opacity="0.85" />}
-                        <path
-                          d={pathD}
-                          fill="none"
-                          stroke={totalVol > 0 ? '#002B7F' : '#CBD5E1'}
-                          strokeWidth={totalVol > 0 ? '2.5' : '1.5'}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeDasharray={totalVol === 0 ? '4 4' : undefined}
-                        />
-
-                        {/* Bars for trades completed */}
-                        {coords.map((pt) => {
-                          const barH = pt.trades > 0 ? Math.min(pt.trades * 16, 95) : 0;
-                          return (
-                            <g key={pt.label}>
-                              {barH > 0 && (
-                                <rect
-                                  x={pt.x - 14}
-                                  y={140 - barH}
-                                  width="28"
-                                  height={barH}
-                                  rx="4"
-                                  fill="#FFC72C"
-                                  opacity="0.9"
-                                />
-                              )}
-                              {/* Volume point dot */}
-                              <circle
-                                cx={pt.x}
-                                cy={pt.y}
-                                r={pt.volume > 0 ? 4.5 : 3}
-                                fill={pt.volume > 0 ? '#FFFFFF' : '#F1F5F9'}
-                                stroke={pt.volume > 0 ? '#002B7F' : '#94A3B8'}
-                                strokeWidth={pt.volume > 0 ? 2.5 : 1.5}
-                              />
-                              {/* Value label */}
-                              <text
-                                x={pt.x}
-                                y={pt.y - 8}
-                                textAnchor="middle"
-                                fontSize="10"
-                                fontWeight="700"
-                                fill={pt.volume > 0 ? '#002B7F' : '#94A3B8'}
-                              >
-                                ₱{pt.volume.toLocaleString()}
-                              </text>
-                              {/* Month label on X-axis */}
-                              <text x={pt.x} y="156" textAnchor="middle" fontSize="11" fontWeight="600" fill="#64748B">
-                                {pt.label}
-                              </text>
-                            </g>
-                          );
-                        })}
-                      </>
-                    );
-                  })()}
-                </svg>
-              </div>
-
-              {/* Informative note when no transactions have occurred yet */}
-              {monthlyData.every((m) => m.trades === 0 && m.volume === 0) && (
-                <div
-                  style={{
-                    backgroundColor: '#F8FAFC',
-                    border: '1px dashed #CBD5E1',
-                    borderRadius: '8px',
-                    padding: '0.65rem 1rem',
-                    textAlign: 'center',
-                    fontSize: '0.76rem',
-                    color: '#64748B',
-                    fontWeight: 600
-                  }}
-                >
-                  No campus trades recorded yet for this 6-month period. Real sales and completed swaps will automatically plot here!
-                </div>
-              )}
-
-              {/* Chart Legend */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '1.25rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <span style={{ width: '12px', height: '3px', backgroundColor: '#002B7F', borderRadius: '2px', display: 'inline-block' }} />
-                  Volume (₱)
-                </span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <span style={{ width: '10px', height: '10px', backgroundColor: '#FFC72C', borderRadius: '3px', display: 'inline-block' }} />
-                  Completed Trades
-                </span>
-              </div>
+          {/* 2. COMPACT SUMMARY METRICS BAR (Replaces bulky graph/chart) */}
+          <div className="profile-metrics-bar">
+            <div className="profile-metric-item">
+              <span className="profile-metric-label">Active Items</span>
+              <span className="profile-metric-value" style={{ color: 'var(--uc-blue, #002B7F)' }}>
+                {userActiveListings.length}
+              </span>
+              <span className="profile-metric-sub">
+                ₱{activeInventoryValue.toLocaleString()} value
+              </span>
             </div>
-          ) : (
-            /* Other user's preview: clean product review & seller credibility highlight */
-            <div
-              className="clean-card"
-              style={{
-                padding: '1.25rem 1.5rem',
-                borderRadius: '16px',
-                border: '1.5px solid var(--border-subtle, #E2E8F0)',
-                backgroundColor: 'var(--bg-surface, #FFFFFF)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '1.25rem'
-              }}
-            >
-              {/* Product Review Rating Highlight */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-                <div style={{ textAlign: 'center', paddingRight: '1.25rem', borderRight: '1px solid var(--border-subtle, #E2E8F0)' }}>
-                  <div style={{ fontSize: '2.2rem', fontWeight: 900, color: 'var(--text-primary, #0F172A)', lineHeight: 1 }}>
-                    {rating > 0 ? rating.toFixed(1) : '5.0'}
-                  </div>
-                  <div style={{ display: 'flex', gap: '2px', color: '#F59E0B', marginTop: '0.25rem', justifyContent: 'center' }}>
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star key={i} size={14} fill={i < Math.round(rating || 5) ? '#F59E0B' : 'transparent'} color="#F59E0B" />
-                    ))}
-                  </div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                    Seller Rating
-                  </div>
-                </div>
 
-                <div>
-                  <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-primary, #0F172A)', margin: 0 }}>
-                    Verified Product Reviews ({totalReviewsCount})
-                  </h3>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary, #475569)', margin: '0.25rem 0 0 0' }}>
-                    Student ratings from completed marketplace item sales and exchanges.
-                  </p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginTop: '0.45rem', fontSize: '0.76rem', color: 'var(--text-muted)' }}>
-                    <span>{userActiveListings.length} items live</span>
-                    <span>•</span>
-                    <span>{completedTradesCount} completed campus trades</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action */}
-              <button
-                onClick={() => setActiveTab('reviews')}
-                className="btn-secondary"
-                style={{ fontSize: '0.82rem', padding: '0.55rem 1rem' }}
-              >
-                Read Product Reviews ({userReviews.length})
-              </button>
+            <div className="profile-metric-item">
+              <span className="profile-metric-label">Fulfilled Trades</span>
+              <span className="profile-metric-value" style={{ color: 'var(--accent-green, #059669)' }}>
+                {completedTradesCount}
+              </span>
+              <span className="profile-metric-sub">
+                Campus handovers
+              </span>
             </div>
-          )}
-        </div>
-      </div>
 
-      {/* 3. CAMPUS TRADE HQ & SAFE MEETUP POLICY */}
-      <div
-        className="clean-card"
-        style={{
-          padding: '1.25rem 1.5rem',
-          border: '1.5px solid var(--uc-blue-border, #BCD1F7)',
-          backgroundColor: 'var(--bg-surface, #FFFFFF)',
-          borderRadius: '16px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '1rem'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', color: 'var(--uc-blue, #002B7F)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Building2 size={18} />
-            </div>
-            <div>
-              <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-primary, #0F172A)' }}>
-                Campus Trade HQ & Safe Meetup Policy
-              </h3>
-              <p style={{ fontSize: '0.76rem', color: 'var(--text-muted, #64748B)', margin: 0 }}>
-                Campus meetup and transaction preferences
-              </p>
+            <div className="profile-metric-item">
+              <span className="profile-metric-label">Rating</span>
+              <span className="profile-metric-value" style={{ color: rating > 0 ? '#D97706' : 'var(--text-muted)' }}>
+                {rating > 0 ? rating.toFixed(1) : '0.0'} <Star size={13} fill={rating > 0 ? '#D97706' : 'transparent'} color={rating > 0 ? '#D97706' : 'var(--text-muted)'} />
+              </span>
+              <span className="profile-metric-sub">
+                {totalReviewsCount} {totalReviewsCount === 1 ? 'review' : 'reviews'}
+              </span>
             </div>
           </div>
 
-          {isSelf && (
-            <button
-              onClick={() => setIsEditProfileModalOpen(true)}
-              className="btn-ghost"
-              style={{ fontSize: '0.78rem', color: 'var(--uc-blue)', fontWeight: 700, padding: '0.35rem 0.75rem', gap: '0.35rem' }}
-            >
-              <Edit3 size={13} /> Customize Policy
-            </button>
-          )}
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
-          {/* Base Campus */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.65rem' }}>
-            <div style={{ color: 'var(--uc-blue)', marginTop: '2px' }}><MapPin size={16} /></div>
-            <div>
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Home Campus</div>
-              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '2px' }}>{targetUser.campus}</div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{targetUser.college} • {targetUser.yearLevel}</div>
-            </div>
-          </div>
-
-          {/* Preferred Meetup Spots */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.65rem' }}>
-            <div style={{ color: 'var(--accent-green, #059669)', marginTop: '2px' }}><ShieldCheck size={16} /></div>
-            <div>
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Preferred Meetup Spots</div>
-              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px', lineHeight: 1.4 }}>
-                {targetUser.preferredMeetupSpots || 'Campus Canteen • Library Entrance • Student Study Lounge • Flexible peer location'}
+          {/* 3. COMPACT CAMPUS MEETUP STRIP */}
+          <div className="profile-meetup-strip">
+            <div className="profile-meetup-item">
+              <MapPin size={16} className="profile-meetup-icon" />
+              <div>
+                <div className="profile-meetup-title">Meetup Spot</div>
+                <div className="profile-meetup-desc">
+                  {targetUser.preferredMeetupSpots || 'Campus Canteen • Library Entrance • Study Lounge'}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Trading Window */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.65rem' }}>
-            <div style={{ color: '#D97706', marginTop: '2px' }}><Clock size={16} /></div>
-            <div>
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Trading Window</div>
-              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
-                {targetUser.tradingHours || 'Mon – Fri: 11:30 AM – 5:30 PM (Between classes)'}
+            <div className="profile-meetup-item">
+              <Clock size={16} className="profile-meetup-icon" />
+              <div>
+                <div className="profile-meetup-title">Trading Window</div>
+                <div className="profile-meetup-desc">
+                  {targetUser.tradingHours || 'Mon – Fri: 11:30 AM – 5:30 PM (Between classes)'}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Payment Preferences */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.65rem' }}>
-            <div style={{ color: 'var(--uc-blue)', marginTop: '2px' }}>
-              <CreditCard size={16} />
-            </div>
-            <div>
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Payment Mode</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', marginTop: '4px' }}>
-                <PaymentMethodBadge method="cash" size="xs" />
-                <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>Cash on Meetup</span>
+            <div className="profile-meetup-item">
+              <CreditCard size={16} className="profile-meetup-icon" />
+              <div>
+                <div className="profile-meetup-title">Payment Mode</div>
+                <div className="profile-meetup-desc" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '2px' }}>
+                  <PaymentMethodBadge method="cash" size="xs" />
+                  <span>Cash on Meetup</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 4. Official Verified Student ID Card Showcase (Disabled for MVP) */}
-      {false && targetUser.isVerified && (
-        <div />
-      )}
-
-      {/* Dynamic Verification Banner (Disabled for MVP) */}
-      {false && isSelf && !targetUser.isVerified && (
-        <div />
-      )}
-
-      {/* 5. PROFILE NAVIGATION TABS */}
+      {/* 4. PROFILE NAVIGATION TABS (Mobile-First Touch Scrolling) */}
       <div
         className="touch-scroll-row"
         style={{
@@ -964,22 +628,27 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           onClick={() => setActiveTab('listings')}
           className={`segmented-tab ${activeTab === 'listings' ? 'active' : ''}`}
         >
-          <ShoppingBag size={14} style={{ flexShrink: 0 }} /> <span>Active Listings ({userActiveListings.length})</span>
+          <ShoppingBag size={14} style={{ flexShrink: 0 }} />
+          <span>{isSelf ? 'My Listings' : 'Listings'} ({userActiveListings.length})</span>
         </button>
 
-        <button
-          onClick={() => setActiveTab('sold')}
-          className={`segmented-tab ${activeTab === 'sold' ? 'active' : ''}`}
-        >
-          <CheckCircle2 size={14} style={{ flexShrink: 0 }} /> <span>Fulfilled Trades ({userSoldListings.length})</span>
-        </button>
+        {isSelf && (
+          <button
+            onClick={() => setActiveTab('sold')}
+            className={`segmented-tab ${activeTab === 'sold' ? 'active' : ''}`}
+          >
+            <CheckCircle2 size={14} style={{ flexShrink: 0 }} />
+            <span>Fulfilled ({userSoldListings.length})</span>
+          </button>
+        )}
 
         {isSelf && (
           <button
             onClick={() => setActiveTab('saved')}
             className={`segmented-tab ${activeTab === 'saved' ? 'active' : ''}`}
           >
-            <Bookmark size={14} style={{ flexShrink: 0 }} /> <span>Saved Items ({userSavedListings.length})</span>
+            <Bookmark size={14} style={{ flexShrink: 0 }} />
+            <span>Saved ({userSavedListings.length})</span>
           </button>
         )}
 
@@ -988,7 +657,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
             onClick={() => setActiveTab('transactions')}
             className={`segmented-tab ${activeTab === 'transactions' ? 'active' : ''}`}
           >
-            <Receipt size={14} style={{ flexShrink: 0 }} /> <span>Transactions ({userMeetups.length})</span>
+            <Receipt size={14} style={{ flexShrink: 0 }} />
+            <span>Transactions ({userMeetups.length})</span>
           </button>
         )}
 
@@ -996,23 +666,33 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           onClick={() => setActiveTab('reviews')}
           className={`segmented-tab ${activeTab === 'reviews' ? 'active' : ''}`}
         >
-          <Star size={14} style={{ flexShrink: 0 }} /> <span>Reviews ({userReviews.length})</span>
+          <Star size={14} style={{ flexShrink: 0 }} />
+          <span>Reviews ({userReviews.length})</span>
         </button>
+
+        {!isSelf && (
+          <button
+            onClick={() => setActiveTab('about')}
+            className={`segmented-tab ${activeTab === 'about' ? 'active' : ''}`}
+          >
+            <Info size={14} style={{ flexShrink: 0 }} />
+            <span>About Seller</span>
+          </button>
+        )}
       </div>
 
-      {/* 6. TAB CONTENTS */}
+      {/* 5. TAB CONTENT AREAS */}
 
       {/* TAB 1: ACTIVE LISTINGS */}
       {activeTab === 'listings' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          {/* In-store Search & Filtering Bar */}
-          <div className="profile-store-toolbar" style={{ padding: '0.5rem 0' }}>
-            {/* Mode filter pills */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {/* Store Toolbar: Search & Filter Pills */}
+          <div className="profile-store-toolbar">
             <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
               {[
-                { id: 'all', label: `All Items (${userActiveListings.length})` },
+                { id: 'all', label: `All (${userActiveListings.length})` },
                 { id: 'buy_sell', label: `For Sale (${saleCount})` },
-                { id: 'swap', label: `Swap Only (${swapCount})` },
+                { id: 'swap', label: `Swaps (${swapCount})` },
                 { id: 'free_donation', label: `Free (${freeCount})` }
               ].map((f) => (
                 <button
@@ -1026,7 +706,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
               ))}
             </div>
 
-            {/* In-store Search Input & Sort Dropdown */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', width: '100%', maxWidth: '420px' }}>
               <div className="profile-search-field" style={{ position: 'relative', flex: 1, minWidth: '150px' }}>
                 <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
@@ -1060,15 +739,15 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 <option value="price_desc">Price: High to Low</option>
               </select>
 
-              {/* High-density view toggle */}
-              <div style={{ display: 'inline-flex', border: '1px solid var(--border-subtle, #E2E8F0)', borderRadius: '8px', overflow: 'hidden', height: '34px' }}>
+              {/* View Toggle on Desktop */}
+              <div className="desktop-only" style={{ display: 'inline-flex', border: '1px solid var(--border-subtle, #E2E8F0)', borderRadius: '8px', overflow: 'hidden', height: '34px' }}>
                 <button
                   type="button"
-                  onClick={() => setInventoryViewMode('table')}
+                  onClick={() => setInventoryViewMode('grid')}
                   style={{
                     padding: '0 0.65rem',
-                    backgroundColor: inventoryViewMode === 'table' ? 'var(--uc-blue, #002B7F)' : 'var(--bg-surface, #FFFFFF)',
-                    color: inventoryViewMode === 'table' ? '#FFFFFF' : 'var(--text-secondary, #475569)',
+                    backgroundColor: inventoryViewMode === 'grid' ? 'var(--uc-blue, #002B7F)' : 'var(--bg-surface, #FFFFFF)',
+                    color: inventoryViewMode === 'grid' ? '#FFFFFF' : 'var(--text-secondary, #475569)',
                     border: 'none',
                     cursor: 'pointer',
                     display: 'flex',
@@ -1077,17 +756,17 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                     fontSize: '0.74rem',
                     fontWeight: 700
                   }}
-                  title="Show Dense Data Table"
+                  title="Card Grid"
                 >
-                  <List size={13} /> Table
+                  <LayoutGrid size={13} />
                 </button>
                 <button
                   type="button"
-                  onClick={() => setInventoryViewMode('grid')}
+                  onClick={() => setInventoryViewMode('table')}
                   style={{
                     padding: '0 0.65rem',
-                    backgroundColor: inventoryViewMode === 'grid' ? 'var(--uc-blue, #002B7F)' : 'var(--bg-surface, #FFFFFF)',
-                    color: inventoryViewMode === 'grid' ? '#FFFFFF' : 'var(--text-secondary, #475569)',
+                    backgroundColor: inventoryViewMode === 'table' ? 'var(--uc-blue, #002B7F)' : 'var(--bg-surface, #FFFFFF)',
+                    color: inventoryViewMode === 'table' ? '#FFFFFF' : 'var(--text-secondary, #475569)',
                     border: 'none',
                     borderLeft: '1px solid var(--border-subtle, #E2E8F0)',
                     cursor: 'pointer',
@@ -1097,41 +776,37 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                     fontSize: '0.74rem',
                     fontWeight: 700
                   }}
-                  title="Show Card Grid"
+                  title="Table View"
                 >
-                  <LayoutGrid size={13} /> Cards
+                  <List size={13} />
                 </button>
               </div>
             </div>
           </div>
 
-          {/* Active Inventory Count & Value Summary */}
-          {userActiveListings.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--text-muted)', paddingBottom: '0.25rem' }}>
-              <span>
-                Showing <strong>{filteredActiveListings.length}</strong> of <strong>{userActiveListings.length}</strong> items listed
-              </span>
-              <span>
-                Filtered Value: <strong style={{ color: 'var(--uc-blue)' }}>₱{filteredValue.toLocaleString()}</strong>
-              </span>
-            </div>
-          )}
-
-          {/* Listings Presentation (Dense Table or Card Grid) */}
+          {/* Listings Presentation (Mobile-first responsive cards) */}
           {filteredActiveListings.length > 0 ? (
-            inventoryViewMode === 'table' ? (
+            inventoryViewMode === 'grid' ? (
+              <div className="grid-responsive-listings">
+                {filteredActiveListings.map((item) => (
+                  <ListingCard
+                    key={item.id}
+                    listing={item}
+                    onClick={() => onNavigate('item-detail', { id: item.id })}
+                  />
+                ))}
+              </div>
+            ) : (
               <div className="table-clean-wrapper">
-                <table className="table-clean" style={{ minWidth: '780px' }}>
+                <table className="table-clean" style={{ minWidth: '650px' }}>
                   <thead>
                     <tr>
-                      <th style={{ width: '38%' }}>Marketplace Item</th>
+                      <th style={{ width: '42%' }}>Item</th>
                       <th>Category</th>
-                      <th>Trade Mode</th>
+                      <th>Mode</th>
                       <th>Condition</th>
                       <th style={{ textAlign: 'right' }}>Price</th>
-                      <th>Date Listed</th>
-                      <th style={{ textAlign: 'center' }}>Status</th>
-                      <th style={{ textAlign: 'right' }}>Actions</th>
+                      <th style={{ textAlign: 'right' }}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1143,31 +818,28 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                               <img
                                 src={item.images[0]}
                                 alt={item.title}
-                                style={{ width: '44px', height: '44px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0, border: '1px solid var(--border-subtle, #E2E8F0)' }}
+                                style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0, border: '1px solid var(--border-subtle, #E2E8F0)' }}
                               />
                             ) : (
-                              <div style={{ width: '44px', height: '44px', borderRadius: '8px', backgroundColor: 'var(--bg-subtle, #F8FAFC)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', flexShrink: 0 }}>
-                                <ShoppingBag size={18} />
+                              <div style={{ width: '40px', height: '40px', borderRadius: '8px', backgroundColor: 'var(--bg-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', flexShrink: 0 }}>
+                                <ShoppingBag size={16} />
                               </div>
                             )}
                             <div style={{ minWidth: 0 }}>
                               <div
                                 onClick={() => onNavigate('item-detail', { id: item.id })}
-                                style={{ fontWeight: 800, color: 'var(--text-primary)', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '280px' }}
-                                title={item.title}
+                                style={{ fontWeight: 800, color: 'var(--text-primary)', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '240px' }}
                               >
                                 {item.title}
                               </div>
-                              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '3px' }}>
                                 <MapPin size={11} /> {item.campus}
                               </div>
                             </div>
                           </div>
                         </td>
                         <td>
-                          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                            {item.category}
-                          </span>
+                          <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>{item.category}</span>
                         </td>
                         <td>
                           <span
@@ -1181,37 +853,23 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                               color: item.tradeMode === 'free_donation' ? '#059669' : item.tradeMode === 'swap' ? '#002B7F' : '#B45309'
                             }}
                           >
-                            {item.tradeMode === 'free_donation' ? 'Free Gift' : item.tradeMode === 'swap' ? 'Swap Trade' : 'For Sale'}
+                            {item.tradeMode === 'free_donation' ? 'Free Gift' : item.tradeMode === 'swap' ? 'Swap' : 'For Sale'}
                           </span>
                         </td>
                         <td>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                            {item.condition || 'Good'}
-                          </span>
+                          <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>{item.condition || 'Good'}</span>
                         </td>
                         <td style={{ textAlign: 'right' }}>
                           <span style={{ fontWeight: 900, color: 'var(--uc-blue, #002B7F)', fontSize: '0.9rem' }}>
                             ₱{Number(item.price || 0).toLocaleString()}
                           </span>
                         </td>
-                        <td>
-                          <span style={{ fontSize: '0.73rem', color: 'var(--text-muted)' }}>
-                            {item.createdAt ? formatRelativeTime(item.createdAt) : 'Recently'}
-                          </span>
-                        </td>
-                        <td style={{ textAlign: 'center' }}>
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.72rem', fontWeight: 700, color: 'var(--accent-green, #059669)' }}>
-                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--accent-green, #059669)' }} />
-                            Live
-                          </span>
-                        </td>
                         <td style={{ textAlign: 'right' }}>
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'flex-end' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', justifyContent: 'flex-end' }}>
                             <button
                               onClick={() => onNavigate('item-detail', { id: item.id })}
                               className="btn-secondary"
                               style={{ padding: '0.3rem 0.6rem', fontSize: '0.74rem' }}
-                              title="View item detail"
                             >
                               <Eye size={12} />
                             </button>
@@ -1220,9 +878,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                                 onClick={() => markAsSold(item.id, true)}
                                 className="btn-primary"
                                 style={{ padding: '0.3rem 0.65rem', fontSize: '0.74rem', fontWeight: 700 }}
-                                title="Mark item as completed trade"
                               >
-                                <Check size={12} /> Sold
+                                Sold
                               </button>
                             ) : (
                               <button
@@ -1230,7 +887,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                                 className="btn-gold"
                                 style={{ padding: '0.3rem 0.65rem', fontSize: '0.74rem', fontWeight: 700 }}
                               >
-                                <MessageSquare size={12} /> Chat
+                                Chat
                               </button>
                             )}
                           </div>
@@ -1239,16 +896,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                     ))}
                   </tbody>
                 </table>
-              </div>
-            ) : (
-              <div className="grid-responsive-listings">
-                {filteredActiveListings.map((item) => (
-                  <ListingCard
-                    key={item.id}
-                    listing={item}
-                    onClick={() => onNavigate('item-detail', { id: item.id })}
-                  />
-                ))}
               </div>
             )
           ) : (
@@ -1260,13 +907,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 {storeSearch ? 'No Matching Items Found' : 'No Active Listings'}
               </h4>
               <p className="empty-state-desc">
-                {storeSearch ? (
-                  `No items matched "${storeSearch}". Try searching for another term or clear the search filter.`
-                ) : isSelf ? (
-                  "You have no active listings at the moment. Post your textbooks, uniforms, reviewers, or tech gear to start trading with UC classmates!"
-                ) : (
-                  `${targetUser.name} currently has no active listings in this category.`
-                )}
+                {storeSearch
+                  ? `No items matched "${storeSearch}". Try another search term.`
+                  : isSelf
+                  ? 'You have no active listings at the moment. Post your textbooks, uniforms, reviewers, or tech gear to trade!'
+                  : `${targetUser.name} currently has no active listings in this category.`}
               </p>
               {storeSearch ? (
                 <button
@@ -1274,7 +919,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                   className="btn-secondary"
                   style={{ marginTop: '0.5rem', padding: '0.5rem 1rem', fontSize: '0.82rem' }}
                 >
-                  Clear Search Filter
+                  Clear Search
                 </button>
               ) : isSelf && (
                 <button
@@ -1290,45 +935,20 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
         </div>
       )}
 
-      {/* TAB 2: FULFILLED TRADES */}
-      {activeTab === 'sold' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          {/* Sold Stats Header Banner */}
-          <div
-            style={{
-              backgroundColor: 'var(--bg-subtle, #F8FAFC)',
-              border: '1px solid var(--border-subtle, #E2E8F0)',
-              borderRadius: '14px',
-              padding: '1.1rem 1.35rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '0.75rem'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'var(--accent-green-subtle, #ECFDF5)', color: 'var(--accent-green, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <PackageCheck size={20} />
-              </div>
-              <div>
-                <div style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                  {userSoldListings.length} Campus Trades Successfully Fulfilled
-                </div>
-                <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
-                  Past completed items and trade handovers.
-                </div>
-              </div>
-            </div>
-            {isSelf && (
-              <button
-                onClick={() => onNavigate('create-listing')}
-                className="btn-gold"
-                style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', fontWeight: 800 }}
-              >
-                + Post Another Item
-              </button>
-            )}
+      {/* TAB 2: FULFILLED TRADES (for Owner) */}
+      {activeTab === 'sold' && isSelf && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0' }}>
+            <span style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              Completed Items ({userSoldListings.length})
+            </span>
+            <button
+              onClick={() => onNavigate('create-listing')}
+              className="btn-gold"
+              style={{ padding: '0.45rem 0.95rem', fontSize: '0.8rem', fontWeight: 800 }}
+            >
+              + Post New Item
+            </button>
           </div>
 
           {userSoldListings.length > 0 ? (
@@ -1339,38 +959,28 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                     listing={item}
                     onClick={() => onNavigate('item-detail', { id: item.id })}
                   />
-                  {isSelf && (
-                    <div
+                  <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 10 }}>
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        await markAsSold(item.id, false);
+                        showToast('Listing Reactivated', `"${item.title}" is back active!`, 'success');
+                      }}
+                      className="btn-primary"
                       style={{
-                        position: 'absolute',
-                        top: '10px',
-                        right: '10px',
-                        zIndex: 10
+                        padding: '0.35rem 0.75rem',
+                        fontSize: '0.74rem',
+                        fontWeight: 800,
+                        borderRadius: '9999px',
+                        boxShadow: '0 4px 10px rgba(0,0,0,0.25)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.3rem'
                       }}
                     >
-                      <button
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          await markAsSold(item.id, false);
-                          showToast('Listing Reactivated', `"${item.title}" is now back active in your listings!`, 'success');
-                        }}
-                        className="btn-primary"
-                        style={{
-                          padding: '0.35rem 0.75rem',
-                          fontSize: '0.74rem',
-                          fontWeight: 800,
-                          borderRadius: '9999px',
-                          boxShadow: '0 4px 10px rgba(0,0,0,0.25)',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.3rem'
-                        }}
-                        title="Reactivate this item in your active listings"
-                      >
-                        <RotateCcw size={12} /> Relist Item
-                      </button>
-                    </div>
-                  )}
+                      <RotateCcw size={12} /> Relist
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -1381,14 +991,14 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
               </div>
               <h4 className="empty-state-title">No Completed Trades Yet</h4>
               <p className="empty-state-desc">
-                Items completed and handed over through campus meetups will appear in this verified trade log.
+                Items completed and handed over through campus meetups will appear here.
               </p>
             </div>
           )}
         </div>
       )}
 
-      {/* TAB 3: SAVED ITEMS (when isSelf) */}
+      {/* TAB 3: SAVED ITEMS (for Owner) */}
       {activeTab === 'saved' && isSelf && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {userSavedListings.length > 0 ? (
@@ -1408,7 +1018,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
               </div>
               <h4 className="empty-state-title">No Saved Items</h4>
               <p className="empty-state-desc">
-                Browse listings and tap the bookmark icon to save items here for quick reference.
+                Browse listings and tap the bookmark icon to save items for quick reference.
               </p>
               <button onClick={() => onNavigate('marketplace')} className="btn-primary" style={{ marginTop: '0.5rem' }}>
                 Explore Marketplace
@@ -1418,226 +1028,76 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
         </div>
       )}
 
-      {/* TAB 4: TRANSACTIONS (when isSelf) */}
+      {/* TAB 4: TRANSACTIONS (for Owner) */}
       {activeTab === 'transactions' && isSelf && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
-            <div style={{ display: 'inline-flex', border: '1px solid var(--border-subtle, #E2E8F0)', borderRadius: '8px', overflow: 'hidden', height: '34px' }}>
-              <button
-                type="button"
-                onClick={() => setTransactionViewMode('table')}
-                style={{
-                  padding: '0 0.75rem',
-                  backgroundColor: transactionViewMode === 'table' ? 'var(--uc-blue, #002B7F)' : 'var(--bg-surface, #FFFFFF)',
-                  color: transactionViewMode === 'table' ? '#FFFFFF' : 'var(--text-secondary, #475569)',
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.35rem',
-                  fontSize: '0.75rem',
-                  fontWeight: 700
-                }}
-              >
-                <List size={13} /> Ledger Table
-              </button>
-              <button
-                type="button"
-                onClick={() => setTransactionViewMode('cards')}
-                style={{
-                  padding: '0 0.75rem',
-                  backgroundColor: transactionViewMode === 'cards' ? 'var(--uc-blue, #002B7F)' : 'var(--bg-surface, #FFFFFF)',
-                  color: transactionViewMode === 'cards' ? '#FFFFFF' : 'var(--text-secondary, #475569)',
-                  border: 'none',
-                  borderLeft: '1px solid var(--border-subtle, #E2E8F0)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.35rem',
-                  fontSize: '0.75rem',
-                  fontWeight: 700
-                }}
-              >
-                <LayoutGrid size={13} /> Cards
-              </button>
-            </div>
-
-            <button onClick={() => onNavigate('transactions')} className="btn-secondary" style={{ fontSize: '0.82rem' }}>
-              View Full Transaction History →
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              Recent Orders &amp; Meetups ({userMeetups.length})
+            </span>
+            <button onClick={() => onNavigate('transactions')} className="btn-secondary" style={{ fontSize: '0.8rem', padding: '0.45rem 0.85rem' }}>
+              Full Ledger →
             </button>
           </div>
 
           {userMeetups.length > 0 ? (
-            transactionViewMode === 'table' ? (
-              <div className="table-clean-wrapper">
-                <table className="table-clean" style={{ minWidth: '780px' }}>
-                  <thead>
-                    <tr>
-                      <th style={{ width: '35%' }}>Listing &amp; Reference</th>
-                      <th>Role</th>
-                      <th>Counterparty</th>
-                      <th>Meetup Location</th>
-                      <th style={{ textAlign: 'right' }}>Agreed Amount</th>
-                      <th style={{ textAlign: 'center' }}>Status</th>
-                      <th style={{ textAlign: 'right' }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {userMeetups.map((m) => {
-                      const isBuyer = m.buyerId === currentUser?.id;
-                      const counterpartyName = isBuyer ? m.sellerName : m.buyerName;
-                      const priceVal = Number(m.finalPrice || m.amount || 0);
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+              {userMeetups.map((m) => {
+                const isBuyer = m.buyerId === currentUser?.id;
+                const counterparty = isBuyer ? m.sellerName : m.buyerName;
+                const priceVal = Number(m.finalPrice || m.amount || 0);
 
-                      return (
-                        <tr key={m.id}>
-                          <td>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                              {m.listingImage && m.listingImage.trim() !== '' ? (
-                                <img
-                                  src={m.listingImage}
-                                  alt={m.listingTitle}
-                                  style={{ width: '42px', height: '42px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0, border: '1px solid var(--border-subtle, #E2E8F0)' }}
-                                />
-                              ) : (
-                                <div style={{ width: '42px', height: '42px', borderRadius: '8px', backgroundColor: 'var(--bg-subtle, #F8FAFC)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', flexShrink: 0 }}>
-                                  <ShoppingBag size={18} />
-                                </div>
-                              )}
-                              <div style={{ minWidth: 0 }}>
-                                <div
-                                  onClick={() => onNavigate('item-detail', { id: m.listingId })}
-                                  style={{ fontWeight: 800, color: 'var(--text-primary)', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '240px' }}
-                                  title={m.listingTitle}
-                                >
-                                  {m.listingTitle}
-                                </div>
-                                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px', fontFamily: 'monospace' }}>
-                                  {m.referenceNo || `REF-${m.id.substring(0, 8).toUpperCase()}`}
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                          <td>
-                            <span
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '0.25rem',
-                                padding: '2px 8px',
-                                borderRadius: '9999px',
-                                fontSize: '0.72rem',
-                                fontWeight: 800,
-                                backgroundColor: isBuyer ? 'rgba(5, 150, 105, 0.12)' : 'rgba(0, 43, 127, 0.1)',
-                                color: isBuyer ? 'var(--accent-green, #059669)' : 'var(--uc-blue, #002B7F)'
-                              }}
-                            >
-                              {isBuyer ? <ArrowDownLeft size={11} /> : <ArrowUpRight size={11} />}
-                              {isBuyer ? 'Buyer' : 'Seller'}
-                            </span>
-                          </td>
-                          <td>
-                            <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                              {counterpartyName || 'UC Peer'}
-                            </div>
-                            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                              {m.campus || targetUser.campus}
-                            </div>
-                          </td>
-                          <td>
-                            <div style={{ fontSize: '0.8rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                              <MapPin size={12} color="var(--uc-blue)" /> {m.landmarkSpot || 'Campus Spot'}
-                            </div>
-                            <div style={{ fontSize: '0.71rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                              {m.createdAt ? formatRelativeTime(m.createdAt) : 'Recent trade'}
-                            </div>
-                          </td>
-                          <td style={{ textAlign: 'right' }}>
-                            <div style={{ fontSize: '0.92rem', fontWeight: 900, color: isBuyer ? 'var(--accent-red, #DC2626)' : 'var(--accent-green, #059669)' }}>
-                              ₱{priceVal.toLocaleString()}
-                            </div>
-                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '2px' }}>
-                              {m.paymentMethod || 'cash'}
-                            </div>
-                          </td>
-                          <td style={{ textAlign: 'center' }}>
-                            <span
-                              style={{
-                                display: 'inline-block',
-                                padding: '2px 8px',
-                                borderRadius: '9999px',
-                                fontSize: '0.7rem',
-                                fontWeight: 800,
-                                textTransform: 'capitalize',
-                                backgroundColor: m.status === 'completed' ? 'rgba(5, 150, 105, 0.12)' : m.status === 'cancelled' ? 'rgba(220, 38, 38, 0.12)' : 'rgba(255, 199, 44, 0.2)',
-                                color: m.status === 'completed' ? 'var(--accent-green, #059669)' : m.status === 'cancelled' ? 'var(--accent-red, #DC2626)' : '#B45309'
-                              }}
-                            >
-                              {m.status || 'pending'}
-                            </span>
-                          </td>
-                          <td style={{ textAlign: 'right' }}>
-                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', justifyContent: 'flex-end' }}>
-                              <button
-                                onClick={() => onNavigate('item-detail', { id: m.listingId })}
-                                className="btn-secondary"
-                                style={{ padding: '0.3rem 0.6rem', fontSize: '0.74rem' }}
-                                title="View listing detail"
-                              >
-                                <Eye size={12} />
-                              </button>
-                              <button
-                                onClick={() => onNavigate('transactions')}
-                                className="btn-primary"
-                                style={{ padding: '0.3rem 0.65rem', fontSize: '0.74rem', fontWeight: 700 }}
-                                title="Open transaction ledger"
-                              >
-                                <Receipt size={12} /> Details
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="grid-responsive-transactions">
-                {userMeetups.map((m) => (
+                return (
                   <div
                     key={m.id}
                     className="clean-card card-interactive"
                     style={{
                       display: 'flex',
-                      gap: '0.85rem',
                       alignItems: 'center',
-                      padding: '0.9rem 1rem',
-                      borderRadius: '14px',
-                      border: '1px solid var(--border-subtle, #E2E8F0)',
-                      boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+                      gap: '0.85rem',
+                      padding: '0.85rem 1rem',
+                      borderRadius: '12px',
+                      border: '1px solid var(--border-subtle, #E2E8F0)'
                     }}
                     onClick={() => onNavigate('item-detail', { id: m.listingId })}
                   >
-                    {m.listingImage && m.listingImage.trim() !== '' ? (
-                      <img src={m.listingImage} alt={m.listingTitle} style={{ width: '56px', height: '56px', borderRadius: '10px', objectFit: 'cover', flexShrink: 0 }} />
+                    {m.listingImage ? (
+                      <img src={m.listingImage} alt={m.listingTitle} style={{ width: '48px', height: '48px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }} />
                     ) : (
-                      <div style={{ width: '56px', height: '56px', borderRadius: '10px', backgroundColor: 'var(--bg-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', flexShrink: 0 }}>
-                        <ShoppingBag size={22} />
+                      <div style={{ width: '48px', height: '48px', borderRadius: '8px', backgroundColor: 'var(--bg-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', flexShrink: 0 }}>
+                        <ShoppingBag size={20} />
                       </div>
                     )}
+
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.listingTitle}</div>
-                      <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                        <MapPin size={11} /> <span>{m.landmarkSpot}</span> • <span style={{ textTransform: 'capitalize' }}>{m.status}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 800, padding: '2px 6px', borderRadius: '4px', backgroundColor: isBuyer ? 'rgba(5, 150, 105, 0.12)' : 'rgba(0, 43, 127, 0.1)', color: isBuyer ? 'var(--accent-green)' : 'var(--uc-blue)' }}>
+                          {isBuyer ? 'Purchased' : 'Sold'}
+                        </span>
+                        <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>with {counterparty || 'Peer'}</span>
                       </div>
-                      <div style={{ fontSize: '0.95rem', fontWeight: 800, marginTop: '3px', color: m.buyerId === currentUser?.id ? 'var(--accent-red)' : 'var(--accent-green)' }}>
-                        ₱{Number(m.finalPrice || m.amount || 0).toLocaleString()}
+
+                      <div style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '2px' }}>
+                        {m.listingTitle}
+                      </div>
+
+                      <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                        <MapPin size={11} /> <span>{m.landmarkSpot || 'Campus Spot'}</span> &bull; <span>{m.createdAt ? formatRelativeTime(m.createdAt) : 'Recent'}</span>
                       </div>
                     </div>
+
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 900, color: isBuyer ? 'var(--accent-red, #DC2626)' : 'var(--accent-green, #059669)' }}>
+                        ₱{priceVal.toLocaleString()}
+                      </div>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'capitalize', color: m.status === 'completed' ? 'var(--accent-green)' : 'var(--text-muted)' }}>
+                        {m.status || 'pending'}
+                      </span>
+                    </div>
                   </div>
-                ))}
-              </div>
-            )
+                );
+              })}
+            </div>
           ) : (
             <div className="empty-state">
               <div className="empty-state-icon">
@@ -1645,126 +1105,103 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
               </div>
               <h4 className="empty-state-title">No Transactions Yet</h4>
               <p className="empty-state-desc">
-                Your past purchases and sales will be recorded here automatically.
+                Your past campus purchases and sales will be recorded here automatically.
               </p>
             </div>
           )}
         </div>
       )}
 
-      {/* TAB 5: REVIEWS & REPUTATION */}
+      {/* TAB 5: REVIEWS */}
       {activeTab === 'reviews' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          {/* Seller Reputation Summary Scorecard */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {/* Rating Summary Card */}
           <div
             className="clean-card"
             style={{
-              padding: '1.5rem',
-              border: '1.5px solid var(--border-subtle, #E2E8F0)',
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-              gap: '1.5rem',
+              padding: '1.25rem',
+              display: 'flex',
               alignItems: 'center',
-              borderRadius: '16px'
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '1rem',
+              borderRadius: '14px'
             }}
           >
-            {/* Overall Rating Block */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '0.5rem', borderRight: '1px solid var(--border-subtle, #E2E8F0)' }}>
-              <div style={{ fontSize: '3rem', fontWeight: 900, color: 'var(--text-primary, #0F172A)', fontFamily: 'var(--font-display)', lineHeight: 1 }}>
-                {rating.toFixed(1)}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ textAlign: 'center', paddingRight: '1rem', borderRight: '1px solid var(--border-subtle, #E2E8F0)' }}>
+                <div style={{ fontSize: '2.4rem', fontWeight: 900, color: rating > 0 ? 'var(--text-primary)' : 'var(--text-muted)', lineHeight: 1 }}>
+                  {rating.toFixed(1)}
+                </div>
+                <div style={{ display: 'flex', gap: '2px', color: rating > 0 ? '#F59E0B' : 'var(--text-muted)', marginTop: '0.25rem', justifyContent: 'center' }}>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star key={i} size={13} fill={rating > 0 && i < Math.round(rating) ? '#F59E0B' : 'transparent'} color={rating > 0 ? '#F59E0B' : '#CBD5E1'} />
+                  ))}
+                </div>
               </div>
-              <div style={{ display: 'flex', gap: '0.25rem', marginTop: '0.5rem', color: '#F59E0B' }}>
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star
-                    key={i}
-                    size={18}
-                    fill={i < Math.round(rating) ? '#F59E0B' : 'transparent'}
-                    color="#F59E0B"
-                  />
-                ))}
-              </div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.4rem', fontWeight: 600 }}>
-                Based on {userReviews.length} Ratings
+
+              <div>
+                <div style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                  Verified Student Ratings ({userReviews.length})
+                </div>
+                <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: '0.2rem 0 0 0' }}>
+                  Honest feedback from completed on-campus transactions.
+                </p>
               </div>
             </div>
 
-            {/* Peer Endorsement Badges */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Seller Highlights
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                <span style={{ backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', color: 'var(--uc-blue, #002B7F)', padding: '0.35rem 0.65rem', borderRadius: '8px', fontSize: '0.76rem', fontWeight: 700 }}>
-                  Fast Responder
-                </span>
-                <span style={{ backgroundColor: 'var(--accent-green-subtle, #ECFDF5)', color: 'var(--accent-green, #059669)', padding: '0.35rem 0.65rem', borderRadius: '8px', fontSize: '0.76rem', fontWeight: 700 }}>
-                  Punctual Meetups
-                </span>
-                <span style={{ backgroundColor: 'rgba(255, 199, 44, 0.15)', color: '#B45309', padding: '0.35rem 0.65rem', borderRadius: '8px', fontSize: '0.76rem', fontWeight: 700 }}>
-                  Accurately Described
-                </span>
-              </div>
+            {/* Filter Pills for Reviews */}
+            <div style={{ display: 'flex', gap: '0.35rem' }}>
+              {[
+                { id: 'all', label: `All (${userReviews.length})` },
+                { id: 'seller', label: 'As Seller' },
+                { id: 'buyer', label: 'As Buyer' }
+              ].map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => setReviewFilter(f.id as any)}
+                  className={`segmented-tab ${reviewFilter === f.id ? 'active' : ''}`}
+                  style={{ borderRadius: 'var(--radius-full)', padding: '0.3rem 0.75rem', fontSize: '0.76rem' }}
+                >
+                  {f.label}
+                </button>
+              ))}
             </div>
-          </div>
-
-          {/* Filter Pills for Reviews */}
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            {[
-              { id: 'all', label: `All Reviews (${userReviews.length})` },
-              { id: 'seller', label: 'As Seller' },
-              { id: 'buyer', label: 'As Buyer' }
-            ].map((f) => (
-              <button
-                key={f.id}
-                onClick={() => setReviewFilter(f.id as any)}
-                className={`segmented-tab ${reviewFilter === f.id ? 'active' : ''}`}
-                style={{ borderRadius: 'var(--radius-full)', padding: '0.35rem 0.85rem', fontSize: '0.78rem' }}
-              >
-                {f.label}
-              </button>
-            ))}
           </div>
 
           {filteredReviews.length > 0 ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.85rem' }}>
               {filteredReviews.map((rev) => (
-                <div key={rev.id} className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.65rem', borderRadius: '14px' }}>
+                <div key={rev.id} className="clean-card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', borderRadius: '12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
                       <UserAvatar
                         src={rev.reviewerAvatar}
                         name={rev.reviewerName}
                         size="sm"
                       />
                       <div>
-                        <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-primary)' }}>{rev.reviewerName}</div>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                          {rev.reviewerCampus} • {formatRelativeTime(rev.createdAt)}
+                        <div style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--text-primary)' }}>{rev.reviewerName}</div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                          {rev.reviewerCampus} &bull; {formatRelativeTime(rev.createdAt)}
                         </div>
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', color: '#F59E0B' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1px', color: '#F59E0B' }}>
                       {Array.from({ length: rev.rating }).map((_, i) => (
-                        <Star key={i} size={14} fill="#F59E0B" color="#F59E0B" />
+                        <Star key={i} size={13} fill="#F59E0B" color="#F59E0B" />
                       ))}
                     </div>
                   </div>
 
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
+                  <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.45, margin: 0 }}>
                     "{rev.comment}"
                   </p>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.75rem', color: 'var(--text-muted)', paddingTop: '0.5rem', borderTop: '1px solid var(--border-subtle)', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.72rem', color: 'var(--text-muted)', paddingTop: '0.4rem', borderTop: '1px solid var(--border-subtle)', flexWrap: 'wrap' }}>
                     <span>Item: <strong>{rev.itemTitle}</strong></span>
-                    <span>•</span>
-                    <span>Trade Type: <strong>{rev.tradeType}</strong></span>
-                    {rev.wasPunctual && <span style={{ color: 'var(--accent-green)', fontWeight: 700 }}>• Punctual Meetup</span>}
-                    {rev.traitBadges?.map((badge, idx) => (
-                      <span key={idx} style={{ backgroundColor: 'var(--bg-subtle)', padding: '0.15rem 0.45rem', borderRadius: '4px', fontSize: '0.7rem' }}>
-                        {badge}
-                      </span>
-                    ))}
+                    {rev.wasPunctual && <span style={{ color: 'var(--accent-green)', fontWeight: 700 }}>&bull; Punctual</span>}
                   </div>
                 </div>
               ))}
@@ -1774,139 +1211,76 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
               <div className="empty-state-icon">
                 <Star size={28} />
               </div>
-              <h4 className="empty-state-title">No Peer Reviews Yet</h4>
+              <h4 className="empty-state-title">No Reviews Yet</h4>
               <p className="empty-state-desc">
-                Ratings and comments from other students after completing transactions will be published here.
+                Feedback from students after completing campus transactions will appear here.
               </p>
             </div>
           )}
         </div>
       )}
 
-      {/* FULL-SCREEN VERIFIED ID PHOTO VIEWER MODAL */}
-      {inspectedIdImage && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(0, 29, 89, 0.8)',
-            backdropFilter: 'blur(8px)',
-            zIndex: 4000,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1.5rem'
-          }}
-          onClick={() => setInspectedIdImage(null)}
-        >
-          <div
-            style={{
-              position: 'relative',
-              maxWidth: '560px',
-              width: '100%',
-              backgroundColor: 'var(--bg-surface, #FFFFFF)',
-              borderRadius: '16px',
-              overflow: 'hidden',
-              boxShadow: 'var(--shadow-lg)',
-              border: '2px solid var(--border-subtle, #BCD1F7)'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div style={{ backgroundColor: 'var(--uc-blue, #002B7F)', color: '#FFFFFF', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.9rem', fontWeight: 800 }}>
-                <ShieldCheck size={18} color="var(--uc-gold, #FFC72C)" /> Official Verified Student Credential
-              </div>
-              <button onClick={() => setInspectedIdImage(null)} style={{ color: '#FFFFFF', background: 'none', border: 'none', cursor: 'pointer' }}>
-                <X size={18} />
-              </button>
+      {/* TAB 6: ABOUT SELLER (for Visitor) */}
+      {activeTab === 'about' && !isSelf && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className="clean-card" style={{ padding: '1.25rem', borderRadius: '14px', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div>
+              <h4 style={{ fontSize: '0.94rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                About {targetUser.name}
+              </h4>
+              <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', marginTop: '0.35rem', lineHeight: 1.5 }}>
+                {targetUser.bio || 'This student has not written a personal bio yet.'}
+              </p>
             </div>
 
-            {/* Modal Body */}
-            <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center' }}>
-              <img
-                src={inspectedIdImage}
-                alt="Student ID Preview"
-                style={{ width: '100%', maxHeight: '340px', objectFit: 'cover', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}
-              />
-
-              <div style={{ width: '100%', backgroundColor: 'var(--bg-subtle, #F8FAFC)', padding: '0.85rem', borderRadius: '8px', border: '1px solid var(--border-subtle)', fontSize: '0.82rem', color: 'var(--text-primary)' }}>
-                <div>Student: <strong>{targetUser.name}</strong></div>
-                <div>ID Number: <strong>{targetUser.studentId}</strong></div>
-                <div>Campus: <strong>{targetUser.campus}</strong> ({targetUser.college} • {targetUser.yearLevel})</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-subtle)' }}>
+              <div>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Department</span>
+                <div style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
+                  {targetUser.college} ({targetUser.yearLevel})
+                </div>
               </div>
 
+              <div>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Home Campus</span>
+                <div style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
+                  {targetUser.campus}
+                </div>
+              </div>
+
+              <div>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Meetup Preference</span>
+                <div style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
+                  {targetUser.preferredMeetupSpots || 'Campus Canteen / Library'}
+                </div>
+              </div>
+
+              <div>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Payment Mode</span>
+                <div style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
+                  Cash on Meetup
+                </div>
+              </div>
+            </div>
+
+            <div style={{ paddingTop: '0.5rem', display: 'flex', gap: '0.65rem' }}>
               <button
-                onClick={() => setInspectedIdImage(null)}
+                onClick={handleStartChatWithUser}
                 className="btn-primary"
-                style={{ width: '100%', padding: '0.6rem', fontSize: '0.84rem', fontWeight: 800, justifyContent: 'center' }}
+                style={{ flex: 1, padding: '0.65rem', fontSize: '0.85rem', fontWeight: 800 }}
               >
-                Close Credential Viewer
+                <MessageSquare size={16} /> Send Message to {targetUser.name.split(' ')[0]}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Student Verification 2-Step Modal */}
+      {/* Student Verification Modal */}
       <StudentVerificationModal
         isOpen={isVerificationModalOpen}
         onClose={() => setIsVerificationModalOpen(false)}
       />
-
-      {/* Verification In Progress Info Modal */}
-      <Modal
-        isOpen={isPendingInfoModalOpen}
-        onClose={() => setIsPendingInfoModalOpen(false)}
-        title="Verification Request In Progress"
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem', alignItems: 'center', textAlign: 'center', padding: '0.5rem 0' }}>
-          <div style={{ width: '60px', height: '60px', borderRadius: '50%', backgroundColor: 'rgba(255, 199, 44, 0.2)', color: '#B45309', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Clock size={30} />
-          </div>
-
-          <div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--uc-blue)' }}>
-              Under Moderator Review
-            </h3>
-            <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', marginTop: '0.35rem', lineHeight: 1.55 }}>
-              Your student credentials and live biometric selfie have been securely received. Our campus administration team is currently reviewing your submission for official University of Cebu validation.
-            </p>
-          </div>
-
-          <div style={{ width: '100%', backgroundColor: 'var(--bg-subtle, #F8FAFC)', borderRadius: '10px', padding: '0.9rem', border: '1px solid var(--border-subtle, #E2E8F0)', textAlign: 'left', fontSize: '0.82rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-            <div>Student Name: <strong>{targetUser?.name}</strong></div>
-            <div>Student ID: <strong>{maskStudentId(targetUser?.studentId, true)}</strong></div>
-            <div>Campus & College: <strong>{targetUser?.campus} • {targetUser?.college}</strong></div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#B45309', fontWeight: 700, marginTop: '0.2rem' }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#F59E0B' }} />
-              Status: Awaiting Administrator Approval
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', gap: '0.65rem', width: '100%' }}>
-            <button
-              type="button"
-              onClick={() => {
-                setIsPendingInfoModalOpen(false);
-                setIsVerificationModalOpen(true);
-              }}
-              className="btn-secondary"
-              style={{ flex: 1, padding: '0.65rem', fontSize: '0.82rem', fontWeight: 700 }}
-            >
-              Re-submit Documents
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsPendingInfoModalOpen(false)}
-              className="btn-primary"
-              style={{ flex: 1, padding: '0.65rem', fontSize: '0.82rem', fontWeight: 800 }}
-            >
-              Got it
-            </button>
-          </div>
-        </div>
-      </Modal>
 
       {/* EDIT STUDENT PROFILE MODAL */}
       <Modal
@@ -1919,9 +1293,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem', backgroundColor: 'var(--bg-subtle, #F8FAFC)', borderRadius: '10px', border: '1px solid var(--border-subtle, #E2E8F0)' }}>
             <UserAvatar src={editAvatar} name={editName || targetUser.name} size="lg" />
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)' }}>Profile Photo Preview</div>
+              <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)' }}>Profile Photo</div>
               <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                {editAvatar ? 'Custom photo provided' : 'Defaulting to your name initials on UC theme'}
+                {editAvatar ? 'Custom photo' : 'Defaulting to name initials'}
               </div>
               {editAvatar && (
                 <button
@@ -1938,7 +1312,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                     fontWeight: 700
                   }}
                 >
-                  Clear Photo & Use Name Initials
+                  Clear Photo & Use Initials
                 </button>
               )}
             </div>
@@ -2042,14 +1416,14 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 className="clean-input"
               >
                 <option value="CCS">CCS (Computer Studies)</option>
-                <option value="CBA">CBA (Business & Accountancy)</option>
+                <option value="CBA">CBA (Business &amp; Accountancy)</option>
                 <option value="Engineering">Engineering</option>
                 <option value="Nursing">Nursing</option>
                 <option value="Maritime">Maritime</option>
                 <option value="Criminology">Criminology</option>
-                <option value="Arts & Sciences">Arts & Sciences</option>
+                <option value="Arts &amp; Sciences">Arts &amp; Sciences</option>
                 <option value="Education">Education</option>
-                <option value="Hospitality & Tourism">Hospitality & Tourism</option>
+                <option value="Hospitality &amp; Tourism">Hospitality &amp; Tourism</option>
                 <option value="Medicine">Medicine</option>
                 <option value="Law">Law</option>
                 <option value="Senior High (STEM)">Senior High (STEM)</option>
@@ -2121,7 +1495,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 Payment Mode
               </label>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 0.85rem', backgroundColor: 'var(--bg-subtle)', border: '1px solid var(--border-subtle)', borderRadius: '8px' }}>
-                <span style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-primary)' }}>💵 Cash on Meetup</span>
+                <span style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-primary)' }}>Cash on Meetup</span>
                 <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>(Standard campus peer settlement)</span>
               </div>
             </div>

@@ -6,33 +6,54 @@ import { useToast } from '../common/Toast';
 import { VerifiedBadge } from '../common/VerifiedBadge';
 import { UserAvatar } from '../common/UserAvatar';
 import { PaymentMethodSelector } from '../common/PaymentLogos';
+import { TradeLinkIcon } from '../common/TradeLinkIcon';
+import { encodeHashedId } from '../../utils/security';
 import {
   X,
   ShieldCheck,
   CheckCircle2,
   ShoppingBag,
   MessageSquare,
-  Lock
+  Lock,
+  Loader2
 } from 'lucide-react';
 
 interface BuyNowModalProps {
   isOpen: boolean;
   onClose: () => void;
   listing: Listing;
+  initialVariation?: string | null;
   onSuccess?: () => void;
   onOpenVerification?: () => void;
+  onNavigate?: (view: string, params?: any) => void;
+  onOpenAuth?: () => void;
 }
 
 export const BuyNowModal: React.FC<BuyNowModalProps> = ({
   isOpen,
   onClose,
   listing,
+  initialVariation,
   onSuccess,
-  onOpenVerification
+  onOpenVerification,
+  onNavigate,
+  onOpenAuth
 }) => {
   const { currentUser, isAuthenticated } = useAuth();
   const { createDirectOrder, openChatWithSeller } = useChat();
   const { showToast } = useToast();
+
+  const [selectedVariation, setSelectedVariation] = useState<string | null>(
+    initialVariation || (listing.variations && listing.variations.length > 0 ? listing.variations[0].title : null)
+  );
+
+  useEffect(() => {
+    if (initialVariation) {
+      setSelectedVariation(initialVariation);
+    } else if (listing.variations && listing.variations.length > 0 && !selectedVariation) {
+      setSelectedVariation(listing.variations[0].title);
+    }
+  }, [initialVariation, listing]);
 
   const availableMethods = (listing.acceptedPaymentMethods && listing.acceptedPaymentMethods.length > 0)
     ? listing.acceptedPaymentMethods
@@ -70,12 +91,40 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
   if (!isAuthenticated || !currentUser) {
     return (
       <div className="modal-backdrop-custom" onClick={onClose}>
-        <div className="modal-card-custom" style={{ maxWidth: '440px', textAlign: 'center', padding: '2rem' }} onClick={(e) => e.stopPropagation()}>
-          <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--uc-blue)' }}>Sign In Required</h3>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0.75rem 0 1.25rem 0' }}>
-            Please log in with your University of Cebu student account to place an order.
-          </p>
-          <button onClick={onClose} className="btn-gold" style={{ width: '100%' }}>Close</button>
+        <div
+          className="modal-card-custom"
+          style={{ maxWidth: '440px', textAlign: 'center', padding: '2.5rem 2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.15rem' }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <TradeLinkIcon size={56} />
+          <div>
+            <h3 style={{ fontSize: '1.28rem', fontWeight: 800, color: 'var(--text-primary, #0F172A)', margin: 0, letterSpacing: '-0.01em' }}>
+              Sign In Required
+            </h3>
+            <p style={{ fontSize: '0.86rem', color: 'var(--text-secondary, #64748B)', marginTop: '0.45rem', lineHeight: 1.55 }}>
+              Please sign in with your verified University of Cebu student account to place orders and connect with student peers.
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: '0.75rem', width: '100%', marginTop: '0.25rem' }}>
+            <button
+              onClick={() => {
+                onClose();
+                if (onOpenAuth) onOpenAuth();
+                else if (onNavigate) onNavigate('home');
+              }}
+              className="btn-gold"
+              style={{ flex: 1, padding: '0.75rem 1rem', fontSize: '0.88rem', fontWeight: 800 }}
+            >
+              Sign In to TradeLink
+            </button>
+            <button
+              onClick={onClose}
+              className="btn-secondary"
+              style={{ padding: '0.75rem 1.25rem', fontSize: '0.88rem', fontWeight: 700 }}
+            >
+              Close
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -89,7 +138,11 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
   */
 
   const isFree = listing.tradeMode === 'free_donation';
-  const displayImage = (listing.media && listing.media[0]?.url) || (listing.images && listing.images[0]) || '';
+  const matchedVar = listing.variations?.find((v) => v.title === selectedVariation);
+  const activeVarImage = matchedVar?.imageUrl || (matchedVar && matchedVar.imageIndex !== null && matchedVar.imageIndex !== undefined && listing.images ? listing.images[matchedVar.imageIndex] : null);
+  const displayImage = activeVarImage || (listing.media && listing.media[0]?.url) || (listing.images && listing.images[0]) || '';
+  const itemUnitPrice = (matchedVar && matchedVar.price !== null && matchedVar.price !== undefined) ? matchedVar.price : listing.price;
+  const totalAmount = itemUnitPrice * orderQuantity;
 
   const handleConfirmOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,9 +151,11 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
       const tx = await createDirectOrder({
         listing,
         paymentMethod,
-        notes: `Qty: ${orderQuantity}${buyerNotes.trim() ? ` — ${buyerNotes.trim()}` : ''}`,
+        selectedVariation: selectedVariation || undefined,
+        variationId: matchedVar?.id,
+        notes: `Qty: ${orderQuantity}${selectedVariation ? ` [Option: ${selectedVariation}]` : ''}${buyerNotes.trim() ? ` — ${buyerNotes.trim()}` : ''}`,
         quantity: orderQuantity,
-        amount: listing.price * orderQuantity
+        amount: totalAmount
       } as any);
 
       setConfirmedTransaction(tx);
@@ -115,6 +170,34 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
       showToast('Error', err?.message || 'Failed to place order.', 'error');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const [isOpeningChat, setIsOpeningChat] = useState(false);
+
+  const handleOpenChat = async () => {
+    setIsOpeningChat(true);
+    try {
+      const convId = await openChatWithSeller(listing);
+      onClose();
+      if (onNavigate) {
+        onNavigate('messages', { conversationId: convId || undefined });
+      } else {
+        const targetPath = convId ? `/messages/${encodeHashedId(convId, 'conversation')}` : '/messages';
+        window.history.pushState({}, '', targetPath);
+        window.dispatchEvent(new PopStateEvent('popstate'));
+      }
+    } catch (err: any) {
+      console.error('Failed to open chat with seller:', err);
+      onClose();
+      if (onNavigate) {
+        onNavigate('messages');
+      } else {
+        window.history.pushState({}, '', '/messages');
+        window.dispatchEvent(new PopStateEvent('popstate'));
+      }
+    } finally {
+      setIsOpeningChat(false);
     }
   };
 
@@ -153,34 +236,126 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
 
         {confirmedTransaction ? (
           /* SUCCESS SCREEN */
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', textAlign: 'center', padding: '0.5rem 0' }}>
-            <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: '#ECFDF5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
-              <CheckCircle2 size={36} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem', textAlign: 'center', padding: '0.5rem 0' }}>
+            <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: '#ECFDF5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
+              <CheckCircle2 size={32} />
             </div>
 
             <div>
               <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#059669', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Order Successful
+                Order Confirmed
               </span>
-              <h4 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '0.25rem' }}>
+              <h4 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '0.2rem' }}>
                 Ref: {confirmedTransaction.referenceNo || `TL-TX-${confirmedTransaction.id?.slice(0, 6)}`}
               </h4>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.35rem', lineHeight: 1.5 }}>
-                Your order for <strong>"{listing.title}"</strong> has been confirmed. Open chat now to coordinate where and when you and <strong>{listing.sellerName}</strong> will meet!
+              <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', marginTop: '0.25rem', lineHeight: 1.45 }}>
+                Your order is confirmed! Coordinate safe meetup and item inspection directly with <strong>{listing.sellerName}</strong>.
               </p>
             </div>
 
-            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+            {/* Clear Purchased Item Summary Card */}
+            <div
+              style={{
+                backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                border: '1px solid var(--border-subtle, #E2E8F0)',
+                borderRadius: '12px',
+                padding: '0.85rem',
+                textAlign: 'left',
+                display: 'flex',
+                gap: '0.85rem',
+                alignItems: 'center'
+              }}
+            >
+              {displayImage ? (
+                <img
+                  src={displayImage}
+                  alt={listing.title}
+                  style={{ width: '56px', height: '56px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0, border: '1px solid var(--border-subtle)' }}
+                />
+              ) : (
+                <div style={{ width: '56px', height: '56px', borderRadius: '8px', backgroundColor: 'var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <ShoppingBag size={22} color="var(--text-muted)" />
+                </div>
+              )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ fontSize: '0.7rem', color: 'var(--uc-blue)', fontWeight: 700 }}>
+                  {listing.sellerCampus || 'UC Campus'} • {listing.sellerName}
+                </span>
+                <h5 style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-primary)', margin: '2px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {listing.title}
+                </h5>
+                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem', fontSize: '0.76rem' }}>
+                  {selectedVariation && (
+                    <span style={{ backgroundColor: 'var(--uc-blue-subtle, #EEF4FF)', color: 'var(--uc-blue)', fontWeight: 700, padding: '0.15rem 0.45rem', borderRadius: '6px' }}>
+                      Option: {selectedVariation}
+                    </span>
+                  )}
+                  <span style={{ fontWeight: 800, color: 'var(--text-primary)' }}>
+                    ₱{totalAmount.toLocaleString()} ({paymentMethod.toUpperCase()})
+                  </span>
+                  {orderQuantity > 1 && (
+                    <span style={{ color: 'var(--text-muted)' }}>• Qty: {orderQuantity}</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Buyer Handshake Verification Code (if available) */}
+            {confirmedTransaction.verificationCode && (
+              <div
+                style={{
+                  backgroundColor: '#FFFBEB',
+                  border: '1px solid #FDE68A',
+                  borderRadius: '10px',
+                  padding: '0.75rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '0.5rem'
+                }}
+              >
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#B45309', textTransform: 'uppercase' }}>
+                    Buyer Handshake Code
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#92400E' }}>
+                    Give to seller only after checking item.
+                  </div>
+                </div>
+                <div
+                  style={{
+                    fontSize: '1.2rem',
+                    fontWeight: 900,
+                    letterSpacing: '0.15em',
+                    fontFamily: 'monospace',
+                    color: '#B45309',
+                    backgroundColor: '#FEF3C7',
+                    padding: '0.25rem 0.65rem',
+                    borderRadius: '6px'
+                  }}
+                >
+                  {confirmedTransaction.verificationCode}
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.35rem' }}>
               <button
                 type="button"
-                onClick={() => {
-                  onClose();
-                  openChatWithSeller(listing);
-                }}
+                onClick={handleOpenChat}
+                disabled={isOpeningChat}
                 className="btn-primary"
                 style={{ flex: 1, padding: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
               >
-                <MessageSquare size={16} /> Open Chat with Seller
+                {isOpeningChat ? (
+                  <>
+                    <Loader2 size={16} className="spin" /> Opening Chat...
+                  </>
+                ) : (
+                  <>
+                    <MessageSquare size={16} /> Open Chat with Seller
+                  </>
+                )}
               </button>
               <button
                 type="button"
@@ -229,9 +404,9 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
                 </h4>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem', marginTop: '4px' }}>
                   <span style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--uc-blue)', fontFamily: 'var(--font-display)' }}>
-                    {isFree ? 'FREE DONATION' : `₱${listing.price.toLocaleString()}`}
+                    {isFree ? 'FREE DONATION' : `₱${itemUnitPrice.toLocaleString()}`}
                   </span>
-                  {listing.originalSrp && listing.originalSrp > listing.price && (
+                  {listing.originalSrp && listing.originalSrp > itemUnitPrice && (
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'line-through' }}>
                       ₱{listing.originalSrp.toLocaleString()}
                     </span>
@@ -239,6 +414,64 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
                 </div>
               </div>
             </div>
+
+            {/* Variations Picker (e.g. PE 101, PE 102, etc.) */}
+            {listing.variations && listing.variations.length > 0 && (
+              <div
+                style={{
+                  padding: '0.85rem 1rem',
+                  backgroundColor: 'var(--bg-subtle)',
+                  borderRadius: '10px',
+                  border: '1px solid var(--border-subtle)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.5rem'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', margin: 0 }}>
+                    Option
+                  </label>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem' }}>
+                  {listing.variations.map((v) => {
+                    const isSelected = selectedVariation === v.title;
+                    const vImg = v.imageUrl || (v.imageIndex !== null && v.imageIndex !== undefined && listing.images ? listing.images[v.imageIndex] : null);
+                    return (
+                      <button
+                        type="button"
+                        key={v.id}
+                        onClick={() => setSelectedVariation(v.title)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.45rem',
+                          padding: '0.45rem 0.75rem',
+                          borderRadius: '8px',
+                          border: isSelected ? '2px solid var(--uc-blue)' : '1px solid var(--border-subtle)',
+                          backgroundColor: isSelected ? 'var(--uc-blue-subtle, #EBF1FC)' : '#FFFFFF',
+                          color: isSelected ? 'var(--uc-blue)' : 'var(--text-primary)',
+                          fontWeight: isSelected ? 800 : 600,
+                          fontSize: '0.8rem',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        {vImg && (
+                          <img src={vImg} alt="" style={{ width: '22px', height: '22px', borderRadius: '4px', objectFit: 'cover' }} />
+                        )}
+                        <span>{v.title}</span>
+                        {v.price !== null && v.price !== undefined && (
+                          <span style={{ fontSize: '0.72rem', opacity: 0.85, fontWeight: 700 }}>
+                            ₱{v.price.toLocaleString()}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Seller Information */}
             <div
@@ -320,7 +553,7 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
                   </span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.65rem 0.85rem', backgroundColor: 'var(--bg-subtle)', border: '1px solid var(--border-subtle)', borderRadius: '8px' }}>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>💵 Cash on Meetup</span>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>Cash on Meetup</span>
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>(Pay in person upon inspecting the item)</span>
                 </div>
               </div>
@@ -369,7 +602,7 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
                     ? 'Placing Order...'
                     : isFree
                     ? 'Claim Free Donation'
-                    : `Confirm Order • ₱${(listing.price * orderQuantity).toLocaleString()}${orderQuantity > 1 ? ` (${orderQuantity} items)` : ''}`}
+                    : `Confirm Order • ₱${totalAmount.toLocaleString()}${orderQuantity > 1 ? ` (${orderQuantity} items)` : ''}`}
                 </span>
               </button>
             </div>
