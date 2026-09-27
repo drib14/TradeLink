@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { User, RegisterData } from '../types';
 import { authService } from '../services/auth.service';
 import { usersService } from '../services/users.service';
-import { api, getAccessToken } from '../services/api';
+import { api, getAccessToken, attemptTokenRefresh } from '../services/api';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -61,7 +61,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Restore session on mount
   useEffect(() => {
     const restoreSession = async () => {
-      const token = getAccessToken();
+      let token = getAccessToken();
+      if (!token) {
+        token = await attemptTokenRefresh();
+      }
       if (!token) {
         setIsLoading(false);
         return;

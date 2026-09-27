@@ -35,51 +35,51 @@ export const FlashMarketTutorialModal: React.FC<FlashMarketTutorialModalProps> =
 
   const slides = [
     {
-      badge: 'Step 1 of 3: Urgent Need Board',
-      title: 'What is the UC Flash Market?',
+      badge: 'Step 1 of 3: Fast Requests',
+      title: 'Urgent Campus Requests',
       description:
-        'Flash Market is a dedicated fast-turnaround peer exchange board for urgent academic supplies across all 8 University of Cebu campuses. Whether you have a midterm exam tomorrow, clinical hospital duty this weekend, or missing uniform items, broadcast your need to fellow students instantly.',
-      icon: <Zap size={32} color="#FFC72C" />,
+        'Post what you need and receive fast offers from fellow students across UC campuses.',
+      icon: <Zap size={28} color="#FFC72C" />,
       features: [
-        'Broadcast urgent requests for calculators, scrubs, notes, and lab tools',
-        'Visible immediately to verified students on your home campus and nearby branches',
-        'Expiring countdowns ensure only active, real-time requests stay on the board'
+        'Post requests for textbooks, uniforms, reviewers, or tools',
+        'Direct responses from verified students on your campus',
+        'Automatic expiration ensures active, real-time requests'
       ]
     },
     {
-      badge: 'Step 2 of 3: Flexible Pricing Modes',
-      title: 'Three Ways to Request Items',
+      badge: 'Step 2 of 3: Flexible Options',
+      title: 'Budget & Barter Modes',
       description:
-        'Every student budget is different. Flash Market supports three distinct pricing modes to give you full control over how you acquire items:',
-      icon: <DollarSign size={32} color="#10B981" />,
+        'Choose the option that fits your budget:',
+      icon: <DollarSign size={28} color="#10B981" />,
       modes: [
         {
-          label: '1. Numeric Target Budget',
-          badge: '₱500',
-          desc: 'Specify the exact amount you are willing to pay for the item.'
+          label: 'Target Budget',
+          badge: '₱ Price',
+          desc: 'Set the amount you want to pay.'
         },
         {
-          label: '2. Open to Offers / Barter',
-          badge: 'Open to Offers',
-          desc: 'Invite sellers to message you with what they have and propose their asking price.'
+          label: 'Open to Offers',
+          badge: 'Barter',
+          desc: 'Invite sellers to propose terms or trades.'
         },
         {
-          label: '3. Free Senior Donation',
-          badge: 'FREE / Donation',
-          desc: 'Request passed-down reviewers, flashcards, or uniforms from seniors.'
+          label: 'Donation',
+          badge: 'FREE',
+          desc: 'Request passed-down reviewers or supplies.'
         }
       ]
     },
     {
-      badge: 'Step 3 of 3: Instant Chat & Safety',
-      title: 'Peer Responses & Safe Handover',
+      badge: 'Step 3 of 3: Direct Handover',
+      title: 'Direct Chat & Handover',
       description:
-        'When a verified student has what you need, they respond directly to your request. You can coordinate and complete the handover safely on TradeLink:',
-      icon: <ShieldCheck size={32} color="#002B7F" />,
+        'Coordinate safely with fellow students via built-in campus messaging.',
+      icon: <ShieldCheck size={28} color="#002B7F" />,
       features: [
-        'Instant peer-to-peer campus chat with verified student badges',
-        'No public phone numbers or social media required — privacy protected',
-        'Safe meetup recommendation: agree on a comfortable, well-lit campus spot or public cafe during daytime hours'
+        'Private messaging with verified student profiles',
+        'Meet at convenient on-campus spots like the library or canteen',
+        'Inspect items before completing the transaction'
       ]
     }
   ];

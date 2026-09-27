@@ -12,7 +12,13 @@ import {
   ShoppingBag,
   Zap,
   Building2,
-  X
+  X,
+  BookOpen,
+  Shirt,
+  Laptop,
+  Home,
+  GraduationCap,
+  Gamepad2
 } from 'lucide-react';
 
 interface HomePageProps {
@@ -21,7 +27,7 @@ interface HomePageProps {
 }
 
 export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenChat: _onOpenChat }) => {
-  const { listings, isLoading, selectedCampus, setSelectedCampus, favorites } = useMarket();
+  const { listings, isLoading, selectedCampus, setSelectedCampus, selectedCategory, setSelectedCategory, favorites } = useMarket();
   const [activeFeedTab, setActiveFeedTab] = useState<'all' | 'swaps' | 'free'>('all');
 
   const handleCampusSelect = (campus: Campus | 'ALL') => {
@@ -94,6 +100,87 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenChat: _onO
               <div className="nav-card-sub">Barter & trade</div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Popular Student Categories Bar */}
+      <section className="container">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.65rem' }}>
+          <h3 style={{ fontSize: '0.94rem', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Popular Categories
+          </h3>
+          <button
+            onClick={() => onNavigate('marketplace')}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--uc-blue)',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.25rem'
+            }}
+          >
+            <span>View All</span>
+            <ArrowRight size={13} />
+          </button>
+        </div>
+
+        <div
+          className="touch-scroll-row"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            paddingBottom: '0.35rem',
+            overflowX: 'auto',
+            scrollbarWidth: 'none'
+          }}
+        >
+          {[
+            { id: 'All', label: 'All Items', icon: ShoppingBag },
+            { id: 'Textbooks', label: 'Textbooks & Reviewers', icon: BookOpen },
+            { id: 'Uniforms', label: 'Uniforms & Scrubs', icon: Shirt },
+            { id: 'Electronics', label: 'Tech & Calculators', icon: Laptop },
+            { id: 'Dorm', label: 'Dorm & Living', icon: Home },
+            { id: 'Senior High', label: 'Senior High (SHS)', icon: GraduationCap },
+            { id: 'Gaming', label: 'Gaming Gear', icon: Gamepad2 }
+          ].map((cat) => {
+            const Icon = cat.icon;
+            const isSelected = selectedCategory === cat.id;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => {
+                  setSelectedCategory(cat.id);
+                  onNavigate('marketplace');
+                }}
+                style={{
+                  padding: '0.5rem 0.95rem',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  borderRadius: '9999px',
+                  backgroundColor: isSelected ? 'var(--uc-blue, #002B7F)' : 'var(--bg-surface, #FFFFFF)',
+                  color: isSelected ? '#FFFFFF' : 'var(--text-secondary, #475569)',
+                  border: isSelected ? '1px solid var(--uc-blue, #002B7F)' : '1px solid var(--border-subtle, #CBD5E1)',
+                  boxShadow: isSelected
+                    ? '0 4px 12px rgba(0, 43, 127, 0.22)'
+                    : '0 1px 3px rgba(0, 0, 0, 0.04)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)'
+                }}
+              >
+                <Icon size={14} />
+                <span>{cat.label}</span>
+              </button>
+            );
+          })}
         </div>
       </section>
 

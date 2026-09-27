@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Logo } from '../common/Logo';
 import { VerifiedBadge } from '../common/VerifiedBadge';
 import { UserAvatar } from '../common/UserAvatar';
@@ -47,6 +47,18 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const [isCampusDropdownOpen, setIsCampusDropdownOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const campusDropdownRef = useClickOutside<HTMLDivElement>(() => setIsCampusDropdownOpen(false), isCampusDropdownOpen);
   const userMenuRef = useClickOutside<HTMLDivElement>(() => setIsUserMenuOpen(false), isUserMenuOpen);
@@ -104,17 +116,12 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header
-      className="sticky-top-nav"
+      className="sticky-top-nav glass-header"
       style={{
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        borderBottom: '1.5px solid rgba(255, 255, 255, 0.85)',
         position: 'sticky',
         top: 0,
         zIndex: 100,
         width: '100%',
-        boxShadow: '0 8px 24px -4px rgba(0, 43, 127, 0.08), inset 0 -1px 0 rgba(0, 43, 127, 0.03)',
         transition: 'all 0.2s ease'
       }}
     >
@@ -155,7 +162,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 width: '175px',
                 gap: '0.4rem',
                 backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)',
-                border: '1px solid var(--border-subtle, #CBD5E1)',
+                border: '1px solid var(--color-primary-border, #BCD1F7)',
                 padding: '0.45rem 0.85rem',
                 borderRadius: '10px',
                 fontSize: '0.82rem',
@@ -163,26 +170,30 @@ export const Navbar: React.FC<NavbarProps> = ({
                 color: 'var(--uc-blue, #002B7F)',
                 cursor: 'pointer',
                 boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
-                transition: 'all 0.15s ease'
+                transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)'
               }}
               title={selectedCampus === 'All' ? 'All UC Campuses' : selectedCampus}
             >
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, textAlign: 'left' }}>
                 {selectedCampus === 'All' ? 'All UC Campuses' : selectedCampus}
               </span>
-              <ChevronDown size={14} style={{ flexShrink: 0 }} />
+              <ChevronDown
+                size={14}
+                style={{
+                  flexShrink: 0,
+                  transition: 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                  transform: isCampusDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)'
+                }}
+              />
             </button>
 
             {isCampusDropdownOpen && (
               <div
+                className="glass-dropdown"
                 style={{
                   position: 'absolute',
                   top: 'calc(100% + 8px)',
                   left: 0,
-                  backgroundColor: '#FFFFFF',
-                  border: '1px solid var(--border-subtle, #E2E8F0)',
-                  borderRadius: '12px',
-                  boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05)',
                   width: '220px',
                   zIndex: 60,
                   padding: '0.5rem',
@@ -201,7 +212,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     style={{
                       padding: '0.5rem 0.75rem',
                       textAlign: 'left',
-                      borderRadius: '6px',
+                      borderRadius: '8px',
                       fontSize: '0.82rem',
                       fontWeight: selectedCampus === c ? 800 : 500,
                       backgroundColor: selectedCampus === c ? 'var(--uc-blue-subtle, #EBF1FC)' : 'transparent',
@@ -210,7 +221,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       border: 'none',
-                      cursor: 'pointer'
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
                     }}
                   >
                     <span>{c === 'All' ? 'All UC Campuses' : c}</span>
@@ -222,13 +234,14 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Center: Search Input (Available to All Visitors) */}
-        <div className="search-bar-wrapper" style={{ flex: 1, minWidth: '100px', maxWidth: '440px' }}>
+        <div className="search-bar-wrapper" style={{ flex: 1, minWidth: '100px', maxWidth: '440px', position: 'relative' }}>
           <Search
             size={16}
             className="search-icon"
             style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', zIndex: 2 }}
           />
           <input
+            ref={searchInputRef}
             type="text"
             placeholder="Search marketplace items, books, calculators..."
             value={searchQuery}
@@ -241,9 +254,14 @@ export const Navbar: React.FC<NavbarProps> = ({
             className="clean-input search-input navbar-search-input"
             style={{
               paddingLeft: '2.85rem',
-              paddingRight: searchQuery ? '2.4rem' : '1rem'
+              paddingRight: searchQuery ? '2.4rem' : '4.5rem'
             }}
           />
+          {!searchQuery && (
+            <span className="search-kbd-hint desktop-only">
+              Ctrl K
+            </span>
+          )}
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
@@ -399,10 +417,16 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={handlePostClick}
               className="btn-primary"
               style={{
-                padding: '0.48rem 0.95rem',
-                borderRadius: '8px',
+                padding: '0.48rem 1.05rem',
+                borderRadius: '9999px',
                 fontSize: '0.82rem',
-                fontWeight: 800
+                fontWeight: 800,
+                background: 'linear-gradient(135deg, #002B7F 0%, #0A3EA8 100%)',
+                boxShadow: '0 4px 14px rgba(0, 43, 127, 0.25)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                cursor: 'pointer'
               }}
             >
               <Plus size={15} style={{ flexShrink: 0 }} />

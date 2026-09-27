@@ -24,19 +24,47 @@ interface ApiResponse<T = any> {
   data?: T;
 }
 
-let accessToken: string | null = localStorage.getItem('tradelink_access_token');
+// Token storage (Strictly in-memory for security against XSS; persistence via HttpOnly cookie)
+let accessToken: string | null = null;
+
+// Purge any legacy token from localStorage
+try {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('tradelink_access_token');
+  }
+} catch {}
 
 export function setAccessToken(token: string | null) {
   accessToken = token;
-  if (token) {
-    localStorage.setItem('tradelink_access_token', token);
-  } else {
-    localStorage.removeItem('tradelink_access_token');
-  }
+  try {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('tradelink_access_token');
+    }
+  } catch {}
 }
 
 export function getAccessToken(): string | null {
   return accessToken;
+}
+
+export async function attemptTokenRefresh(): Promise<string | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/admin-auth/refresh-token`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const newToken = json.data?.accessToken;
+    if (newToken) {
+      setAccessToken(newToken);
+      return newToken;
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 let memoryCsrfToken: string | null = null;

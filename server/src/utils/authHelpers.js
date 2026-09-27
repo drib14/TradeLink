@@ -13,17 +13,26 @@ function generateTokens(userId, role, campus, tokenVersion = 1) {
   const isAdmin = role === 'admin';
   const accessSecret = isAdmin ? env.jwt.adminAccessSecret : env.jwt.accessSecret;
   const refreshSecret = isAdmin ? env.jwt.adminRefreshSecret : env.jwt.refreshSecret;
+  const audience = isAdmin ? 'tradelink-admin' : 'tradelink-client';
 
   const accessToken = jwt.sign(
     { userId, role, campus, tokenVersion: tokenVersion || 1, tokenType: isAdmin ? 'admin' : 'student' },
     accessSecret,
-    { expiresIn: env.jwt.accessExpiresIn || '15m' }
+    {
+      expiresIn: env.jwt.accessExpiresIn || '15m',
+      issuer: 'tradelink-api',
+      audience
+    }
   );
 
   const refreshToken = jwt.sign(
     { userId, role, tokenVersion: tokenVersion || 1, tokenType: isAdmin ? 'admin' : 'student' },
     refreshSecret,
-    { expiresIn: env.jwt.refreshExpiresIn || '7d' }
+    {
+      expiresIn: env.jwt.refreshExpiresIn || '7d',
+      issuer: 'tradelink-api',
+      audience
+    }
   );
 
   return { accessToken, refreshToken };

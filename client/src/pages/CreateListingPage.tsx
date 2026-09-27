@@ -640,10 +640,7 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--uc-blue)' }}>
-                AI Listing Assistant
-              </span>
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                Autofill specs & pricing in 1 click
+                Quick Auto-Fill
               </span>
             </div>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -856,19 +853,6 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
             />
           </div>
 
-          <div style={{ backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', border: '1px solid rgba(0, 43, 127, 0.15)', borderRadius: '10px', padding: '0.9rem 1.1rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-            <ShieldAlert size={20} color="var(--uc-blue)" style={{ flexShrink: 0, marginTop: '2px' }} />
-            <div>
-              <h4 style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--uc-blue)', margin: '0 0 0.2rem 0' }}>
-                {formMode === 'sell' ? 'Authentic Campus Media Guidelines' : 'Authentic Barter Photos'}
-              </h4>
-              <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.45, margin: 0 }}>
-                {formMode === 'sell'
-                  ? 'Upload actual photos of your items on campus desks or lockers. Items with realistic photos receive 3x faster buyer inquiries.'
-                  : 'Show clear angles of your barter item to help student peers quickly evaluate and accept your trade proposal.'}
-              </p>
-            </div>
-          </div>
 
           {/* ITEM VARIATIONS BUILDER */}
           <div
@@ -1300,29 +1284,6 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
             </h3>
           </div>
 
-          {/* Zero-cash Notice Banner */}
-          <div
-            style={{
-              backgroundColor: 'rgba(0, 43, 127, 0.05)',
-              border: '1.5px solid rgba(0, 43, 127, 0.15)',
-              borderRadius: '10px',
-              padding: '0.85rem 1rem',
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: '0.65rem'
-            }}
-          >
-            <ArrowLeftRight size={18} color="var(--uc-blue)" style={{ flexShrink: 0, marginTop: '2px' }} />
-            <div>
-              <div style={{ fontWeight: 800, fontSize: '0.84rem', color: 'var(--uc-blue)' }}>
-                Cashless Student Barter Exchange
-              </div>
-              <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: '0.2rem 0 0 0', lineHeight: 1.45 }}>
-                No money or e-wallet transfers are needed. You are proposing a direct item-for-item exchange with fellow UC students.
-              </p>
-            </div>
-          </div>
-
           {/* Desired Items in Exchange */}
           <div>
             <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
@@ -1332,7 +1293,7 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
               type="text"
               value={swapPreference}
               onChange={(e) => setSwapPreference(e.target.value)}
-              placeholder="Desired item"
+              placeholder="e.g. Uniform, Calculator, or Reviewer"
               className="clean-input"
               style={{ fontSize: '0.86rem', fontWeight: 600 }}
               required
@@ -1340,9 +1301,6 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
 
             {/* Quick Inspiration Chips */}
             <div style={{ marginTop: '0.5rem' }}>
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
-                Quick suggestions (click to auto-fill):
-              </span>
               <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
                 {SWAP_INSPIRATION_CHIPS.map((chip) => (
                   <button

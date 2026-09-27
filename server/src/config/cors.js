@@ -24,10 +24,12 @@ const normalizeOrigin = (url) => (url ? url.trim().replace(/\/+$/, '') : '');
 function getAllowedOrigins() {
   const origins = new Set();
 
-  // Always allow standard local dev servers
-  defaultOrigins.map(normalizeOrigin).forEach((url) => {
-    if (url) origins.add(url);
-  });
+  // Allow standard local dev servers in non-production environments
+  if (!env.isProduction) {
+    defaultOrigins.map(normalizeOrigin).forEach((url) => {
+      if (url) origins.add(url);
+    });
+  }
 
   // Always allow official live frontend domains
   origins.add('https://uc-tradelink.vercel.app');

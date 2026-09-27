@@ -4,26 +4,35 @@ const envMode = process.env.NODE_ENV || 'development';
 const isDev = envMode === 'development';
 const isProd = envMode === 'production';
 
+const isPlaceholder = (val) => !val || typeof val !== 'string' || val.startsWith('your_') || val.includes('_here');
+
 if (isProd) {
   const missing = [];
-  if (!process.env.JWT_ACCESS_SECRET) missing.push('JWT_ACCESS_SECRET');
-  if (!process.env.JWT_REFRESH_SECRET) missing.push('JWT_REFRESH_SECRET');
-  if (!process.env.JWT_ADMIN_ACCESS_SECRET) missing.push('JWT_ADMIN_ACCESS_SECRET');
-  if (!process.env.JWT_ADMIN_REFRESH_SECRET) missing.push('JWT_ADMIN_REFRESH_SECRET');
+  if (!process.env.JWT_ACCESS_SECRET || isPlaceholder(process.env.JWT_ACCESS_SECRET)) missing.push('JWT_ACCESS_SECRET');
+  if (!process.env.JWT_REFRESH_SECRET || isPlaceholder(process.env.JWT_REFRESH_SECRET)) missing.push('JWT_REFRESH_SECRET');
+  if (!process.env.JWT_ADMIN_ACCESS_SECRET || isPlaceholder(process.env.JWT_ADMIN_ACCESS_SECRET)) missing.push('JWT_ADMIN_ACCESS_SECRET');
+  if (!process.env.JWT_ADMIN_REFRESH_SECRET || isPlaceholder(process.env.JWT_ADMIN_REFRESH_SECRET)) missing.push('JWT_ADMIN_REFRESH_SECRET');
   if (missing.length > 0) {
-    throw new Error(`[CRITICAL SECURITY ERROR] Missing mandatory environment variables in production: ${missing.join(', ')}`);
+    throw new Error(`[CRITICAL SECURITY ERROR] Missing or placeholder mandatory environment variables in production: ${missing.join(', ')}`);
   }
 }
 
 const crypto = require('crypto');
 
+const getSecret = (key, testDefault) => {
+  const val = process.env[key];
+  if (val && !isPlaceholder(val)) return val;
+  if (envMode === 'test') return testDefault;
+  return crypto.randomBytes(48).toString('hex');
+};
+
 // Validate critical secrets in production
 if (isProd) {
-  if (!process.env.CLOUDINARY_API_SECRET) {
-    console.warn('[SECURITY WARNING] CLOUDINARY_API_SECRET is not set in production environment.');
+  if (!process.env.CLOUDINARY_API_SECRET || isPlaceholder(process.env.CLOUDINARY_API_SECRET)) {
+    console.warn('[SECURITY WARNING] CLOUDINARY_API_SECRET is not set or is a placeholder in production environment.');
   }
-  if (!process.env.SMTP_PASS) {
-    console.warn('[SECURITY WARNING] SMTP_PASS is not set in production environment.');
+  if (!process.env.SMTP_PASS || isPlaceholder(process.env.SMTP_PASS)) {
+    console.warn('[SECURITY WARNING] SMTP_PASS is not set or is a placeholder in production environment.');
   }
 }
 
@@ -53,16 +62,16 @@ const config = {
   },
 
   jwt: {
-    accessSecret: process.env.JWT_ACCESS_SECRET || (envMode === 'test' ? 'test_jwt_access_secret_key_1234567890' : crypto.randomBytes(48).toString('hex')),
-    refreshSecret: process.env.JWT_REFRESH_SECRET || (envMode === 'test' ? 'test_jwt_refresh_secret_key_1234567890' : crypto.randomBytes(48).toString('hex')),
-    adminAccessSecret: process.env.JWT_ADMIN_ACCESS_SECRET || process.env.JWT_ACCESS_SECRET || (envMode === 'test' ? 'test_jwt_admin_access_secret_key_1234567890' : crypto.randomBytes(48).toString('hex')),
-    adminRefreshSecret: process.env.JWT_ADMIN_REFRESH_SECRET || process.env.JWT_REFRESH_SECRET || (envMode === 'test' ? 'test_jwt_admin_refresh_secret_key_1234567890' : crypto.randomBytes(48).toString('hex')),
+    accessSecret: getSecret('JWT_ACCESS_SECRET', 'test_jwt_access_secret_key_1234567890'),
+    refreshSecret: getSecret('JWT_REFRESH_SECRET', 'test_jwt_refresh_secret_key_1234567890'),
+    adminAccessSecret: getSecret('JWT_ADMIN_ACCESS_SECRET', 'test_jwt_admin_access_secret_key_1234567890'),
+    adminRefreshSecret: getSecret('JWT_ADMIN_REFRESH_SECRET', 'test_jwt_admin_refresh_secret_key_1234567890'),
     accessExpiresIn: process.env.JWT_ACCESS_EXPIRY || '15m',
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRY || '7d'
   },
 
-  cookieSecret: process.env.COOKIE_SECRET || (envMode === 'test' ? 'test_cookie_secret_1234567890' : crypto.randomBytes(48).toString('hex')),
-  verificationSessionSecret: process.env.VERIFICATION_SESSION_SECRET || process.env.JWT_ACCESS_SECRET || (envMode === 'test' ? 'test_verif_secret_1234567890' : crypto.randomBytes(48).toString('hex')),
+  cookieSecret: getSecret('COOKIE_SECRET', 'test_cookie_secret_1234567890'),
+  verificationSessionSecret: getSecret('VERIFICATION_SESSION_SECRET', 'test_verif_secret_1234567890'),
 
   // Support both local dev server and live Vercel deployments
   clientUrl: process.env.CLIENT_URL || 'https://uc-tradelink.vercel.app,https://tradelink-uc.vercel.app,http://localhost:5173,http://localhost:3000',

@@ -34,12 +34,13 @@ function initializeSocket(httpServer) {
       }
 
       let decoded;
+      const verifyOptions = { issuer: 'tradelink-api' };
       try {
-        decoded = jwt.verify(token, env.jwt.accessSecret);
+        decoded = jwt.verify(token, env.jwt.accessSecret, verifyOptions);
       } catch (err) {
         // Try admin access secret if student verification fails
         try {
-          decoded = jwt.verify(token, env.jwt.adminAccessSecret);
+          decoded = jwt.verify(token, env.jwt.adminAccessSecret, verifyOptions);
         } catch {
           return next(new Error('Authentication error: Token is invalid or expired.'));
         }

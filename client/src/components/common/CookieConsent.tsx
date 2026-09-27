@@ -191,15 +191,12 @@ export const CookieConsent: React.FC<CookieConsentProps> = ({ onNavigate }) => {
               </div>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>
-                    University of Cebu Privacy &amp; Cookie Consent
+                  <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: '#0F172A', margin: 0 }}>
+                    Cookie Preferences
                   </h4>
-                  <span style={{ fontSize: '0.7rem', fontWeight: 700, backgroundColor: '#ECFDF5', color: '#059669', padding: '0.15rem 0.5rem', borderRadius: '4px', border: '1px solid #A7F3D0', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <ShieldCheck size={12} /> Student Privacy Protected
-                  </span>
                 </div>
-                <p style={{ fontSize: '0.82rem', color: '#475569', margin: '0.25rem 0 0 0', lineHeight: 1.5 }}>
-                  We use essential cookies to maintain secure authenticated student sessions, CSRF protection, and trade preferences across all 8 UC campuses. Optional telemetry helps us enhance peer-to-peer performance.
+                <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '0.15rem 0 0 0', lineHeight: 1.4 }}>
+                  We use cookies for session security and student preferences. You can adjust your choices anytime.
                 </p>
               </div>
             </div>

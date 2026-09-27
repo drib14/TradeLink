@@ -74,12 +74,8 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
     setGlobalCampus(c);
   };
 
-  React.useEffect(() => {
-    const hasSeen = localStorage.getItem('tradelink_flash_tutorial_seen');
-    if (!hasSeen) {
-      setIsTutorialOpen(true);
-    }
-  }, []);
+  // Tutorial only opens when user explicitly clicks the help button
+
 
   React.useEffect(() => {
     const timer = setTimeout(() => {
@@ -168,29 +164,28 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
       {/* Header Banner */}
       <div
         style={{
-          backgroundColor: '#002B7F',
-          border: '1px solid #001D59',
+          backgroundColor: 'var(--uc-blue, #002B7F)',
           color: '#FFFFFF',
-          borderRadius: '18px',
-          padding: '2.25rem clamp(1.25rem, 4vw, 2.5rem)',
+          borderRadius: '14px',
+          padding: '1.5rem 1.75rem',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
-          gap: '1.5rem',
+          gap: '1rem',
           boxShadow: '0 4px 14px rgba(0, 43, 127, 0.12)'
         }}
       >
-        <div style={{ maxWidth: '640px' }}>
-          <h1 style={{ fontSize: 'clamp(1.5rem, 3vw, 2.2rem)', fontWeight: 900, color: '#FFFFFF', marginTop: '0.2rem', lineHeight: 1.2, fontFamily: 'var(--font-display)' }}>
+        <div style={{ maxWidth: '580px' }}>
+          <h1 style={{ fontSize: 'clamp(1.35rem, 2.5vw, 1.85rem)', fontWeight: 800, color: '#FFFFFF', margin: 0, lineHeight: 1.25, fontFamily: 'var(--font-display)' }}>
             Flash Market
           </h1>
-          <p style={{ fontSize: '0.88rem', color: '#E2E8F0', marginTop: '0.55rem', lineHeight: 1.6 }}>
-            Need an item today or this week? Broadcast urgent requests for uniforms, calculators, reviewers, or tools. Verified students respond with what they have!
+          <p style={{ fontSize: '0.86rem', color: '#E2E8F0', marginTop: '0.35rem', marginBottom: 0, lineHeight: 1.45 }}>
+            Broadcast urgent requests for books, uniforms, reviewers, or tools across campuses.
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', alignItems: 'center' }}>
           <button
             onClick={() => setIsTutorialOpen(true)}
             id="how-flash-market-works-btn"
@@ -198,26 +193,26 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
               backgroundColor: 'rgba(255, 255, 255, 0.12)',
               color: '#FFFFFF',
               border: '1px solid rgba(255, 255, 255, 0.25)',
-              borderRadius: '12px',
-              padding: '0.75rem 1.25rem',
-              fontSize: '0.88rem',
+              borderRadius: '10px',
+              padding: '0.55rem 1rem',
+              fontSize: '0.82rem',
               fontWeight: 700,
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.45rem',
+              gap: '0.4rem',
               cursor: 'pointer',
               transition: 'all 0.15s ease'
             }}
           >
-            <HelpCircle size={17} color="#FFC72C" />
-            <span>How Flash Market Works</span>
+            <HelpCircle size={15} color="#FFC72C" />
+            <span>Guide</span>
           </button>
           <button
             onClick={handleOpenCreateModal}
             className="btn-gold"
-            style={{ padding: '0.75rem 1.5rem', fontSize: '0.9rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
+            style={{ padding: '0.55rem 1.25rem', fontSize: '0.86rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.4rem', borderRadius: '10px' }}
           >
-            <Zap size={18} style={{ flexShrink: 0 }} /> <span>Post Flash Request</span>
+            <Zap size={16} style={{ flexShrink: 0 }} /> <span>Post Request</span>
           </button>
         </div>
       </div>

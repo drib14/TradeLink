@@ -561,26 +561,23 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
             </div>
           )}
 
-          {/* Campus Meetup Safety Guarantee */}
+          {/* Campus Meetup Safety */}
           <div
             style={{
-              backgroundColor: 'var(--bg-subtle, #F8FAFC)',
-              border: '1px solid var(--border-subtle, #E2E8F0)',
-              borderRadius: '12px',
-              padding: '0.85rem 1rem',
               display: 'flex',
-              flexDirection: 'column',
-              gap: '0.35rem',
+              alignItems: 'center',
+              gap: '0.45rem',
+              padding: '0.5rem 0.75rem',
+              backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+              borderRadius: '8px',
+              border: '1px solid var(--border-subtle, #E2E8F0)',
+              fontSize: '0.76rem',
+              color: 'var(--text-muted, #64748B)',
               marginTop: '0.25rem'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: 'var(--uc-blue, #002B7F)', fontWeight: 800, fontSize: '0.82rem' }}>
-              <ShieldCheck size={16} />
-              <span>UC TradeLink Campus Safety</span>
-            </div>
-            <p style={{ fontSize: '0.76rem', color: 'var(--text-muted, #64748B)', margin: 0, lineHeight: 1.45 }}>
-              Meet at designated campus spots: Library Entrance, Campus Canteen, or Student Affairs Lobby. Hand over payments only after in-person inspection.
-            </p>
+            <ShieldCheck size={15} color="var(--uc-blue, #002B7F)" style={{ flexShrink: 0 }} />
+            <span>On-campus student meetup & inspection verified</span>
           </div>
         </div>
 

@@ -31,16 +31,23 @@ interface ApiError {
   statusCode: number;
 }
 
-// Token storage
-let accessToken: string | null = localStorage.getItem('tradelink_access_token');
+// Token storage (Strictly in-memory to prevent XSS credential theft; persistent sessions rely on HttpOnly refresh cookies)
+let accessToken: string | null = null;
+
+// Purge any legacy token from localStorage
+try {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('tradelink_access_token');
+  }
+} catch {}
 
 export function setAccessToken(token: string | null) {
   accessToken = token;
-  if (token) {
-    localStorage.setItem('tradelink_access_token', token);
-  } else {
-    localStorage.removeItem('tradelink_access_token');
-  }
+  try {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('tradelink_access_token');
+    }
+  } catch {}
 }
 
 export function getAccessToken(): string | null {
@@ -60,7 +67,7 @@ function addRefreshSubscriber(cb: (token: string) => void) {
   refreshSubscribers.push(cb);
 }
 
-async function attemptTokenRefresh(): Promise<string | null> {
+export async function attemptTokenRefresh(): Promise<string | null> {
   try {
     const res = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
       method: 'POST',

@@ -8,7 +8,7 @@ import { useToast } from '../common/Toast';
 import { BuyNowModal } from './BuyNowModal';
 import { SwapProposalModal } from './SwapProposalModal';
 import { ManageListingModal } from './ManageListingModal';
-import { ArrowLeftRight, Gift, ShoppingBag, Film, Eye, Sliders, RotateCcw, CheckCircle2 } from 'lucide-react';
+import { ArrowLeftRight, Gift, ShoppingBag, Film, Eye, Sliders, RotateCcw, CheckCircle2, Heart } from 'lucide-react';
 import { formatRelativeTime } from '../../utils/date';
 
 interface ListingCardProps {
@@ -20,7 +20,7 @@ interface ListingCardProps {
 
 export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick, onNavigate }) => {
   const { currentUser, isAuthenticated } = useAuth();
-  const { markAsSold } = useMarket();
+  const { markAsSold, favorites, toggleFavorite } = useMarket();
   const { showToast } = useToast();
 
   const [isBuyModalOpen, setIsBuyModalOpen] = useState(false);
@@ -210,7 +210,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick, onNa
               style={{
                 position: 'absolute',
                 top: '8px',
-                right: '8px',
+                right: isOwner ? '8px' : '44px',
                 backgroundColor: 'rgba(15, 23, 42, 0.75)',
                 color: '#FFFFFF',
                 padding: '3px 6px',
@@ -227,6 +227,51 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick, onNa
               <Film size={10} />
               <span>Video</span>
             </span>
+          )}
+
+          {/* Quick Wishlist Favorite Button */}
+          {!isOwner && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleFavorite(listing.id);
+                showToast(
+                  favorites?.includes(listing.id) ? 'Removed from Saved' : 'Saved to Wishlist',
+                  favorites?.includes(listing.id)
+                    ? `Removed "${listing.title}" from saved items.`
+                    : `Saved "${listing.title}" to your items.`,
+                  favorites?.includes(listing.id) ? 'info' : 'success'
+                );
+              }}
+              className={`card-wishlist-btn ${favorites?.includes(listing.id) ? 'active' : ''}`}
+              title={favorites?.includes(listing.id) ? 'Remove from saved' : 'Save item'}
+              aria-label={favorites?.includes(listing.id) ? 'Remove from saved' : 'Save item'}
+              style={{
+                position: 'absolute',
+                top: '8px',
+                right: '8px',
+                width: '30px',
+                height: '30px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(255, 255, 255, 0.94)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+                border: '1px solid rgba(226, 232, 240, 0.9)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                zIndex: 6,
+                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)'
+              }}
+            >
+              <Heart
+                size={15}
+                fill={favorites?.includes(listing.id) ? '#DC2626' : 'none'}
+                color={favorites?.includes(listing.id) ? '#DC2626' : '#64748B'}
+              />
+            </button>
           )}
         </div>
 

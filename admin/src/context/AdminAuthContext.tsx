@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { User } from '../types';
 import { adminAuthService } from '../services/adminAuth.service';
-import { getAccessToken } from '../services/api';
+import { getAccessToken, attemptTokenRefresh } from '../services/api';
 
 interface AdminAuthContextType {
   adminUser: User | null;
@@ -24,7 +24,10 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // Restore admin session on mount
   useEffect(() => {
     const restore = async () => {
-      const token = getAccessToken();
+      let token = getAccessToken();
+      if (!token) {
+        token = await attemptTokenRefresh();
+      }
       if (!token) {
         setIsLoading(false);
         return;

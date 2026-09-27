@@ -214,10 +214,19 @@ const refreshToken = asyncHandler(async (req, res, next) => {
   }
 
   let decoded;
+  const verifyOptions = { issuer: 'tradelink-api' };
   try {
-    decoded = jwt.verify(token, env.jwt.refreshSecret);
+    decoded = jwt.verify(token, env.jwt.refreshSecret, verifyOptions);
   } catch (err) {
-    return next(new AppError('Invalid or expired refresh token. Please log in again.', 401));
+    if (env.jwt.adminRefreshSecret) {
+      try {
+        decoded = jwt.verify(token, env.jwt.adminRefreshSecret, verifyOptions);
+      } catch (adminErr) {
+        return next(new AppError('Invalid or expired refresh token. Please log in again.', 401));
+      }
+    } else {
+      return next(new AppError('Invalid or expired refresh token. Please log in again.', 401));
+    }
   }
 
   const user = await db('users').where({ id: decoded.userId }).first();

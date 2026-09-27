@@ -14,104 +14,95 @@ export interface CampusSlide {
 }
 
 export const CAMPUS_SLIDES: CampusSlide[] = [
-  // 1. UC Main Campus
   {
     id: 'slide-main',
     campusName: 'UC Main Campus',
     shortTag: 'UC Main',
     title: 'UC Main Student Marketplace',
-    subtitle: 'Trade CCS coding books, Engineering drafting tools, Law and CBA reviewers, laptops, and uniforms safely with campus peers.',
+    subtitle: 'Trade books, calculators, engineering tools, and uniforms safely with campus peers.',
     imageUrl: '/images/campuses/uc-main.jpg',
-    highlight: 'Sanciangko & J. Alcantara Student Hub',
+    highlight: 'Sanciangko Hub',
     colleges: 'CCS • CBA • Law • Criminology • SHS'
   },
-  // 2. UC Banilad Campus
   {
     id: 'slide-banilad',
     campusName: 'UC Banilad Campus',
     shortTag: 'UC Banilad',
     title: 'UC Banilad Peer Exchange',
-    subtitle: 'Buy, sell, and swap clinical scrubs, nursing duty kits, medical reviewers, and dorm essentials with fellow Banilad students.',
+    subtitle: 'Buy, sell, and swap clinical scrubs, nursing duty kits, and dorm essentials.',
     imageUrl: '/images/campuses/uc-banilad.jpg',
-    highlight: 'Banilad Atrium & Cafeteria Plaza',
+    highlight: 'Banilad Atrium',
     colleges: 'Nursing • Allied Health • CBA • Medicine'
   },
-  // 3. UC Lapu-Lapu & Mandaue (LM)
   {
     id: 'slide-lm',
     campusName: 'UC Lapu-Lapu & Mandaue (LM)',
     shortTag: 'UC LM',
-    title: 'UC LM Tech & Engineering Barter',
-    subtitle: 'Peer-to-peer campus exchange for Engineering tools, scientific calculators, PC peripherals, uniforms, and gadgets in Mandaue.',
+    title: 'UC LM Tech & Engineering Exchange',
+    subtitle: 'Campus exchange for engineering tools, tech gear, uniforms, and gadgets.',
     imageUrl: '/images/campuses/uc-lm.jpg',
-    highlight: 'A.C. Cortes Campus Hub',
+    highlight: 'A.C. Cortes Hub',
     colleges: 'Engineering • IT • Business • Tourism'
   },
-  // 4. UC METC Maritime Education & Training Center
   {
     id: 'slide-metc',
     campusName: 'UC METC Maritime Center',
     shortTag: 'UC METC',
-    title: 'UC METC Maritime Trading Post',
-    subtitle: 'Cadet-to-cadet marketplace for merchant marine uniforms, shoulder boards, navigation reviewers, gear, and student electronics.',
+    title: 'UC METC Maritime Board',
+    subtitle: 'Cadet-to-cadet marketplace for uniforms, navigation reviewers, and gear.',
     imageUrl: '/images/campuses/uc-metc.jpg',
-    highlight: 'Alumnos St. Campus Grounds',
+    highlight: 'Alumnos St. Grounds',
     colleges: 'BSMT • BSMarE • Naval Architecture'
   },
-  // 5. UC PRI (Junior & Senior High Campus)
   {
     id: 'slide-pri',
     campusName: 'UC PRI (Junior & Senior High)',
     shortTag: 'UC PRI',
     title: 'UC PRI High School Marketplace',
-    subtitle: 'Direct student exchange for Junior High (Grades 7–10) reviewers, Senior High STEM/ABM modules, PE uniforms, and calculators.',
+    subtitle: 'Student exchange for high school reviewers, PE uniforms, and books.',
     imageUrl: '/images/campuses/uc-main.jpg',
-    highlight: 'J. Alcantara Student Zone',
-    colleges: 'Junior High (7-10) • STEM • ABM • HUMSS • TVL'
+    highlight: 'J. Alcantara Zone',
+    colleges: 'Junior High • STEM • ABM • HUMSS • TVL'
   },
-  // 6. UC Pardo-Talisay Campus
   {
     id: 'slide-pt',
     campusName: 'UC Pardo-Talisay',
     shortTag: 'UC Pardo-Talisay',
-    title: 'UC Pardo-Talisay Student Market',
-    subtitle: 'South Cebu student board for pre-loved textbooks, uniforms, tech gadgets, and school gear with verified campus peers.',
+    title: 'UC Pardo-Talisay Market',
+    subtitle: 'Student board for textbooks, uniforms, tech gadgets, and school gear.',
     imageUrl: '/images/campuses/uc-pardo-talisay.jpg',
-    highlight: 'Pardo-Talisay Campus Plaza',
+    highlight: 'Pardo-Talisay Plaza',
     colleges: 'SHS • Education • Criminology • CBA'
   },
-  // 7. UC South Campus
   {
     id: 'slide-south',
     campusName: 'UC South Campus',
     shortTag: 'UC South Campus',
     title: 'UC South Campus Exchange',
-    subtitle: 'Local campus marketplace for secondary modules, reference books, drawing kits, and student uniforms on Sanciangko corridor.',
+    subtitle: 'Campus marketplace for secondary modules, reference books, and uniforms.',
     imageUrl: '/images/campuses/uc-south.jpg',
-    highlight: 'South Campus Student Plaza',
+    highlight: 'South Campus Plaza',
     colleges: 'Senior High • Junior High • Academics'
   },
-  // 8. UC Medical Center (UCMed)
   {
     id: 'slide-ucmed',
     campusName: 'UC Medical Center (UCMed)',
     shortTag: 'UC Medical Center',
-    title: 'UCMed Clinical & Medical Exchange',
-    subtitle: 'Medical student exchange for clinical diagnostic kits, stethoscopes, medical textbooks, and healthcare essentials.',
+    title: 'UCMed Clinical Exchange',
+    subtitle: 'Medical student board for diagnostic kits, stethoscopes, and textbooks.',
     imageUrl: '/images/campuses/uc-ucmed.jpg',
-    highlight: 'Ouano Ave. Student Lounge',
+    highlight: 'Ouano Ave. Lounge',
     colleges: 'Medicine • Clinical Interns • Health Sciences'
   },
-  // 9. All Campuses Network
   {
     id: 'slide-all',
     campusName: 'All Campuses Network',
     shortTag: 'All Campuses',
     title: 'TradeLink Inter-Campus Network',
-    subtitle: 'Our student-powered marketplace and barter network connecting peers across all 8 campuses. 0% fees, 100% verified students.',
+    subtitle: 'Peer-to-peer student marketplace connecting all 8 University of Cebu campuses.',
     imageUrl: '/images/campuses/uc-all-campuses.jpg',
-    highlight: 'Unified Student Barter Network',
-    colleges: 'All 8 Campuses • High School • College • Grad'
+    highlight: 'All 8 Campuses',
+    colleges: 'High School • College • Graduate School'
   }
 ];
 
