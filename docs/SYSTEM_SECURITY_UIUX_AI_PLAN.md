@@ -19,7 +19,7 @@ An exhaustive security and architectural audit was performed across all director
 | ID | Component | Vulnerability / Risk | Attack Vector / Impact | Remediation Plan |
 |---|---|---|---|---|
 | **SEC-01** | `server/src/routes/index.js` | **Server Crash Bug (`ReferenceError: env is not defined`)** | Line 32 in `routes/index.js` accesses `env.env` in `/health` route, but `const env = require('../config/env');` is **not imported**. Calling `GET /api/health` immediately crashes the request handler with a 500 error. | Import `env` at top of `routes/index.js` and add a regression test. |
-| **SEC-02** | `server/.env` & Git History | **Exposed Production Secrets & Credentials** | Plaintext TiDB Cloud connection URI, passwords, JWT secrets, Gmail SMTP App Password (`otjs xmia kiqq qoup`), Cloudinary API secret, and Groq API Key entered in chat. | 1. Immediately rotate all leaked keys (TiDB, Gmail, Cloudinary, Groq).<br/>2. Add automated secret scanning (`git-secrets` / pre-commit).<br/>3. Verify `.env` is permanently removed from git cache. |
+| **SEC-02** | `server/.env` & Git History | **Exposed Production Secrets & Credentials** | Plaintext TiDB Cloud connection URI, passwords, JWT secrets, Gmail SMTP App Password (redacted), Cloudinary API secret, and Groq API Key entered in chat. | 1. Immediately rotate all leaked keys (TiDB, Gmail, Cloudinary, Groq).<br/>2. Add automated secret scanning (`git-secrets` / pre-commit).<br/>3. Verify `.env` is permanently removed from git cache. |
 | **SEC-03** | `server/src/config/cors.js` | **Permissive Vercel Preview CORS Wildcard** | Regex `/^https:\/\/[a-z0-9-]+.*\.vercel\.app$/i` allows **any** malicious third-party site hosted on Vercel to bypass CORS and make credentialed requests (`credentials: true`) to TradeLink API. | Restrict preview matching strictly to your team's project slug: `/^https:\/\/tradelink-[a-z0-9-]+-drib14\.vercel\.app$/i`. |
 
 ---
@@ -242,7 +242,7 @@ gantt
    ```
 2. **Configure Backend Environment Variables (`server/.env`)**:
    ```env
-   GROQ_API_KEY=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
+   GROQ_API_KEY=your_groq_api_key_here
    GROQ_MODEL=llama-3.3-70b-versatile
    GROQ_BASE_URL=https://api.groq.com/openai/v1
    ```

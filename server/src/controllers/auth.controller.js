@@ -367,7 +367,7 @@ const verifyResetCode = asyncHandler(async (req, res, next) => {
   const cleanEmail = email.toLowerCase().trim();
   const user = await db('users').whereRaw('LOWER(email) = ?', [cleanEmail]).first();
   if (!user) {
-    return next(new AppError('Account not found.', 404));
+    return next(new AppError('Invalid email or verification code.', 400));
   }
 
   if (!user.reset_code_hash || !user.reset_code_exp || new Date() > new Date(user.reset_code_exp)) {
@@ -418,7 +418,7 @@ const resetPassword = asyncHandler(async (req, res, next) => {
   const cleanEmail = email.toLowerCase().trim();
   const user = await db('users').whereRaw('LOWER(email) = ?', [cleanEmail]).first();
   if (!user) {
-    return next(new AppError('Account not found.', 404));
+    return next(new AppError('Invalid email or verification code.', 400));
   }
 
   if (!user.reset_code_hash || !user.reset_code_exp || new Date() > new Date(user.reset_code_exp)) {

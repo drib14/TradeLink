@@ -100,7 +100,7 @@ describe('Security Test: Hardened Authentication & Attack Prevention', () => {
       const tokenV1 = jwt.sign(
         { userId: 'usr-revoke-test', role: 'student', campus: 'UC Main', tokenVersion: 1 },
         env.jwt.accessSecret,
-        { expiresIn: '15m' }
+        { expiresIn: '15m', issuer: 'tradelink-api' }
       );
 
       const req = {

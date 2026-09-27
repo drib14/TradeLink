@@ -531,7 +531,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
   }
 
   return (
-    <div className="container" style={{ padding: '1.25rem 1rem 3rem 1rem', maxWidth: '1360px' }}>
+    <div className="container" style={{ padding: 'clamp(1rem, 2vw, 1.5rem) 0 3rem 0' }}>
       {/* Page Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
         <div>

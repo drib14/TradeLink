@@ -250,10 +250,10 @@ export const FlashRequestDetailPage: React.FC<FlashRequestDetailPageProps> = ({
   return (
     <div
       className="container page-enter"
-      style={{ padding: '1.75rem 1.5rem 5rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}
+      style={{ padding: 'clamp(1rem, 2.5vw, 1.75rem) 0 5rem 0', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}
     >
       {/* Top Breadcrumb & Quick Actions */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+      <div className="product-breadcrumb-bar">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
           <button
             onClick={() => onNavigate('flash-market')}
@@ -441,7 +441,7 @@ export const FlashRequestDetailPage: React.FC<FlashRequestDetailPageProps> = ({
       </div>
 
       {/* Main Grid: Left Details & Right Actions/Requester */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', alignItems: 'start' }}>
+      <div className="flash-detail-grid">
         {/* Left Column: Media Preview, Need Details, Academic Context */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {/* Media Container */}

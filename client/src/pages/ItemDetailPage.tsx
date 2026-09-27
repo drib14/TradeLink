@@ -223,14 +223,15 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
 
   if (isFetchingListing && !listing) {
     return (
-      <div className="container" style={{ padding: '3rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-        <div style={{ height: '28px', width: '160px', backgroundColor: 'var(--bg-subtle, #F1F5F9)', borderRadius: '6px' }} />
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem' }}>
-          <div style={{ height: '360px', backgroundColor: 'var(--bg-subtle, #F1F5F9)', borderRadius: '12px' }} />
+      <div className="container page-enter" style={{ padding: 'clamp(1rem, 2.5vw, 2rem) 0 5rem 0', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+        <div className="product-breadcrumb-bar" style={{ height: '42px', opacity: 0.6 }} />
+        <div className="product-detail-grid">
+          <div style={{ height: '420px', backgroundColor: 'var(--bg-subtle, #F1F5F9)', borderRadius: '16px', border: '1px solid var(--border-subtle)' }} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div style={{ height: '32px', width: '85%', backgroundColor: 'var(--bg-subtle, #F1F5F9)', borderRadius: '6px' }} />
-            <div style={{ height: '48px', width: '50%', backgroundColor: 'var(--bg-subtle, #F1F5F9)', borderRadius: '6px' }} />
-            <div style={{ height: '140px', backgroundColor: 'var(--bg-subtle, #F1F5F9)', borderRadius: '8px' }} />
+            <div style={{ height: '24px', width: '40%', backgroundColor: 'var(--bg-subtle, #F1F5F9)', borderRadius: '6px' }} />
+            <div style={{ height: '36px', width: '85%', backgroundColor: 'var(--bg-subtle, #F1F5F9)', borderRadius: '8px' }} />
+            <div style={{ height: '72px', width: '100%', backgroundColor: 'var(--bg-subtle, #F1F5F9)', borderRadius: '12px' }} />
+            <div style={{ height: '160px', width: '100%', backgroundColor: 'var(--bg-subtle, #F1F5F9)', borderRadius: '12px' }} />
           </div>
         </div>
       </div>
@@ -339,7 +340,7 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
   };
 
   return (
-    <div className="container page-enter" style={{ padding: '2rem 1.5rem 5rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+    <div className="container page-enter" style={{ padding: 'clamp(1rem, 2.5vw, 2rem) 0 5rem 0', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
       {/* Back Navigation & Breadcrumb */}
       <div className="product-breadcrumb-bar">
         <button
@@ -390,8 +391,47 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
                     src={currentMediaUrl}
                     alt={listing.title}
                     onClick={() => setIsLightboxOpen(true)}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'zoom-in' }}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'zoom-in', transition: 'transform 0.3s ease' }}
                   />
+                )}
+
+                {/* Floating Previous Image Arrow */}
+                {listing.images.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveImageIdx((prev) => (prev - 1 + listing.images.length) % listing.images.length);
+                    }}
+                    className="product-gallery-nav-btn prev"
+                    aria-label="Previous image"
+                    title="Previous image"
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+                )}
+
+                {/* Floating Next Image Arrow */}
+                {listing.images.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveImageIdx((prev) => (prev + 1) % listing.images.length);
+                    }}
+                    className="product-gallery-nav-btn next"
+                    aria-label="Next image"
+                    title="Next image"
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+                )}
+
+                {/* Image Counter Badge */}
+                {listing.images.length > 1 && (
+                  <div className="product-gallery-counter">
+                    {activeImageIdx + 1} / {listing.images.length}
+                  </div>
                 )}
 
                 {/* Sold Out Dark Overlay */}
@@ -400,8 +440,8 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
                     style={{
                       position: 'absolute',
                       inset: 0,
-                      backgroundColor: 'rgba(15, 23, 42, 0.6)',
-                      backdropFilter: 'blur(2px)',
+                      backgroundColor: 'rgba(15, 23, 42, 0.65)',
+                      backdropFilter: 'blur(3px)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -413,10 +453,10 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
                       style={{
                         backgroundColor: '#DC2626',
                         color: '#FFFFFF',
-                        padding: '0.45rem 1.25rem',
+                        padding: '0.5rem 1.4rem',
                         borderRadius: '24px',
                         fontWeight: 900,
-                        fontSize: '0.9rem',
+                        fontSize: '0.92rem',
                         letterSpacing: '0.08em',
                         textTransform: 'uppercase',
                         boxShadow: '0 4px 14px rgba(0, 0, 0, 0.35)',
@@ -437,18 +477,19 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
                       left: '12px',
                       backgroundColor: '#002B7F',
                       color: '#FFC72C',
-                      padding: '0.25rem 0.65rem',
-                      borderRadius: '6px',
-                      fontSize: '0.72rem',
+                      padding: '0.3rem 0.75rem',
+                      borderRadius: '8px',
+                      fontSize: '0.74rem',
                       fontWeight: 800,
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.3rem',
+                      gap: '0.35rem',
                       letterSpacing: '0.04em',
-                      zIndex: 3
+                      zIndex: 3,
+                      boxShadow: '0 2px 8px rgba(0, 43, 127, 0.35)'
                     }}
                   >
-                    <ArrowLeftRight size={12} /> FOR SWAP / BARTER
+                    <ArrowLeftRight size={13} /> FOR SWAP / BARTER
                   </div>
                 ) : listing.tradeMode === 'free_donation' ? (
                   <div
@@ -458,17 +499,18 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
                       left: '12px',
                       backgroundColor: '#059669',
                       color: '#FFFFFF',
-                      padding: '0.25rem 0.65rem',
-                      borderRadius: '6px',
-                      fontSize: '0.72rem',
+                      padding: '0.3rem 0.75rem',
+                      borderRadius: '8px',
+                      fontSize: '0.74rem',
                       fontWeight: 800,
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.3rem',
-                      zIndex: 3
+                      gap: '0.35rem',
+                      zIndex: 3,
+                      boxShadow: '0 2px 8px rgba(5, 150, 105, 0.35)'
                     }}
                   >
-                    <Gift size={12} /> FREE DONATION
+                    <Gift size={13} /> FREE DONATION
                   </div>
                 ) : currentIsVideo ? (
                   <div
@@ -476,19 +518,20 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
                       position: 'absolute',
                       top: '12px',
                       left: '12px',
-                      backgroundColor: 'rgba(0,0,0,0.7)',
+                      backgroundColor: 'rgba(15, 23, 42, 0.8)',
+                      backdropFilter: 'blur(4px)',
                       color: '#FFFFFF',
-                      padding: '0.25rem 0.65rem',
-                      borderRadius: '6px',
-                      fontSize: '0.72rem',
+                      padding: '0.3rem 0.75rem',
+                      borderRadius: '8px',
+                      fontSize: '0.74rem',
                       fontWeight: 800,
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.3rem',
+                      gap: '0.35rem',
                       zIndex: 3
                     }}
                   >
-                    <Film size={12} /> PRODUCT SAMPLE VIDEO
+                    <Film size={13} /> VIDEO PREVIEW
                   </div>
                 ) : null}
 
@@ -499,20 +542,21 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
                     position: 'absolute',
                     bottom: '12px',
                     right: '12px',
-                    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+                    backgroundColor: 'rgba(15, 23, 42, 0.7)',
                     color: '#FFFFFF',
-                    padding: '0.35rem',
-                    borderRadius: '6px',
+                    padding: '0.45rem',
+                    borderRadius: '8px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backdropFilter: 'blur(4px)',
+                    backdropFilter: 'blur(6px)',
                     cursor: 'pointer',
-                    zIndex: 3
+                    zIndex: 3,
+                    transition: 'all 0.18s ease'
                   }}
-                  title="Expand preview"
+                  title="Expand photo view"
                 >
-                  <Maximize2 size={14} />
+                  <Maximize2 size={15} />
                 </div>
               </div>
             );
@@ -531,19 +575,10 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
                 return (
                   <button
                     key={idx}
+                    type="button"
                     onClick={() => setActiveImageIdx(idx)}
-                    style={{
-                      width: '64px',
-                      height: '64px',
-                      borderRadius: '8px',
-                      overflow: 'hidden',
-                      border: activeImageIdx === idx ? '2.5px solid var(--uc-blue)' : '1px solid var(--border-subtle)',
-                      padding: 0,
-                      cursor: 'pointer',
-                      position: 'relative',
-                      flexShrink: 0,
-                      backgroundColor: '#0F172A'
-                    }}
+                    className={`product-gallery-thumb-btn ${activeImageIdx === idx ? 'active' : ''}`}
+                    aria-label={`Select photo ${idx + 1}`}
                   >
                     {isThumbVid ? (
                       <>
@@ -561,23 +596,30 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
             </div>
           )}
 
-          {/* Campus Meetup Safety */}
+          {/* Campus Meetup Safety Guarantee Card */}
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '0.45rem',
-              padding: '0.5rem 0.75rem',
-              backgroundColor: 'var(--bg-subtle, #F8FAFC)',
-              borderRadius: '8px',
-              border: '1px solid var(--border-subtle, #E2E8F0)',
-              fontSize: '0.76rem',
-              color: 'var(--text-muted, #64748B)',
-              marginTop: '0.25rem'
+              gap: '0.6rem',
+              padding: '0.75rem 1rem',
+              backgroundColor: '#FFFFFF',
+              borderRadius: '12px',
+              border: '1px solid #E2E8F0',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)'
             }}
           >
-            <ShieldCheck size={15} color="var(--uc-blue, #002B7F)" style={{ flexShrink: 0 }} />
-            <span>On-campus student meetup & inspection verified</span>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <ShieldCheck size={18} color="var(--uc-blue, #002B7F)" />
+            </div>
+            <div>
+              <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                University of Cebu Safe Trade
+              </div>
+              <div style={{ fontSize: '0.73rem', color: 'var(--text-muted)' }}>
+                Physical inspection & handover directly at campus landmark spots
+              </div>
+            </div>
           </div>
         </div>
 

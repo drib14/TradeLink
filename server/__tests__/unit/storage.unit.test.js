@@ -10,7 +10,9 @@ describe('Unit Test: Cloudinary Object Storage & Local Fallback Security', () =>
   describe('Credential Leak Prevention & Zero Secret Exposure', () => {
     it('should never expose tokens, secret keys, or query credentials in generated URLs', () => {
       const url = storageService.buildPublicUrl('tradelink/listings/sample-uuid.jpg');
-      expect(url).not.toContain('8bzdy9kQjlWHTx6DhOsxOGHqSEo');
+      if (process.env.CLOUDINARY_API_SECRET) {
+        expect(url).not.toContain(process.env.CLOUDINARY_API_SECRET);
+      }
       expect(url).not.toContain('secret');
       expect(url).not.toContain('api_secret');
       expect(url).toMatch(/(tradelink\/listings\/sample-uuid\.jpg|\/uploads\/)/);
@@ -19,7 +21,9 @@ describe('Unit Test: Cloudinary Object Storage & Local Fallback Security', () =>
     it('should return safe diagnostic object from testCloudinaryConnection without leaking secrets', async () => {
       const diag = await storageService.testCloudinaryConnection();
       const stringified = JSON.stringify(diag);
-      expect(stringified).not.toContain('8bzdy9kQjlWHTx6DhOsxOGHqSEo');
+      if (process.env.CLOUDINARY_API_SECRET) {
+        expect(stringified).not.toContain(process.env.CLOUDINARY_API_SECRET);
+      }
       expect(stringified).not.toContain('api_secret');
       expect(diag).toHaveProperty('storage');
       expect(diag).toHaveProperty('message');
@@ -33,7 +37,10 @@ describe('Unit Test: Cloudinary Object Storage & Local Fallback Security', () =>
       expect(result).toHaveProperty('url');
       expect(result).toHaveProperty('key');
       expect(result).toHaveProperty('filename');
-      expect(result.url).not.toContain('8bzdy9kQjlWHTx6DhOsxOGHqSEo');
+      if (process.env.CLOUDINARY_API_SECRET) {
+        expect(result.url).not.toContain(process.env.CLOUDINARY_API_SECRET);
+      }
+      expect(result.url).not.toMatch(/api_secret|apiSecret/i);
 
       // If local storage, verify file was written to disk
       if (result.storage === 'local') {
@@ -51,7 +58,10 @@ describe('Unit Test: Cloudinary Object Storage & Local Fallback Security', () =>
 
       expect(typeof uploadedUrl).toBe('string');
       expect(uploadedUrl.startsWith('data:')).toBe(false);
-      expect(uploadedUrl).not.toContain('8bzdy9kQjlWHTx6DhOsxOGHqSEo');
+      if (process.env.CLOUDINARY_API_SECRET) {
+        expect(uploadedUrl).not.toContain(process.env.CLOUDINARY_API_SECRET);
+      }
+      expect(uploadedUrl).not.toMatch(/api_secret|apiSecret/i);
 
       // Clean up
       await storageService.deleteFile(uploadedUrl);

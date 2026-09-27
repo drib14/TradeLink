@@ -28,7 +28,6 @@ router.get('/health', async (req, res) => {
   const dbHealth = await db.testConnection();
   res.status(dbHealth.ok ? 200 : 503).json({
     status: dbHealth.ok ? 'ok' : 'degraded',
-    database: dbHealth.ok ? 'connected' : 'unavailable',
     timestamp: new Date().toISOString()
   });
 });

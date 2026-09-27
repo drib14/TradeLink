@@ -111,6 +111,6 @@ const config = {
 };
 
 // Startup log so you can verify what's active
-console.log(`[ENV] Mode: ${envMode} | DB: ${config.db.connectionString ? 'DATABASE_URL (cloud)' : `${config.db.host}:${config.db.port}/${config.db.database} (local)`} | App: ${config.appUrl} | Cookie: ${config.cookieSameSite}`);
+console.log(`[ENV] Mode: ${envMode} | DB: ${config.db.connectionString ? 'cloud (TLS)' : 'local'} | App: ${config.appUrl} | Cookie: ${config.cookieSameSite}`);
 
 module.exports = config;

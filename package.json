@@ -1,4 +1,10 @@
 {
+  "name": "tradelink",
+  "private": true,
+  "scripts": {
+    "check:secrets": "node scripts/check-secrets.js --all",
+    "precommit": "node scripts/check-secrets.js"
+  },
   "devDependencies": {
     "@types/react": "^19.2.18"
   }
