@@ -165,32 +165,12 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({
           {swapListings.length > 0 ? (
             <div className="grid-responsive-listings">
               {swapListings.map((item: Listing) => (
-                <div key={item.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                  <ListingCard
-                    listing={item}
-                    onClick={() => onNavigate('item-detail', { id: item.id })}
-                  />
-                  {(!currentUser || item.sellerId !== currentUser.id) && (
-                    <button
-                      onClick={() => handleProposeClick(item)}
-                      className="btn-secondary"
-                      style={{
-                        padding: '0.45rem 0.75rem',
-                        fontSize: '0.8rem',
-                        fontWeight: 700,
-                        width: '100%',
-                        borderRadius: '8px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '0.4rem'
-                      }}
-                    >
-                      <ArrowLeftRight size={13} style={{ flexShrink: 0 }} />
-                      <span>Propose Direct Swap</span>
-                    </button>
-                  )}
-                </div>
+                <ListingCard
+                  key={item.id}
+                  listing={item}
+                  onClick={() => onNavigate('item-detail', { id: item.id })}
+                  onNavigate={onNavigate}
+                />
               ))}
             </div>
           ) : (

@@ -1102,7 +1102,7 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
                 <div className="product-seller-meta">
                   <div className="product-seller-name">
                     <span>{listing.sellerName}</span>
-                    {listing.isVerified && <VerifiedBadge size="xs" variant="green" />}
+                    {listing.sellerIsVerified && <VerifiedBadge size="xs" variant="green" />}
                   </div>
                   <div className="product-seller-sub">
                     {listing.sellerCollege || 'University of Cebu'} • {listing.sellerCampus}

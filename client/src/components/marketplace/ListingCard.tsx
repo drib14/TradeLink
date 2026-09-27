@@ -362,13 +362,6 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick, onNa
             </div>
           </div>
 
-          {/* Low Stock Warning */}
-          {listing.quantity !== undefined && !isSoldOut && listing.quantity <= 3 && (
-            <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#EA580C', marginTop: '0.1rem' }}>
-              Only {listing.quantity} {listing.quantity === 1 ? 'item' : 'items'} left!
-            </div>
-          )}
-
           {/* Action CTA Button */}
           <div style={{ paddingTop: '0.35rem', marginTop: '0.15rem' }}>
             {isOwner ? (

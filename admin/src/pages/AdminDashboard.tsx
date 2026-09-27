@@ -603,21 +603,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
           <TradeLinkIcon size={44} style={{ marginTop: '0.15rem' }} />
           <div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#002B7F', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', backgroundColor: '#EBF1FC', padding: '0.2rem 0.65rem', borderRadius: '6px', border: '1px solid #BCD1F7' }}>
-              <ShieldAlert size={13} color="#002B7F" /> University of Cebu Moderation Desk
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#002B7F', fontSize: '0.74rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', backgroundColor: '#EBF1FC', padding: '0.2rem 0.6rem', borderRadius: '6px', border: '1px solid #BCD1F7' }}>
+              <Shield size={13} color="#002B7F" /> University of Cebu Admin
             </div>
-            <h1 style={{ fontSize: '1.85rem', fontWeight: 900, color: '#0F172A', marginTop: '0.35rem', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', lineHeight: 1.15 }}>
-              Campus Administration & Safety Center
+            <h1 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#0F172A', marginTop: '0.35rem', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', lineHeight: 1.15 }}>
+              Campus Administration & Safety
             </h1>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.82rem', color: '#64748B' }}>
-              Logged in as: <strong style={{ color: '#002B7F' }}>{currentUser?.name || 'UC Admin Moderator'}</strong> ({currentUser?.email ? <code>{currentUser.email}</code> : 'Authenticated'})
-            </span>
-            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#059669', backgroundColor: '#ECFDF5', padding: '0.15rem 0.5rem', borderRadius: '4px' }}>
-              ● All 8 Campuses Moderation Active
-            </span>
+              <span style={{ fontSize: '0.82rem', color: '#64748B' }}>
+                Moderator: <strong style={{ color: '#002B7F' }}>{currentUser?.name || 'UC Admin'}</strong> ({currentUser?.email || 'Authenticated'})
+              </span>
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#059669', backgroundColor: '#ECFDF5', padding: '0.15rem 0.5rem', borderRadius: '4px' }}>
+                ● Active
+              </span>
+            </div>
           </div>
-        </div>
       </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
@@ -668,7 +668,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
       >
         {[
           { id: 'overview', label: 'Overview', icon: <TrendingUp size={14} /> },
-          { id: 'verifications', label: 'ID Verifications (Disabled)', icon: <BadgeCheck size={14} /> },
+          { id: 'verifications', label: 'ID Verifications', icon: <BadgeCheck size={14} /> },
           { id: 'users', label: `Users & Moderation (${allUsers.length})`, icon: <UserCheck size={14} /> },
           { id: 'listings', label: `Listings & Flags (${pendingFlagsCount})`, icon: <ShieldAlert size={14} /> },
           { id: 'scanner', label: `Prohibited Scanner (${scannedViolations.length})`, icon: <Shield size={14} /> },
@@ -799,10 +799,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
               <div>
                 <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-                  <ShieldAlert size={18} color="#DC2626" /> Live Safety &amp; Moderation Queue
+                  <Shield size={18} color="#002B7F" /> Moderation Queue
                 </h3>
                 <p style={{ fontSize: '0.78rem', color: '#64748B', margin: '0.2rem 0 0 0' }}>
-                  Items requiring immediate moderator attention across student verifications and reported listings
+                  Student verifications and reported listings requiring review
                 </p>
               </div>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
