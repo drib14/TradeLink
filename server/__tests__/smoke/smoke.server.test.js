@@ -107,20 +107,6 @@ describe('Tier 1: Server API Smoke Tests', () => {
     });
   });
 
-  describe('5. Meetup Routes Smoke', () => {
-    it('GET /api/meetups should reject unauthenticated request with 401', async () => {
-      const res = await request(app).get('/api/meetups');
-      expect(res.status).toBe(401);
-    });
-
-    it('POST /api/meetups should reject unauthenticated request with 401', async () => {
-      const res = await request(app)
-        .post('/api/meetups')
-        .send({ location: 'Campus Gate 1' });
-      expect(res.status).toBe(401);
-    });
-  });
-
   describe('6. Chat Routes Smoke', () => {
     it('GET /api/chat/conversations should reject unauthenticated request with 401', async () => {
       const res = await request(app).get('/api/chat/conversations');
@@ -149,18 +135,18 @@ describe('Tier 1: Server API Smoke Tests', () => {
     });
   });
 
-  describe('8. Wanted Board Routes Smoke', () => {
-    it('GET /api/wanted should return 200 for public requests feed (or 500/503 if DB offline)', async () => {
-      const res = await request(app).get('/api/wanted');
+  describe('8. Flash Market Routes Smoke', () => {
+    it('GET /api/flash-market should return 200 for public requests feed (or 500/503 if DB offline)', async () => {
+      const res = await request(app).get('/api/flash-market');
       expect([200, 500, 503]).toContain(res.status);
       if (res.status === 200) {
         expect(res.body.status).toBe('success');
       }
     });
 
-    it('POST /api/wanted should reject unauthenticated request with 401', async () => {
+    it('POST /api/flash-market should reject unauthenticated request with 401', async () => {
       const res = await request(app)
-        .post('/api/wanted')
+        .post('/api/flash-market')
         .send({ itemTitle: 'Calculator' });
       expect(res.status).toBe(401);
     });

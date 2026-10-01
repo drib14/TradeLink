@@ -457,6 +457,3 @@ export const CreateFlashRequestModal: React.FC<CreateFlashRequestModalProps> = (
     </div>
   );
 };
-
-// Backward compatibility alias
-export const CreateWantedModal = CreateFlashRequestModal;

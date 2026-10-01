@@ -70,7 +70,7 @@ const pathToView = (path: string, search: string = window.location.search): { vi
     const mode = searchParams.get('mode') || (cleanLower === 'swap-item' || cleanLower === 'post-swap' ? 'swap' : cleanLower === 'sell' ? 'sell' : undefined);
     return { view: 'create-listing', params: { mode } };
   }
-  if (cleanLower === 'flash-market' || cleanLower === 'flash' || cleanLower === 'wanted' || cleanLower === 'requests' || cleanLower === 'pasabuy' || cleanLower === 'urgent') return { view: 'flash-market', params: {} };
+  if (cleanLower === 'flash-market' || cleanLower === 'flash' || cleanLower === 'requests' || cleanLower === 'pasabuy' || cleanLower === 'urgent') return { view: 'flash-market', params: {} };
   if (cleanLower === 'swaps' || cleanLower === 'barter') return { view: 'swaps', params: {} };
   if (cleanLower === 'meetups' || cleanLower === 'transactions' || cleanLower === 'history') return { view: 'transactions', params: {} };
   if (cleanLower === 'about') return { view: 'about', params: {} };
@@ -127,7 +127,7 @@ export const MainApp: React.FC = () => {
   const handleNavigate = (view: string, params: any = {}) => {
     const validViews = [
       'home', 'marketplace', 'item-detail', 'create-listing', 'flash-market',
-      'flash-detail', 'wanted', 'swaps', 'meetups', 'transactions', 'profile', 'about',
+      'flash-detail', 'swaps', 'meetups', 'transactions', 'profile', 'about',
       'developers', 'faq', 'help-safety', 'terms', 'privacy', 'favorites',
       'settings', 'maintenance', 'messages', 'not-found'
     ];
@@ -204,7 +204,6 @@ export const MainApp: React.FC = () => {
                 />
               );
             case 'flash-market':
-            case 'wanted':
               return (
                 <FlashMarketPage
                   onNavigate={handleNavigate}

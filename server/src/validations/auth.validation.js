@@ -26,14 +26,13 @@ const registerSchema = Joi.object({
   campus: Joi.string().valid(...CAMPUSES).required().messages({
     'any.only': 'Please select a valid University of Cebu campus.'
   }),
-  college: Joi.string().trim().max(50).required().messages({
-    'string.empty': 'College / Department is required.'
-  }),
-  yearLevel: Joi.string().trim().max(50).required().messages({
-    'string.empty': 'Year level is required.'
-  }),
+  department: Joi.string().trim().max(100),
+  college: Joi.string().trim().max(100),
+  yearLevel: Joi.string().trim().max(50).allow('', null),
   avatar: Joi.string().uri().allow('', null),
   idPhotoUrl: Joi.string().uri().allow('', null)
+}).or('department', 'college').messages({
+  'object.missing': 'Department is required.'
 });
 
 const loginSchema = Joi.object({
@@ -91,8 +90,9 @@ const updateProfileSchema = Joi.object({
   bio: Joi.string().trim().max(1000).allow(''),
   avatar: Joi.string().uri().allow('', null),
   campus: Joi.string().valid(...CAMPUSES),
-  college: Joi.string().trim().max(50),
-  yearLevel: Joi.string().trim().max(50)
+  department: Joi.string().trim().max(100),
+  college: Joi.string().trim().max(100),
+  yearLevel: Joi.string().trim().max(50).allow('', null)
 });
 
 const adminLoginSchema = Joi.object({

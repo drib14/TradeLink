@@ -19,7 +19,7 @@ DELETE FROM `conversations`;
 DELETE FROM `transactions`;
 DELETE FROM `swap_offers`;
 DELETE FROM `flash_requests`;
-DELETE FROM `wanted_requests` WHERE EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'wanted_requests');
+DELETE FROM `listing_views`;
 DELETE FROM `listing_media`;
 DELETE FROM `listings`;
 DELETE FROM `verification_requests`;
@@ -31,7 +31,6 @@ DELETE FROM `prohibited_keywords`;
 DELETE FROM `password_reset_requests`;
 DELETE FROM `feature_flags`;
 DELETE FROM `system_config`;
-DELETE FROM `newsletter_subscribers` WHERE EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'newsletter_subscribers');
 DELETE FROM `users`;
 
 -- ----------------------------------------------------------------------------
@@ -103,9 +102,9 @@ DEALLOCATE PREPARE alterIfNotExists;
 -- Admin ID: ADMIN001
 
 INSERT INTO `users` (
-  `id`, `name`, `email`, `student_id`, `password_hash`, `role`, `campus`, `college`, `year_level`,
+  `id`, `name`, `email`, `student_id`, `password_hash`, `role`, `campus`, `department`,
   `avatar_url`, `is_verified`, `id_photo_url`, `trust_score`, `rating`, `total_reviews`,
-  `completed_trades`, `punctuality_rate`, `bio`, `is_pro_merchant`, `is_banned`, `token_version`
+  `completed_trades`, `punctuality_rate`, `bio`, `is_banned`, `token_version`
 ) VALUES (
   'user-admin',
   'UC Campus Moderation',
@@ -115,17 +114,15 @@ INSERT INTO `users` (
   'admin',
   'UC Main',
   'CCS',
-  'Faculty / Staff',
   'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
   1,
   'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80',
   100,
-  5.0,
+  0.0,
   0,
   0,
   100,
   'Official University of Cebu Campus Moderation & Safety Desk. Direct peer-to-peer student verification.',
-  0,
   0,
   1
 );
@@ -134,10 +131,10 @@ INSERT INTO `users` (
 -- 3. SEED CAMPUS ANNOUNCEMENTS
 -- ----------------------------------------------------------------------------
 
-INSERT INTO `announcements` (`id`, `title`, `message`, `campus`, `type`, `author_id`, `author_name`, `is_active`) VALUES
-('ann-1', 'Official Campus Safety Trading Protocol', 'All student exchanges must be scheduled at guarded campus hubs (canteen, campus library entrance, or student center) during operational school hours. Always inspect items before concluding transactions.', 'All', 'alert', 'user-admin', 'UC Moderation Desk', 1),
-('ann-2', 'Midterm Examination Academic Resource Desk Active', 'Students seeking calculators, reviewers, and engineering supplies can use Flash Market for urgent same-day peer requests across all 8 University of Cebu campuses.', 'All', 'info', 'user-admin', 'UC Moderation Desk', 1),
-('ann-3', 'High School Textbook & PE Gear Swap Portal Live', 'TradeLink now fully supports textbook exchanges for UC PRI and UC South Campus basic education students with zero platform fees.', 'UC PRI', 'info', 'user-admin', 'Campus Coordinator', 1);
+INSERT INTO `announcements` (`id`, `title`, `message`, `campus`, `type`, `author_id`, `is_active`) VALUES
+('ann-1', 'Official Campus Safety Trading Protocol', 'All student exchanges must be scheduled at guarded campus hubs (canteen, campus library entrance, or student center) during operational school hours. Always inspect items before concluding transactions.', 'All', 'alert', 'user-admin', 1),
+('ann-2', 'Midterm Examination Academic Resource Desk Active', 'Students seeking calculators, reviewers, and engineering supplies can use Flash Market for urgent same-day peer requests across all 8 University of Cebu campuses.', 'All', 'info', 'user-admin', 1),
+('ann-3', 'High School Textbook & PE Gear Swap Portal Live', 'TradeLink now fully supports textbook exchanges for UC PRI and UC South Campus basic education students with zero platform fees.', 'UC PRI', 'info', 'user-admin', 1);
 
 -- ----------------------------------------------------------------------------
 -- 4. SEED ADMIN AUDIT LOGS

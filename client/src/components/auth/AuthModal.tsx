@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../common/Toast';
-import { Campus, College } from '../../types';
+import { Campus } from '../../types';
 import {
   X,
   Check,
@@ -46,8 +46,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [regCampus, setRegCampus] = useState<Campus>('UC Main');
-  const [regCollege, setRegCollege] = useState<College>('CCS');
-  const [regYearLevel, setRegYearLevel] = useState('2nd Year College');
+  const [regDepartment, setRegDepartment] = useState('');
 
   // Password Recovery inputs (Forgot -> Verify Code -> Reset)
   const [forgotEmail, setForgotEmail] = useState('');
@@ -105,51 +104,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }, 80);
     }
   }, [mode]);
-
-  // Helper to filter department options dynamically by year level
-  const getDepartmentsForYearLevel = (year: string): { value: College; label: string }[] => {
-    if (year.includes('Grade 7') || year.includes('Grade 8') || year.includes('Grade 9') || year.includes('Grade 10') || year.includes('Junior High')) {
-      return [
-        { value: 'Junior High School', label: 'Junior High School General' },
-        { value: 'Junior High (Grade 7-10)', label: 'Junior High (Grades 7–10 Academics)' }
-      ];
-    }
-    if (year.includes('Grade 11') || year.includes('Grade 12') || year.includes('SHS') || year.includes('Senior High')) {
-      return [
-        { value: 'Senior High (STEM)', label: 'Senior High - STEM Strand' },
-        { value: 'Senior High (ABM)', label: 'Senior High - ABM Strand' },
-        { value: 'Senior High (HUMSS)', label: 'Senior High - HUMSS Strand' },
-        { value: 'Senior High (TVL/GAS)', label: 'Senior High - TVL / GAS Strand' },
-        { value: 'Senior High School', label: 'Senior High General' }
-      ];
-    }
-    if (year.includes('Law')) {
-      return [{ value: 'Law', label: 'College of Law (Juris Doctor)' }];
-    }
-    if (year.includes('Medicine')) {
-      return [{ value: 'Medicine', label: 'College of Medicine (MD)' }];
-    }
-    return [
-      { value: 'CCS', label: 'CCS (Computer Studies)' },
-      { value: 'Engineering', label: 'College of Engineering' },
-      { value: 'Nursing', label: 'College of Nursing' },
-      { value: 'CBA', label: 'CBA (Business Administration)' },
-      { value: 'Maritime', label: 'Maritime Education' },
-      { value: 'Criminology', label: 'College of Criminology' },
-      { value: 'Arts & Sciences', label: 'Arts & Sciences' },
-      { value: 'Education', label: 'College of Education' },
-      { value: 'Hospitality & Tourism', label: 'Hospitality & Tourism' },
-      { value: 'General Student', label: 'General / Other Program' }
-    ];
-  };
-
-  const handleYearLevelChange = (newYear: string) => {
-    setRegYearLevel(newYear);
-    const availableDepts = getDepartmentsForYearLevel(newYear);
-    if (!availableDepts.some((d) => d.value === regCollege)) {
-      setRegCollege(availableDepts[0].value);
-    }
-  };
 
   if (!isOpen) return null;
 
@@ -213,8 +167,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         email: regEmail,
         password: regPassword,
         campus: regCampus,
-        college: regCollege,
-        yearLevel: regYearLevel
+        department: regDepartment.trim() || undefined
       });
 
       if (res.success) {
@@ -749,11 +702,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </div>
               </div>
 
-              {/* Academic Classification */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.65rem' }}>
+              {/* Campus and Department */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
-                    1. UC Campus *
+                    UC Campus *
                   </label>
                   <select
                     value={regCampus}
@@ -773,56 +726,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--uc-blue)', marginBottom: '0.3rem' }}>
-                    2. Year / Grade Level *
-                  </label>
-                  <select
-                    value={regYearLevel}
-                    onChange={(e) => handleYearLevelChange(e.target.value)}
-                    className="clean-input"
-                    style={{ fontWeight: 700, color: 'var(--uc-blue)' }}
-                    disabled={isSubmitting}
-                  >
-                    <optgroup label="Junior High School (JHS)">
-                      <option value="Grade 7 (Junior High)">Grade 7 (Junior High)</option>
-                      <option value="Grade 8 (Junior High)">Grade 8 (Junior High)</option>
-                      <option value="Grade 9 (Junior High)">Grade 9 (Junior High)</option>
-                      <option value="Grade 10 (Junior High)">Grade 10 (Junior High)</option>
-                    </optgroup>
-                    <optgroup label="Senior High School (SHS)">
-                      <option value="Grade 11 (Senior High)">Grade 11 (Senior High)</option>
-                      <option value="Grade 12 (Senior High)">Grade 12 (Senior High)</option>
-                    </optgroup>
-                    <optgroup label="College Undergraduate">
-                      <option value="1st Year College">1st Year College</option>
-                      <option value="2nd Year College">2nd Year College</option>
-                      <option value="3rd Year College">3rd Year College</option>
-                      <option value="4th Year College">4th Year College</option>
-                      <option value="5th Year College (Eng/Arch)">5th Year (Engineering/Arch)</option>
-                    </optgroup>
-                    <optgroup label="Post-Graduate / Professional">
-                      <option value="College of Law">College of Law (JD)</option>
-                      <option value="College of Medicine">College of Medicine (MD)</option>
-                    </optgroup>
-                  </select>
-                </div>
-
-                <div>
                   <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
-                    3. Department / Strand *
+                    Department / College / Strand
                   </label>
-                  <select
-                    value={regCollege}
-                    onChange={(e: any) => setRegCollege(e.target.value)}
+                  <input
+                    type="text"
+                    value={regDepartment}
+                    onChange={(e) => setRegDepartment(e.target.value)}
+                    placeholder="e.g. CCS, Engineering, Nursing"
                     className="clean-input"
                     disabled={isSubmitting}
-                  >
-                    {getDepartmentsForYearLevel(regYearLevel).map((dept) => (
-                      <option key={dept.value} value={dept.value}>
-                        {dept.label}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
               </div>
 

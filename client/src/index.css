@@ -757,47 +757,47 @@ input[type="range"]::-moz-range-thumb {
 .form-error { font-size: 0.75rem; color: var(--accent-red); font-weight: 600; }
 
 .grid-responsive-listings { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.25rem; width: 100%; }
-.grid-responsive-wanted { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; width: 100%; }
+.grid-responsive-flash, .grid-responsive-wanted { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; width: 100%; }
 .grid-responsive-proposals { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem; width: 100%; }
 .grid-responsive-transactions { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1rem; width: 100%; }
 
 @media (min-width: 2560px) {
   .grid-responsive-listings { grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 1.5rem; }
-  .grid-responsive-wanted { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1.5rem; }
+  .grid-responsive-flash, .grid-responsive-wanted { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1.5rem; }
   .grid-responsive-proposals { grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 1.25rem; }
   .grid-responsive-transactions { grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 1.25rem; }
 }
 @media (min-width: 2000px) and (max-width: 2559px) {
   .grid-responsive-listings { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 1.4rem; }
-  .grid-responsive-wanted { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1.4rem; }
+  .grid-responsive-flash, .grid-responsive-wanted { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1.4rem; }
   .grid-responsive-proposals { grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); }
   .grid-responsive-transactions { grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); }
 }
 @media (min-width: 1600px) and (max-width: 1999px) {
   .grid-responsive-listings { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1.35rem; }
-  .grid-responsive-wanted { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.35rem; }
+  .grid-responsive-flash, .grid-responsive-wanted { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.35rem; }
 }
 @media (min-width: 1280px) and (max-width: 1599px) {
   .grid-responsive-listings { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1.25rem; }
-  .grid-responsive-wanted { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.25rem; }
+  .grid-responsive-flash, .grid-responsive-wanted { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.25rem; }
 }
 @media (min-width: 992px) and (max-width: 1279px) {
   .grid-responsive-listings { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.15rem; }
-  .grid-responsive-wanted { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.15rem; }
+  .grid-responsive-flash, .grid-responsive-wanted { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.15rem; }
 }
 @media (min-width: 641px) and (max-width: 991px) {
   .grid-responsive-listings { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
-  .grid-responsive-wanted { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+  .grid-responsive-flash, .grid-responsive-wanted { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
 }
 @media (max-width: 640px) {
   .grid-responsive-listings { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.55rem; }
-  .grid-responsive-wanted { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.65rem; }
+  .grid-responsive-flash, .grid-responsive-wanted { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.65rem; }
   .grid-responsive-proposals, .grid-responsive-transactions { grid-template-columns: 1fr; gap: 0.75rem; }
   main { padding-bottom: calc(5.5rem + var(--safe-bottom)); }
 }
 @media (max-width: 359px) {
   .grid-responsive-listings { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.35rem; }
-  .grid-responsive-wanted { grid-template-columns: 1fr; gap: 0.5rem; }
+  .grid-responsive-flash, .grid-responsive-wanted { grid-template-columns: 1fr; gap: 0.5rem; }
 }
 
 .touch-scroll-row {

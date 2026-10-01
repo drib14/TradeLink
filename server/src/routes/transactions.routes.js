@@ -25,7 +25,4 @@ router.patch('/:id/cancel', transactionsController.cancelTransaction);
 // Update status (compatibility endpoint)
 router.patch('/:id/status', transactionsController.updateTransactionStatus);
 
-// Compatibility endpoints for previous meetup routes
-router.post('/:id/verify', transactionsController.completeTransaction);
-
 module.exports = router;

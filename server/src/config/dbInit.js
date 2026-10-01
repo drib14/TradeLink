@@ -63,17 +63,17 @@ async function autoInitDatabase() {
         CREATE TABLE IF NOT EXISTS \`password_reset_requests\` (
           \`id\` VARCHAR(36) NOT NULL PRIMARY KEY,
           \`user_id\` VARCHAR(36) NOT NULL,
-          \`email\` VARCHAR(150) NOT NULL,
           \`status\` ENUM('pending', 'approved', 'rejected', 'completed') NOT NULL DEFAULT 'pending',
           \`code_hash\` VARCHAR(255) DEFAULT NULL,
           \`code_exp\` DATETIME DEFAULT NULL,
           \`reviewed_by\` VARCHAR(36) DEFAULT NULL,
           \`admin_note\` VARCHAR(500) DEFAULT NULL,
           \`created_at\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          \`updated_at\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           \`reviewed_at\` DATETIME DEFAULT NULL,
           INDEX \`idx_pw_reset_user_id\` (\`user_id\`),
+          INDEX \`idx_pw_reset_reviewer\` (\`reviewed_by\`),
           INDEX \`idx_pw_reset_status\` (\`status\`),
-          INDEX \`idx_pw_reset_email\` (\`email\`),
           CONSTRAINT \`fk_pw_reset_user\` FOREIGN KEY (\`user_id\`) REFERENCES \`users\` (\`id\`) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
       `);
@@ -82,11 +82,7 @@ async function autoInitDatabase() {
 
     // 1c. Ensure flash_requests table and conversation foreign keys exist
     const hasFlash = await db.schema.hasTable('flash_requests').catch(() => false);
-    const hasWanted = await db.schema.hasTable('wanted_requests').catch(() => false);
-    if (hasWanted && !hasFlash) {
-      await db.schema.renameTable('wanted_requests', 'flash_requests').catch(() => {});
-      logger.info('[DB Init] Renamed wanted_requests to flash_requests.');
-    } else if (!hasFlash) {
+    if (!hasFlash) {
       await db.raw(`
         CREATE TABLE IF NOT EXISTS \`flash_requests\` (
           \`id\` VARCHAR(36) NOT NULL PRIMARY KEY,
@@ -352,18 +348,16 @@ async function autoInitDatabase() {
         password_hash: adminPasswordHash,
         role: 'admin',
         campus: 'UC Main',
-        college: 'CCS',
-        year_level: 'Faculty / Staff',
+        department: 'CCS',
         avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
         is_verified: true,
         id_photo_url: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80',
         trust_score: 100,
-        rating: 5.0,
+        rating: 0.0,
         total_reviews: 0,
         completed_trades: 0,
         punctuality_rate: 100,
         bio: 'Official TradeLink Administration & Moderation Desk.',
-        is_pro_merchant: false,
         is_banned: false
       });
       logger.info(`[DB Init] Created administrator: ${adminEmail}`);
@@ -382,7 +376,6 @@ async function autoInitDatabase() {
             maxImagesPerListing: 10,
             swapModeEnabled: true,
             flashMarketEnabled: true,
-            wantedBoardEnabled: true,
             freeDonationEnabled: true,
             maxListingsPerUser: 20
           }),
@@ -405,7 +398,6 @@ async function autoInitDatabase() {
             campus: 'All',
             type: 'alert',
             author_id: 'user-admin',
-            author_name: 'UC Administration',
             is_active: true
           },
           {
@@ -415,7 +407,6 @@ async function autoInitDatabase() {
             campus: 'UC PRI',
             type: 'info',
             author_id: 'user-admin',
-            author_name: 'High School Coordinator',
             is_active: true
           }
         ]);

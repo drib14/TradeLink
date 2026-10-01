@@ -317,7 +317,8 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
         sellerName: currentUser?.name,
         sellerAvatar: currentUser?.avatar,
         sellerCampus: currentUser?.campus,
-        sellerCollege: currentUser?.college,
+        sellerDepartment: currentUser?.department || currentUser?.college,
+        sellerCollege: currentUser?.department || currentUser?.college,
         sellerIsVerified: true,
         sellerTrustScore: 0,
         acceptedPaymentMethods: ['cash']

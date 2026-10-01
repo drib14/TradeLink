@@ -38,7 +38,8 @@ const getVerifications = asyncHandler(async (req, res) => {
       'users.name as user_name',
       'users.email as user_email',
       'users.campus as user_campus',
-      'users.college as user_college'
+      'users.department as user_department',
+      'users.department as user_college'
     );
 
   if (status === 'suspicious') {
@@ -73,7 +74,8 @@ const getVerifications = asyncHandler(async (req, res) => {
       userEmail: r.user_email,
       studentIdNumber: r.student_id_number,
       campus: r.user_campus || 'UC Main',
-      college: r.user_college || 'General Student',
+      department: r.user_department || r.user_college || 'General Student',
+      college: r.user_department || r.user_college || 'General Student',
       idCardImageUrl: r.id_photo_url || r.id_card_image_url || '',
       selfiePhotoUrl: r.selfie_photo_url || null,
       status: r.status,

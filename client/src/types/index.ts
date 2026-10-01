@@ -8,26 +8,8 @@ export type Campus =
   | 'UC Medical Center'
   | 'UC PRI';
 
-export type College = 
-  | 'Junior High School'
-  | 'Junior High (Grade 7-10)'
-  | 'Senior High (STEM)'
-  | 'Senior High (ABM)'
-  | 'Senior High (HUMSS)'
-  | 'Senior High (TVL/GAS)'
-  | 'Senior High School'
-  | 'CCS' 
-  | 'Nursing' 
-  | 'Engineering' 
-  | 'CBA' 
-  | 'Maritime' 
-  | 'Criminology' 
-  | 'Arts & Sciences' 
-  | 'Education' 
-  | 'Hospitality & Tourism'
-  | 'Medicine'
-  | 'Law'
-  | 'General Student';
+export type Department = string;
+export type College = string;
 
 export type TradeMode = 'buy_sell' | 'swap' | 'free_donation';
 
@@ -49,8 +31,8 @@ export interface User {
   studentId: string;
   role: 'student' | 'admin';
   campus: Campus;
-  college: College;
-  yearLevel: string;
+  department: string;
+  college?: string;
   avatar: string;
   isVerified: boolean;
   verificationStatus?: 'unverified' | 'pending' | 'verified' | 'rejected';
@@ -62,7 +44,6 @@ export interface User {
   punctualityRate: number; // 0 - 100%
   bio: string;
   joinedDate: string;
-  isProMerchant?: boolean;
   password?: string;
   isBanned?: boolean;
   banReason?: string;
@@ -121,8 +102,8 @@ export interface RegisterData {
   email: string;
   password?: string;
   campus: Campus;
-  college: College;
-  yearLevel: string;
+  department: string;
+  college?: string;
   avatar?: string;
   idPhotoUrl?: string;
 }
@@ -131,7 +112,7 @@ export interface AdminAuditLog {
   id: string;
   adminName: string;
   action: string;
-  targetType: 'user' | 'listing' | 'verification' | 'wanted' | 'meetup' | 'announcement' | 'dispute' | 'system';
+  targetType: 'user' | 'listing' | 'verification' | 'flash_request' | 'transaction' | 'announcement' | 'dispute' | 'system';
   targetId: string;
   details: string;
   timestamp: string;
@@ -174,7 +155,8 @@ export interface Listing {
   sellerName: string;
   sellerAvatar: string;
   sellerCampus: Campus;
-  sellerCollege: College;
+  sellerDepartment: string;
+  sellerCollege?: string;
   sellerIsVerified: boolean;
   sellerTrustScore: number;
   sellerStudentId?: string;
@@ -260,13 +242,11 @@ export interface Message {
   swapOfferId?: string;
   transactionId?: string;
   flashRequestId?: string;
-  wantedRequestId?: string;
   mediaUrl?: string | null;
   mediaType?: 'image' | 'video' | null;
   swapOffer?: any;
   transaction?: any;
   flashRequest?: any;
-  wantedRequest?: any;
 }
 
 export interface Conversation {
@@ -277,7 +257,8 @@ export interface Conversation {
     name: string;
     avatar: string;
     campus: Campus;
-    college?: College;
+    department?: string;
+    college?: string;
     isVerified: boolean;
     trustScore?: number;
     rating?: number;
@@ -286,13 +267,11 @@ export interface Conversation {
   listingTitle: string;
   listingImage: string;
   listingPrice?: number | null;
-  listingTradeMode?: TradeMode | 'wanted' | 'flash';
+  listingTradeMode?: TradeMode | 'flash';
   listingStatus?: string;
   listingSellerId?: string;
   flashRequestId?: string | null;
-  wantedId?: string | null;
   flashRequest?: any;
-  wantedRequest?: any;
   activeTransaction?: {
     id: string;
     referenceNo: string;
@@ -325,7 +304,8 @@ export interface VerificationRequest {
   userEmail: string;
   studentIdNumber: string;
   campus: Campus;
-  college: College;
+  department: string;
+  college?: string;
   idCardImageUrl: string;
   selfiePhotoUrl?: string;
   status: 'pending' | 'approved' | 'rejected';
@@ -340,7 +320,8 @@ export interface PasswordResetRequest {
   userEmail: string;
   studentId: string;
   campus: Campus;
-  college: College;
+  department: string;
+  college?: string;
   avatarUrl?: string | null;
   status: 'pending' | 'approved' | 'rejected' | 'completed';
   adminNote?: string | null;
@@ -355,6 +336,8 @@ export interface Review {
   reviewerName: string;
   reviewerAvatar: string;
   reviewerCampus: Campus;
+  reviewerDepartment?: string;
+  reviewerCollege?: string;
   targetUserId: string;
   rating: number;
   comment: string;
@@ -371,7 +354,8 @@ export interface FlashRequest {
   requesterName: string;
   requesterAvatar: string;
   requesterCampus: Campus;
-  requesterCollege: string;
+  requesterDepartment: string;
+  requesterCollege?: string;
   itemTitle: string;
   itemName?: string;
   category: string;
@@ -390,14 +374,12 @@ export interface FlashRequest {
   createdAt: string;
 }
 
-export type WantedRequest = FlashRequest;
-
 export interface AppNotification {
   id: string;
   userId: string;
   title: string;
   message: string;
-  type: 'swap' | 'meetup' | 'price_drop' | 'flash_response' | 'wanted_response' | 'system';
+  type: 'swap' | 'transaction' | 'price_drop' | 'flash_response' | 'system';
   isRead: boolean;
   linkView?: string;
   linkParams?: any;
@@ -429,7 +411,6 @@ export interface SystemConfig {
   maxListingPrice?: number;
   maxImagesPerListing?: number;
   swapModeEnabled?: boolean;
-  wantedBoardEnabled?: boolean;
   freeDonationEnabled?: boolean;
   maxListingsPerUser?: number;
   maxDailyListingsPerUser?: number;

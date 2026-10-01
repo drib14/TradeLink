@@ -156,8 +156,7 @@ const getTransactions = asyncHandler(async (req, res) => {
   res.status(200).json({
     status: 'success',
     data: {
-      transactions: formatted,
-      meetups: formatted // Compatibility alias for admin/mobile
+      transactions: formatted
     }
   });
 });
@@ -330,7 +329,6 @@ const createTransaction = asyncHandler(async (req, res, next) => {
     message: `Transaction ${referenceNo} created successfully. Coordinate meeting details with the student directly in chat!`,
     data: {
       transaction: serialized,
-      meetup: serialized,
       handshakeCode: isBuyer ? handshakeCode : undefined
     }
   });

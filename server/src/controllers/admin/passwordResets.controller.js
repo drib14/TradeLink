@@ -44,7 +44,8 @@ const getPasswordResetRequests = asyncHandler(async (req, res) => {
       'users.email as user_email',
       'users.student_id as user_student_id',
       'users.campus as user_campus',
-      'users.college as user_college',
+      'users.department as user_department',
+      'users.department as user_college',
       'users.avatar_url as user_avatar_url'
     );
 
@@ -64,7 +65,8 @@ const getPasswordResetRequests = asyncHandler(async (req, res) => {
     userEmail: r.user_email,
     studentId: r.user_student_id,
     campus: r.user_campus || 'UC Main',
-    college: r.user_college || 'General Student',
+    department: r.user_department || r.user_college || 'General Student',
+    college: r.user_department || r.user_college || 'General Student',
     avatarUrl: r.user_avatar_url || null,
     status: r.status,
     adminNote: r.admin_note || null,

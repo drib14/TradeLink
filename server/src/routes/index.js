@@ -84,10 +84,8 @@ router.use('/users', usersRoutes);
 router.use('/listings', listingsRoutes);
 router.use('/swaps', swapsRoutes);
 router.use('/transactions', transactionsRoutes);
-router.use('/meetups', transactionsRoutes); // Compatibility alias
 router.use('/chat', chatRoutes);
 router.use('/flash-market', flashMarketRoutes);
-router.use('/wanted', flashMarketRoutes); // Compatibility alias
 router.use('/reviews', reviewsRoutes);
 router.use('/admin', adminRoutes);
 router.use('/admin-auth', adminAuthRoutes);

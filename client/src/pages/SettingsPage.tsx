@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/common/Toast';
 import { UserAvatar } from '../components/common/UserAvatar';
 import { TradeLinkIcon } from '../components/common/TradeLinkIcon';
-import { College } from '../types';
+
 import {
   Settings as SettingsIcon,
   User,
@@ -34,14 +34,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate, onOpenAu
   const [nameInput, setNameInput] = useState(currentUser?.name || '');
   const [bioInput, setBioInput] = useState(currentUser?.bio || '');
   const [avatarInput, setAvatarInput] = useState(currentUser?.avatar || '');
-  const [collegeInput, setCollegeInput] = useState<College>(currentUser?.college || 'CCS');
-  const [yearLevelInput, setYearLevelInput] = useState(currentUser?.yearLevel || '2nd Year College');
+  const [departmentInput, setDepartmentInput] = useState(currentUser?.department || '');
 
   // Notification prefs
   const [notifSwaps, setNotifSwaps] = useState(true);
   const [notifMeetups, setNotifMeetups] = useState(true);
   const [notifPriceDrops, setNotifPriceDrops] = useState(true);
-  const [notifWanted, setNotifWanted] = useState(true);
   const [notifSystem, setNotifSystem] = useState(true);
 
   // Privacy settings
@@ -55,8 +53,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate, onOpenAu
       setNameInput(currentUser.name || '');
       setBioInput(currentUser.bio || '');
       setAvatarInput(currentUser.avatar || '');
-      setCollegeInput(currentUser.college || 'CCS');
-      setYearLevelInput(currentUser.yearLevel || '2nd Year College');
+      setDepartmentInput(currentUser.department || '');
     }
   }, [currentUser]);
 
@@ -104,8 +101,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate, onOpenAu
         name: nameInput.trim(),
         bio: bioInput.trim(),
         avatar: avatarInput.trim(),
-        college: collegeInput,
-        yearLevel: yearLevelInput
+        department: departmentInput.trim() || undefined
       });
       showToast('Settings Saved', 'Your student account details have been updated.', 'success');
     }
@@ -313,54 +309,17 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate, onOpenAu
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.85rem' }}>
-                <div>
-                  <label className="form-label" style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.3rem' }}>
-                    Department / College
-                  </label>
-                  <select
-                    value={collegeInput}
-                    onChange={(e: any) => setCollegeInput(e.target.value)}
-                    className="clean-input"
-                  >
-                    <option value="CCS">CCS (Computer Studies)</option>
-                    <option value="CBA">CBA (Business & Accountancy)</option>
-                    <option value="Engineering">Engineering</option>
-                    <option value="Nursing">Nursing</option>
-                    <option value="Maritime">Maritime</option>
-                    <option value="Criminology">Criminology</option>
-                    <option value="Arts & Sciences">Arts & Sciences</option>
-                    <option value="Education">Education</option>
-                    <option value="Hospitality & Tourism">Hospitality & Tourism</option>
-                    <option value="Medicine">Medicine</option>
-                    <option value="Law">Law</option>
-                    <option value="Senior High (STEM)">Senior High (STEM)</option>
-                    <option value="Senior High (ABM)">Senior High (ABM)</option>
-                    <option value="Senior High (HUMSS)">Senior High (HUMSS)</option>
-                    <option value="Senior High (TVL/GAS)">Senior High (TVL/GAS)</option>
-                    <option value="Junior High School">Junior High School</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="form-label" style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.3rem' }}>
-                    Year Level
-                  </label>
-                  <select
-                    value={yearLevelInput}
-                    onChange={(e) => setYearLevelInput(e.target.value)}
-                    className="clean-input"
-                  >
-                    <option value="1st Year College">1st Year College</option>
-                    <option value="2nd Year College">2nd Year College</option>
-                    <option value="3rd Year College">3rd Year College</option>
-                    <option value="4th Year College">4th Year College</option>
-                    <option value="5th Year College">5th Year College</option>
-                    <option value="Grade 11 (Senior High)">Grade 11 (Senior High)</option>
-                    <option value="Grade 12 (Senior High)">Grade 12 (Senior High)</option>
-                    <option value="Junior High">Junior High</option>
-                  </select>
-                </div>
+              <div>
+                <label className="form-label" style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.3rem' }}>
+                  Department / College / Strand
+                </label>
+                <input
+                  type="text"
+                  value={departmentInput}
+                  onChange={(e) => setDepartmentInput(e.target.value)}
+                  placeholder="e.g. CCS, Engineering, Nursing"
+                  className="clean-input"
+                />
               </div>
 
               <div>
@@ -393,7 +352,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate, onOpenAu
               <ToggleSwitch on={notifSwaps} onToggle={() => setNotifSwaps(!notifSwaps)} label="Swap Proposals & Offers" description="Instant notifications when peers offer barter trades for your items" />
               <ToggleSwitch on={notifMeetups} onToggle={() => setNotifMeetups(!notifMeetups)} label="Meetup Schedule Reminders" description="Alerts for scheduled campus meetups and transaction updates" />
               <ToggleSwitch on={notifPriceDrops} onToggle={() => setNotifPriceDrops(!notifPriceDrops)} label="Saved Item Price Drops" description="Get notified when bookmarked items have their price reduced" />
-              <ToggleSwitch on={notifWanted} onToggle={() => setNotifWanted(!notifWanted)} label="Wanted Board Item Matches" description="Alerts when items matching your requested wanted items are posted" />
               <ToggleSwitch on={notifSystem} onToggle={() => setNotifSystem(!notifSystem)} label="Campus Safety & System Alerts" description="Official University of Cebu safety and platform announcements" />
             </div>
           )}

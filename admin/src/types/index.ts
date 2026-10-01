@@ -8,26 +8,8 @@ export type Campus =
   | 'UC Medical Center'
   | 'UC PRI';
 
-export type College = 
-  | 'Junior High School'
-  | 'Junior High (Grade 7-10)'
-  | 'Senior High (STEM)'
-  | 'Senior High (ABM)'
-  | 'Senior High (HUMSS)'
-  | 'Senior High (TVL/GAS)'
-  | 'Senior High School'
-  | 'CCS' 
-  | 'Nursing' 
-  | 'Engineering' 
-  | 'CBA' 
-  | 'Maritime' 
-  | 'Criminology' 
-  | 'Arts & Sciences' 
-  | 'Education' 
-  | 'Hospitality & Tourism'
-  | 'Medicine'
-  | 'Law'
-  | 'General Student';
+export type College = string;
+export type Department = string;
 
 export type TradeMode = 'buy_sell' | 'swap' | 'free_donation';
 
@@ -49,8 +31,8 @@ export interface User {
   studentId: string;
   role: 'student' | 'admin';
   campus: Campus;
-  college: College;
-  yearLevel: string;
+  department?: string;
+  college?: string;
   avatar: string;
   isVerified: boolean;
   verificationStatus?: 'unverified' | 'pending' | 'verified' | 'rejected';
@@ -62,7 +44,6 @@ export interface User {
   punctualityRate: number; // 0 - 100%
   bio: string;
   joinedDate: string;
-  isProMerchant?: boolean;
   password?: string;
   isBanned?: boolean;
   banReason?: string;
@@ -118,8 +99,8 @@ export interface RegisterData {
   email: string;
   password?: string;
   campus: Campus;
-  college: College;
-  yearLevel: string;
+  department?: string;
+  college?: string;
   avatar?: string;
   idPhotoUrl?: string;
 }
@@ -159,7 +140,8 @@ export interface Listing {
   sellerName: string;
   sellerAvatar: string;
   sellerCampus: Campus;
-  sellerCollege: College;
+  sellerDepartment?: string;
+  sellerCollege?: string;
   sellerIsVerified: boolean;
   sellerTrustScore: number;
   isBoosted?: boolean;
@@ -243,7 +225,8 @@ export interface Conversation {
     name: string;
     avatar: string;
     campus: Campus;
-    college?: College;
+    department?: string;
+    college?: string;
     isVerified: boolean;
   };
   listingId: string;
@@ -261,7 +244,8 @@ export interface VerificationRequest {
   userEmail: string;
   studentIdNumber: string;
   campus: Campus;
-  college: College;
+  department?: string;
+  college?: string;
   idCardImageUrl: string;
   selfiePhotoUrl?: string;
   status: 'pending' | 'approved' | 'rejected';
@@ -283,7 +267,8 @@ export interface PasswordResetRequest {
   userEmail: string;
   studentId: string;
   campus: Campus;
-  college: College;
+  department?: string;
+  college?: string;
   avatarUrl?: string | null;
   status: 'pending' | 'approved' | 'rejected' | 'completed';
   adminNote?: string | null;
@@ -314,7 +299,8 @@ export interface FlashRequest {
   requesterName: string;
   requesterAvatar: string;
   requesterCampus: Campus;
-  requesterCollege: string;
+  requesterDepartment?: string;
+  requesterCollege?: string;
   itemTitle: string;
   category: string;
   targetBudget: number;
@@ -336,7 +322,7 @@ export interface AppNotification {
   userId: string;
   title: string;
   message: string;
-  type: 'swap' | 'meetup' | 'price_drop' | 'flash_response' | 'wanted_response' | 'system';
+  type: 'swap' | 'meetup' | 'price_drop' | 'flash_response' | 'system';
   isRead: boolean;
   linkView?: string;
   linkParams?: any;
@@ -369,7 +355,6 @@ export interface SystemConfig {
   maxImagesPerListing?: number;
   swapModeEnabled?: boolean;
   flashMarketEnabled?: boolean;
-  wantedBoardEnabled?: boolean;
   freeDonationEnabled?: boolean;
   maxListingsPerUser?: number;
   maxDailyListingsPerUser?: number;

@@ -34,6 +34,5 @@ const createFlashRequestSchema = Joi.object({
 }).or('itemTitle', 'itemName');
 
 module.exports = {
-  createFlashRequestSchema,
-  createWantedSchema: createFlashRequestSchema
+  createFlashRequestSchema
 };

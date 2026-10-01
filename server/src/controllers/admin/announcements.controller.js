@@ -8,7 +8,10 @@ const { logAdminAction } = require('./verification.controller');
  * Get announcements
  */
 const getAnnouncements = asyncHandler(async (req, res) => {
-  const announcements = await db('announcements').orderBy('created_at', 'desc');
+  const announcements = await db('announcements')
+    .leftJoin('users', 'announcements.author_id', 'users.id')
+    .select('announcements.*', 'users.name as author_name')
+    .orderBy('announcements.created_at', 'desc');
 
   const formatted = announcements.map((a) => ({
     id: a.id,
@@ -16,7 +19,7 @@ const getAnnouncements = asyncHandler(async (req, res) => {
     message: a.message,
     campus: a.campus,
     type: a.type,
-    authorName: a.author_name,
+    authorName: a.author_name || 'UC Administration',
     createdAt: a.created_at,
     isActive: Boolean(a.is_active)
   }));
@@ -49,7 +52,6 @@ const createAnnouncement = asyncHandler(async (req, res, next) => {
     campus,
     type,
     author_id: req.user.id,
-    author_name: req.user.name,
     is_active: true
   };
 
@@ -59,7 +61,12 @@ const createAnnouncement = asyncHandler(async (req, res, next) => {
   res.status(201).json({
     status: 'success',
     message: 'Announcement published to campus bulletin.',
-    data: { announcement: newAnn }
+    data: {
+      announcement: {
+        ...newAnn,
+        authorName: req.user.name || 'UC Administration'
+      }
+    }
   });
 });
 

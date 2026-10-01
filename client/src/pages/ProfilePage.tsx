@@ -12,7 +12,7 @@ import { ListingCard } from '../components/marketplace/ListingCard';
 import { Modal } from '../components/common/Modal';
 import { reviewsService } from '../services/reviews.service';
 import { usersService } from '../services/users.service';
-import { User, Listing, Review, FlashRequest, College } from '../types';
+import { User, Listing, Review, FlashRequest } from '../types';
 import { formatRelativeTime } from '../utils/date';
 import {
   ShieldCheck,
@@ -156,8 +156,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   const [editName, setEditName] = useState(targetUser?.name || '');
   const [editBio, setEditBio] = useState(targetUser?.bio || '');
   const [editAvatar, setEditAvatar] = useState(targetUser?.avatar || '');
-  const [editCollege, setEditCollege] = useState<College>(targetUser?.college || 'CCS');
-  const [editYearLevel, setEditYearLevel] = useState(targetUser?.yearLevel || '2nd Year College');
+  const [editDepartment, setEditDepartment] = useState(targetUser?.department || '');
   const [editMeetupSpots, setEditMeetupSpots] = useState(targetUser?.preferredMeetupSpots || '');
   const [editTradingHours, setEditTradingHours] = useState(targetUser?.tradingHours || '');
   const [editPaymentMethods, setEditPaymentMethods] = useState<('cash' | 'gcash' | 'maya' | 'bank_transfer')[]>(
@@ -173,8 +172,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
       setEditName(targetUser.name || '');
       setEditBio(targetUser.bio || '');
       setEditAvatar(targetUser.avatar || '');
-      setEditCollege(targetUser.college || 'CCS');
-      setEditYearLevel(targetUser.yearLevel || '2nd Year College');
+      setEditDepartment(targetUser.department || '');
       setEditMeetupSpots(targetUser.preferredMeetupSpots || '');
       setEditTradingHours(targetUser.tradingHours || '');
       setEditPaymentMethods(parsePaymentMethods(targetUser.paymentMethods));
@@ -399,8 +397,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
       name: editName.trim(),
       bio: editBio.trim(),
       avatar: editAvatar.trim() || targetUser.avatar,
-      college: editCollege,
-      yearLevel: editYearLevel,
+      department: editDepartment.trim() || undefined,
       preferredMeetupSpots: editMeetupSpots.trim(),
       tradingHours: editTradingHours.trim(),
       paymentMethods: editPaymentMethods.join(', ')
@@ -570,8 +567,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                     ID: {maskStudentId(targetUser.studentId, isSelf)}
                   </span>
                   <span className="profile-meta-chip">{targetUser.campus}</span>
-                  <span className="profile-meta-chip">{targetUser.college}</span>
-                  <span className="profile-meta-chip">{targetUser.yearLevel}</span>
+                  {targetUser.department && <span className="profile-meta-chip">{targetUser.department}</span>}
                 </div>
 
                 {/* Rating & Trust Line */}
@@ -1894,7 +1890,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
               <div>
                 <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Department</span>
                 <div style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
-                  {targetUser.college} ({targetUser.yearLevel})
+                  {targetUser.department || 'Not specified'}
                 </div>
               </div>
 
@@ -2062,54 +2058,17 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
-                Department / College
-              </label>
-              <select
-                value={editCollege}
-                onChange={(e: any) => setEditCollege(e.target.value)}
-                className="clean-input"
-              >
-                <option value="CCS">CCS (Computer Studies)</option>
-                <option value="CBA">CBA (Business &amp; Accountancy)</option>
-                <option value="Engineering">Engineering</option>
-                <option value="Nursing">Nursing</option>
-                <option value="Maritime">Maritime</option>
-                <option value="Criminology">Criminology</option>
-                <option value="Arts &amp; Sciences">Arts &amp; Sciences</option>
-                <option value="Education">Education</option>
-                <option value="Hospitality &amp; Tourism">Hospitality &amp; Tourism</option>
-                <option value="Medicine">Medicine</option>
-                <option value="Law">Law</option>
-                <option value="Senior High (STEM)">Senior High (STEM)</option>
-                <option value="Senior High (ABM)">Senior High (ABM)</option>
-                <option value="Senior High (HUMSS)">Senior High (HUMSS)</option>
-                <option value="Senior High (TVL/GAS)">Senior High (TVL/GAS)</option>
-                <option value="Junior High School">Junior High School</option>
-              </select>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
-                Year Level
-              </label>
-              <select
-                value={editYearLevel}
-                onChange={(e) => setEditYearLevel(e.target.value)}
-                className="clean-input"
-              >
-                <option value="1st Year College">1st Year College</option>
-                <option value="2nd Year College">2nd Year College</option>
-                <option value="3rd Year College">3rd Year College</option>
-                <option value="4th Year College">4th Year College</option>
-                <option value="5th Year College">5th Year College</option>
-                <option value="Grade 11 (Senior High)">Grade 11 (Senior High)</option>
-                <option value="Grade 12 (Senior High)">Grade 12 (Senior High)</option>
-                <option value="Junior High">Junior High</option>
-              </select>
-            </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
+              Department / College / Strand
+            </label>
+            <input
+              type="text"
+              value={editDepartment}
+              onChange={(e) => setEditDepartment(e.target.value)}
+              placeholder="e.g. CCS, Engineering, Nursing"
+              className="clean-input"
+            />
           </div>
 
           {/* TRADING PREFERENCES */}

@@ -434,7 +434,7 @@ export const FlashRequestDetailPage: React.FC<FlashRequestDetailPageProps> = ({
             </span>
             <span>•</span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-              <Building2 size={14} /> {currentRequest.requesterCollege}
+              <Building2 size={14} /> {currentRequest.requesterDepartment || currentRequest.requesterCollege}
             </span>
           </div>
         </div>
@@ -584,10 +584,10 @@ export const FlashRequestDetailPage: React.FC<FlashRequestDetailPageProps> = ({
 
               <div style={{ backgroundColor: 'var(--bg-subtle)', padding: '0.65rem 0.85rem', borderRadius: '10px' }}>
                 <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>
-                  Requester College
+                  Requester Department
                 </span>
                 <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '2px' }}>
-                  {currentRequest.requesterCollege}
+                  {currentRequest.requesterDepartment || currentRequest.requesterCollege}
                 </div>
               </div>
             </div>
@@ -801,7 +801,7 @@ export const FlashRequestDetailPage: React.FC<FlashRequestDetailPageProps> = ({
                   {currentRequest.preferredCampus || currentRequest.requesterCampus}
                 </div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                  {currentRequest.requesterCollege}
+                  {currentRequest.requesterDepartment || currentRequest.requesterCollege}
                 </div>
               </div>
             </div>

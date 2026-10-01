@@ -906,8 +906,8 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
                 <span className="product-spec-value">{listing.sellerCampus}</span>
               </div>
               <div className="product-spec-row">
-                <span className="product-spec-label">Seller College</span>
-                <span className="product-spec-value">{listing.sellerCollege || 'University of Cebu'}</span>
+                <span className="product-spec-label">Seller Department</span>
+                <span className="product-spec-value">{listing.sellerDepartment || listing.sellerCollege || 'University of Cebu'}</span>
               </div>
               <div className="product-spec-row">
                 <span className="product-spec-label">Date Listed</span>
@@ -1147,7 +1147,7 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
                     {listing.sellerIsVerified && <VerifiedBadge size="xs" variant="green" />}
                   </div>
                   <div className="product-seller-sub">
-                    {listing.sellerCollege || 'University of Cebu'} • {listing.sellerCampus}
+                    {listing.sellerDepartment || listing.sellerCollege || 'University of Cebu'} • {listing.sellerCampus}
                   </div>
                 </div>
               </div>
@@ -1244,7 +1244,7 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
                           {rev.reviewerIsVerified && <VerifiedBadge size="xs" variant="green" />}
                         </div>
                         <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                          {rev.reviewerCollege || 'UC Student'} • {rev.reviewerCampus || 'UC Main'}
+                          {rev.reviewerDepartment || rev.reviewerCollege || 'UC Student'} • {rev.reviewerCampus || 'UC Main'}
                         </span>
                       </div>
                     </div>

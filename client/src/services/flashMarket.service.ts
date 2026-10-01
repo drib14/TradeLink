@@ -9,7 +9,8 @@ export function mapFlashRequestFromApi(raw: any): FlashRequest {
     requesterName: raw.requesterName || raw.requester_name || '',
     requesterAvatar: raw.requesterAvatar || raw.requester_avatar || '',
     requesterCampus: raw.requesterCampus || raw.requester_campus || 'UC Main',
-    requesterCollege: raw.requesterCollege || raw.requester_college || 'General Student',
+    requesterDepartment: raw.requesterDepartment || raw.requester_department || raw.requesterCollege || raw.requester_college || 'General Student',
+    requesterCollege: raw.requesterDepartment || raw.requester_department || raw.requesterCollege || raw.requester_college || 'General Student',
     itemTitle: raw.itemTitle || raw.item_title || raw.itemName || raw.item_name || '',
     itemName: raw.itemName || raw.item_name || raw.itemTitle || raw.item_title || '',
     category: raw.category || '',
@@ -56,7 +57,3 @@ export const flashMarketService = {
     await api.delete(`/flash-market/${id}`);
   },
 };
-
-// Backward compatibility alias
-export const wantedService = flashMarketService;
-export const mapWantedFromApi = mapFlashRequestFromApi;

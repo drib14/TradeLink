@@ -102,7 +102,8 @@ const getListings = asyncHandler(async (req, res) => {
       'seller.name as seller_name',
       'seller.avatar_url as seller_avatar',
       'seller.campus as seller_campus',
-      'seller.college as seller_college',
+      'seller.department as seller_department',
+      'seller.department as seller_college',
       'seller.is_verified as seller_is_verified',
       'seller.trust_score as seller_trust_score'
     )
@@ -210,7 +211,8 @@ const getListingById = asyncHandler(async (req, res, next) => {
       'seller.name as seller_name',
       'seller.avatar_url as seller_avatar',
       'seller.campus as seller_campus',
-      'seller.college as seller_college',
+      'seller.department as seller_department',
+      'seller.department as seller_college',
       'seller.is_verified as seller_is_verified',
       'seller.trust_score as seller_trust_score'
     )
@@ -331,7 +333,7 @@ const createListing = asyncHandler(async (req, res, next) => {
     category,
     condition: condition || 'Gently Used',
     campus: campus || req.user.campus || 'UC Main',
-    department: department || req.user.college || null,
+    department: department || req.user.department || req.user.college || null,
     accepted_payment_methods: paymentMethodsStr,
     status: 'active',
     views_count: 1,
@@ -425,7 +427,8 @@ const createListing = asyncHandler(async (req, res, next) => {
       'seller.name as seller_name',
       'seller.avatar_url as seller_avatar',
       'seller.campus as seller_campus',
-      'seller.college as seller_college',
+      'seller.department as seller_department',
+      'seller.department as seller_college',
       'seller.is_verified as seller_is_verified',
       'seller.trust_score as seller_trust_score'
     )

@@ -45,10 +45,9 @@ const URGENCIES = ['Immediate / Urgent', 'This Week', 'Flexible'];
 
 const NOTIFICATION_TYPES = [
   'swap',
-  'meetup',
+  'transaction',
   'price_drop',
   'flash_response',
-  'wanted_response',
   'message',
   'system'
 ];

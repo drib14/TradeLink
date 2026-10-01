@@ -66,47 +66,35 @@ const createReview = asyncHandler(async (req, res, next) => {
 
   const reviewId = `rev_${uuidv4()}`;
 
-  await db.transaction(async (trx) => {
-    await trx('reviews').insert({
-      id: reviewId,
-      listing_id: listingId,
-      reviewer_id: req.user.id,
-      transaction_id: transactionId || (transaction ? transaction.id : null),
-      target_user_id: listing.seller_id,
-      rating: numRating,
-      comment: comment ? comment.trim() : null,
-      trade_type: tradeType || listing.trade_mode || 'buy_sell',
-      item_title: itemTitle || listing.title,
-      created_at: new Date()
-    });
-
-    // Recalculate listing rating and total_reviews
-    const stats = await trx('reviews')
-      .where({ listing_id: listingId })
-      .select(
-        trx.raw('COUNT(*) as total_reviews'),
-        trx.raw('AVG(rating) as avg_rating')
-      )
-      .first();
-
-    const totalReviews = Number(stats.total_reviews) || 0;
-    const avgRating = totalReviews > 0 ? parseFloat(stats.avg_rating).toFixed(1) : 0.0;
-
-    await trx('listings').where({ id: listingId }).update({
-      rating: avgRating,
-      total_reviews: totalReviews
-    });
+  await db('reviews').insert({
+    id: reviewId,
+    listing_id: listingId,
+    reviewer_id: req.user.id,
+    transaction_id: transactionId || (transaction ? transaction.id : null),
+    target_user_id: listing.seller_id,
+    rating: numRating,
+    comment: comment ? comment.trim() : null,
+    created_at: new Date()
   });
 
-  const updatedListing = await db('listings').where({ id: listingId }).select('rating', 'total_reviews').first();
+  const stats = await db('reviews')
+    .where({ listing_id: listingId })
+    .select(
+      db.raw('COUNT(*) as total_reviews'),
+      db.raw('AVG(rating) as avg_rating')
+    )
+    .first();
+
+  const totalReviews = Number(stats?.total_reviews) || 1;
+  const avgRating = totalReviews > 0 ? parseFloat(stats.avg_rating).toFixed(1) : Number(numRating).toFixed(1);
 
   res.status(201).json({
     status: 'success',
     message: 'Product review submitted! Thank you for sharing your experience.',
     data: {
       reviewId,
-      listingRating: Number(updatedListing?.rating || numRating),
-      totalReviews: Number(updatedListing?.total_reviews || 1)
+      listingRating: Number(avgRating),
+      totalReviews
     }
   });
 });
@@ -135,17 +123,21 @@ const getListingReviews = asyncHandler(async (req, res, next) => {
       'reviewer.name as reviewerName',
       'reviewer.avatar_url as reviewerAvatar',
       'reviewer.campus as reviewerCampus',
-      'reviewer.college as reviewerCollege',
+      'reviewer.department as reviewerDepartment',
       'reviewer.is_verified as reviewerIsVerified'
     )
     .orderBy('reviews.created_at', 'desc');
+
+  const avgRating = reviews.length > 0
+    ? Number((reviews.reduce((sum, r) => sum + Number(r.rating), 0) / reviews.length).toFixed(1))
+    : 0.0;
 
   res.status(200).json({
     status: 'success',
     data: {
       listingId,
-      rating: Number(listing.rating || 0.0),
-      totalReviews: Number(listing.total_reviews || reviews.length),
+      rating: avgRating,
+      totalReviews: reviews.length,
       reviews
     }
   });

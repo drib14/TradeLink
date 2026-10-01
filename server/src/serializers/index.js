@@ -57,25 +57,20 @@ function serializeTransaction(t, listingImage = '') {
   };
 }
 
-// Backward compatibility alias
-function serializeMeetup(m, listingImage = '') {
-  return serializeTransaction(m, listingImage);
-}
-
 function serializeReview(r, traitBadges = []) {
   if (!r) return null;
   return {
     id: r.id,
+    listingId: r.listing_id || r.listingId,
     transactionId: r.transaction_id || r.transactionId,
     reviewerId: r.reviewer_id || r.reviewerId,
     reviewerName: r.reviewer_name || r.reviewerName || '',
     reviewerAvatar: r.reviewer_avatar || r.reviewerAvatar || null,
     reviewerCampus: r.reviewer_campus || r.reviewerCampus || '',
+    reviewerDepartment: r.reviewer_department || r.reviewerDepartment || r.reviewer_college || r.reviewerCollege || '',
     targetUserId: r.target_user_id || r.targetUserId,
     rating: Number(r.rating || 5),
     comment: r.comment || '',
-    itemTitle: r.item_title || r.itemTitle || '',
-    tradeType: r.trade_type || r.tradeType || 'buy_sell',
     wasPunctual: Boolean(r.was_punctual ?? r.wasPunctual ?? true),
     traitBadges,
     createdAt: r.created_at || r.createdAt || new Date().toISOString()
@@ -85,6 +80,5 @@ function serializeReview(r, traitBadges = []) {
 module.exports = {
   serializeSwap,
   serializeTransaction,
-  serializeMeetup,
   serializeReview
 };

@@ -64,7 +64,7 @@ export const ListingCardSkeleton: React.FC = () => {
   );
 };
 
-export const WantedCardSkeleton: React.FC = () => {
+export const FlashRequestCardSkeleton: React.FC = () => {
   return (
     <div
       className="clean-card"
@@ -99,8 +99,6 @@ export const WantedCardSkeleton: React.FC = () => {
     </div>
   );
 };
-
-export const FlashRequestCardSkeleton: React.FC = WantedCardSkeleton;
 
 export const BannerSkeleton: React.FC = () => {
   return (

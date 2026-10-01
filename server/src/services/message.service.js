@@ -47,19 +47,6 @@ function decryptMessageContent(text) {
   }
 }
 
-// Helper to determine flash table name
-let _flashTable = null;
-async function getFlashTable() {
-  if (_flashTable) return _flashTable;
-  try {
-    const hasFlash = await db.schema.hasTable('flash_requests');
-    _flashTable = hasFlash ? 'flash_requests' : 'wanted_requests';
-  } catch (e) {
-    _flashTable = 'flash_requests';
-  }
-  return _flashTable;
-}
-
 /**
  * Persists an encrypted message and updates conversation status in a single atomic transaction
  */
@@ -72,7 +59,6 @@ async function createMessage({
   swapOfferId = null,
   transactionId = null,
   flashRequestId = null,
-  wantedRequestId = null,
   mediaUrl = null,
   mediaType = null
 }) {
@@ -90,14 +76,9 @@ async function createMessage({
     throw new AppError('Unauthorized access to this conversation.', 403);
   }
 
-  const effectiveFlashId = flashRequestId || wantedRequestId || null;
   const msgId = uuidv4();
   const summaryContent = cleanContent || (mediaType === 'video' ? '[Video Attachment]' : '[Image Attachment]');
   const storedContent = isSystemMessage ? summaryContent : encryptMessageContent(summaryContent);
-
-  // Check column name in messages table
-  const hasFlashCol = await db.schema.hasColumn('messages', 'flash_request_id').catch(() => false);
-  const flashColName = hasFlashCol ? 'flash_request_id' : 'wanted_request_id';
 
   const newMsg = {
     id: msgId,
@@ -111,7 +92,7 @@ async function createMessage({
     media_type: mediaType || null,
     swap_offer_id: swapOfferId || null,
     transaction_id: transactionId || null,
-    [flashColName]: effectiveFlashId,
+    flash_request_id: flashRequestId || null,
     created_at: new Date()
   };
 
@@ -135,9 +116,8 @@ async function createMessage({
   }
 
   let flashRequest = null;
-  if (effectiveFlashId) {
-    const table = await getFlashTable();
-    flashRequest = await db(table).where({ id: effectiveFlashId }).first();
+  if (flashRequestId) {
+    flashRequest = await db('flash_requests').where({ id: flashRequestId }).first();
   }
 
   return {
@@ -154,12 +134,10 @@ async function createMessage({
     isSystemMessage: Boolean(isSystemMessage),
     swapOfferId: swapOfferId || null,
     transactionId: transactionId || null,
-    flashRequestId: effectiveFlashId,
-    wantedRequestId: effectiveFlashId,
+    flashRequestId: flashRequestId || null,
     swapOffer: swapOffer || null,
     transaction: transaction || null,
-    flashRequest: flashRequest || null,
-    wantedRequest: flashRequest || null
+    flashRequest: flashRequest || null
   };
 }
 

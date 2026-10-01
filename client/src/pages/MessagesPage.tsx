@@ -953,7 +953,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
                       </div>
 
                       <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {activeConversation.otherParticipant.college || 'UC Student'} • {activeConversation.otherParticipant.campus || 'UC Main'}
+                        {activeConversation.otherParticipant.department || 'UC Student'} • {activeConversation.otherParticipant.campus || 'UC Main'}
                       </div>
                     </div>
                   </div>

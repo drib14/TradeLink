@@ -74,7 +74,6 @@ module.exports = (io, socket) => {
         swapOfferId,
         transactionId,
         flashRequestId,
-        wantedRequestId,
         mediaUrl,
         mediaType
       } = data;
@@ -107,7 +106,6 @@ module.exports = (io, socket) => {
 
       messageTimestamps.push(now);
 
-      const effectiveFlashId = flashRequestId || wantedRequestId || null;
       const messagePayload = await createMessage({
         conversationId,
         senderId: userId,
@@ -116,8 +114,7 @@ module.exports = (io, socket) => {
         isSystemMessage,
         swapOfferId,
         transactionId,
-        flashRequestId: effectiveFlashId,
-        wantedRequestId: effectiveFlashId,
+        flashRequestId: flashRequestId || null,
         mediaUrl,
         mediaType
       });

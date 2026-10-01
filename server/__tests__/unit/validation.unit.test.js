@@ -1,6 +1,5 @@
 const { registerSchema, loginSchema, forgotPasswordSchema } = require('../../src/validations/auth.validation');
 const { createListingSchema } = require('../../src/validations/listing.validation');
-const { scheduleMeetupSchema } = require('../../src/validations/meetup.validation');
 
 describe('Unit Test: Joi Input Validation Schemas', () => {
   describe('Auth Registration Validation', () => {
@@ -34,6 +33,21 @@ describe('Unit Test: Joi Input Validation Schemas', () => {
       const { error, value } = registerSchema.validate(personalEmailData);
       expect(error).toBeUndefined();
       expect(value.email).toBe('maria.santos@gmail.com');
+    });
+
+    it('should validate registration with department string without yearLevel', () => {
+      const deptData = {
+        name: 'Carlos Yulo',
+        studentId: '2024112233',
+        email: 'carlos.yulo@uc.edu.ph',
+        password: 'SecurePassword123!',
+        campus: 'UC Main',
+        department: 'College of Computer Studies'
+      };
+
+      const { error, value } = registerSchema.validate(deptData);
+      expect(error).toBeUndefined();
+      expect(value.department).toBe('College of Computer Studies');
     });
 
     it('should validate login with studentId', () => {
@@ -108,24 +122,6 @@ describe('Unit Test: Joi Input Validation Schemas', () => {
 
       const { error } = createListingSchema.validate(noImageListing);
       expect(error).toBeDefined();
-    });
-  });
-
-  describe('Meetup Scheduling Validation', () => {
-    it('should require valid campus and landmark spot', () => {
-      const validMeetup = {
-        listingId: 'list_123',
-        sellerId: 'usr_seller_1',
-        buyerId: 'usr_buyer_2',
-        tradeMode: 'buy_sell',
-        finalPrice: 500,
-        campus: 'UC Banilad',
-        landmarkSpot: 'Banilad Gate 1 Guard Post',
-        scheduledDateTime: '2026-08-30 14:00'
-      };
-
-      const { error } = scheduleMeetupSchema.validate(validMeetup);
-      expect(error).toBeUndefined();
     });
   });
 });

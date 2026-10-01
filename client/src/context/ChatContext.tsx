@@ -18,7 +18,6 @@ interface ChatContextType {
   openChatWithSeller: (listing: Listing, initialMessage?: string) => Promise<string | void>;
   openChatWithUser: (user: { id: string; name: string; avatar?: string; campus?: string }, initialMessage?: string) => Promise<string | void>;
   openChatForFlash: (flash: { id: string; requesterId: string; itemTitle?: string; itemName?: string; targetBudget?: number }, offerMessage?: string) => Promise<string | void>;
-  openChatForWanted: (wanted: { id: string; requesterId: string; itemName?: string; itemTitle?: string; targetBudget?: number }, offerMessage?: string) => Promise<string | void>;
   openChatForTransaction: (tx: Transaction) => Promise<string | void>;
   openChatForSwap: (swap: SwapOffer) => Promise<string | void>;
   sendMessage: (
@@ -26,7 +25,7 @@ interface ChatContextType {
     isSystem?: boolean,
     swapOfferId?: string,
     transactionId?: string,
-    wantedRequestId?: string,
+    flashRequestId?: string,
     mediaUrl?: string | null,
     mediaType?: 'image' | 'video' | null
   ) => Promise<void>;
@@ -333,7 +332,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const conv = await chatService.getOrCreateConversation({
         targetUserId: flash.requesterId,
         flashRequestId: flash.id,
-        wantedId: flash.id,
         initialMessage: defaultMsg
       });
 
@@ -350,14 +348,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch {
       // Handled
     }
-  };
-
-  // Backward compatibility alias
-  const openChatForWanted = async (
-    wanted: { id: string; requesterId: string; itemName?: string; itemTitle?: string; targetBudget?: number },
-    offerMessage?: string
-  ): Promise<string | void> => {
-    return openChatForFlash(wanted, offerMessage);
   };
 
   // Open Chat for existing Transaction
@@ -418,7 +408,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isSystem = false,
     swapOfferId?: string,
     transactionId?: string,
-    wantedRequestId?: string,
+    flashRequestId?: string,
     mediaUrl?: string | null,
     mediaType?: 'image' | 'video' | null
   ) => {
@@ -441,7 +431,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isSystemMessage: isSystem,
       swapOfferId,
       transactionId,
-      wantedRequestId,
+      flashRequestId,
       mediaUrl,
       mediaType
     };
@@ -464,7 +454,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isSystemMessage: isSystem,
         swapOfferId,
         transactionId,
-        wantedRequestId,
+        flashRequestId,
         mediaUrl,
         mediaType
       });
@@ -605,7 +595,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         openChatWithSeller,
         openChatWithUser,
         openChatForFlash,
-        openChatForWanted,
         openChatForTransaction,
         openChatForSwap,
         sendMessage,

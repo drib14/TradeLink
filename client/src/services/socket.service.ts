@@ -91,7 +91,7 @@ class SocketService {
     isSystemMessage?: boolean;
     swapOfferId?: string;
     transactionId?: string;
-    wantedRequestId?: string;
+    flashRequestId?: string;
     mediaUrl?: string | null;
     mediaType?: 'image' | 'video' | null;
   }) {

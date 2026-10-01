@@ -80,8 +80,9 @@ const updateProfile = asyncHandler(async (req, res, next) => {
     updates.avatar_url = await storageService.uploadBase64(req.body.avatar, 'avatars');
   }
   if (req.body.campus) updates.campus = req.body.campus;
-  if (req.body.college) updates.college = req.body.college.trim();
-  if (req.body.yearLevel) updates.year_level = req.body.yearLevel.trim();
+  if (req.body.department || req.body.college) {
+    updates.department = (req.body.department || req.body.college).trim();
+  }
 
   await db('users').where({ id: req.user.id }).update(updates);
   const updatedUser = await db('users').where({ id: req.user.id }).first();

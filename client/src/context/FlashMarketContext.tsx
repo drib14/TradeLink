@@ -120,8 +120,3 @@ export const useFlashMarket = () => {
   }
   return context;
 };
-
-// Backward compatibility aliases
-export const WantedProvider = FlashMarketProvider;
-export const useWanted = useFlashMarket;
-export const WantedContext = FlashMarketContext;

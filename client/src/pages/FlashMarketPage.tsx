@@ -7,7 +7,7 @@ import { useToast } from '../components/common/Toast';
 import { CreateFlashRequestModal } from '../components/marketplace/CreateFlashRequestModal';
 import { VerifiedBadge } from '../components/common/VerifiedBadge';
 import { UserAvatar } from '../components/common/UserAvatar';
-import { WantedCardSkeleton } from '../components/common/SkeletonLoader';
+import { FlashRequestCardSkeleton } from '../components/common/SkeletonLoader';
 import { Campus, FlashRequest } from '../types';
 import {
   Search,
@@ -116,7 +116,7 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
         req.itemTitle.toLowerCase().includes(q) ||
         req.description.toLowerCase().includes(q) ||
         req.category.toLowerCase().includes(q) ||
-        (req.requesterCollege && req.requesterCollege.toLowerCase().includes(q))
+        ((req.requesterDepartment || req.requesterCollege) && (req.requesterDepartment || req.requesterCollege)!.toLowerCase().includes(q))
       );
     }
     return true;
@@ -131,7 +131,7 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
     setIsCreateModalOpen(true);
   };
 
-  const { openChatForWanted } = useChat();
+  const { openChatForFlash } = useChat();
 
   const handleRespond = async (req: FlashRequest) => {
     if (!isAuthenticated || !currentUser) {
@@ -144,7 +144,7 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
       showToast('Request Expired', 'This flash request has reached its expiration window and is no longer accepting offers.', 'warning');
       return;
     }
-    await openChatForWanted({
+    await openChatForFlash({
       id: req.id,
       requesterId: req.requesterId,
       itemName: req.itemTitle,
@@ -321,13 +321,13 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
 
       {/* Requests Grid / Skeletons */}
       {isSimulatingLoading ? (
-        <div className="grid-responsive-wanted">
+        <div className="grid-responsive-flash grid-responsive-wanted">
           {Array.from({ length: 6 }).map((_, i) => (
-            <WantedCardSkeleton key={i} />
+            <FlashRequestCardSkeleton key={i} />
           ))}
         </div>
       ) : filteredRequests.length > 0 ? (
-        <div className="grid-responsive-wanted">
+        <div className="grid-responsive-flash grid-responsive-wanted">
           {filteredRequests.map((req) => {
             const u = (req.urgency || '').toLowerCase();
             const isUrgent = u.includes('immediate') || u.includes('urgent');
@@ -519,7 +519,7 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
                     <MapPin size={12} style={{ flexShrink: 0 }} />
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{req.preferredCampus}</span>
                     <span style={{ color: 'var(--border-subtle)', flexShrink: 0 }}>•</span>
-                    <span style={{ color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{req.requesterCollege}</span>
+                    <span style={{ color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{req.requesterDepartment || req.requesterCollege}</span>
                   </div>
 
                   {/* Title */}
@@ -724,6 +724,3 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
     </div>
   );
 };
-
-// Backward compatibility alias
-export const WantedBoardPage = FlashMarketPage;

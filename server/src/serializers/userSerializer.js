@@ -22,8 +22,7 @@ function serializeUser(user, options = {}) {
     studentId: user.student_id || user.studentId,
     role: user.role || 'student',
     campus: user.campus,
-    college: user.college,
-    yearLevel: user.year_level || user.yearLevel,
+    department: user.department || user.college || '',
     avatar: user.avatar_url || user.avatar || null,
     isVerified: true,
     verificationStatus: 'verified',
@@ -34,7 +33,6 @@ function serializeUser(user, options = {}) {
     completedTrades,
     punctualityRate: hasTransactions ? Number(user.punctuality_rate ?? user.punctualityRate ?? 0) : 0,
     bio: user.bio || '',
-    isProMerchant: Boolean(user.is_pro_merchant ?? user.isProMerchant),
     joinedDate: user.created_at || user.joinedDate || new Date().toISOString()
   };
 

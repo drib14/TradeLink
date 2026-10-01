@@ -7,17 +7,8 @@ function escapeLike(str) {
   return str.replace(/[%_]/g, '\\$&');
 }
 
-// Helper to determine the active table name (flash_requests with wanted_requests fallback)
-let _tableName = null;
 async function getFlashTableName() {
-  if (_tableName) return _tableName;
-  try {
-    const hasFlash = await db.schema.hasTable('flash_requests');
-    _tableName = hasFlash ? 'flash_requests' : 'wanted_requests';
-  } catch (e) {
-    _tableName = 'flash_requests';
-  }
-  return _tableName;
+  return 'flash_requests';
 }
 
 /**
@@ -38,7 +29,8 @@ const getFlashRequests = asyncHandler(async (req, res) => {
       'requester.name as requester_name',
       'requester.avatar_url as requester_avatar',
       'requester.campus as requester_campus',
-      'requester.college as requester_college'
+      'requester.department as requester_department',
+      'requester.department as requester_college'
     );
 
   if (status && status !== 'All') {
@@ -235,14 +227,10 @@ const respondToFlashRequest = asyncHandler(async (req, res, next) => {
   const userA = currentUserId < target.requester_id ? currentUserId : target.requester_id;
   const userB = currentUserId < target.requester_id ? target.requester_id : currentUserId;
 
-  // Check if conversation table uses flash_request_id or wanted_id
-  const hasFlashConvCol = await db.schema.hasColumn('conversations', 'flash_request_id').catch(() => false);
-  const convReqCol = hasFlashConvCol ? 'flash_request_id' : 'wanted_id';
-
   let conv = await db('conversations').where({
     user_one_id: userA,
     user_two_id: userB,
-    [convReqCol]: target.id
+    flash_request_id: target.id
   }).first();
 
   const initialContent = (offerMessage || '').trim() ||
@@ -253,7 +241,7 @@ const respondToFlashRequest = asyncHandler(async (req, res, next) => {
     conv = {
       id: convId,
       listing_id: null,
-      [convReqCol]: target.id,
+      flash_request_id: target.id,
       user_one_id: userA,
       user_two_id: userB,
       last_message: initialContent,
@@ -267,9 +255,6 @@ const respondToFlashRequest = asyncHandler(async (req, res, next) => {
     });
   }
 
-  const hasFlashMsgCol = await db.schema.hasColumn('messages', 'flash_request_id').catch(() => false);
-  const msgReqCol = hasFlashMsgCol ? 'flash_request_id' : 'wanted_request_id';
-
   const msgId = uuidv4();
   const newMsg = {
     id: msgId,
@@ -279,7 +264,7 @@ const respondToFlashRequest = asyncHandler(async (req, res, next) => {
     content: initialContent,
     is_read: false,
     is_system_message: false,
-    [msgReqCol]: target.id,
+    flash_request_id: target.id,
     created_at: new Date()
   };
   await db('messages').insert(newMsg);
@@ -374,12 +359,5 @@ module.exports = {
   createFlashRequest,
   respondToFlashRequest,
   fulfillFlashRequest,
-  deleteFlashRequest,
-
-  // Backward compatibility aliases
-  getWantedRequests: getFlashRequests,
-  createWantedRequest: createFlashRequest,
-  respondToWanted: respondToFlashRequest,
-  fulfillWanted: fulfillFlashRequest,
-  deleteWanted: deleteFlashRequest
+  deleteFlashRequest
 };

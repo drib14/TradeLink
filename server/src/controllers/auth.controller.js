@@ -21,8 +21,8 @@ const register = asyncHandler(async (req, res, next) => {
     studentId,
     password,
     campus,
+    department,
     college,
-    yearLevel,
     avatar,
     idPhotoUrl
   } = req.body;
@@ -59,8 +59,7 @@ const register = asyncHandler(async (req, res, next) => {
     password_hash: passwordHash,
     role: 'student',
     campus,
-    college: college.trim(),
-    year_level: yearLevel.trim(),
+    department: (department || college || '').trim(),
     avatar_url: avatar || null,
     is_verified: isVerified,
     id_photo_url: idPhotoUrl || null,
@@ -70,7 +69,6 @@ const register = asyncHandler(async (req, res, next) => {
     completed_trades: 0,
     punctuality_rate: 0,
     bio: '',
-    is_pro_merchant: false,
     is_banned: false
   };
 
@@ -323,7 +321,6 @@ const forgotPassword = asyncHandler(async (req, res, next) => {
   await db('password_reset_requests').insert({
     id: requestId,
     user_id: user.id,
-    email: user.email,
     status: 'sent',
     code_hash: codeHash,
     code_exp: expiry,

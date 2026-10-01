@@ -21,16 +21,10 @@ export const chatService = {
   async getOrCreateConversation(params: {
     targetUserId: string;
     listingId?: string | null;
-    wantedId?: string | null;
     flashRequestId?: string | null;
     initialMessage?: string | null;
   }): Promise<Conversation> {
-    const payload = {
-      ...params,
-      flashRequestId: params.flashRequestId ?? params.wantedId,
-      wantedId: params.wantedId ?? params.flashRequestId
-    };
-    const res = await api.post<{ conversation: any }>('/chat/conversations', payload);
+    const res = await api.post<{ conversation: any }>('/chat/conversations', params);
     const c = res.data?.conversation || res.data;
     return {
       id: c.id,
@@ -40,7 +34,7 @@ export const chatService = {
         name: c.otherParticipant?.name || 'Student Peer',
         avatar: c.otherParticipant?.avatar || '',
         campus: c.otherParticipant?.campus || 'UC Main',
-        college: c.otherParticipant?.college,
+        department: c.otherParticipant?.department || c.otherParticipant?.college,
         isVerified: Boolean(c.otherParticipant?.isVerified),
         trustScore: c.otherParticipant?.trustScore,
         rating: c.otherParticipant?.rating
@@ -52,8 +46,8 @@ export const chatService = {
       listingTradeMode: c.listingTradeMode,
       listingStatus: c.listingStatus,
       listingSellerId: c.listingSellerId,
-      wantedId: c.flashRequestId ?? c.flash_request_id ?? c.wantedId ?? c.wanted_id,
-      wantedRequest: c.flashRequest ?? c.flash_request ?? c.wantedRequest,
+      flashRequestId: c.flashRequestId ?? c.flash_request_id,
+      flashRequest: c.flashRequest ?? c.flash_request,
       activeTransaction: c.activeTransaction,
       activeSwap: c.activeSwap,
       lastMessage: c.lastMessage || '',
@@ -75,7 +69,7 @@ export const chatService = {
           name: c.otherParticipant?.name || c.other_participant_name || 'Student Peer',
           avatar: c.otherParticipant?.avatar || c.other_participant_avatar || '',
           campus: c.otherParticipant?.campus || c.other_participant_campus || 'UC Main',
-          college: c.otherParticipant?.college,
+          department: c.otherParticipant?.department || c.otherParticipant?.college,
           isVerified: Boolean(c.otherParticipant?.isVerified ?? c.other_participant_verified),
           trustScore: c.otherParticipant?.trustScore ?? c.other_participant_trust,
           rating: c.otherParticipant?.rating ?? c.other_participant_rating
@@ -87,8 +81,8 @@ export const chatService = {
         listingTradeMode: c.listingTradeMode ?? c.listing_trade_mode,
         listingStatus: c.listingStatus ?? c.listing_status,
         listingSellerId: c.listingSellerId ?? c.listing_seller_id,
-        wantedId: c.flashRequestId ?? c.flash_request_id ?? c.wantedId ?? c.wanted_id,
-        wantedRequest: c.flashRequest ?? c.flash_request ?? c.wantedRequest,
+        flashRequestId: c.flashRequestId ?? c.flash_request_id,
+        flashRequest: c.flashRequest ?? c.flash_request,
         activeTransaction: c.activeTransaction,
         activeSwap: c.activeSwap,
         lastMessage: c.lastMessage || c.last_message || '',
@@ -114,12 +108,12 @@ export const chatService = {
         isSystemMessage: Boolean(m.isSystemMessage ?? m.is_system_message),
         swapOfferId: m.swapOfferId || m.swap_offer_id,
         transactionId: m.transactionId || m.transaction_id,
-        wantedRequestId: m.flashRequestId || m.flash_request_id || m.wantedRequestId || m.wanted_request_id,
+        flashRequestId: m.flashRequestId || m.flash_request_id || m.wantedRequestId || m.wanted_request_id,
         mediaUrl: m.mediaUrl || m.media_url || null,
         mediaType: m.mediaType || m.media_type || null,
         swapOffer: m.swapOffer,
         transaction: m.transaction,
-        wantedRequest: m.flashRequest || m.flash_request || m.wantedRequest
+        flashRequest: m.flashRequest || m.flash_request
       }));
     }
     return [];
@@ -136,17 +130,11 @@ export const chatService = {
     isSystemMessage?: boolean;
     swapOfferId?: string;
     transactionId?: string;
-    wantedRequestId?: string;
     flashRequestId?: string;
     mediaUrl?: string | null;
     mediaType?: 'image' | 'video' | null;
   }): Promise<Message> {
-    const payload = {
-      ...params,
-      flashRequestId: params.flashRequestId ?? params.wantedRequestId,
-      wantedRequestId: params.wantedRequestId ?? params.flashRequestId
-    };
-    const res = await api.post<{ message: any }>('/chat/messages', payload);
+    const res = await api.post<{ message: any }>('/chat/messages', params);
     const m = res.data?.message || res.data;
     return {
       id: m.id,
@@ -159,12 +147,12 @@ export const chatService = {
       isSystemMessage: Boolean(m.isSystemMessage ?? m.is_system_message),
       swapOfferId: m.swapOfferId || m.swap_offer_id || params.swapOfferId,
       transactionId: m.transactionId || m.transaction_id || params.transactionId,
-      wantedRequestId: m.flashRequestId || m.flash_request_id || m.wantedRequestId || m.wanted_request_id || params.flashRequestId || params.wantedRequestId,
+      flashRequestId: m.flashRequestId || m.flash_request_id || params.flashRequestId,
       mediaUrl: m.mediaUrl || m.media_url || params.mediaUrl || null,
       mediaType: m.mediaType || m.media_type || params.mediaType || null,
       swapOffer: m.swapOffer,
       transaction: m.transaction,
-      wantedRequest: m.flashRequest || m.flash_request || m.wantedRequest
+      flashRequest: m.flashRequest || m.flash_request
     };
   },
 

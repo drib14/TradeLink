@@ -35,7 +35,8 @@ const getAllListingsAdmin = asyncHandler(async (req, res) => {
       'seller.name as seller_name',
       'seller.avatar_url as seller_avatar',
       'seller.campus as seller_campus',
-      'seller.college as seller_college',
+      'seller.department as seller_department',
+      'seller.department as seller_college',
       'seller.is_verified as seller_is_verified',
       'seller.trust_score as seller_trust_score'
     );

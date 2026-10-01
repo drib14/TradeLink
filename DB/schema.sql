@@ -21,6 +21,7 @@ DROP TABLE IF EXISTS `conversations`;
 DROP TABLE IF EXISTS `transactions`;
 DROP TABLE IF EXISTS `swap_offers`;
 DROP TABLE IF EXISTS `flash_requests`;
+DROP TABLE IF EXISTS `listing_views`;
 DROP TABLE IF EXISTS `listing_media`;
 DROP TABLE IF EXISTS `listings`;
 DROP TABLE IF EXISTS `verification_requests`;
@@ -33,15 +34,6 @@ DROP TABLE IF EXISTS `password_reset_requests`;
 DROP TABLE IF EXISTS `feature_flags`;
 DROP TABLE IF EXISTS `system_config`;
 DROP TABLE IF EXISTS `users`;
-
--- Drop obsolete deprecated tables
-DROP TABLE IF EXISTS `meetup_transactions`;
-DROP TABLE IF EXISTS `wanted_requests`;
-DROP TABLE IF EXISTS `listing_tags`;
-DROP TABLE IF EXISTS `listing_images`;
-DROP TABLE IF EXISTS `conversation_read_status`;
-DROP TABLE IF EXISTS `favorites`;
-DROP TABLE IF EXISTS `notifications`;
 
 -- ----------------------------------------------------------------------------
 -- 1. USERS TABLE
@@ -63,18 +55,16 @@ CREATE TABLE `users` (
     'UC Medical Center',
     'UC PRI'
   ) NOT NULL,
-  `college` VARCHAR(50) NOT NULL,
-  `year_level` VARCHAR(50) NOT NULL,
+  `department` VARCHAR(100) NOT NULL,
   `avatar_url` VARCHAR(500) DEFAULT NULL,
   `is_verified` BOOLEAN NOT NULL DEFAULT FALSE,
   `id_photo_url` VARCHAR(500) DEFAULT NULL,
   `trust_score` TINYINT UNSIGNED NOT NULL DEFAULT 60,
-  `rating` DECIMAL(2,1) NOT NULL DEFAULT 5.0,
+  `rating` DECIMAL(2,1) NOT NULL DEFAULT 0.0,
   `total_reviews` INT UNSIGNED NOT NULL DEFAULT 0,
   `completed_trades` INT UNSIGNED NOT NULL DEFAULT 0,
   `punctuality_rate` TINYINT UNSIGNED NOT NULL DEFAULT 100,
   `bio` TEXT DEFAULT NULL,
-  `is_pro_merchant` BOOLEAN NOT NULL DEFAULT FALSE,
   `is_banned` BOOLEAN NOT NULL DEFAULT FALSE,
   `ban_reason` VARCHAR(500) DEFAULT NULL,
   `banned_at` DATETIME DEFAULT NULL,
@@ -91,8 +81,6 @@ CREATE TABLE `users` (
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
   INDEX `idx_users_campus` (`campus`),
-  INDEX `idx_users_email` (`email`),
-  INDEX `idx_users_student_id` (`student_id`),
   INDEX `idx_users_role` (`role`),
   INDEX `idx_users_trust_score` (`trust_score`),
   INDEX `idx_users_is_banned` (`is_banned`),
@@ -131,12 +119,7 @@ CREATE TABLE `listings` (
   `department` VARCHAR(50) DEFAULT NULL,
   `status` ENUM('active', 'reserved', 'sold', 'swapped', 'donated', 'archived', 'banned') NOT NULL DEFAULT 'active',
   `views_count` INT UNSIGNED NOT NULL DEFAULT 0,
-  `is_featured` BOOLEAN NOT NULL DEFAULT FALSE,
-  `featured_until` DATETIME DEFAULT NULL,
-  `course_code` VARCHAR(30) DEFAULT NULL,
   `quantity` INT UNSIGNED NOT NULL DEFAULT 1,
-  `rating` DECIMAL(2,1) NOT NULL DEFAULT 0.0,
-  `total_reviews` INT UNSIGNED NOT NULL DEFAULT 0,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
@@ -267,7 +250,6 @@ CREATE TABLE `transactions` (
   FOREIGN KEY (`buyer_id`) REFERENCES `users` (`id`) ON DELETE RESTRICT,
   FOREIGN KEY (`seller_id`) REFERENCES `users` (`id`) ON DELETE RESTRICT,
   FOREIGN KEY (`swap_offer_id`) REFERENCES `swap_offers` (`id`) ON DELETE SET NULL,
-  INDEX `idx_tx_ref` (`reference_no`),
   INDEX `idx_tx_listing` (`listing_id`),
   INDEX `idx_tx_buyer` (`buyer_id`),
   INDEX `idx_tx_seller` (`seller_id`),
@@ -293,7 +275,7 @@ CREATE TABLE `conversations` (
   FOREIGN KEY (`flash_request_id`) REFERENCES `flash_requests` (`id`) ON DELETE SET NULL,
   FOREIGN KEY (`user_one_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   FOREIGN KEY (`user_two_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  UNIQUE KEY `uk_conv_participants` (`user_one_id`, `user_two_id`, `listing_id`),
+  UNIQUE KEY `uk_conv_participants` (`user_one_id`, `user_two_id`, `listing_id`, `flash_request_id`),
   INDEX `idx_conv_user_one` (`user_one_id`),
   INDEX `idx_conv_user_two` (`user_two_id`),
   INDEX `idx_conv_listing` (`listing_id`),
@@ -345,14 +327,16 @@ CREATE TABLE `reviews` (
   `target_user_id` VARCHAR(36) DEFAULT NULL,
   `rating` TINYINT UNSIGNED NOT NULL CHECK (`rating` BETWEEN 1 AND 5),
   `comment` TEXT DEFAULT NULL,
-  `trade_type` VARCHAR(50) NOT NULL DEFAULT 'buy_sell',
-  `item_title` VARCHAR(200) DEFAULT NULL,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
   FOREIGN KEY (`listing_id`) REFERENCES `listings` (`id`) ON DELETE CASCADE,
   FOREIGN KEY (`reviewer_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`target_user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`transaction_id`) REFERENCES `transactions` (`id`) ON DELETE SET NULL,
   INDEX `idx_reviews_listing` (`listing_id`),
   INDEX `idx_reviews_reviewer` (`reviewer_id`),
+  INDEX `idx_reviews_target` (`target_user_id`),
+  INDEX `idx_reviews_transaction` (`transaction_id`),
   INDEX `idx_reviews_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -385,7 +369,9 @@ CREATE TABLE `verification_requests` (
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
   FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`reviewed_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
   INDEX `idx_verif_user` (`user_id`),
+  INDEX `idx_verif_reviewer` (`reviewed_by`),
   INDEX `idx_verif_status` (`status`),
   INDEX `idx_verif_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -407,7 +393,10 @@ CREATE TABLE `flagged_listings` (
 
   FOREIGN KEY (`listing_id`) REFERENCES `listings` (`id`) ON DELETE CASCADE,
   FOREIGN KEY (`reporter_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  FOREIGN KEY (`reviewed_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
   INDEX `idx_flag_listing` (`listing_id`),
+  INDEX `idx_flag_reporter` (`reporter_id`),
+  INDEX `idx_flag_reviewer` (`reviewed_by`),
   INDEX `idx_flag_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -431,7 +420,9 @@ CREATE TABLE `trade_disputes` (
   FOREIGN KEY (`transaction_id`) REFERENCES `transactions` (`id`) ON DELETE CASCADE,
   FOREIGN KEY (`complainant_id`) REFERENCES `users` (`id`) ON DELETE RESTRICT,
   FOREIGN KEY (`respondent_id`) REFERENCES `users` (`id`) ON DELETE RESTRICT,
+  FOREIGN KEY (`resolved_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
   INDEX `idx_disputes_trans` (`transaction_id`),
+  INDEX `idx_disputes_resolver` (`resolved_by`),
   INDEX `idx_disputes_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -455,7 +446,6 @@ CREATE TABLE `announcements` (
   ) NOT NULL DEFAULT 'All',
   `type` ENUM('info', 'alert', 'event') NOT NULL DEFAULT 'info',
   `author_id` VARCHAR(36) NOT NULL,
-  `author_name` VARCHAR(100) NOT NULL DEFAULT 'UC Administration',
   `is_active` BOOLEAN NOT NULL DEFAULT TRUE,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -479,6 +469,7 @@ CREATE TABLE `admin_audit_logs` (
   `ip_address` VARCHAR(45) DEFAULT NULL,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
+  FOREIGN KEY (`admin_id`) REFERENCES `users` (`id`) ON DELETE RESTRICT,
   INDEX `idx_audit_admin` (`admin_id`),
   INDEX `idx_audit_action` (`action`),
   INDEX `idx_audit_created_at` (`created_at`)
@@ -493,7 +484,8 @@ CREATE TABLE `prohibited_keywords` (
   `added_by` VARCHAR(36) NOT NULL,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-  INDEX `idx_keyword` (`keyword`)
+  FOREIGN KEY (`added_by`) REFERENCES `users` (`id`) ON DELETE RESTRICT,
+  INDEX `idx_keywords_added_by` (`added_by`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
@@ -523,19 +515,20 @@ CREATE TABLE `feature_flags` (
 CREATE TABLE `password_reset_requests` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
   `user_id` VARCHAR(36) NOT NULL,
-  `email` VARCHAR(150) NOT NULL,
   `status` ENUM('pending', 'approved', 'rejected', 'completed') NOT NULL DEFAULT 'pending',
   `code_hash` VARCHAR(255) DEFAULT NULL,
   `code_exp` DATETIME DEFAULT NULL,
   `reviewed_by` VARCHAR(36) DEFAULT NULL,
   `admin_note` VARCHAR(500) DEFAULT NULL,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `reviewed_at` DATETIME DEFAULT NULL,
 
   INDEX `idx_pw_reset_user_id` (`user_id`),
+  INDEX `idx_pw_reset_reviewer` (`reviewed_by`),
   INDEX `idx_pw_reset_status` (`status`),
-  INDEX `idx_pw_reset_email` (`email`),
-  CONSTRAINT `fk_pw_reset_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+  CONSTRAINT `fk_pw_reset_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_pw_reset_reviewer` FOREIGN KEY (`reviewed_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Re-enable foreign key constraints

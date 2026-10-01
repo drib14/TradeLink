@@ -124,8 +124,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: data.email.trim(),
         password: data.password,
         campus: data.campus,
-        college: data.college,
-        yearLevel: data.yearLevel,
+        department: data.department || (data as any).college || '',
         avatar: data.avatar,
         idPhotoUrl: data.idPhotoUrl,
       });

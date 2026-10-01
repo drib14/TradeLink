@@ -1,6 +1,5 @@
-// Auth service — all authentication API calls
 import { api, setAccessToken } from './api';
-import type { User, Campus, College } from '../types';
+import type { User, Campus } from '../types';
 
 export interface LoginResponse {
   user: User;
@@ -13,8 +12,7 @@ export interface RegisterPayload {
   email: string;
   password: string;
   campus: Campus;
-  college: College;
-  yearLevel: string;
+  department: string;
   avatar?: string;
   idPhotoUrl?: string;
 }
@@ -28,8 +26,8 @@ function mapUserFromApi(raw: any): User {
     studentId: raw.studentId || raw.student_id || '',
     role: raw.role || 'student',
     campus: raw.campus,
-    college: raw.college,
-    yearLevel: raw.yearLevel || raw.year_level || '',
+    department: raw.department || raw.college || '',
+    college: raw.department || raw.college || '',
     avatar: raw.avatar || raw.avatarUrl || raw.avatar_url || '',
     isVerified: true,
     idPhotoUrl: raw.idPhotoUrl || raw.id_photo_url,
@@ -40,7 +38,6 @@ function mapUserFromApi(raw: any): User {
     punctualityRate: raw.punctualityRate ?? raw.punctuality_rate ?? 0,
     bio: raw.bio || '',
     joinedDate: raw.joinedDate || raw.joined_date || raw.created_at || '',
-    isProMerchant: Boolean(raw.isProMerchant ?? raw.is_pro_merchant),
     isBanned: Boolean(raw.isBanned ?? raw.is_banned),
     banReason: raw.banReason || raw.ban_reason,
     bannedAt: raw.bannedAt || raw.banned_at,

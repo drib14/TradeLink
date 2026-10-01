@@ -43,7 +43,6 @@ const updateSystemConfigSchema = Joi.object({
   maxImagesPerListing: Joi.number().min(1).max(20),
   swapModeEnabled: Joi.boolean(),
   flashMarketEnabled: Joi.boolean(),
-  wantedBoardEnabled: Joi.boolean(),
   freeDonationEnabled: Joi.boolean(),
   maxListingsPerUser: Joi.number().min(1).max(100)
 });

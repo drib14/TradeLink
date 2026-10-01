@@ -8,6 +8,7 @@ const SALT_PRIME = 0x5a;
 const PREFIXES = {
   user: 'usr_',
   listing: 'itm_',
+  transaction: 'tx_',
   meetup: 'mtp_',
   swap: 'swp_',
   verification: 'vfy_',

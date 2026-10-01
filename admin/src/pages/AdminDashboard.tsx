@@ -852,7 +852,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                           </td>
                           <td style={{ padding: '0.75rem' }}>
                             <strong style={{ color: '#0F172A', display: 'block' }}>{req.userName}</strong>
-                            <span style={{ fontSize: '0.72rem', color: '#64748B' }}>ID: {req.studentIdNumber} • {req.college}</span>
+                            <span style={{ fontSize: '0.72rem', color: '#64748B' }}>ID: {req.studentIdNumber} • {req.department || req.college}</span>
                           </td>
                           <td style={{ padding: '0.75rem' }}>
                             <CampusBadge campus={req.campus} size="sm" />
@@ -1168,7 +1168,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                       <h4 style={{ fontSize: '0.98rem', fontWeight: 800, color: '#0F172A' }}>{req.userName}</h4>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.2rem' }}>
                         <CampusBadge campus={req.campus} size="sm" />
-                        <span style={{ fontSize: '0.75rem', color: '#64748B' }}>• {req.college}</span>
+                        <span style={{ fontSize: '0.75rem', color: '#64748B' }}>• {req.department || req.college}</span>
                       </div>
                       <div style={{ fontSize: '0.75rem', color: '#002B7F', fontWeight: 700, marginTop: '0.25rem' }}>
                         ID: {req.studentIdNumber}
@@ -1410,7 +1410,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
               <thead>
                 <tr style={{ borderBottom: '2px solid #E2E8F0', color: '#64748B' }}>
                   <th style={{ padding: '0.65rem 0.75rem' }}>Student Profile</th>
-                  <th style={{ padding: '0.65rem 0.75rem' }}>Campus & College</th>
+                  <th style={{ padding: '0.65rem 0.75rem' }}>Campus & Department</th>
                   <th style={{ padding: '0.65rem 0.75rem' }}>Warnings</th>
                   <th style={{ padding: '0.65rem 0.75rem' }}>Status</th>
                   <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>Admin Actions</th>
@@ -1437,7 +1437,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
 
                       <td style={{ padding: '0.75rem' }}>
                         <div style={{ fontWeight: 700, color: '#002B7F' }}>{u.campus}</div>
-                        <div style={{ fontSize: '0.72rem', color: '#64748B' }}>{u.college} ({u.yearLevel})</div>
+                        <div style={{ fontSize: '0.72rem', color: '#64748B' }}>{u.department || u.college}</div>
                       </td>
 
                       <td style={{ padding: '0.75rem' }}>
