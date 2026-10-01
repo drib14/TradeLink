@@ -251,11 +251,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onNavigate('marketplace');
               }
             }}
-            className="clean-input search-input navbar-search-input"
-            style={{
-              paddingLeft: '2.85rem',
-              paddingRight: searchQuery ? '2.4rem' : '4.5rem'
-            }}
+            className={`clean-input search-input navbar-search-input ${searchQuery ? 'has-query' : ''}`}
           />
           {!searchQuery && (
             <span className="search-kbd-hint desktop-only">

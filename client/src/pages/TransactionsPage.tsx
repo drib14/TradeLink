@@ -153,7 +153,7 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
   const completedCount = transactions.filter((t) => (t.buyerId === currentUser.id || t.sellerId === currentUser.id) && t.status === 'completed').length;
 
   return (
-    <div className="container page-enter" style={{ padding: 'clamp(1rem, 2.5vw, 2rem) 0 5rem 0' }}>
+    <div className="container page-enter" style={{ paddingTop: 'clamp(1rem, 2.5vw, 2rem)', paddingBottom: '5rem' }}>
       {/* Page Header */}
       <div style={{ marginBottom: '1.75rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>

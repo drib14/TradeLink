@@ -42,7 +42,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
   ];
 
   return (
-    <div className="container" style={{ maxWidth: '960px', padding: '2rem 1.5rem 5rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+    <div className="container page-enter" style={{ maxWidth: '960px', paddingTop: 'clamp(1rem, 2.5vw, 2rem)', paddingBottom: '5rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       {/* Back Button & Header */}
       <div>
         <button

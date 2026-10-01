@@ -531,7 +531,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
   }
 
   return (
-    <div className="container" style={{ padding: 'clamp(1rem, 2vw, 1.5rem) 0 3rem 0' }}>
+    <div className="container page-enter" style={{ paddingTop: 'clamp(1rem, 2vw, 1.5rem)', paddingBottom: '3rem' }}>
       {/* Page Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
         <div>

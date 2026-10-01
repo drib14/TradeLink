@@ -29,7 +29,7 @@ export const TermsPrivacyPage: React.FC<TermsPrivacyPageProps> = ({ onNavigate, 
   }, [initialTab]);
 
   return (
-    <div className="container" style={{ maxWidth: '900px', padding: '2rem 1.5rem 5rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+    <div className="container page-enter" style={{ maxWidth: '900px', paddingTop: 'clamp(1rem, 2.5vw, 2rem)', paddingBottom: '5rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       {/* Header */}
       <div>
         <button

@@ -160,14 +160,14 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
   };
 
   return (
-    <div className="container page-enter" style={{ padding: '2rem 1.5rem 5rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+    <div className="container page-enter" style={{ paddingTop: 'clamp(1rem, 2.5vw, 2rem)', paddingBottom: '5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {/* Header Banner */}
       <div
         style={{
           backgroundColor: 'var(--uc-blue, #002B7F)',
           color: '#FFFFFF',
           borderRadius: '14px',
-          padding: '1.5rem 1.75rem',
+          padding: 'clamp(1rem, 2.5vw, 1.5rem) clamp(1rem, 3vw, 1.75rem)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -221,7 +221,7 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
           {/* Search Box */}
-          <div style={{ flex: 1, minWidth: '260px', position: 'relative' }}>
+          <div style={{ flex: 1, minWidth: 'min(100%, 220px)', position: 'relative' }}>
             <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
             <input
               type="text"
@@ -234,8 +234,8 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
           </div>
 
           {/* Campus Dropdown Filter */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <div style={{ position: 'relative', minWidth: '200px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', flex: '1 1 auto' }}>
+            <div style={{ position: 'relative', minWidth: 'min(100%, 160px)', flex: 1 }}>
               <Building2 size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
               <select
                 value={selectedCampus}

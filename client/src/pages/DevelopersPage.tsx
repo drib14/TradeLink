@@ -227,7 +227,7 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
   }, [viewMode, teamMembers.length]);
 
   return (
-    <div className="container" style={{ maxWidth: '1100px', padding: '2rem 1.5rem 5rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+    <div className="container page-enter" style={{ maxWidth: '1100px', paddingTop: 'clamp(1rem, 2.5vw, 2rem)', paddingBottom: '5rem', display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
       <style>{`
         .dev-carousel-stage {
           height: 630px;

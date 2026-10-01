@@ -117,9 +117,11 @@ CREATE TABLE `listings` (
     'UC PRI'
   ) NOT NULL,
   `department` VARCHAR(50) DEFAULT NULL,
+  `accepted_payment_methods` VARCHAR(255) NOT NULL DEFAULT 'cash,gcash,maya',
   `status` ENUM('active', 'reserved', 'sold', 'swapped', 'donated', 'archived', 'banned') NOT NULL DEFAULT 'active',
   `views_count` INT UNSIGNED NOT NULL DEFAULT 0,
   `quantity` INT UNSIGNED NOT NULL DEFAULT 1,
+  `is_featured` BOOLEAN NOT NULL DEFAULT FALSE,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
@@ -163,6 +165,25 @@ CREATE TABLE IF NOT EXISTS `listing_views` (
   UNIQUE KEY `uniq_listing_viewer` (`listing_id`, `viewer_identifier`),
   INDEX `idx_listing_views_listing` (`listing_id`),
   CONSTRAINT `fk_listing_views_listing` FOREIGN KEY (`listing_id`) REFERENCES `listings` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------
+-- 3C. LISTING VARIATIONS TABLE (Sizes, Editions, Multi-Item Options)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `listing_variations` (
+  `id` VARCHAR(36) NOT NULL PRIMARY KEY,
+  `listing_id` VARCHAR(36) NOT NULL,
+  `title` VARCHAR(150) NOT NULL,
+  `price` DECIMAL(10, 2) DEFAULT NULL,
+  `image_url` VARCHAR(500) DEFAULT NULL,
+  `image_index` INT DEFAULT 0,
+  `quantity` INT DEFAULT 1,
+  `is_available` BOOLEAN DEFAULT TRUE,
+  `display_order` INT DEFAULT 0,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  INDEX `idx_variations_listing` (`listing_id`),
+  CONSTRAINT `fk_variations_listing` FOREIGN KEY (`listing_id`) REFERENCES `listings` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------

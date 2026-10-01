@@ -340,7 +340,7 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
   };
 
   return (
-    <div className="container page-enter" style={{ padding: 'clamp(1rem, 2.5vw, 2rem) 0 5rem 0', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+    <div className="container page-enter" style={{ paddingTop: 'clamp(1rem, 2.5vw, 2rem)', paddingBottom: '6rem', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
       {/* Back Navigation & Breadcrumb */}
       <div className="product-breadcrumb-bar">
         <button
@@ -1663,45 +1663,66 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
       )}
 
       {/* Mobile Sticky Bottom Action Bar */}
-      {!isOwner && !isSoldOut && (
-        <div className="mobile-detail-sticky-bar">
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Price</span>
-            <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--uc-blue)', fontFamily: 'var(--font-display)' }}>
-              {listing.tradeMode === 'free_donation' ? 'FREE' : `₱${listing.price.toLocaleString()}`}
-            </span>
-          </div>
-          <div style={{ display: 'flex', gap: '0.5rem', flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
-            <button
-              onClick={handleContactSeller}
-              className="btn-secondary"
-              style={{ padding: '0.55rem 0.85rem', fontSize: '0.8rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-            >
-              <MessageSquare size={15} />
-              <span>Chat</span>
-            </button>
-            {listing.tradeMode === 'swap' ? (
-              <button
-                onClick={handleSwapClick}
-                className="btn-primary"
-                style={{ padding: '0.55rem 1rem', fontSize: '0.82rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-              >
-                <ArrowLeftRight size={15} />
-                <span>Swap</span>
-              </button>
-            ) : (
-              <button
-                onClick={handleBuyClick}
-                className="btn-gold"
-                style={{ padding: '0.55rem 1.1rem', fontSize: '0.85rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-              >
-                <ShoppingBag size={15} />
-                <span>Buy Now</span>
-              </button>
-            )}
-          </div>
+      <div className="mobile-detail-sticky-bar">
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>
+            {listing.tradeMode === 'free_donation' ? 'Campus Gift' : listing.tradeMode === 'swap' ? 'Swap Item' : 'Price'}
+          </span>
+          <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--uc-blue)', fontFamily: 'var(--font-display)' }}>
+            {listing.tradeMode === 'free_donation' ? 'FREE' : `₱${displayPrice.toLocaleString()}`}
+          </span>
         </div>
-      )}
+        <div style={{ display: 'flex', gap: '0.5rem', flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
+          {isOwner ? (
+            <button
+              onClick={() => setIsManageModalOpen(true)}
+              className="btn-primary"
+              style={{ padding: '0.55rem 1.15rem', fontSize: '0.84rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+            >
+              <Sliders size={15} />
+              <span>Manage</span>
+            </button>
+          ) : isSoldOut ? (
+            <button
+              disabled
+              className="btn-secondary"
+              style={{ padding: '0.55rem 1rem', fontSize: '0.8rem', fontWeight: 700, opacity: 0.6 }}
+            >
+              Sold Out
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={handleContactSeller}
+                className="btn-secondary"
+                style={{ padding: '0.55rem 0.85rem', fontSize: '0.8rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+              >
+                <MessageSquare size={15} />
+                <span>Chat</span>
+              </button>
+              {listing.tradeMode === 'swap' ? (
+                <button
+                  onClick={handleSwapClick}
+                  className="btn-primary"
+                  style={{ padding: '0.55rem 1rem', fontSize: '0.82rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                >
+                  <ArrowLeftRight size={15} />
+                  <span>Swap</span>
+                </button>
+              ) : (
+                <button
+                  onClick={handleBuyClick}
+                  className="btn-gold"
+                  style={{ padding: '0.55rem 1.1rem', fontSize: '0.85rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                >
+                  <ShoppingBag size={15} />
+                  <span>Buy Now</span>
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

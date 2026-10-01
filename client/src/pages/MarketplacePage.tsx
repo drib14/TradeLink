@@ -100,7 +100,7 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({
   };
 
   return (
-    <div className="container" style={{ padding: 'clamp(1rem, 2.5vw, 2rem) 0 5rem 0', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div className="container page-enter" style={{ paddingTop: 'clamp(1rem, 2.5vw, 2rem)', paddingBottom: '5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
         <div>

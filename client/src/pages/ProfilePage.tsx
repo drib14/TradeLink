@@ -548,7 +548,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   }
 
   return (
-    <div className="container page-enter" style={{ padding: '1.5rem 1.25rem 5rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+    <div className="container page-enter" style={{ paddingTop: 'clamp(1rem, 2.5vw, 1.75rem)', paddingBottom: '5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
       {/* 1. SIMPLIFIED & RESPONSIVE STUDENT PROFILE HERO CARD */}
       <div className="profile-card-hero">
         {/* Campus Cover Banner */}

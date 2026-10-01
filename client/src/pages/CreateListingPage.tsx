@@ -443,7 +443,7 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
       ];
 
   return (
-    <div className="container page-enter" style={{ maxWidth: '780px', padding: '2rem 1.25rem 5rem 1.25rem' }}>
+    <div className="container page-enter" style={{ maxWidth: '780px', paddingTop: 'clamp(1rem, 2.5vw, 2rem)', paddingBottom: '5rem' }}>
       {/* Header Bar */}
       <div style={{ marginBottom: '1.25rem' }}>
         <button
