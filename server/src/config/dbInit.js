@@ -472,13 +472,178 @@ async function autoInitDatabase() {
         .catch(() => {});
     }
 
-    // 8. Self-healing: If listings table is empty, auto-populate baseline university listings
-    if (hasListingsTable) {
+    // 8. Self-healing: Ensure authentic student accounts, listings, and baseline university items
+    if (hasListingsTable && hasUsersTable) {
+      // 8a. Authentic Verified Student Accounts
+      const authenticStudents = [
+        {
+          id: '2d48f605-38e5-4ccc-ba1f-9ffdee81e0cf',
+          name: 'Jhonrid Ramirez',
+          email: 'jhondribramirez7@gmail.com',
+          student_id: '21560206',
+          password_hash: '$2a$12$l4q.AQav1PSk5CBuAUI6FOLBubQYT.QXc169rCGL6ApytxymoFdCW',
+          role: 'student',
+          campus: 'UC Main',
+          department: 'CCS',
+          avatar_url: 'https://res.cloudinary.com/uyytbpe1/image/upload/v1789912012/tradelink/avatars/f6fd7040-0194-4c5d-af22-2944bf766ef1.jpg',
+          is_verified: true,
+          id_photo_url: 'https://res.cloudinary.com/uyytbpe1/image/upload/v1789911633/tradelink/id-photos/4fe2b616-917c-424b-bd52-41ac56542b93.jpg',
+          trust_score: 100,
+          rating: 5.0,
+          total_reviews: 4,
+          completed_trades: 4,
+          punctuality_rate: 100,
+          bio: 'Student at UC Main - CCS.',
+          is_banned: false,
+          token_version: 2
+        },
+        {
+          id: '1cff8fa6-a2df-42a5-b2fd-034977ef8dd6',
+          name: 'Mark Joshua Alducente',
+          email: 'markjellgeolin@gmail.com',
+          student_id: '20956496',
+          password_hash: '$2a$12$w4ca0sXZRS3SbVZzCnyhw.eXQinD2EDdT4rePP/WffCkrvaNYsLvy',
+          role: 'student',
+          campus: 'UC Main',
+          department: 'CCS',
+          avatar_url: null,
+          is_verified: true,
+          id_photo_url: null,
+          trust_score: 95,
+          rating: 4.8,
+          total_reviews: 2,
+          completed_trades: 2,
+          punctuality_rate: 95,
+          bio: 'Student at UC Main - CCS.',
+          is_banned: false,
+          token_version: 2
+        }
+      ];
+
+      for (const student of authenticStudents) {
+        const existingStudent = await db('users').where({ id: student.id }).first();
+        if (!existingStudent) {
+          await db('users').insert(student).catch(() => {});
+        } else {
+          await db('users').where({ id: student.id }).update({ department: student.department }).catch(() => {});
+        }
+      }
+
+      // 8b. Authentic Marketplace Listings
+      const authenticListings = [
+        {
+          id: '26568d11-2e87-4b7d-8621-fd84e0d28d2f',
+          seller_id: '2d48f605-38e5-4ccc-ba1f-9ffdee81e0cf',
+          title: 'Customized Keychain – Personalized Design',
+          description: 'A sturdy metal keychain featuring a custom design. Perfect for showing school spirit on bags, keys, or backpacks.',
+          price: 25.00,
+          original_srp: 25.00,
+          trade_mode: 'buy_sell',
+          swap_preference: null,
+          category: 'General Supplies',
+          condition: 'Brand New',
+          campus: 'UC Main',
+          department: 'CCS',
+          accepted_payment_methods: 'cash',
+          status: 'active',
+          views_count: 24,
+          quantity: 1,
+          is_featured: true
+        },
+        {
+          id: '83ae9af7-0b79-4381-a130-0a6a90ac93bc',
+          seller_id: '2d48f605-38e5-4ccc-ba1f-9ffdee81e0cf',
+          title: 'Coffee Coasters',
+          description: 'A neat set of 12 coffee coasters perfect for dorm rooms or study areas. Made of sturdy cork with a stylish Teacher\'s Day slogan. Ideal for protecting desks and tables.',
+          price: 50.00,
+          original_srp: 50.00,
+          trade_mode: 'buy_sell',
+          swap_preference: null,
+          category: 'General Supplies',
+          condition: 'Brand New',
+          campus: 'UC Main',
+          department: 'CCS',
+          accepted_payment_methods: 'cash',
+          status: 'active',
+          views_count: 18,
+          quantity: 1,
+          is_featured: true
+        },
+        {
+          id: 'e79b8ce9-55f0-4fa7-b927-3cdf32abb35e',
+          seller_id: '2d48f605-38e5-4ccc-ba1f-9ffdee81e0cf',
+          title: 'Wooden Stand – Teacher\'s Day Gift',
+          description: 'A simple and thoughtful gift to show appreciation for your favorite teacher. Perfect for Teacher’s Day, teacher appreciation, or end-of-school celebrations. \n\n🎁 FREE CHOCOLATE with every purchase! \n\nGive a little thank-you that comes with a sweet surprise!',
+          price: 100.00,
+          original_srp: 100.00,
+          trade_mode: 'buy_sell',
+          swap_preference: null,
+          category: 'General Supplies',
+          condition: 'Brand New',
+          campus: 'UC Main',
+          department: 'CCS',
+          accepted_payment_methods: 'cash',
+          status: 'active',
+          views_count: 32,
+          quantity: 1,
+          is_featured: true
+        },
+        {
+          id: '9bb30be0-fb23-482e-a53c-e1069bb49014',
+          seller_id: '1cff8fa6-a2df-42a5-b2fd-034977ef8dd6',
+          title: 'Whiteboard Eraser',
+          description: 'Eraser for any whiteboard marks. Approved for classroom and lecture hall use.',
+          price: 0.00,
+          original_srp: null,
+          trade_mode: 'swap',
+          swap_preference: 'Open to any fair offer',
+          category: 'General Supplies',
+          condition: 'Fair / Academic Usable',
+          campus: 'UC Main',
+          department: 'CCS',
+          accepted_payment_methods: 'cash',
+          status: 'active',
+          views_count: 15,
+          quantity: 1,
+          is_featured: false
+        }
+      ];
+
+      for (const listing of authenticListings) {
+        const existingListing = await db('listings').where({ id: listing.id }).first();
+        if (!existingListing) {
+          await db('listings').insert(listing).catch(() => {});
+        } else {
+          await db('listings').where({ id: listing.id }).update({ department: listing.department, status: 'active' }).catch(() => {});
+        }
+      }
+
+      // 8c. Authentic Listing Media (Cloudinary Hosted)
+      const authenticMedia = [
+        { id: '3e2a63a6-1e88-4189-b9e8-7e47eb4b6089', listing_id: '26568d11-2e87-4b7d-8621-fd84e0d28d2f', media_url: 'https://res.cloudinary.com/uyytbpe1/image/upload/v1790653514/tradelink/listings/c67e71d7-1444-4ea2-9f4c-3a560dbe12ff.jpg', media_type: 'image', is_primary: true, display_order: 0 },
+        { id: 'a4abb9a7-7340-48ca-839e-6958e06f39df', listing_id: '26568d11-2e87-4b7d-8621-fd84e0d28d2f', media_url: 'https://res.cloudinary.com/uyytbpe1/image/upload/v1790653517/tradelink/listings/7b8f438e-b4da-4692-97cf-f3bd4163d37f.jpg', media_type: 'image', is_primary: false, display_order: 1 },
+        { id: '94e49c85-2729-4126-9918-b963e3e8e6ce', listing_id: '83ae9af7-0b79-4381-a130-0a6a90ac93bc', media_url: 'https://res.cloudinary.com/uyytbpe1/image/upload/v1790659334/tradelink/listings/38d5893e-2ec9-4e91-b705-d06ad4adfa2f.jpg', media_type: 'image', is_primary: true, display_order: 0 },
+        { id: '34070386-adfa-4246-8d9a-c7c47684f891', listing_id: 'e79b8ce9-55f0-4fa7-b927-3cdf32abb35e', media_url: 'https://res.cloudinary.com/uyytbpe1/image/upload/v1790551896/tradelink/listings/bce4f85d-6710-479e-a599-739cc15949f9.jpg', media_type: 'image', is_primary: true, display_order: 0 },
+        { id: '28afded4-30ac-490e-a6da-81d25efba20e', listing_id: 'e79b8ce9-55f0-4fa7-b927-3cdf32abb35e', media_url: 'https://res.cloudinary.com/uyytbpe1/image/upload/v1790551898/tradelink/listings/9cb90b97-ea38-4164-8588-ce9e6c5c2337.jpg', media_type: 'image', is_primary: false, display_order: 1 },
+        { id: 'bb7fdcde-ae79-4577-9534-a5059eadc91a', listing_id: 'e79b8ce9-55f0-4fa7-b927-3cdf32abb35e', media_url: 'https://res.cloudinary.com/uyytbpe1/image/upload/v1790551901/tradelink/listings/bb39ad99-ea26-480d-8914-ac17a5894fa2.jpg', media_type: 'image', is_primary: false, display_order: 2 },
+        { id: '71ec2c99-8d49-4edd-8727-6adb9db7bfa8', listing_id: 'e79b8ce9-55f0-4fa7-b927-3cdf32abb35e', media_url: 'https://res.cloudinary.com/uyytbpe1/image/upload/v1790551907/tradelink/listings/4bbdb21c-98cc-42af-af00-1387545d9fcb.jpg', media_type: 'image', is_primary: false, display_order: 3 },
+        { id: 'a52ff2cc-2104-4839-bc67-50bfb3faa176', listing_id: 'e79b8ce9-55f0-4fa7-b927-3cdf32abb35e', media_url: 'https://res.cloudinary.com/uyytbpe1/image/upload/v1790551910/tradelink/listings/c1f9d20a-45d7-47e0-b459-a584532354a5.jpg', media_type: 'image', is_primary: false, display_order: 4 },
+        { id: '4d3e166c-4ca1-44b7-9e7e-bf4f37e9d885', listing_id: '9bb30be0-fb23-482e-a53c-e1069bb49014', media_url: 'https://res.cloudinary.com/uyytbpe1/image/upload/v1790303118/tradelink/listings/52d71413-0b53-4eac-b992-86f560b88314.jpg', media_type: 'image', is_primary: true, display_order: 0 }
+      ];
+
+      for (const media of authenticMedia) {
+        const existingMedia = await db('listing_media').where({ id: media.id }).first();
+        if (!existingMedia) {
+          await db('listing_media').insert(media).catch(() => {});
+        }
+      }
+
+      // 8d. Baseline demo listings if catalogue is still under-populated
       const listingCountRow = await db('listings').count('id as count').first().catch(() => ({ count: 0 }));
       const listingCount = Number(listingCountRow?.count || 0);
-      if (listingCount === 0) {
+      if (listingCount <= 4) {
         const studentCountRow = await db('users').where({ role: 'student' }).count('id as count').first().catch(() => ({ count: 0 }));
-        if (Number(studentCountRow?.count || 0) === 0) {
+        if (Number(studentCountRow?.count || 0) <= 2) {
           const defaultPasswordHash = await bcrypt.hash('TradeLink@2026', 10);
           await db('users').insert([
             { id: 'student-1', name: 'Maria Santos', email: 'maria.santos@uc.edu.ph', student_id: '2022-01452', password_hash: defaultPasswordHash, role: 'student', campus: 'UC Main', department: 'CEA', avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80', is_verified: true, trust_score: 98, rating: 4.9, total_reviews: 14, completed_trades: 18, punctuality_rate: 96, bio: 'BS Civil Engineering student. Fast responder.', is_banned: false },
@@ -514,7 +679,7 @@ async function autoInitDatabase() {
           { id: 'med-10', listing_id: 'list-10', media_url: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80', media_type: 'image', is_primary: true, display_order: 0 }
         ]).catch(() => {});
 
-        logger.info('[DB Init] Self-healed: restored 10 baseline academic campus listings and media.');
+        logger.info('[DB Init] Self-healed: restored baseline academic campus listings and media.');
       }
     }
 
