@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useMarket } from '../context/MarketContext';
 import { useAuth } from '../context/AuthContext';
+import { useFlashMarket } from '../context/FlashMarketContext';
 import { ListingCard } from '../components/marketplace/ListingCard';
 import { CampusCarouselBanner } from '../components/home/CampusCarouselBanner';
 import { ListingCardSkeleton } from '../components/common/SkeletonLoader';
@@ -28,7 +29,16 @@ interface HomePageProps {
 
 export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenChat: _onOpenChat }) => {
   const { listings, isLoading, selectedCampus, setSelectedCampus, selectedCategory, setSelectedCategory, favorites } = useMarket();
+  const { requests: flashRequests } = useFlashMarket();
   const [activeFeedTab, setActiveFeedTab] = useState<'all' | 'swaps' | 'free'>('all');
+
+  const openFlashCount = React.useMemo(() => {
+    return (flashRequests || []).filter((r) => r.status === 'open' && !r.isExpired).length;
+  }, [flashRequests]);
+
+  const activeSwapsCount = React.useMemo(() => {
+    return (listings || []).filter((l) => !l.isSold && l.tradeMode === 'swap').length;
+  }, [listings]);
 
   const handleCampusSelect = (campus: Campus | 'ALL') => {
     setSelectedCampus(campus === 'ALL' ? 'All' : campus);
@@ -84,7 +94,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenChat: _onO
             </div>
             <div className="nav-card-text">
               <div className="nav-card-title">Flash Market</div>
-              <div className="nav-card-sub">Urgent requests</div>
+              <div className="nav-card-sub">{openFlashCount > 0 ? `${openFlashCount} open ${openFlashCount === 1 ? 'request' : 'requests'}` : 'Urgent requests'}</div>
             </div>
           </div>
 
@@ -97,7 +107,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenChat: _onO
             </div>
             <div className="nav-card-text">
               <div className="nav-card-title">Direct Swaps</div>
-              <div className="nav-card-sub">Barter & trade</div>
+              <div className="nav-card-sub">{activeSwapsCount > 0 ? `${activeSwapsCount} available` : 'Barter & trade'}</div>
             </div>
           </div>
         </div>
@@ -192,7 +202,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenChat: _onO
               Campus Marketplace Feed
             </h2>
             <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-              Verified items from UC students across all colleges & campuses
+              Verified items from UC students across all departments & campuses
             </p>
           </div>
 

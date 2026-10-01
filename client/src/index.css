@@ -459,14 +459,15 @@ header.sticky-top-nav, .sticky-top-nav { position: sticky; top: 0; z-index: 100;
   display: flex;
   flex-direction: column;
   position: relative;
-  background-color: #FFFFFF;
-  border: 1px solid #E2E8F0;
+  background-color: var(--bg-surface, #FFFFFF);
+  border: 1px solid var(--border-subtle, #E2E8F0);
   border-radius: 16px;
   overflow: hidden;
   cursor: pointer;
   box-shadow: var(--shadow-card);
-  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.18s ease;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.18s ease;
   width: 100%;
+  height: 100%;
   animation: cardFadeUp 0.3s ease both;
 }
 .product-card-modern:hover { transform: translateY(-4px); border-color: var(--color-primary-border); box-shadow: var(--shadow-card-hover); }
@@ -514,7 +515,7 @@ header.sticky-top-nav, .sticky-top-nav { position: sticky; top: 0; z-index: 100;
   transition: all var(--transition-fast); cursor: pointer;
 }
 .btn-primary:hover { background-color: var(--uc-blue-light); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0, 43, 127, 0.25); }
-.btn-primary:active { transform: translateY(0); box-shadow: none; }
+.btn-primary:active { transform: scale(0.98); box-shadow: none; }
 
 .btn-gold {
   display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
@@ -525,7 +526,7 @@ header.sticky-top-nav, .sticky-top-nav { position: sticky; top: 0; z-index: 100;
   transition: all var(--transition-fast); cursor: pointer;
 }
 .btn-gold:hover { background-color: var(--uc-gold-dark); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(229, 168, 0, 0.3); }
-.btn-gold:active { transform: translateY(0); box-shadow: none; }
+.btn-gold:active { transform: scale(0.98); box-shadow: none; }
 
 .btn-secondary {
   display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
@@ -535,7 +536,7 @@ header.sticky-top-nav, .sticky-top-nav { position: sticky; top: 0; z-index: 100;
   transition: all var(--transition-fast); cursor: pointer;
 }
 .btn-secondary:hover { background-color: #F8FAFC; border-color: #94A3B8; color: var(--uc-blue); transform: translateY(-1px); }
-.btn-secondary:active { transform: translateY(0); }
+.btn-secondary:active { transform: scale(0.98); }
 
 .btn-neutral {
   display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem;
@@ -544,6 +545,7 @@ header.sticky-top-nav, .sticky-top-nav { position: sticky; top: 0; z-index: 100;
   font-size: 0.86rem; font-weight: 600; transition: all var(--transition-fast); cursor: pointer;
 }
 .btn-neutral:hover { background-color: #E2E8F0; color: var(--text-primary); border-color: #CBD5E1; }
+.btn-neutral:active { transform: scale(0.98); }
 
 .btn-danger {
   display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
@@ -554,6 +556,7 @@ header.sticky-top-nav, .sticky-top-nav { position: sticky; top: 0; z-index: 100;
   transition: all var(--transition-fast); cursor: pointer;
 }
 .btn-danger:hover { background-color: var(--color-danger-dark); transform: translateY(-1px); }
+.btn-danger:active { transform: scale(0.98); }
 
 .btn-danger-outline {
   display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
@@ -562,6 +565,7 @@ header.sticky-top-nav, .sticky-top-nav { position: sticky; top: 0; z-index: 100;
   font-size: 0.88rem; font-weight: 600; transition: all var(--transition-fast); cursor: pointer;
 }
 .btn-danger-outline:hover { background-color: #FEE2E2; border-color: var(--accent-red); }
+.btn-danger-outline:active { transform: scale(0.98); }
 
 .btn-success {
   display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
@@ -572,6 +576,7 @@ header.sticky-top-nav, .sticky-top-nav { position: sticky; top: 0; z-index: 100;
   transition: all var(--transition-fast); cursor: pointer;
 }
 .btn-success:hover { background-color: var(--accent-green-dark); transform: translateY(-1px); }
+.btn-success:active { transform: scale(0.98); }
 
 .btn-ghost {
   display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem;
@@ -580,6 +585,7 @@ header.sticky-top-nav, .sticky-top-nav { position: sticky; top: 0; z-index: 100;
   font-size: 0.86rem; font-weight: 600; transition: all var(--transition-fast); cursor: pointer;
 }
 .btn-ghost:hover { background-color: var(--bg-subtle); color: var(--uc-blue); }
+.btn-ghost:active { transform: scale(0.98); }
 
 .btn-icon {
   display: inline-flex; align-items: center; justify-content: center;

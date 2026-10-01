@@ -307,19 +307,64 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
     }));
   }, [userReviews, rating]);
 
-  // Dynamic 6-month timeline data for the SVG area chart
+  const positiveReviewsCount = useMemo(() => {
+    return userReviews.filter((r) => Number(r.rating) >= 4).length;
+  }, [userReviews]);
+
+  const positivePct = useMemo(() => {
+    if (userReviews.length === 0) return null;
+    return Math.round((positiveReviewsCount / userReviews.length) * 100);
+  }, [positiveReviewsCount, userReviews.length]);
+
+  // Dynamic rolling 6-month timeline data for the SVG area chart
   const timelineData = useMemo(() => {
-    const baseVolume = totalTradeVolume > 0 ? totalTradeVolume : 3200;
-    const baseTrades = completedTradesCount > 0 ? completedTradesCount : 6;
-    return [
-      { month: 'Apr', volume: Math.round(baseVolume * 0.15), trades: Math.max(1, Math.round(baseTrades * 0.15)) },
-      { month: 'May', volume: Math.round(baseVolume * 0.28), trades: Math.max(1, Math.round(baseTrades * 0.25)) },
-      { month: 'Jun', volume: Math.round(baseVolume * 0.22), trades: Math.max(1, Math.round(baseTrades * 0.20)) },
-      { month: 'Jul', volume: Math.round(baseVolume * 0.45), trades: Math.max(2, Math.round(baseTrades * 0.40)) },
-      { month: 'Aug', volume: Math.round(baseVolume * 0.70), trades: Math.max(3, Math.round(baseTrades * 0.65)) },
-      { month: 'Sep', volume: Math.max(baseVolume, 1500), trades: Math.max(baseTrades, 4) }
-    ];
-  }, [totalTradeVolume, completedTradesCount]);
+    const now = new Date();
+    const months: { key: string; month: string; volume: number; trades: number }[] = [];
+
+    // Rolling 6 calendar months up to the current month
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const monthLabel = d.toLocaleString('en-US', { month: 'short' });
+      months.push({ key, month: monthLabel, volume: 0, trades: 0 });
+    }
+
+    // Aggregate sold listings by month
+    userSoldListings.forEach((item) => {
+      const dStr = (item as any).soldAt || item.updatedAt || item.createdAt;
+      if (dStr) {
+        const itemDate = new Date(dStr);
+        if (!isNaN(itemDate.getTime())) {
+          const itemKey = `${itemDate.getFullYear()}-${String(itemDate.getMonth() + 1).padStart(2, '0')}`;
+          const target = months.find((m) => m.key === itemKey);
+          if (target) {
+            target.volume += (Number(item.price) || 0) * (Number(item.quantity) || 1);
+            target.trades += 1;
+          }
+        }
+      }
+    });
+
+    // Aggregate completed meetups by month
+    userMeetups
+      .filter((m) => m.status === 'completed')
+      .forEach((m) => {
+        const dStr = m.completedAt || m.scheduledDateTime || m.createdAt;
+        if (dStr) {
+          const mDate = new Date(dStr);
+          if (!isNaN(mDate.getTime())) {
+            const mKey = `${mDate.getFullYear()}-${String(mDate.getMonth() + 1).padStart(2, '0')}`;
+            const target = months.find((entry) => entry.key === mKey);
+            if (target) {
+              target.volume += Number(m.finalPrice || m.amount) || 0;
+              target.trades += 1;
+            }
+          }
+        }
+      });
+
+    return months;
+  }, [userSoldListings, userMeetups]);
 
   // SVG Chart Calculation Helpers
   const chartW = 560;
@@ -330,7 +375,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   const padBottom = 32;
   const innerW = chartW - padLeft - padRight;
   const innerH = chartH - padTop - padBottom;
-  const maxTimelineVolume = Math.max(...timelineData.map((d) => d.volume), 2000);
+  const maxTimelineVolume = Math.max(...timelineData.map((d) => d.volume), 1000);
 
   const chartCoords = timelineData.map((d, i) => {
     const x = padLeft + (i / (timelineData.length - 1)) * innerW;
@@ -584,7 +629,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                     Active Trader
                   </span>
                   <span>&bull;</span>
-                  <span>Joined {targetUser.joinedDate ? new Date(targetUser.joinedDate).getFullYear() : '2024'}</span>
+                  <span>Joined {targetUser.joinedDate ? new Date(targetUser.joinedDate).getFullYear() : new Date().getFullYear()}</span>
                 </div>
               </div>
             </div>
@@ -783,10 +828,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
             <div className="profile-meetup-item">
               <CreditCard size={16} className="profile-meetup-icon" />
               <div>
-                <div className="profile-meetup-title">Payment Mode</div>
-                <div className="profile-meetup-desc" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '2px' }}>
-                  <PaymentMethodBadge method="cash" size="xs" />
-                  <span>Cash on Meetup</span>
+                <div className="profile-meetup-title">Accepted Payments</div>
+                <div className="profile-meetup-desc" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.35rem', marginTop: '2px' }}>
+                  {parsePaymentMethods(targetUser.paymentMethods).map((method) => (
+                    <PaymentMethodBadge key={method} method={method} size="xs" />
+                  ))}
                 </div>
               </div>
             </div>
@@ -939,10 +985,16 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                   Trust &amp; Rating
                 </div>
                 <div style={{ fontSize: '1.45rem', fontWeight: 900, color: rating > 0 ? '#D97706' : 'var(--text-muted)', marginTop: '0.2rem', fontFamily: 'var(--font-display)' }}>
-                  {rating > 0 ? rating.toFixed(1) : '5.0'} ★
+                  {rating > 0 ? `${rating.toFixed(1)} ★` : 'New Member'}
                 </div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                  {totalReviewsCount} {totalReviewsCount === 1 ? 'review' : 'reviews'} &bull; 100% positive
+                  {totalReviewsCount > 0 ? (
+                    <>
+                      {totalReviewsCount} {totalReviewsCount === 1 ? 'review' : 'reviews'} &bull; {positivePct !== null ? `${positivePct}% positive` : 'Verified feedback'}
+                    </>
+                  ) : (
+                    'Awaiting first peer review'
+                  )}
                 </div>
               </div>
               <div style={{ width: '42px', height: '42px', borderRadius: '12px', backgroundColor: 'rgba(217, 119, 6, 0.1)', color: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1909,9 +1961,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
               </div>
 
               <div>
-                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Payment Mode</span>
-                <div style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
-                  Cash on Meetup
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Accepted Payments</span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '4px' }}>
+                  {parsePaymentMethods(targetUser.paymentMethods).map((method) => (
+                    <PaymentMethodBadge key={method} method={method} size="xs" />
+                  ))}
                 </div>
               </div>
             </div>

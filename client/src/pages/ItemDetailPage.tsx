@@ -916,7 +916,7 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
             </div>
           </div>
 
-          {/* Accepted Payment Settlements */}
+          {/* Accepted Payment Settlements or Mode Notice */}
           <div
             style={{
               padding: '0.85rem 1.1rem',
@@ -929,14 +929,30 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
             }}
           >
             <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Payment Mode
+              {listing.tradeMode === 'free_donation'
+                ? 'Community Donation'
+                : listing.tradeMode === 'swap'
+                ? 'Barter & Exchange'
+                : 'Accepted Payment Settlements'}
             </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <PaymentMethodBadge method="cash" size="sm" />
-              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                Cash on Meetup (handover upon inspection)
+            {listing.tradeMode === 'free_donation' ? (
+              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--accent-green)' }}>
+                100% Free Campus Handover (No monetary payment required)
               </span>
-            </div>
+            ) : listing.tradeMode === 'swap' ? (
+              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--uc-blue)' }}>
+                Item-for-item peer exchange upon physical meetup
+              </span>
+            ) : (
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.45rem', marginTop: '2px' }}>
+                {(listing.acceptedPaymentMethods && listing.acceptedPaymentMethods.length > 0
+                  ? listing.acceptedPaymentMethods
+                  : ['cash']
+                ).map((method) => (
+                  <PaymentMethodBadge key={method} method={method} size="sm" />
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Actions: Buy Now as primary, Swap, Chat */}
