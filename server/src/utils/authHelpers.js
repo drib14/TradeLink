@@ -48,13 +48,19 @@ function setRefreshTokenCookie(res, refreshToken) {
   const sameSiteSetting = (process.env.COOKIE_SAME_SITE || (isProduction ? 'none' : 'lax')).toLowerCase();
   const secureSetting = isProduction || sameSiteSetting === 'none';
 
-  res.cookie('refreshToken', refreshToken, {
+  const cookieOptions = {
     httpOnly: true,
     secure: secureSetting,
     sameSite: sameSiteSetting,
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     path: '/api'
-  });
+  };
+
+  if (process.env.COOKIE_DOMAIN) {
+    cookieOptions.domain = process.env.COOKIE_DOMAIN;
+  }
+
+  res.cookie('refreshToken', refreshToken, cookieOptions);
 }
 
 module.exports = {

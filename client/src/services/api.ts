@@ -376,3 +376,20 @@ export async function uploadFile(
 }
 
 export type { ApiResponse, ApiError };
+
+/**
+ * Sanitizes external media URLs to prevent SSRF and untrusted third-party asset loading
+ */
+export function sanitizeMediaUrl(url: string | null | undefined): string {
+  if (!url || typeof url !== 'string') return '';
+  const trimmed = url.trim();
+  const trusted = [
+    'https://res.cloudinary.com',
+    'https://images.unsplash.com',
+    'https://tradelink-backend.vercel.app',
+    'data:image/'
+  ];
+  if (trusted.some((domain) => trimmed.startsWith(domain))) return trimmed;
+  if (trimmed.startsWith('http://localhost:') || trimmed.startsWith('http://127.0.0.1:')) return trimmed; // Dev only
+  return '';
+}

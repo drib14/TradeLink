@@ -4,7 +4,8 @@ const db = require('../config/db');
 const AppError = require('../utils/AppError');
 const config = require('../config/env');
 
-const ENCRYPTION_KEY = crypto.createHash('sha256').update(config.jwt?.accessSecret || 'tradelink-campus-chat-secure-salt-2026').digest();
+const MESSAGE_KEY_SOURCE = process.env.MESSAGE_ENCRYPTION_KEY || config.cookieSecret || 'tradelink-campus-chat-secure-salt-2026';
+const ENCRYPTION_KEY = crypto.createHash('sha256').update(MESSAGE_KEY_SOURCE).digest();
 const ALGORITHM = 'aes-256-gcm';
 
 /**
@@ -99,7 +100,7 @@ async function createMessage({
   await db.transaction(async (trx) => {
     await trx('messages').insert(newMsg);
     await trx('conversations').where({ id: conversationId }).update({
-      last_message: summaryContent,
+      last_message: isSystemMessage ? summaryContent : encryptMessageContent(summaryContent),
       last_message_at: new Date()
     });
   });

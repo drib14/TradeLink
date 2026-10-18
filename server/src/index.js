@@ -32,6 +32,7 @@ app.set('trust proxy', 1);
 // 1. Security Headers (Helmet)
 app.use(
   helmet({
+    crossOriginOpenerPolicy: { policy: 'same-origin' },
     xFrameOptions: { action: 'sameorigin' },
     crossOriginResourcePolicy: { policy: 'cross-origin' },
     referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
@@ -40,10 +41,14 @@ app.use(
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "https:"],
-        connectSrc: ["'self'", "https://res.cloudinary.com", "wss:", "ws:"],
+        imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "https://images.unsplash.com", "https:"],
+        connectSrc: ["'self'", "https://res.cloudinary.com", "wss://tradelink-backend.vercel.app", "wss:", "ws://localhost:3001", "ws:"],
         fontSrc: ["'self'", "https:", "data:"],
         objectSrc: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+        frameAncestors: ["'none'"],
+        reportUri: '/api/csp-report',
         upgradeInsecureRequests: []
       }
     },
@@ -60,7 +65,7 @@ app.use(
 
 // 2. Request Correlation ID & Core Security Headers
 app.use((req, res, next) => {
-  req.id = req.headers['x-request-id'] || uuidv4();
+  req.id = uuidv4();
   res.setHeader('X-Request-ID', req.id);
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
@@ -105,6 +110,13 @@ app.get('/', (req, res) => {
 
 // 10. CSRF Token Endpoint & Double-Submit Protection
 app.get('/api/csrf-token', getCsrfToken);
+
+// CSP Violation Reporting Endpoint (bypass CSRF token since browser dispatches asynchronously)
+app.post('/api/csp-report', express.json({ type: ['application/csp-report', 'application/json'] }), (req, res) => {
+  logger.warn(`[CSP-VIOLATION] ${JSON.stringify(req.body || {})}`);
+  res.status(204).end();
+});
+
 app.use('/api', csrfProtection);
 
 // 11. Mount Main API Routes
@@ -155,6 +167,14 @@ if (require.main === module) {
   // Graceful Shutdown
   const shutdown = () => {
     logger.info('Shutting down TradeLink server gracefully...');
+
+    // Force exit after 10 seconds if connections don't close cleanly
+    const forceTimeout = setTimeout(() => {
+      logger.warn('Forcing shutdown after 10s timeout.');
+      process.exit(1);
+    }, 10000);
+    forceTimeout.unref();
+
     server.close(async () => {
       logger.info('HTTP server closed.');
       await db.destroy();

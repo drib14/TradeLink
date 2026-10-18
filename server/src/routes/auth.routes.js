@@ -14,7 +14,7 @@ const { authLimiter, passwordResetLimiter, resetCodeLimiter } = require('../midd
 
 router.post('/register', authLimiter, validate(registerSchema), authController.register);
 router.post('/login', authLimiter, validate(loginSchema), authController.login);
-router.post('/refresh-token', authController.refreshToken);
+router.post('/refresh-token', authLimiter, authController.refreshToken);
 router.post('/logout', authenticate, authController.logout);
 router.post('/forgot-password', passwordResetLimiter, validate(forgotPasswordSchema), authController.forgotPassword);
 router.post('/verify-reset-code', resetCodeLimiter, passwordResetLimiter, validate(verifyResetCodeSchema), authController.verifyResetCode);

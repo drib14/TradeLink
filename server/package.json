@@ -14,7 +14,8 @@
     "migrate:latest": "knex migrate:latest",
     "migrate:rollback": "knex migrate:rollback",
     "seed:run": "knex seed:run",
-    "seed:clean": "node scripts/clean_seed_live_db.js"
+    "seed:clean": "node scripts/clean_seed_live_db.js",
+    "security:check": "npm audit --audit-level=high"
   },
   "keywords": [
     "tradelink",
@@ -42,6 +43,7 @@
     "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
     "knex": "^3.1.0",
+    "lru-cache": "^11.5.3",
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
     "mysql2": "^3.10.1",

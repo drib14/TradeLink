@@ -87,7 +87,7 @@ function isOriginAllowed(origin) {
 
   // Restrict Vercel preview deployments to authorized project domains only
   const allowVercelPreviews = process.env.ALLOW_VERCEL_PREVIEWS === 'true';
-  if (allowVercelPreviews && /^https:\/\/(uc-tradelink|tradelink-admin|tradelink-[a-z0-9-]+-drib14|tradelink-[a-z0-9-]+)\.vercel\.app$/i.test(normalized)) {
+  if (allowVercelPreviews && /^https:\/\/(uc-tradelink|tradelink-admin|tradelink-[a-z0-9-]+-drib14)\.vercel\.app$/i.test(normalized)) {
     return true;
   }
 

@@ -12,8 +12,12 @@ function escapeLike(str) {
   return str.replace(/[%_]/g, '\\$&');
 }
 
-// In-memory cache to quickly avoid duplicate DB checks for repeat views in current process
-const viewCache = new Set();
+// In-memory LRU cache to quickly avoid duplicate DB checks for repeat views in current process (bounded memory with TTL)
+const { LRUCache } = require('lru-cache');
+const viewCache = new LRUCache({
+  max: 50000,
+  ttl: 60 * 60 * 1000 // 1 hour TTL
+});
 
 /**
  * Records a unique view on a listing:
@@ -46,7 +50,7 @@ async function recordUniqueView(listingId, req, listing) {
         .first();
 
       if (existing) {
-        viewCache.add(cacheKey);
+        viewCache.set(cacheKey, true);
         return false;
       }
 
@@ -58,7 +62,7 @@ async function recordUniqueView(listingId, req, listing) {
       }).catch(() => {});
     }
 
-    viewCache.add(cacheKey);
+    viewCache.set(cacheKey, true);
 
     // 4. Increment the listing's view counter
     await db('listings').where({ id: listingId }).increment('views_count', 1);

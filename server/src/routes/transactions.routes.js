@@ -4,6 +4,9 @@ const { authenticate } = require('../middleware/auth');
 const { requireStudent } = require('../middleware/rbac');
 const transactionsController = require('../controllers/transactions.controller');
 
+const validate = require('../middleware/validate');
+const { createTransactionSchema } = require('../validations/transaction.validation');
+
 // All transaction routes require authentication
 router.use(authenticate);
 
@@ -11,7 +14,7 @@ router.use(authenticate);
 router.get('/', transactionsController.getTransactions);
 
 // Create new direct transaction (students only — admins cannot buy/sell)
-router.post('/', requireStudent, transactionsController.createTransaction);
+router.post('/', requireStudent, validate(createTransactionSchema), transactionsController.createTransaction);
 
 // Get transaction by ID
 router.get('/:id', transactionsController.getTransactionById);

@@ -10,6 +10,7 @@ const { generate4DigitCode, hashCode, verifyCode } = require('../utils/generateC
 const { generateTokens, setRefreshTokenCookie } = require('../utils/authHelpers');
 const emailService = require('../services/email.service');
 const logger = require('../utils/logger');
+const { logSecurityEvent } = require('../utils/securityLogger');
 
 /**
  * Register a new student account
@@ -47,9 +48,8 @@ const register = asyncHandler(async (req, res, next) => {
 
   const passwordHash = await bcrypt.hash(password, 12);
   const userId = uuidv4();
-  // MVP: All registered students have open verified access
-  const isVerified = true;
-  const trustScore = 0;
+  const isVerified = false;
+  const trustScore = 60;
 
   const newUser = {
     id: userId,
@@ -169,6 +169,13 @@ const login = asyncHandler(async (req, res, next) => {
         failed_login_attempts: attempts,
         locked_until: lockExpiry
       });
+      logSecurityEvent({
+        event: 'ACCOUNT_LOCKED',
+        severity: 'critical',
+        userId: user.id,
+        details: { reason: '5 consecutive failed password attempts', lockedUntil: lockExpiry },
+        req
+      });
       return next(
         new AppError(
           'Account temporarily locked for 15 minutes due to 5 failed login attempts.',
@@ -177,6 +184,13 @@ const login = asyncHandler(async (req, res, next) => {
       );
     }
     await db('users').where({ id: user.id }).update({ failed_login_attempts: attempts });
+    logSecurityEvent({
+      event: 'LOGIN_FAILED',
+      severity: 'warning',
+      userId: user.id,
+      details: { attempt: attempts, maxAttempts: 5 },
+      req
+    });
     return next(new AppError('Invalid credentials.', 401));
   }
 

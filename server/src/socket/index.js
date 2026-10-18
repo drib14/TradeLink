@@ -29,8 +29,7 @@ function initializeSocket(httpServer) {
     try {
       const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.split(' ')[1];
       if (!token) {
-        socket.user = { id: 'guest', role: 'guest', is_verified: false };
-        return next();
+        return next(new Error('Authentication required. Please provide a valid access token.'));
       }
 
       let decoded;

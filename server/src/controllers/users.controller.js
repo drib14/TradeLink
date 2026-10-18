@@ -365,6 +365,22 @@ const getUserAnalytics = asyncHandler(async (req, res, next) => {
     return next(new AppError('User not found.', 404));
   }
 
+  // Authorization: Only the user themselves or an administrator can view full trading volume and transaction details
+  const isSelf = req.user?.id === targetUserId;
+  const isAdmin = req.user?.role === 'admin';
+
+  if (!isSelf && !isAdmin) {
+    return res.status(200).json({
+      status: 'success',
+      data: {
+        userId: targetUserId,
+        completedTradesCount: Number(user.completed_trades || 0),
+        rating: parseFloat(user.rating ?? 0.0),
+        totalReviewsCount: Number(user.total_reviews || 0)
+      }
+    });
+  }
+
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const now = new Date();
 

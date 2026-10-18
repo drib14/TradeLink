@@ -159,7 +159,7 @@ const getOrCreateConversation = asyncHandler(async (req, res, next) => {
       notes: matchingTx.notes || null,
       isBuyer: matchingTx.buyer_id === currentUserId
     } : null,
-    lastMessage: conv.last_message || '',
+    lastMessage: decryptMessageContent(conv.last_message) || '',
     lastMessageTimestamp: conv.last_message_at || conv.created_at,
     unreadCount: Number(unreadCountRow?.count || 0),
     isNew
@@ -175,6 +175,7 @@ const getOrCreateConversation = asyncHandler(async (req, res, next) => {
  * Get all conversations for current user with full marketplace context
  */
 const getConversations = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
   let query = db('conversations')
     .where('user_one_id', userId)
     .orWhere('user_two_id', userId)

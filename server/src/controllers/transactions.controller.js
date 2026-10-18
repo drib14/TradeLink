@@ -5,6 +5,7 @@ const asyncHandler = require('../utils/asyncHandler');
 const { serializeTransaction } = require('../serializers');
 const emailService = require('../services/email.service');
 const { generate4DigitCode, hashCode, verifyCode } = require('../utils/generateCode');
+const { encryptMessageContent } = require('../services/message.service');
 
 /**
  * Generates a human-friendly unique reference code e.g. TL-2026-B8A2
@@ -46,13 +47,13 @@ async function syncTransactionToChat({
         listing_id: listingId,
         user_one_id: userA,
         user_two_id: userB,
-        last_message: content,
+        last_message: isSystem ? content : encryptMessageContent(content),
         last_message_at: new Date()
       };
       await db('conversations').insert(conv);
     } else {
       await db('conversations').where({ id: conv.id }).update({
-        last_message: content,
+        last_message: isSystem ? content : encryptMessageContent(content),
         last_message_at: new Date()
       });
     }
@@ -515,6 +516,11 @@ const cancelTransaction = asyncHandler(async (req, res, next) => {
 const updateTransactionStatus = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
   const { status, reason } = req.body;
+
+  const VALID_STATUSES = ['pending', 'confirmed', 'completed', 'cancelled', 'disputed'];
+  if (!status || !VALID_STATUSES.includes(status)) {
+    return next(new AppError(`Invalid status. Allowed values: ${VALID_STATUSES.join(', ')}`, 400));
+  }
 
   if (status === 'completed') {
     return completeTransaction(req, res, next);

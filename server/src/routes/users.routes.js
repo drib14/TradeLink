@@ -14,7 +14,7 @@ router.get('/me/analytics', authenticate, usersController.getUserAnalytics);
 router.get('/me/verification-session', authenticate, requireStudent, usersController.getVerificationSession);
 router.get('/me/verification-status', authenticate, usersController.getVerificationStatus);
 router.post('/me/verify-id', authenticate, requireStudent, usersController.submitIdVerification);
-router.get('/:id/analytics', optionalAuth, usersController.getUserAnalytics);
+router.get('/:id/analytics', authenticate, usersController.getUserAnalytics);
 router.get('/:id', optionalAuth, usersController.getUserProfile);
 router.get('/:id/reviews', usersController.getUserReviews);
 

@@ -22,25 +22,14 @@ const authenticate = asyncHandler(async (req, res, next) => {
   }
 
   let decoded;
-  const verifyOptions = { issuer: 'tradelink-api' };
+  const verifyOptions = { issuer: 'tradelink-api', audience: 'tradelink-client' };
   try {
     decoded = jwt.verify(token, env.jwt.accessSecret, verifyOptions);
   } catch (err) {
-    if (env.jwt.adminAccessSecret) {
-      try {
-        decoded = jwt.verify(token, env.jwt.adminAccessSecret, verifyOptions);
-      } catch (adminErr) {
-        if (err.name === 'TokenExpiredError' || adminErr.name === 'TokenExpiredError') {
-          return next(new AppError('Your session has expired. Please refresh token or log in again.', 401));
-        }
-        return next(new AppError('Invalid authentication token.', 401));
-      }
-    } else {
-      if (err.name === 'TokenExpiredError') {
-        return next(new AppError('Your session has expired. Please refresh token or log in again.', 401));
-      }
-      return next(new AppError('Invalid authentication token.', 401));
+    if (err.name === 'TokenExpiredError') {
+      return next(new AppError('Your session has expired. Please refresh token or log in again.', 401));
     }
+    return next(new AppError('Invalid authentication token.', 401));
   }
 
   const user = await db('users').where({ id: decoded.userId }).first();
@@ -85,7 +74,10 @@ const optionalAuth = asyncHandler(async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, env.jwt.accessSecret, { issuer: 'tradelink-api' });
+    const decoded = jwt.verify(token, env.jwt.accessSecret, {
+      issuer: 'tradelink-api',
+      audience: 'tradelink-client'
+    });
     const user = await db('users').where({ id: decoded.userId }).first();
     req.user = user && !user.is_banned ? user : null;
   } catch (err) {
