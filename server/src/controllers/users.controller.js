@@ -399,14 +399,58 @@ const getUserAnalytics = asyncHandler(async (req, res, next) => {
 
   const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
-  // Completed transactions involving this user (either buyer or seller) in past 6 months
-  const completedTxs = await db('transactions')
-    .where(function() {
-      this.where('seller_id', targetUserId).orWhere('buyer_id', targetUserId);
-    })
-    .andWhere('status', 'completed')
-    .andWhere('created_at', '>=', sixMonthsAgo)
-    .select('amount', 'created_at', 'completed_at');
+  // Fetch all analytics data concurrently in a single batch
+  const [
+    completedTxs,
+    soldListings,
+    activeListings,
+    totalCompletedTrades,
+    totalSoldListings,
+    reviewStats
+  ] = await Promise.all([
+    // Completed transactions involving this user (either buyer or seller) in past 6 months
+    db('transactions')
+      .where(function() {
+        this.where('seller_id', targetUserId).orWhere('buyer_id', targetUserId);
+      })
+      .andWhere('status', 'completed')
+      .andWhere('created_at', '>=', sixMonthsAgo)
+      .select('amount', 'created_at', 'completed_at'),
+
+    // Sold listings in past 6 months
+    db('listings')
+      .where({ seller_id: targetUserId, status: 'sold' })
+      .andWhere('updated_at', '>=', sixMonthsAgo)
+      .select('price', 'updated_at'),
+
+    // Active inventory
+    db('listings')
+      .where({ seller_id: targetUserId })
+      .whereNot({ status: 'sold' })
+      .select('price', 'quantity'),
+
+    // Total completed trades all-time
+    db('transactions')
+      .where(function() {
+        this.where('seller_id', targetUserId).orWhere('buyer_id', targetUserId);
+      })
+      .where({ status: 'completed' })
+      .count('id as count')
+      .first(),
+
+    // Total sold listings all-time
+    db('listings')
+      .where({ seller_id: targetUserId, status: 'sold' })
+      .count('id as count')
+      .first(),
+
+    // Reviews summary
+    db('reviews')
+      .where({ target_user_id: targetUserId })
+      .avg('rating as avgRating')
+      .count('id as count')
+      .first()
+  ]);
 
   completedTxs.forEach((tx) => {
     const d = new Date(tx.completed_at || tx.created_at);
@@ -417,12 +461,6 @@ const getUserAnalytics = asyncHandler(async (req, res, next) => {
     }
   });
 
-  // Also include sold listings if they have completed transactions or marked sold
-  const soldListings = await db('listings')
-    .where({ user_id: targetUserId, status: 'sold' })
-    .andWhere('updated_at', '>=', sixMonthsAgo)
-    .select('price', 'updated_at');
-
   soldListings.forEach((l) => {
     const d = new Date(l.updated_at);
     const m = months.find((m) => m.monthIndex === d.getMonth() && m.year === d.getFullYear());
@@ -432,43 +470,16 @@ const getUserAnalytics = asyncHandler(async (req, res, next) => {
     }
   });
 
-  // Active inventory
-  const activeListings = await db('listings')
-    .where({ user_id: targetUserId })
-    .whereNot({ status: 'sold' })
-    .select('price', 'quantity');
-
   const activeInventoryValue = activeListings.reduce(
     (sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 1),
     0
   );
-
-  // Total completed trades all-time
-  const totalCompletedTrades = await db('transactions')
-    .where(function() {
-      this.where('seller_id', targetUserId).orWhere('buyer_id', targetUserId);
-    })
-    .where({ status: 'completed' })
-    .count('id as count')
-    .first();
-
-  const totalSoldListings = await db('listings')
-    .where({ user_id: targetUserId, status: 'sold' })
-    .count('id as count')
-    .first();
 
   const allTimeTrades = Math.max(
     Number(totalCompletedTrades?.count || 0),
     Number(totalSoldListings?.count || 0),
     Number(user.completed_trades || 0)
   );
-
-  // Reviews summary
-  const reviewStats = await db('reviews')
-    .where({ target_user_id: targetUserId })
-    .avg('rating as avgRating')
-    .count('id as count')
-    .first();
 
   const reviewsCount = Number(reviewStats?.count || 0);
   const avgRating = reviewsCount > 0

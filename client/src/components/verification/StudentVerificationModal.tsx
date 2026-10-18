@@ -57,17 +57,62 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
+  const [isClosing, setIsClosing] = useState(false);
+  const [shouldRender, setShouldRender] = useState(false);
+
+  // Clean stop camera stream
+  const stopCamera = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setIsCameraActive(false);
+    setIsLoadingCamera(false);
+  }, []);
+
+  const handleClose = useCallback(() => {
+    if (isSubmitting) return;
+    stopCamera();
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsClosing(false);
+      setShouldRender(false);
+      document.body.style.overflow = 'unset';
+      document.body.classList.remove('modal-open');
+      onClose();
+    }, 200);
+  }, [isSubmitting, stopCamera, onClose]);
+
   // Modal open body locking & modal-open class
   useEffect(() => {
     if (isOpen) {
+      setShouldRender(true);
+      setIsClosing(false);
       document.body.style.overflow = 'hidden';
       document.body.classList.add('modal-open');
+    } else if (shouldRender && !isClosing) {
+      handleClose();
+    }
+  }, [isOpen]);
+
+  // Escape key handler
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        handleClose();
+      }
+    };
+    if (shouldRender) {
+      window.addEventListener('keydown', handleKeyDown);
     }
     return () => {
-      document.body.style.overflow = 'unset';
-      document.body.classList.remove('modal-open');
+      window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen]);
+  }, [shouldRender, handleClose]);
 
   // Fetch cryptographic session token silently in background on modal open
   useEffect(() => {
@@ -82,19 +127,6 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
         // Safe silent fallback
       });
   }, [isOpen, getVerificationSession]);
-
-  // Clean stop camera stream
-  const stopCamera = useCallback(() => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-    setIsCameraActive(false);
-    setIsLoadingCamera(false);
-  }, []);
 
   // Start webcam stream
   const startCamera = useCallback(async (mode: 'user' | 'environment' = 'user') => {
@@ -292,10 +324,16 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
     }
   };
 
-  if (!isOpen) return null;
+  if (!shouldRender) return null;
 
   return (
-    <div className="modal-backdrop-custom" onClick={onClose} id="student-verification-modal-backdrop">
+    <div
+      className={`modal-backdrop-custom ${isClosing ? 'closing' : ''}`}
+      onClick={handleClose}
+      id="student-verification-modal-backdrop"
+      role="dialog"
+      aria-modal="true"
+    >
       <div
         className="modal-card-custom"
         id="student-verification-modal-card"
@@ -305,7 +343,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
           maxHeight: '92vh',
           display: 'flex',
           flexDirection: 'column',
-          borderRadius: '20px',
+          borderRadius: '24px',
           background: '#FFFFFF',
           boxShadow: '0 25px 60px -15px rgba(0, 43, 127, 0.25)',
           overflow: 'hidden',
@@ -329,20 +367,16 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
               <span>Student Verification</span>
             </div>
             <button
-              onClick={onClose}
+              onClick={handleClose}
               id="close-verification-modal-btn"
+              className="modal-close-btn"
               style={{
-                color: 'rgba(255, 255, 255, 0.8)',
-                padding: '0.35rem',
-                cursor: 'pointer',
-                background: 'rgba(255, 255, 255, 0.1)',
-                border: 'none',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
+                color: 'rgba(255, 255, 255, 0.9)',
+                background: 'rgba(255, 255, 255, 0.15)',
+                border: '1px solid rgba(255, 255, 255, 0.25)'
               }}
-              aria-label="Close"
+              aria-label="Close dialog (Esc)"
+              title="Close dialog (Esc)"
             >
               <X size={18} />
             </button>

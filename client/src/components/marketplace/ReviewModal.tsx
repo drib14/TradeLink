@@ -39,19 +39,48 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
   const [comment, setComment] = useState('');
   const [selectedBadges, setSelectedBadges] = useState<string[]>(['Super Punctual', 'Mint Condition']);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+  const [shouldRender, setShouldRender] = useState(false);
+
+  const handleClose = React.useCallback(() => {
+    if (isSubmitting) return;
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsClosing(false);
+      setShouldRender(false);
+      document.body.style.overflow = 'unset';
+      document.body.classList.remove('modal-open');
+      onClose();
+    }, 200);
+  }, [isSubmitting, onClose]);
 
   React.useEffect(() => {
     if (isOpen) {
+      setShouldRender(true);
+      setIsClosing(false);
       document.body.style.overflow = 'hidden';
       document.body.classList.add('modal-open');
+    } else if (shouldRender && !isClosing) {
+      handleClose();
     }
-    return () => {
-      document.body.style.overflow = 'unset';
-      document.body.classList.remove('modal-open');
-    };
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        handleClose();
+      }
+    };
+    if (shouldRender) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [shouldRender, handleClose]);
+
+  if (!shouldRender) return null;
 
   const targetUserName = currentUser?.id === meetup.sellerId ? meetup.buyerName : meetup.sellerName;
   const targetUserId = currentUser?.id === meetup.sellerId ? meetup.buyerId : meetup.sellerId;
@@ -131,28 +160,34 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
   const FeedbackIcon = feedback.icon;
 
   return (
-    <div className="modal-backdrop-custom" onClick={onClose}>
+    <div
+      className={`modal-backdrop-custom ${isClosing ? 'closing' : ''}`}
+      onClick={handleClose}
+      role="dialog"
+      aria-modal="true"
+    >
       <div
         className="modal-card-custom"
         style={{
-          maxWidth: '480px'
+          maxWidth: '480px',
+          padding: '1.75rem'
         }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="drawer-grabber-handle" />
 
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-subtle, #E2E8F0)', paddingBottom: '0.85rem' }}>
           <div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-display)', margin: 0 }}>
               Review Trade with {targetUserName}
             </h3>
-            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px', margin: '2px 0 0 0' }}>
               Item: {meetup.listingTitle} ({meetup.campus})
             </p>
           </div>
 
-          <button onClick={onClose} style={{ color: 'var(--text-muted)', padding: '0.25rem', background: 'none', border: 'none', cursor: 'pointer' }}>
+          <button onClick={handleClose} className="modal-close-btn" aria-label="Close dialog">
             <X size={18} />
           </button>
         </div>

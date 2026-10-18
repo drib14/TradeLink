@@ -220,22 +220,22 @@ const getConversations = asyncHandler(async (req, res) => {
   const convIds = convs.map((c) => c.id);
   const listingIds = [...new Set(convs.map((c) => c.listing_id).filter(Boolean))];
 
-  // Fetch listing media in bulk
-  const mediaRows = listingIds.length > 0
-    ? await db('listing_media')
-        .whereIn('listing_id', listingIds)
-        .orderBy('display_order', 'asc')
-    : [];
-
-  // Fetch unread count for current user
-  const unreadRows = convIds.length > 0
-    ? await db('messages')
-        .whereIn('conversation_id', convIds)
-        .andWhere({ receiver_id: userId, is_read: false })
-        .groupBy('conversation_id')
-        .select('conversation_id')
-        .count('id as unread_count')
-    : [];
+  // Fetch listing media and unread counts in parallel
+  const [mediaRows, unreadRows] = await Promise.all([
+    listingIds.length > 0
+      ? db('listing_media')
+          .whereIn('listing_id', listingIds)
+          .orderBy('display_order', 'asc')
+      : [],
+    convIds.length > 0
+      ? db('messages')
+          .whereIn('conversation_id', convIds)
+          .andWhere({ receiver_id: userId, is_read: false })
+          .groupBy('conversation_id')
+          .select('conversation_id')
+          .count('id as unread_count')
+      : []
+  ]);
 
   const unreadMap = new Map();
   unreadRows.forEach((r) => unreadMap.set(r.conversation_id, Number(r.unread_count || 0)));

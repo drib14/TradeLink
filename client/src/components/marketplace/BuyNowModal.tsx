@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Listing } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { useChat } from '../../context/ChatContext';
@@ -75,22 +75,57 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmedTransaction, setConfirmedTransaction] = useState<any>(null);
 
-  React.useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-      document.body.classList.add('modal-open');
-    }
-    return () => {
+  const [isClosing, setIsClosing] = useState(false);
+  const [shouldRender, setShouldRender] = useState(false);
+
+  const handleClose = useCallback(() => {
+    if (isSubmitting) return;
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsClosing(false);
+      setShouldRender(false);
       document.body.style.overflow = 'unset';
       document.body.classList.remove('modal-open');
-    };
+      onClose();
+    }, 200);
+  }, [isSubmitting, onClose]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setShouldRender(true);
+      setIsClosing(false);
+      document.body.style.overflow = 'hidden';
+      document.body.classList.add('modal-open');
+    } else if (shouldRender && !isClosing) {
+      handleClose();
+    }
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        handleClose();
+      }
+    };
+    if (shouldRender) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [shouldRender, handleClose]);
+
+  if (!shouldRender) return null;
 
   if (!isAuthenticated || !currentUser) {
     return (
-      <div className="modal-backdrop-custom" onClick={onClose}>
+      <div
+        className={`modal-backdrop-custom ${isClosing ? 'closing' : ''}`}
+        onClick={handleClose}
+        role="dialog"
+        aria-modal="true"
+      >
         <div
           className="modal-card-custom"
           style={{ maxWidth: '440px', textAlign: 'center', padding: '2.5rem 2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.15rem' }}
@@ -202,7 +237,12 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
   };
 
   return (
-    <div className="modal-backdrop-custom" onClick={onClose}>
+    <div
+      className={`modal-backdrop-custom ${isClosing ? 'closing' : ''}`}
+      onClick={handleClose}
+      role="dialog"
+      aria-modal="true"
+    >
       <div
         className="modal-card-custom"
         style={{
@@ -229,7 +269,7 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
             </div>
           </div>
 
-          <button onClick={onClose} style={{ color: 'var(--text-muted)', padding: '0.25rem', background: 'none', border: 'none', cursor: 'pointer' }}>
+          <button onClick={handleClose} className="modal-close-btn" aria-label="Close modal">
             <X size={18} />
           </button>
         </div>

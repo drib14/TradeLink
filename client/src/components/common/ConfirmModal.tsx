@@ -1,13 +1,13 @@
-import React, { useEffect, useCallback } from 'react';
-import { AlertTriangle, Trash2, CheckCircle2, HelpCircle, X } from 'lucide-react';
+import React, { useEffect, useCallback, useState, useRef } from 'react';
+import { AlertTriangle, Trash2, CheckCircle2, HelpCircle, X, Loader2 } from 'lucide-react';
 
-interface ConfirmModalProps {
+export interface ConfirmModalProps {
   isOpen: boolean;
   title: string;
   message: string;
   confirmText?: string;
   cancelText?: string;
-  variant?: 'primary' | 'danger';
+  variant?: 'primary' | 'danger' | 'success';
   icon?: React.ReactNode;
   onConfirm: () => void;
   onCancel: () => void;
@@ -26,116 +26,122 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   onCancel,
   isLoading = false
 }) => {
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.key === 'Escape') onCancel();
-    if (e.key === 'Enter' && !isLoading) onConfirm();
-  }, [onCancel, onConfirm, isLoading]);
+  const [isClosing, setIsClosing] = useState(false);
+  const [shouldRender, setShouldRender] = useState(false);
+  const cardRef = useRef<HTMLDivElement | null>(null);
+
+  const handleClose = useCallback(() => {
+    if (isLoading) return;
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsClosing(false);
+      setShouldRender(false);
+      document.body.style.overflow = 'unset';
+      document.body.classList.remove('modal-open');
+      onCancel();
+    }, 200);
+  }, [isLoading, onCancel]);
 
   useEffect(() => {
     if (isOpen) {
-      document.addEventListener('keydown', handleKeyDown);
+      setShouldRender(true);
+      setIsClosing(false);
       document.body.style.overflow = 'hidden';
       document.body.classList.add('modal-open');
+      setTimeout(() => cardRef.current?.focus(), 50);
+    } else if (shouldRender && !isClosing) {
+      handleClose();
+    }
+  }, [isOpen]);
+
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      handleClose();
+    }
+    if (e.key === 'Enter' && !isLoading) {
+      e.preventDefault();
+      onConfirm();
+    }
+  }, [handleClose, onConfirm, isLoading]);
+
+  useEffect(() => {
+    if (shouldRender) {
+      window.addEventListener('keydown', handleKeyDown);
     }
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = '';
-      document.body.classList.remove('modal-open');
+      window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, handleKeyDown]);
+  }, [shouldRender, handleKeyDown]);
 
-  if (!isOpen) return null;
+  if (!shouldRender) return null;
 
   const isDanger = variant === 'danger';
+  const isSuccess = variant === 'success';
 
   const defaultIcon = isDanger
-    ? <AlertTriangle size={28} />
-    : <HelpCircle size={28} />;
+    ? <AlertTriangle size={24} />
+    : isSuccess
+      ? <CheckCircle2 size={24} />
+      : <HelpCircle size={24} />;
 
-  const iconBg = isDanger ? 'var(--color-danger-subtle, #FEF2F2)' : 'var(--color-primary-subtle, #EBF1FC)';
-  const iconColor = isDanger ? 'var(--color-danger, #DC2626)' : 'var(--color-primary, #002B7F)';
-  const confirmBg = isDanger ? 'var(--color-danger, #DC2626)' : 'var(--color-primary, #002B7F)';
-  const confirmHoverBg = isDanger ? 'var(--color-danger-dark, #B91C1C)' : 'var(--color-primary-dark, #001D59)';
+  const badgeClass = isDanger
+    ? 'confirm-badge-danger'
+    : isSuccess
+      ? 'confirm-badge-success'
+      : 'confirm-badge-primary';
+
+  const confirmBtnClass = isDanger
+    ? 'btn-danger'
+    : isSuccess
+      ? 'btn-success'
+      : 'btn-primary';
 
   return (
     <div
-      className="modal-backdrop-custom"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: 'rgba(15, 23, 42, 0.6)',
-        backdropFilter: 'blur(6px)',
-        WebkitBackdropFilter: 'blur(6px)',
-        zIndex: 9999,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '1rem',
-        animation: 'fadeIn 0.2s ease-out'
-      }}
-      onClick={onCancel}
+      className={`modal-backdrop-custom ${isClosing ? 'closing' : ''}`}
+      onClick={handleClose}
+      aria-hidden="false"
     >
       <div
-        style={{
-          backgroundColor: '#FFFFFF',
-          borderRadius: '20px',
-          padding: '2rem',
-          maxWidth: '420px',
-          width: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '1.25rem',
-          boxShadow: '0 25px 60px -15px rgba(0, 43, 127, 0.3)',
-          animation: 'slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
-        }}
+        ref={cardRef}
+        tabIndex={-1}
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="confirm-modal-title"
+        aria-describedby="confirm-modal-desc"
+        className="modal-card-custom confirm-dialog-card"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
+        {/* Header with Icon Badge */}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-          <div
-            style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: '14px',
-              backgroundColor: iconBg,
-              color: iconColor,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0
-            }}
-          >
+          <div className={`confirm-icon-badge ${badgeClass}`}>
             {icon || defaultIcon}
           </div>
-          <div style={{ flex: 1 }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h3 id="confirm-modal-title" style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
               {title}
             </h3>
-            <p style={{ fontSize: '0.85rem', color: '#64748B', marginTop: '0.35rem', lineHeight: 1.55, margin: '0.35rem 0 0 0' }}>
+            <p id="confirm-modal-desc" style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.4rem', lineHeight: 1.55 }}>
               {message}
             </p>
           </div>
           <button
-            onClick={onCancel}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: '#94A3B8',
-              padding: '4px',
-              borderRadius: '8px',
-              display: 'flex'
-            }}
-            aria-label="Close"
+            onClick={handleClose}
+            disabled={isLoading}
+            className="modal-close-btn"
+            aria-label="Close dialog"
+            title="Close"
           >
             <X size={18} />
           </button>
         </div>
 
-        {/* Actions */}
-        <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'flex-end' }}>
+        {/* Action Buttons */}
+        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
           <button
-            onClick={onCancel}
+            type="button"
+            onClick={handleClose}
             disabled={isLoading}
             className="btn-neutral"
             style={{
@@ -148,29 +154,32 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             {cancelText}
           </button>
           <button
+            type="button"
             onClick={onConfirm}
             disabled={isLoading}
+            className={`${confirmBtnClass}`}
             style={{
-              padding: '0.65rem 1.25rem',
+              padding: '0.65rem 1.35rem',
               borderRadius: '12px',
               fontSize: '0.85rem',
               fontWeight: 800,
-              backgroundColor: confirmBg,
-              color: '#FFFFFF',
-              border: 'none',
-              cursor: isLoading ? 'not-allowed' : 'pointer',
-              opacity: isLoading ? 0.7 : 1,
-              transition: 'background-color 0.15s ease, opacity 0.15s ease',
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.4rem'
+              gap: '0.45rem'
             }}
-            onMouseEnter={(e) => { if (!isLoading) e.currentTarget.style.backgroundColor = confirmHoverBg; }}
-            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = confirmBg; }}
           >
-            {isDanger && <Trash2 size={14} />}
-            {!isDanger && <CheckCircle2 size={14} />}
-            {isLoading ? 'Processing...' : confirmText}
+            {isLoading ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                <span>Processing...</span>
+              </>
+            ) : (
+              <>
+                {isDanger && <Trash2 size={15} />}
+                {isSuccess && <CheckCircle2 size={15} />}
+                <span>{confirmText}</span>
+              </>
+            )}
           </button>
         </div>
       </div>

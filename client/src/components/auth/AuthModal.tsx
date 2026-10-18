@@ -67,9 +67,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const isRecoveryFlow = mode === 'forgot' || mode === 'verify_code' || mode === 'reset';
 
+  const [isClosing, setIsClosing] = useState(false);
+  const [shouldRender, setShouldRender] = useState(false);
+
+  const handleClose = React.useCallback(() => {
+    if (isSubmitting) return;
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsClosing(false);
+      setShouldRender(false);
+      document.body.style.overflow = 'unset';
+      document.body.classList.remove('modal-open');
+      onClose();
+    }, 200);
+  }, [isSubmitting, onClose]);
+
   // Reset states when modal is opened
   useEffect(() => {
     if (isOpen) {
+      setShouldRender(true);
+      setIsClosing(false);
       setMode(initialMode);
       setCodeDigits(['', '', '', '', '', '']);
       setVerifiedCode('');
@@ -78,12 +95,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setResendCountdown(0);
       document.body.style.overflow = 'hidden';
       document.body.classList.add('modal-open');
+    } else if (shouldRender && !isClosing) {
+      handleClose();
+    }
+  }, [isOpen, initialMode]);
+
+  // Escape key handler
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        handleClose();
+      }
+    };
+    if (shouldRender) {
+      window.addEventListener('keydown', handleKeyDown);
     }
     return () => {
-      document.body.style.overflow = 'unset';
-      document.body.classList.remove('modal-open');
+      window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, initialMode]);
+  }, [shouldRender, handleClose]);
 
   // Resend countdown timer
   useEffect(() => {
@@ -105,7 +136,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   }, [mode]);
 
-  if (!isOpen) return null;
+  if (!shouldRender) return null;
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -366,7 +397,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   return (
-    <div className="modal-backdrop-custom" onClick={onClose} style={{ zIndex: 1050 }}>
+    <div
+      className={`modal-backdrop-custom ${isClosing ? 'closing' : ''}`}
+      onClick={handleClose}
+      role="dialog"
+      aria-modal="true"
+      style={{ zIndex: 1050 }}
+    >
       <div
         className="modal-card-custom"
         style={{
@@ -375,7 +412,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           maxHeight: '92vh',
           display: 'flex',
           flexDirection: 'column',
-          borderRadius: '20px',
+          borderRadius: '24px',
           background: 'rgba(255, 255, 255, 0.98)',
           boxShadow: '0 25px 60px -15px rgba(0, 43, 127, 0.28), 0 0 0 1px rgba(0, 43, 127, 0.08)',
           backdropFilter: 'blur(24px)',
@@ -425,19 +462,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
             <button
               type="button"
-              onClick={onClose}
-              style={{
-                color: 'var(--text-muted)',
-                padding: '0.4rem',
-                cursor: 'pointer',
-                background: 'var(--bg-subtle)',
-                border: 'none',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
+              onClick={handleClose}
+              className="modal-close-btn"
               aria-label="Close modal"
+              title="Close dialog (Esc)"
             >
               <X size={18} />
             </button>
@@ -455,20 +483,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Logo size="sm" showSubtitle={false} isDark={true} />
               <button
-                onClick={onClose}
+                onClick={handleClose}
+                className="modal-close-btn"
                 style={{
-                  color: 'rgba(255, 255, 255, 0.8)',
-                  padding: '0.35rem',
-                  cursor: 'pointer',
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  border: 'none',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'all 0.15s ease'
+                  color: 'rgba(255, 255, 255, 0.9)',
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  border: '1px solid rgba(255, 255, 255, 0.25)'
                 }}
-                aria-label="Close modal"
+                aria-label="Close dialog (Esc)"
+                title="Close dialog (Esc)"
               >
                 <X size={18} />
               </button>

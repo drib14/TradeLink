@@ -42,9 +42,8 @@ async function recordUniqueView(listingId, req, listing) {
       return false;
     }
 
-    // 3. Persistent deduplication in database
-    const hasTable = await db.schema.hasTable('listing_views').catch(() => false);
-    if (hasTable) {
+    // 3. Persistent deduplication in database using unique key
+    try {
       const existing = await db('listing_views')
         .where({ listing_id: listingId, viewer_identifier: viewerIdentifier })
         .first();
@@ -60,12 +59,12 @@ async function recordUniqueView(listingId, req, listing) {
         viewer_identifier: viewerIdentifier,
         created_at: new Date()
       }).catch(() => {});
-    }
+    } catch (_) {}
 
     viewCache.set(cacheKey, true);
 
     // 4. Increment the listing's view counter
-    await db('listings').where({ id: listingId }).increment('views_count', 1);
+    await db('listings').where({ id: listingId }).increment('views_count', 1).catch(() => {});
     if (listing && listing.views_count !== undefined) {
       listing.views_count = (Number(listing.views_count) || 0) + 1;
     }
@@ -118,11 +117,15 @@ const getListings = asyncHandler(async (req, res) => {
   // Filter: Status (default 'active', or specific status if not 'All')
   if (status && status !== 'All') {
     query = query.where('listings.status', status);
+  } else if (!status) {
+    query = query.where('listings.status', 'active');
   }
 
-  // Filter: Campus
+  // Filter: Campus (query on listings.campus to hit composite index, with seller fallback)
   if (campus && campus !== 'All') {
-    query = query.where('seller.campus', campus);
+    query = query.where((builder) => {
+      builder.where('listings.campus', campus).orWhere('seller.campus', campus);
+    });
   }
 
   // Filter: Category (safe like)
@@ -226,10 +229,9 @@ const getListingById = asyncHandler(async (req, res, next) => {
     return next(new AppError('Listing not found.', 404));
   }
 
-  // Record unique view: excludes owner and deduplicates repeat views
-  await recordUniqueView(id, req, listing);
-
-  const [media, variations] = await Promise.all([
+  // Concurrently record unique view and fetch media and variations
+  const [, media, variations] = await Promise.all([
+    recordUniqueView(id, req, listing),
     db('listing_media').where({ listing_id: id }).orderBy('display_order', 'asc'),
     db('listing_variations').where({ listing_id: id }).orderBy('display_order', 'asc').catch(() => [])
   ]);

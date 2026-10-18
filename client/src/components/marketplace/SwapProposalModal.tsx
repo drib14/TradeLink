@@ -196,6 +196,7 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
       onClose={onClose}
       title="Propose Item Swap"
       subtitle={`Offering a trade for "${targetListing.title}"`}
+      icon={<ArrowLeftRight size={20} />}
       maxWidth="540px"
     >
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>

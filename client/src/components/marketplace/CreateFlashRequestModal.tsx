@@ -31,19 +31,48 @@ export const CreateFlashRequestModal: React.FC<CreateFlashRequestModalProps> = (
   const [images, setImages] = useState<string[]>([]);
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+  const [shouldRender, setShouldRender] = useState(false);
+
+  const handleClose = React.useCallback(() => {
+    if (isSubmitting) return;
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsClosing(false);
+      setShouldRender(false);
+      document.body.style.overflow = 'unset';
+      document.body.classList.remove('modal-open');
+      onClose();
+    }, 200);
+  }, [isSubmitting, onClose]);
 
   React.useEffect(() => {
     if (isOpen) {
+      setShouldRender(true);
+      setIsClosing(false);
       document.body.style.overflow = 'hidden';
       document.body.classList.add('modal-open');
+    } else if (shouldRender && !isClosing) {
+      handleClose();
     }
-    return () => {
-      document.body.style.overflow = 'unset';
-      document.body.classList.remove('modal-open');
-    };
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        handleClose();
+      }
+    };
+    if (shouldRender) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [shouldRender, handleClose]);
+
+  if (!shouldRender) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,8 +120,10 @@ export const CreateFlashRequestModal: React.FC<CreateFlashRequestModalProps> = (
 
   return (
     <div
-      className="modal-backdrop-custom"
-      onClick={onClose}
+      className={`modal-backdrop-custom ${isClosing ? 'closing' : ''}`}
+      onClick={handleClose}
+      role="dialog"
+      aria-modal="true"
     >
       <div
         className="modal-card-custom"
@@ -144,15 +175,14 @@ export const CreateFlashRequestModal: React.FC<CreateFlashRequestModalProps> = (
           </div>
 
           <button
-            onClick={onClose}
+            onClick={handleClose}
+            className="modal-close-btn"
             style={{
-              background: 'rgba(255, 255, 255, 0.1)',
-              border: 'none',
-              color: '#FFFFFF',
-              padding: '6px',
-              borderRadius: '8px',
-              cursor: 'pointer'
+              background: 'rgba(255, 255, 255, 0.15)',
+              border: '1px solid rgba(255, 255, 255, 0.25)',
+              color: '#FFFFFF'
             }}
+            title="Close dialog (Esc)"
           >
             <X size={18} />
           </button>

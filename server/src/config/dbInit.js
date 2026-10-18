@@ -316,17 +316,72 @@ async function autoInitDatabase() {
       logger.info('[DB Init] Added selected_variation and variation_id to transactions table.');
     }
 
-    // 1m. Ensure swaps.selected_variation exists
-    const hasSwaps = await db.schema.hasTable('swaps').catch(() => false);
-    if (hasSwaps) {
-      const hasSwapVarCol = await db.schema.hasColumn('swaps', 'selected_variation').catch(() => false);
-      if (!hasSwapVarCol) {
-        await db.schema.alterTable('swaps', (t) => {
-          t.string('selected_variation', 150).nullable();
-        }).catch(() => {});
-        logger.info('[DB Init] Added selected_variation to swaps table.');
-      }
+    // 1n. Ensure security_events audit table exists
+    const hasSecEvents = await db.schema.hasTable('security_events').catch(() => false);
+    if (!hasSecEvents) {
+      await db.raw(`
+        CREATE TABLE IF NOT EXISTS \`security_events\` (
+          \`id\` VARCHAR(36) NOT NULL PRIMARY KEY,
+          \`event_type\` VARCHAR(100) NOT NULL,
+          \`severity\` ENUM('info', 'warning', 'critical') NOT NULL DEFAULT 'info',
+          \`user_id\` VARCHAR(36) DEFAULT NULL,
+          \`ip_address\` VARCHAR(45) DEFAULT NULL,
+          \`user_agent\` VARCHAR(256) DEFAULT NULL,
+          \`details\` TEXT DEFAULT NULL,
+          \`created_at\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          INDEX \`idx_security_event_type\` (\`event_type\`),
+          INDEX \`idx_security_severity\` (\`severity\`),
+          INDEX \`idx_security_user_id\` (\`user_id\`),
+          INDEX \`idx_security_created_at\` (\`created_at\`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      `).catch(() => {});
+      logger.info('[DB Init] Initialized security_events audit table.');
     }
+
+    // 1o. Database Optimization: Clean up orphaned records & create high-performance composite indexes
+    try {
+      // Clean up orphaned media rows
+      await db.raw(`
+        DELETE FROM listing_media
+        WHERE listing_id NOT IN (SELECT id FROM listings)
+      `).catch(() => {});
+
+      // Drop obsolete legacy tables if any linger
+      await db.raw('DROP TABLE IF EXISTS notifications, favorites, listing_tags, conversation_read_status, meetup_transactions, listing_images, newsletter_subscribers;').catch(() => {});
+
+      // Remove redundant duplicate indexes to speed up writes
+      const safeDropIndex = async (tbl, idx) => {
+        try {
+          await db.schema.alterTable(tbl, (t) => t.dropIndex([], idx));
+        } catch (_) {}
+      };
+      await safeDropIndex('users', 'idx_users_email');
+      await safeDropIndex('users', 'idx_users_student_id');
+      await safeDropIndex('prohibited_keywords', 'idx_keyword');
+      await safeDropIndex('transactions', 'idx_tx_ref');
+      await safeDropIndex('listing_views', 'idx_listing_views_listing');
+
+      // Add composite indexes for accelerated feed queries & join lookups
+      const safeAddIndex = async (tbl, cols, idx) => {
+        try {
+          await db.schema.alterTable(tbl, (t) => t.index(cols, idx));
+        } catch (_) {}
+      };
+      await safeAddIndex('listings', ['status', 'created_at'], 'idx_listings_status_created');
+      await safeAddIndex('listings', ['status', 'campus', 'created_at'], 'idx_listings_status_campus');
+      await safeAddIndex('listings', ['status', 'category', 'created_at'], 'idx_listings_status_cat');
+      await safeAddIndex('listings', ['seller_id', 'status'], 'idx_listings_seller_status');
+      await safeAddIndex('messages', ['conversation_id', 'created_at'], 'idx_msg_conv_created');
+      await safeAddIndex('messages', ['receiver_id', 'is_read'], 'idx_msg_recv_unread');
+      await safeAddIndex('conversations', ['user_one_id', 'last_message_at'], 'idx_conv_user_one_last');
+      await safeAddIndex('conversations', ['user_two_id', 'last_message_at'], 'idx_conv_user_two_last');
+      await safeAddIndex('transactions', ['buyer_id', 'status'], 'idx_tx_buyer_status');
+      await safeAddIndex('transactions', ['seller_id', 'status'], 'idx_tx_seller_status');
+      await safeAddIndex('reviews', ['target_user_id', 'created_at'], 'idx_reviews_target_created');
+    } catch (optErr) {
+      logger.warn(`[DB Init] Index optimization note: ${optErr.message}`);
+    }
+
 
 
     // 2. Ensure Sole Administrator Account Exists using environment variables

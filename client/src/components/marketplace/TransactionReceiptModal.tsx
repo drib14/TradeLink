@@ -64,6 +64,7 @@ export const TransactionReceiptModal: React.FC<TransactionReceiptModalProps> = (
       onClose={onClose}
       title="TradeLink Digital Receipt"
       subtitle="Official student transaction voucher for campus verification."
+      icon={<ShieldCheck size={20} />}
       maxWidth="520px"
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>

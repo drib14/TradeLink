@@ -13,7 +13,7 @@ USE `tradelink_db_test`;
 -- Disable foreign key checks for clean teardown and recreation
 SET FOREIGN_KEY_CHECKS = 0;
 
--- Drop tables in reverse dependency order
+DROP TABLE IF EXISTS `security_events`;
 DROP TABLE IF EXISTS `review_badges`;
 DROP TABLE IF EXISTS `reviews`;
 DROP TABLE IF EXISTS `messages`;
@@ -127,9 +127,13 @@ CREATE TABLE `listings` (
 
   FOREIGN KEY (`seller_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   INDEX `idx_listings_seller` (`seller_id`),
+  INDEX `idx_listings_seller_status` (`seller_id`, `status`),
   INDEX `idx_listings_campus` (`campus`),
   INDEX `idx_listings_category` (`category`),
   INDEX `idx_listings_status` (`status`),
+  INDEX `idx_listings_status_created` (`status`, `created_at`),
+  INDEX `idx_listings_status_campus` (`status`, `campus`, `created_at`),
+  INDEX `idx_listings_status_cat` (`status`, `category`, `created_at`),
   INDEX `idx_listings_trade_mode` (`trade_mode`),
   INDEX `idx_listings_created_at` (`created_at`),
   FULLTEXT `ft_listings_title` (`title`),
@@ -163,7 +167,6 @@ CREATE TABLE IF NOT EXISTS `listing_views` (
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
   UNIQUE KEY `uniq_listing_viewer` (`listing_id`, `viewer_identifier`),
-  INDEX `idx_listing_views_listing` (`listing_id`),
   CONSTRAINT `fk_listing_views_listing` FOREIGN KEY (`listing_id`) REFERENCES `listings` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -273,7 +276,9 @@ CREATE TABLE `transactions` (
   FOREIGN KEY (`swap_offer_id`) REFERENCES `swap_offers` (`id`) ON DELETE SET NULL,
   INDEX `idx_tx_listing` (`listing_id`),
   INDEX `idx_tx_buyer` (`buyer_id`),
+  INDEX `idx_tx_buyer_status` (`buyer_id`, `status`),
   INDEX `idx_tx_seller` (`seller_id`),
+  INDEX `idx_tx_seller_status` (`seller_id`, `status`),
   INDEX `idx_tx_status` (`status`),
   INDEX `idx_tx_created` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -298,7 +303,9 @@ CREATE TABLE `conversations` (
   FOREIGN KEY (`user_two_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   UNIQUE KEY `uk_conv_participants` (`user_one_id`, `user_two_id`, `listing_id`, `flash_request_id`),
   INDEX `idx_conv_user_one` (`user_one_id`),
+  INDEX `idx_conv_user_one_last` (`user_one_id`, `last_message_at`),
   INDEX `idx_conv_user_two` (`user_two_id`),
+  INDEX `idx_conv_user_two_last` (`user_two_id`, `last_message_at`),
   INDEX `idx_conv_listing` (`listing_id`),
   INDEX `idx_conv_flash` (`flash_request_id`),
   INDEX `idx_conv_last_message_at` (`last_message_at`)
@@ -329,6 +336,7 @@ CREATE TABLE `messages` (
   FOREIGN KEY (`transaction_id`) REFERENCES `transactions` (`id`) ON DELETE SET NULL,
   FOREIGN KEY (`flash_request_id`) REFERENCES `flash_requests` (`id`) ON DELETE SET NULL,
   INDEX `idx_messages_conversation` (`conversation_id`),
+  INDEX `idx_msg_conv_created` (`conversation_id`, `created_at`),
   INDEX `idx_messages_receiver_read` (`receiver_id`, `is_read`),
   INDEX `idx_messages_sender` (`sender_id`),
   INDEX `idx_messages_swap` (`swap_offer_id`),
@@ -357,6 +365,7 @@ CREATE TABLE `reviews` (
   INDEX `idx_reviews_listing` (`listing_id`),
   INDEX `idx_reviews_reviewer` (`reviewer_id`),
   INDEX `idx_reviews_target` (`target_user_id`),
+  INDEX `idx_reviews_target_created` (`target_user_id`, `created_at`),
   INDEX `idx_reviews_transaction` (`transaction_id`),
   INDEX `idx_reviews_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -550,6 +559,25 @@ CREATE TABLE `password_reset_requests` (
   INDEX `idx_pw_reset_status` (`status`),
   CONSTRAINT `fk_pw_reset_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_pw_reset_reviewer` FOREIGN KEY (`reviewed_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------
+-- 20. SECURITY EVENTS AUDIT LOG TABLE
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `security_events` (
+  `id` VARCHAR(36) NOT NULL PRIMARY KEY,
+  `event_type` VARCHAR(100) NOT NULL,
+  `severity` ENUM('info', 'warning', 'critical') NOT NULL DEFAULT 'info',
+  `user_id` VARCHAR(36) DEFAULT NULL,
+  `ip_address` VARCHAR(45) DEFAULT NULL,
+  `user_agent` VARCHAR(256) DEFAULT NULL,
+  `details` TEXT DEFAULT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  INDEX `idx_security_event_type` (`event_type`),
+  INDEX `idx_security_severity` (`severity`),
+  INDEX `idx_security_user_id` (`user_id`),
+  INDEX `idx_security_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Re-enable foreign key constraints

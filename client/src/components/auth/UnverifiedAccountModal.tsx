@@ -14,28 +14,62 @@ export const UnverifiedAccountModal: React.FC<UnverifiedAccountModalProps> = ({
   onStartVerification
 }) => {
   const { currentUser } = useAuth();
+  const [isClosing, setIsClosing] = React.useState(false);
+  const [shouldRender, setShouldRender] = React.useState(false);
+
+  const handleClose = React.useCallback(() => {
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsClosing(false);
+      setShouldRender(false);
+      document.body.style.overflow = 'unset';
+      document.body.classList.remove('modal-open');
+      onClose();
+    }, 200);
+  }, [onClose]);
 
   React.useEffect(() => {
     if (isOpen) {
+      setShouldRender(true);
+      setIsClosing(false);
       document.body.style.overflow = 'hidden';
       document.body.classList.add('modal-open');
+    } else if (shouldRender && !isClosing) {
+      handleClose();
     }
-    return () => {
-      document.body.style.overflow = 'unset';
-      document.body.classList.remove('modal-open');
-    };
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        handleClose();
+      }
+    };
+    if (shouldRender) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [shouldRender, handleClose]);
+
+  if (!shouldRender) return null;
 
   return (
-    <div className="modal-backdrop-custom" onClick={onClose}>
+    <div
+      className={`modal-backdrop-custom ${isClosing ? 'closing' : ''}`}
+      onClick={handleClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="unverified-modal-title"
+    >
       <div
         className="modal-card-custom"
         style={{
           maxWidth: '560px',
           width: '100%',
-          borderRadius: '20px',
+          borderRadius: '24px',
           background: 'rgba(255, 255, 255, 0.98)',
           boxShadow: '0 25px 60px -15px rgba(0, 43, 127, 0.28), 0 0 0 1px rgba(0, 43, 127, 0.08)',
           backdropFilter: 'blur(24px)',
