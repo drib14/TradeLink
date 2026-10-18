@@ -1085,13 +1085,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
           ========================================================================= */}
       {activeTab === 'verifications' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          {/* Temporary notice: Verification disabled for MVP */}
+          {/* Active KYC Verification Review Notice */}
           <div style={{ backgroundColor: '#EBF1FC', border: '1px solid #BCD1F7', borderRadius: '10px', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem', color: '#002B7F' }}>
             <BadgeCheck size={24} style={{ flexShrink: 0 }} />
             <div>
-              <div style={{ fontWeight: 800, fontSize: '0.92rem' }}>Student ID Verification is Temporarily Disabled</div>
+              <div style={{ fontWeight: 800, fontSize: '0.92rem' }}>Official Student ID Verification & KYC Review Desk</div>
               <div style={{ fontSize: '0.8rem', color: '#334155', marginTop: '2px' }}>
-                All student accounts currently have full trading and listing access. Historical verification requests remain preserved below.
+                Review and approve or reject student ID cards and enrollment proof submissions across all UC campuses.
               </div>
             </div>
           </div>
@@ -1248,7 +1248,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     </div>
                   )}
 
-                  {/* Side-by-Side ID & Biometric Selfie Preview */}
+                  {/* Side-by-Side ID & Enrollment Proof Preview */}
                   <div style={{ display: 'grid', gridTemplateColumns: req.selfiePhotoUrl ? '1fr 1fr' : '1fr', gap: '0.5rem' }}>
                     {req.idCardImageUrl && (
                       <div
@@ -1262,7 +1262,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                           cursor: 'pointer'
                         }}
                       >
-                        <img src={req.idCardImageUrl} alt="Student ID" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <img src={req.idCardImageUrl} alt="Student ID Document" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         <div
                           style={{
                             position: 'absolute',
@@ -1276,7 +1276,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                             fontWeight: 700
                           }}
                         >
-                          ID Card
+                          Student ID Card
                         </div>
                       </div>
                     )}
@@ -1293,13 +1293,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                           cursor: 'pointer'
                         }}
                       >
-                        <img src={req.selfiePhotoUrl} alt="Live Biometric Selfie" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <img src={req.selfiePhotoUrl} alt="Enrollment Proof / COR" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         <div
                           style={{
                             position: 'absolute',
                             bottom: '4px',
                             left: '4px',
-                            backgroundColor: 'rgba(5, 150, 105, 0.85)',
+                            backgroundColor: 'rgba(0, 43, 127, 0.85)',
                             color: '#FFFFFF',
                             padding: '0.15rem 0.4rem',
                             borderRadius: '4px',
@@ -1307,7 +1307,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                             fontWeight: 700
                           }}
                         >
-                          Live Selfie
+                          Enrollment Proof (COR)
                         </div>
                       </div>
                     )}
@@ -2080,7 +2080,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
       {/* =========================================================================
           TAB 7: STUDENT TRUST & HONOR CODE MANAGER (Disabled for MVP)
           ========================================================================= */}
-      {false && activeTab === 'reputation' && (
+      {activeTab === 'reputation' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {/* Quick Adjustment Card */}
           <div className="clean-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>

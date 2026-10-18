@@ -302,20 +302,24 @@ export const MainApp: React.FC = () => {
         }}
       />
 
-      {/* 6. Unverified Student Account Explanation Modal (Preserved for future, disabled for MVP) */}
+      {/* 6. Unverified Student Account Explanation Modal */}
       <UnverifiedAccountModal
-        isOpen={false}
+        isOpen={isUnverifiedModalOpen}
         onClose={() => setIsUnverifiedModalOpen(false)}
         onStartVerification={() => {
           setIsUnverifiedModalOpen(false);
-          setIsVerificationModalOpen(false);
+          setIsVerificationModalOpen(true);
         }}
       />
 
-      {/* 7. Two-Step Student Verification Modal (Preserved for future, disabled for MVP) */}
+      {/* 7. Two-Step Student Verification Modal */}
       <StudentVerificationModal
-        isOpen={false}
+        isOpen={isVerificationModalOpen}
         onClose={() => setIsVerificationModalOpen(false)}
+        onSuccess={() => {
+          setIsVerificationModalOpen(false);
+        }}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
       />
 
       {/* 8. Mobile Bottom Navigation Bar */}

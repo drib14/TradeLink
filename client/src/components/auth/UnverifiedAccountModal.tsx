@@ -195,10 +195,10 @@ export const UnverifiedAccountModal: React.FC<UnverifiedAccountModalProps> = ({
               </div>
               <div>
                 <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                  2. Real-Time Live Selfie
+                  2. Proof of Enrollment / COR
                 </div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-                  Take a quick live webcam selfie within the facial frame to verify you match your student ID card.
+                  Upload your Certificate of Registration (COR), current study load, or photo holding your ID.
                 </div>
               </div>
             </div>
@@ -222,7 +222,7 @@ export const UnverifiedAccountModal: React.FC<UnverifiedAccountModalProps> = ({
                 boxShadow: '0 4px 14px rgba(0, 43, 127, 0.25)'
               }}
             >
-              <span>Start ID & Live Selfie Verification</span>
+              <span>Submit Student ID for Verification</span>
               <ArrowRight size={16} />
             </button>
 

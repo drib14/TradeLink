@@ -654,6 +654,23 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 </>
               ) : (
                 <>
+                  {!targetUser.isVerified && (
+                    <button
+                      onClick={() => setIsVerificationModalOpen(true)}
+                      className="btn-primary"
+                      style={{
+                        backgroundColor: 'var(--uc-blue, #002B7F)',
+                        color: '#FFFFFF',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.45rem',
+                        boxShadow: '0 4px 12px rgba(0, 43, 127, 0.22)'
+                      }}
+                    >
+                      <ShieldCheck size={16} color="#FFC72C" />
+                      <span>Verify Student ID</span>
+                    </button>
+                  )}
                   <button
                     onClick={() => onNavigate('create-listing')}
                     className="btn-gold"
@@ -839,6 +856,67 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Verification Notice Banner for Unverified Owner */}
+      {isSelf && !targetUser.isVerified && (
+        <div
+          style={{
+            backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)',
+            border: '1px solid var(--uc-blue-border, #BCD1F7)',
+            borderRadius: '14px',
+            padding: '1rem 1.25rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1rem'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div
+              style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '10px',
+                backgroundColor: 'var(--uc-blue, #002B7F)',
+                color: '#FFC72C',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}
+            >
+              <ShieldCheck size={20} />
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--uc-blue, #002B7F)' }}>
+                Activate Your Verified Student Badge
+              </div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary, #334155)', marginTop: '2px' }}>
+                Verify your student identity with your physical UC Student ID and Certificate of Registration (COR).
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => setIsVerificationModalOpen(true)}
+            className="btn-primary"
+            style={{
+              padding: '0.55rem 1.25rem',
+              fontSize: '0.82rem',
+              fontWeight: 800,
+              backgroundColor: 'var(--uc-blue, #002B7F)',
+              color: '#FFFFFF',
+              borderRadius: '10px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem'
+            }}
+          >
+            <ShieldCheck size={15} color="#FFC72C" />
+            <span>Verify ID Now</span>
+          </button>
+        </div>
+      )}
 
       {/* 4. PROFILE NAVIGATION TABS (Mobile-First Touch Scrolling) */}
       <div
@@ -2190,6 +2268,17 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           </div>
         </form>
       </Modal>
+
+      {/* Student Verification Modal */}
+      <StudentVerificationModal
+        isOpen={isVerificationModalOpen}
+        onClose={() => setIsVerificationModalOpen(false)}
+        onSuccess={() => {
+          setIsVerificationModalOpen(false);
+          showToast('Verification Submitted', 'Your documents have been submitted to campus administration for review.', 'success');
+        }}
+        onOpenAuth={onOpenAuth}
+      />
     </div>
   );
 };

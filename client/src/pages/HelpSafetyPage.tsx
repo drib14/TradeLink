@@ -8,6 +8,7 @@ import {
   Lock,
   Eye,
   Camera,
+  FileText,
   MessageSquare,
   Sparkles,
   MapPin,
@@ -203,11 +204,11 @@ export const HelpSafetyPage: React.FC<HelpSafetyPageProps> = ({ onNavigate }) =>
           </div>
 
           <div style={{ backgroundColor: 'var(--bg-subtle)', padding: '1rem', borderRadius: '10px', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-            <Eye size={20} color="var(--accent-green)" style={{ flexShrink: 0, marginTop: '2px' }} />
+            <FileText size={20} color="var(--accent-green)" style={{ flexShrink: 0, marginTop: '2px' }} />
             <div>
-              <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-primary)' }}>2. Biometric Liveness</div>
+              <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-primary)' }}>2. Proof of Enrollment</div>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '2px', lineHeight: 1.45 }}>
-                Complete a live interactive selfie challenge to confirm real-time identity.
+                Provide your Certificate of Registration (COR) or current study load assessment.
               </div>
             </div>
           </div>
@@ -215,9 +216,9 @@ export const HelpSafetyPage: React.FC<HelpSafetyPageProps> = ({ onNavigate }) =>
           <div style={{ backgroundColor: 'var(--bg-subtle)', padding: '1rem', borderRadius: '10px', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
             <Lock size={20} color="#B45309" style={{ flexShrink: 0, marginTop: '2px' }} />
             <div>
-              <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-primary)' }}>3. Instant Badge</div>
+              <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-primary)' }}>3. Official Campus KYC</div>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '2px', lineHeight: 1.45 }}>
-                Verified status unlocks trusted merchant indicators and peer buyer trust.
+                Authorized campus staff verify credentials to activate your verified student badge.
               </div>
             </div>
           </div>

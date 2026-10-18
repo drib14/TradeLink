@@ -54,9 +54,9 @@ export const FAQPage: React.FC<FAQPageProps> = ({ onNavigate }) => {
     },
     {
       category: 'Student Verification',
-      badge: 'Security System',
+      badge: 'Campus KYC Desk',
       question: 'How does the Student Verification System work, and how fast is approval?',
-      answer: 'TradeLink uses a secure verification system requiring your valid Student ID card and a live selfie check. Submissions with clear credentials and valid liveness verification are approved quickly, unlocking the Verified Student Badge on your profile.'
+      answer: 'TradeLink uses a secure institutional verification system requiring your valid University of Cebu Student ID card and proof of enrollment (Certificate of Registration / Study Load). Submissions are reviewed directly by authorized campus staff, unlocking the official Verified Student Badge on your profile within 24 hours.'
     },
     {
       category: 'Buying & Swapping',

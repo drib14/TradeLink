@@ -101,9 +101,9 @@ async function main() {
 
     await connection.query(`
       INSERT INTO \`users\` (
-        \`id\`, \`name\`, \`email\`, \`student_id\`, \`password_hash\`, \`role\`, \`campus\`, \`college\`, \`year_level\`,
+        \`id\`, \`name\`, \`email\`, \`student_id\`, \`password_hash\`, \`role\`, \`campus\`, \`department\`,
         \`avatar_url\`, \`is_verified\`, \`id_photo_url\`, \`trust_score\`, \`rating\`, \`total_reviews\`,
-        \`completed_trades\`, \`punctuality_rate\`, \`bio\`, \`is_pro_merchant\`, \`is_banned\`, \`token_version\`
+        \`completed_trades\`, \`punctuality_rate\`, \`bio\`, \`is_banned\`, \`token_version\`
       ) VALUES (
         'user-admin',
         ?,
@@ -113,7 +113,6 @@ async function main() {
         'admin',
         'UC Main',
         'CCS',
-        'Staff',
         'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
         1,
         'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80',
@@ -124,7 +123,6 @@ async function main() {
         100,
         'TradeLink Community Moderation Desk. Direct peer-to-peer student verification and trust enforcement.',
         0,
-        0,
         1
       )
     `, [adminName, adminEmail, adminPasswordHash]);
@@ -132,10 +130,10 @@ async function main() {
 
     console.log('\n--- Seeding Baseline Announcements & Prohibited Keywords ---');
     await connection.query(`
-      INSERT INTO \`announcements\` (\`id\`, \`title\`, \`message\`, \`campus\`, \`type\`, \`author_id\`, \`author_name\`, \`is_active\`) VALUES
-      ('ann-1', 'Campus Safety & Meetup Guidelines', 'Schedule handovers in well-lit public campus spots (canteen, library entrance, or student lounge) during daylight hours. Always physically inspect items before finalizing payment or barter.', 'All', 'alert', 'user-admin', 'TradeLink Team', 1),
-      ('ann-2', 'Academic Resource Desk Active', 'Need calculators, reviewers, or course essentials urgently? Use Flash Market to post instant same-day peer requests to students on your campus.', 'All', 'info', 'user-admin', 'TradeLink Team', 1),
-      ('ann-3', 'Textbook & Gear Swap Portal Live', 'TradeLink now fully supports direct item-for-item swaps and textbook exchanges with zero platform fees.', 'All', 'info', 'user-admin', 'TradeLink Team', 1)
+      INSERT INTO \`announcements\` (\`id\`, \`title\`, \`message\`, \`campus\`, \`type\`, \`author_id\`, \`is_active\`) VALUES
+      ('ann-1', 'Campus Safety & Meetup Guidelines', 'Schedule handovers in well-lit public campus spots (canteen, library entrance, or student lounge) during daylight hours. Always physically inspect items before finalizing payment or barter.', 'All', 'alert', 'user-admin', 1),
+      ('ann-2', 'Academic Resource Desk Active', 'Need calculators, reviewers, or course essentials urgently? Use Flash Market to post instant same-day peer requests to students on your campus.', 'All', 'info', 'user-admin', 1),
+      ('ann-3', 'Textbook & Gear Swap Portal Live', 'TradeLink now fully supports direct item-for-item swaps and textbook exchanges with zero platform fees.', 'All', 'info', 'user-admin', 1)
     `);
 
     await connection.query(`

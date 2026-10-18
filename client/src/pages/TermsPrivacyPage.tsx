@@ -171,8 +171,8 @@ export const TermsPrivacyPage: React.FC<TermsPrivacyPageProps> = ({ onNavigate, 
               <FileText size={18} color="var(--uc-blue)" /> 1. Information We Collect
             </h4>
             <ul style={{ paddingLeft: '1.25rem', fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.65 }}>
-              <li><strong>Student Credentials:</strong> Official Student ID number, full name, university or personal email, campus affiliation, and course/grade level.</li>
-              <li><strong>Verification Media:</strong> Clear photo of official UC Student ID card and live camera selfie submitted exclusively for biometric facial matching and verification badge approval (Study Load / COR is not accepted as it lacks a photo).</li>
+              <li><strong>Student Credentials:</strong> Official Student ID number, full name, university or personal email, campus affiliation, and course or department.</li>
+              <li><strong>Verification Media:</strong> Clear photo of official UC Student ID card and proof of enrollment (Certificate of Registration / Study Load) submitted securely for campus KYC validation and verification badge approval.</li>
               <li><strong>Transaction & Meetup Records:</strong> Item listings, agreed meetup checkpoints, order completions, and product reviews.</li>
               <li><strong>Communications:</strong> Encrypted in-app peer-to-peer chat messages exchanged regarding listings and trade coordination.</li>
             </ul>

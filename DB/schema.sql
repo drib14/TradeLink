@@ -263,6 +263,8 @@ CREATE TABLE `transactions` (
   `payment_method` ENUM('cash', 'gcash', 'maya', 'barter', 'free') NOT NULL DEFAULT 'cash',
   `payment_status` ENUM('unpaid', 'paid', 'refunded') NOT NULL DEFAULT 'unpaid',
   `status` ENUM('pending', 'completed', 'cancelled', 'disputed') NOT NULL DEFAULT 'pending',
+  `selected_variation` VARCHAR(150) DEFAULT NULL,
+  `variation_id` VARCHAR(36) DEFAULT NULL,
   `notes` TEXT DEFAULT NULL,
   `completed_at` DATETIME DEFAULT NULL,
   `cancelled_at` DATETIME DEFAULT NULL,
@@ -392,6 +394,13 @@ CREATE TABLE `verification_requests` (
   `id_photo_url` VARCHAR(500) NOT NULL,
   `selfie_photo_url` VARCHAR(500) DEFAULT NULL,
   `status` ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
+  `confidence_score` INT UNSIGNED NOT NULL DEFAULT 100,
+  `is_suspicious` BOOLEAN NOT NULL DEFAULT FALSE,
+  `suspicious_reasons` TEXT DEFAULT NULL,
+  `credential_diagnostics` TEXT DEFAULT NULL,
+  `id_photo_hash` VARCHAR(64) DEFAULT NULL,
+  `selfie_photo_hash` VARCHAR(64) DEFAULT NULL,
+  `verification_method` VARCHAR(50) NOT NULL DEFAULT 'admin_kyc',
   `rejection_reason` VARCHAR(255) DEFAULT NULL,
   `reviewed_by` VARCHAR(36) DEFAULT NULL,
   `reviewed_at` DATETIME DEFAULT NULL,
@@ -403,6 +412,8 @@ CREATE TABLE `verification_requests` (
   INDEX `idx_verif_user` (`user_id`),
   INDEX `idx_verif_reviewer` (`reviewed_by`),
   INDEX `idx_verif_status` (`status`),
+  INDEX `idx_verif_suspicious` (`is_suspicious`),
+  INDEX `idx_verif_photo_hash` (`id_photo_hash`),
   INDEX `idx_verif_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

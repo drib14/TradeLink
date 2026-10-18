@@ -141,7 +141,7 @@ const getVerificationStatus = asyncHandler(async (req, res) => {
 });
 
 /**
- * Submit student ID verification request with biometric liveness validation and anti-fraud checks
+ * Submit student ID verification request with Sharp image security validation and anti-duplicate hashing
  */
 const submitIdVerification = asyncHandler(async (req, res, next) => {
   const {
@@ -149,23 +149,23 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
     idPhotoUrl,
     idCardImageUrl,
     selfiePhotoUrl,
-    sessionToken
+    enrollmentProofUrl
   } = req.body;
 
   const rawIdPhoto = idPhotoUrl || idCardImageUrl;
+  const secondaryProof = enrollmentProofUrl || selfiePhotoUrl || null;
 
   if (!studentIdNumber || !rawIdPhoto) {
     return next(new AppError('Student ID number and valid ID photo are required.', 400));
   }
 
-  if (!selfiePhotoUrl) {
-    return next(new AppError('Live biometric selfie is required to complete verification.', 400));
-  }
-
   // Basic image data sanity check
   const isDataUrl = (str) => typeof str === 'string' && (str.startsWith('data:image/') || str.startsWith('http'));
-  if (!isDataUrl(rawIdPhoto) || !isDataUrl(selfiePhotoUrl)) {
-    return next(new AppError('Invalid image format. Images must be valid JPEG, PNG, or WebP files.', 400));
+  if (!isDataUrl(rawIdPhoto)) {
+    return next(new AppError('Invalid ID photo format. Images must be valid JPEG, PNG, or WebP files.', 400));
+  }
+  if (secondaryProof && !isDataUrl(secondaryProof)) {
+    return next(new AppError('Invalid secondary proof format. Files must be valid JPEG, PNG, or WebP images.', 400));
   }
 
   // Check rate limiting: max 5 verification submissions per 24 hours
@@ -177,12 +177,16 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
     return next(new AppError('Verification submission limit reached (maximum 5 attempts per 24 hours). Please contact campus administration if you require assistance.', 429));
   }
 
-  // Check if another account is already registered with this student ID
-  const cleanId = studentIdNumber.replace(/\D/g, '');
-  if (cleanId.length < 6 || cleanId.length > 20) {
-    return next(new AppError('Student ID must contain between 6 and 20 digits with no hyphens or letters.', 400));
+  // Validate UC Student ID format (e.g. 2024-12345 or 12345678)
+  const rawId = String(studentIdNumber).trim();
+  const cleanId = rawId.replace(/[^0-9A-Za-z-]/g, '');
+  const digitsOnly = cleanId.replace(/\D/g, '');
+
+  if (digitsOnly.length < 6 || digitsOnly.length > 20) {
+    return next(new AppError('Student ID must contain between 6 and 20 characters (e.g. 2024-12345 or 12345678).', 400));
   }
 
+  // Check if another account is already registered with this student ID
   const existingAccountWithId = await db('users')
     .where({ student_id: cleanId })
     .andWhereNot({ id: req.user.id })
@@ -192,7 +196,7 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
     return next(new AppError('This Student ID number is already registered to another student account.', 409));
   }
 
-  // Also check if an active approved or pending verification exists for this student ID on another user
+  // Check if an active approved or pending verification exists for this student ID on another user
   const duplicatePending = await db('verification_requests')
     .where({ student_id_number: cleanId })
     .andWhereNot({ user_id: req.user.id })
@@ -203,20 +207,32 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
     return next(new AppError('A verification request with this Student ID is already active on another account.', 409));
   }
 
-  // Evaluate verification credentials, liveness challenge, and image forensics
-  const evaluation = await studentVerificationEngine.evaluateVerification({
-    user: req.user,
-    studentId: studentIdNumber,
-    idPhotoUrl: rawIdPhoto,
-    selfiePhotoUrl,
-    sessionToken,
-    telemetry: req.body.telemetry
-  });
+  // Compute cryptographic SHA-256 hash of documents for duplicate detection & forensic audit
+  const computeHash = (dataUrl) => {
+    if (!dataUrl || typeof dataUrl !== 'string') return '';
+    const pure = dataUrl.includes('base64,') ? dataUrl.split('base64,')[1] : dataUrl;
+    return crypto.createHash('sha256').update(pure).digest('hex');
+  };
 
-  // Upload ID photos to Cloudflare R2 / secure storage
-  const [resolvedIdPhoto, resolvedSelfie] = await Promise.all([
+  const idPhotoHash = computeHash(rawIdPhoto);
+  const secondaryHash = secondaryProof ? computeHash(secondaryProof) : null;
+
+  if (idPhotoHash) {
+    const duplicatePhoto = await db('verification_requests')
+      .where({ id_photo_hash: idPhotoHash })
+      .andWhereNot({ user_id: req.user.id })
+      .whereIn('status', ['approved', 'pending'])
+      .first();
+
+    if (duplicatePhoto) {
+      return next(new AppError('This ID document has already been submitted by another account. Please provide an authentic document.', 409));
+    }
+  }
+
+  // Process and sanitize photos using Sharp via storageService (strips EXIF, enforces dimensions & magic bytes)
+  const [resolvedIdPhoto, resolvedSecondaryProof] = await Promise.all([
     storageService.uploadBase64(rawIdPhoto, 'id-photos'),
-    storageService.uploadBase64(selfiePhotoUrl, 'id-photos')
+    secondaryProof ? storageService.uploadBase64(secondaryProof, 'id-photos') : Promise.resolve(null)
   ]);
 
   // Check if user already has a pending or rejected request (update record or insert new)
@@ -225,22 +241,26 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
     .andWhere({ status: 'pending' })
     .first();
 
-  let targetVerifId = existingPending ? existingPending.id : uuidv4();
+  const targetVerifId = existingPending ? existingPending.id : uuidv4();
 
   const verifData = {
-    student_id_number: evaluation.cleanId,
+    student_id_number: cleanId,
     id_photo_url: resolvedIdPhoto,
-    selfie_photo_url: resolvedSelfie,
-    status: evaluation.status,
-    confidence_score: evaluation.confidenceScore,
-    is_suspicious: evaluation.isSuspicious,
-    suspicious_reasons: evaluation.suspiciousReasons.length > 0 ? JSON.stringify(evaluation.suspiciousReasons) : null,
-    credential_diagnostics: JSON.stringify(evaluation.credentialDiagnostics),
-    id_photo_hash: evaluation.idPhotoHash,
-    selfie_photo_hash: evaluation.selfiePhotoHash,
-    verification_method: evaluation.isApproved ? 'automated' : 'manual_review',
-    reviewed_by: evaluation.isApproved ? 'system_auto_verify' : null,
-    reviewed_at: evaluation.isApproved ? new Date() : null,
+    selfie_photo_url: resolvedSecondaryProof || resolvedIdPhoto,
+    status: 'pending',
+    confidence_score: 100,
+    is_suspicious: 0,
+    suspicious_reasons: null,
+    credential_diagnostics: JSON.stringify({
+      verifiedFormat: cleanId,
+      submittedAt: new Date().toISOString(),
+      secondaryProofProvided: Boolean(resolvedSecondaryProof)
+    }),
+    id_photo_hash: idPhotoHash,
+    selfie_photo_hash: secondaryHash,
+    verification_method: 'admin_kyc',
+    reviewed_by: null,
+    reviewed_at: null,
     rejection_reason: null,
     updated_at: new Date()
   };
@@ -256,57 +276,33 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
     });
   }
 
-  // Update user record
-  if (evaluation.isApproved) {
-    // Automated instant approval (>90% accuracy passed)
-    await db('users').where({ id: req.user.id }).update({
-      student_id: evaluation.cleanId,
-      id_photo_url: resolvedIdPhoto,
-      is_verified: true,
-      trust_score: db.raw('LEAST(100, trust_score + 25)')
-    });
+  // Update user's student_id in users table
+  await db('users').where({ id: req.user.id }).update({
+    student_id: cleanId,
+    id_photo_url: resolvedIdPhoto,
+    updated_at: new Date()
+  });
 
-    // Record automated audit log
-    const clientIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1';
-    await db('admin_audit_logs').insert({
-      id: `log_${Date.now()}_auto`,
-      admin_id: 'system_auto_verify',
-      admin_name: 'Automated Student Verification Engine',
-      action: 'Automated Approval',
-      target_type: 'verification',
-      target_id: targetVerifId,
-      details: `Student ID [${evaluation.cleanId}] auto-approved with ${evaluation.confidenceScore}% confidence score.`,
-      ip_address: typeof clientIp === 'string' ? clientIp.split(',')[0].trim() : clientIp,
-      created_at: new Date()
-    }).catch(() => {});
-  } else {
-    // Queued for human administrator review (suspicious or <90% score)
-    await db('users').where({ id: req.user.id }).update({
-      student_id: evaluation.cleanId,
-      id_photo_url: resolvedIdPhoto
-    });
-  }
-
-  const successMessage = evaluation.isApproved
-    ? `Student ID verified automatically (${evaluation.confidenceScore}% confidence score, ${evaluation.facialMatchScore}% facial match). Your verified badge is now active!`
-    : `Verification submitted for admin review (${evaluation.facialMatchScore}% facial match). Our team will review your ID shortly.`;
+  // Record audit log
+  const clientIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1';
+  await db('admin_audit_logs').insert({
+    id: `log_${Date.now()}_verif`,
+    admin_id: req.user.id,
+    admin_name: req.user.name || 'Student',
+    action: 'Verification Request Submitted',
+    target_type: 'verification',
+    target_id: targetVerifId,
+    details: `Student ID verification submitted for [${cleanId}]. Queued for admin KYC review.`,
+    ip_address: typeof clientIp === 'string' ? clientIp.split(',')[0].trim() : clientIp,
+    created_at: new Date()
+  }).catch(() => {});
 
   res.status(200).json({
     status: 'success',
-    message: successMessage,
-    autoApproved: evaluation.isApproved,
-    isSuspicious: evaluation.isSuspicious,
-    confidenceScore: evaluation.confidenceScore,
-    facialMatchScore: evaluation.facialMatchScore,
-    reviewEstimate: evaluation.reviewEstimate || '1-3 business days',
+    message: 'Your student verification documents have been securely submitted. An authorized UC campus administrator will review your credentials shortly.',
     data: {
-      status: evaluation.status,
-      autoApproved: evaluation.isApproved,
-      isSuspicious: evaluation.isSuspicious,
-      confidenceScore: evaluation.confidenceScore,
-      facialMatchScore: evaluation.facialMatchScore,
-      reviewEstimate: evaluation.reviewEstimate || '1-3 business days',
-      studentIdNumber: evaluation.cleanId,
+      status: 'pending',
+      studentIdNumber: cleanId,
       submittedAt: new Date().toISOString()
     }
   });

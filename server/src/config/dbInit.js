@@ -157,6 +157,16 @@ async function autoInitDatabase() {
         });
         logger.info('[DB Init] Added is_featured column to listings table.');
       }
+
+      const hasQuantity = await db.schema.hasColumn('listings', 'quantity').catch(() => false);
+      if (!hasQuantity) {
+        await db.schema.alterTable('listings', (t) => {
+          t.integer('quantity').unsigned().notNullable().defaultTo(1);
+        }).catch((err) => {
+          logger.warn(`[DB Init] Could not add quantity column to listings table: ${err.message}`);
+        });
+        logger.info('[DB Init] Added quantity column to listings table.');
+      }
     }
 
     // 1d. Ensure verification_requests columns exist for automated approval and fraud analysis
