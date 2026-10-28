@@ -285,17 +285,21 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
 
   // Record audit log
   const clientIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1';
-  await db('admin_audit_logs').insert({
+  const verifLog = {
     id: `log_${Date.now()}_verif`,
     admin_id: req.user.id,
-    admin_name: req.user.name || 'Student',
     action: 'Verification Request Submitted',
     target_type: 'verification',
     target_id: targetVerifId,
     details: `Student ID verification submitted for [${cleanId}]. Queued for admin KYC review.`,
     ip_address: typeof clientIp === 'string' ? clientIp.split(',')[0].trim() : clientIp,
     created_at: new Date()
-  }).catch(() => {});
+  };
+  const hasAdminName = await db.schema.hasColumn('admin_audit_logs', 'admin_name').catch(() => false);
+  if (hasAdminName) {
+    verifLog.admin_name = req.user.name || 'Student';
+  }
+  await db('admin_audit_logs').insert(verifLog).catch(() => {});
 
   res.status(200).json({
     status: 'success',
@@ -329,12 +333,26 @@ const getUserReviews = asyncHandler(async (req, res, next) => {
     .orderBy('reviews.created_at', 'desc');
 
   const reviewIds = reviews.map((r) => r.id);
-  const badges = reviewIds.length > 0
-    ? await db('review_badges').whereIn('review_id', reviewIds)
-    : [];
+  const hasBadgesCol = await db.schema.hasColumn('reviews', 'badges').catch(() => false);
+  let legacyBadges = [];
+  if (!hasBadgesCol) {
+    const hasBadgesTable = await db.schema.hasTable('review_badges').catch(() => false);
+    if (hasBadgesTable && reviewIds.length > 0) {
+      legacyBadges = await db('review_badges').whereIn('review_id', reviewIds).catch(() => []);
+    }
+  }
 
   const formatted = reviews.map((r) => {
-    const rBadges = badges.filter((b) => b.review_id === r.id).map((b) => b.badge);
+    let rBadges = [];
+    if (r.badges) {
+      try {
+        rBadges = typeof r.badges === 'string' ? JSON.parse(r.badges) : r.badges;
+      } catch (e) {
+        rBadges = [];
+      }
+    } else if (legacyBadges.length > 0) {
+      rBadges = legacyBadges.filter((b) => b.review_id === r.id).map((b) => b.badge);
+    }
     return serializeReview(r, rBadges);
   });
 

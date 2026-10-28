@@ -9,8 +9,8 @@ const getApiBaseUrl = () => {
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
       return `${window.location.protocol}//${window.location.hostname}:3001/api`;
     }
-    // In live production: target the live TradeLink backend
-    return 'https://tradelink-backend.vercel.app/api';
+    // Fallback in live browser context: relative /api or same-origin API
+    return '/api';
   }
   return 'http://localhost:3001/api';
 };

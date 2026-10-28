@@ -121,10 +121,12 @@ coverage/
 
 # =========================
 
-DB/
-*.sql
 *.sqlite
 *.sqlite3
+*.dump
+*.sql
+!DB/*.sql
+!DB/migrations/*.sql
 
 # =========================
 

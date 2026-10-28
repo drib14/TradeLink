@@ -9,8 +9,8 @@ const { requireVerified, requireStudent } = require('../middleware/rbac');
 
 router.get('/', flashMarketController.getFlashRequests);
 router.post('/', authenticate, requireStudent, requireVerified, validate(createFlashRequestSchema), flashMarketController.createFlashRequest);
-router.post('/:id/respond', authenticate, requireStudent, requireVerified, validateUUID, flashMarketController.respondToFlashRequest);
-router.patch('/:id/fulfill', authenticate, requireStudent, validateUUID, flashMarketController.fulfillFlashRequest);
-router.delete('/:id', authenticate, requireStudent, validateUUID, flashMarketController.deleteFlashRequest);
+router.post('/:id/respond', authenticate, requireStudent, requireVerified, validateUUID('id'), flashMarketController.respondToFlashRequest);
+router.patch('/:id/fulfill', authenticate, requireStudent, validateUUID('id'), flashMarketController.fulfillFlashRequest);
+router.delete('/:id', authenticate, requireStudent, validateUUID('id'), flashMarketController.deleteFlashRequest);
 
 module.exports = router;

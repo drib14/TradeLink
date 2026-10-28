@@ -77,6 +77,8 @@ async function createMessage({
     throw new AppError('Unauthorized access to this conversation.', 403);
   }
 
+  const actualReceiverId = conv.user_one_id === senderId ? conv.user_two_id : conv.user_one_id;
+
   const msgId = uuidv4();
   const summaryContent = cleanContent || (mediaType === 'video' ? '[Video Attachment]' : '[Image Attachment]');
   const storedContent = isSystemMessage ? summaryContent : encryptMessageContent(summaryContent);
@@ -85,7 +87,7 @@ async function createMessage({
     id: msgId,
     conversation_id: conversationId,
     sender_id: senderId,
-    receiver_id: receiverId,
+    receiver_id: actualReceiverId,
     content: storedContent,
     is_read: false,
     is_system_message: Boolean(isSystemMessage),
@@ -125,7 +127,7 @@ async function createMessage({
     id: msgId,
     conversationId,
     senderId,
-    receiverId,
+    receiverId: actualReceiverId,
     content: summaryContent,
     isEncrypted: !isSystemMessage,
     isRead: false,

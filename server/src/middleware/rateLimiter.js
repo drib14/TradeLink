@@ -144,6 +144,18 @@ const aiLimiter = rateLimit({
   legacyHeaders: false
 });
 
+// User reviews query limiter
+const userReviewsLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 60, // max 60 reviews fetch requests per minute per IP
+  message: {
+    status: 'fail',
+    message: 'Too many reviews requests. Please slow down.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
 module.exports = {
   authLimiter,
   passwordResetLimiter,
@@ -156,6 +168,7 @@ module.exports = {
   viewListingLimiter,
   adminAuthLimiter,
   chatMessageLimiter,
-  aiLimiter
+  aiLimiter,
+  userReviewsLimiter
 };
 

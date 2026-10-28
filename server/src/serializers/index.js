@@ -21,7 +21,7 @@ function serializeSwap(s, targetImage = '', offeredImage = '') {
     offeredDescription: s.offered_description || s.offeredDescription || '',
     cashTopUp: parseFloat(s.cash_top_up ?? s.cashTopUp ?? 0),
     selectedVariation: s.selected_variation || s.selectedVariation || null,
-    status: s.status || 'pending',
+    status: (s.status === 'rejected' ? 'declined' : s.status) || 'pending',
     statusNote: s.status_note || s.statusNote || null,
     createdAt: s.created_at || s.createdAt || new Date().toISOString()
   };

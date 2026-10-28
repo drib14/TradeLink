@@ -6,17 +6,21 @@ async function logAdminAction(adminUser, action, targetType, targetId, details, 
   const ip = req?.headers ? (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1') : '127.0.0.1';
 
   try {
-    await db('admin_audit_logs').insert({
+    const logData = {
       id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
       admin_id: adminUser.id,
-      admin_name: adminUser.name || 'Administrator',
       action,
       target_type: targetType,
       target_id: targetId,
       details: details || '',
       ip_address: typeof ip === 'string' ? ip.split(',')[0].trim() : ip,
       created_at: new Date()
-    });
+    };
+    const hasAdminName = await db.schema.hasColumn('admin_audit_logs', 'admin_name').catch(() => false);
+    if (hasAdminName) {
+      logData.admin_name = adminUser.name || 'Administrator';
+    }
+    await db('admin_audit_logs').insert(logData);
   } catch (err) {
     console.error('Audit log error:', err.message);
   }

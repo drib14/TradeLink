@@ -195,7 +195,7 @@ export interface SwapOffer {
   offeredDescription: string;
   cashTopUp: number;
   selectedVariation?: string | null;
-  status: 'pending' | 'accepted' | 'declined' | 'completed';
+  status: 'pending' | 'accepted' | 'declined' | 'rejected' | 'withdrawn' | 'cancelled' | 'completed';
   createdAt: string;
 }
 

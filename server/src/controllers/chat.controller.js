@@ -486,6 +486,15 @@ const markConversationAsRead = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
   const userId = req.user.id;
 
+  const conv = await db('conversations').where({ id }).first();
+  if (!conv) {
+    return next(new AppError('Conversation not found.', 404));
+  }
+
+  if (conv.user_one_id !== userId && conv.user_two_id !== userId && req.user.role !== 'admin') {
+    return next(new AppError('Unauthorized access to this conversation.', 403));
+  }
+
   await db('messages')
     .where({ conversation_id: id, receiver_id: userId, is_read: false })
     .update({ is_read: true });
@@ -535,7 +544,7 @@ const sendMessage = asyncHandler(async (req, res, next) => {
   const io = req.app.get('io');
   if (io) {
     io.to(`conv:${conversationId}`).emit('chat:message', message);
-    io.to(`user:${receiverId}`).emit('notification:new', {
+    io.to(`user:${message.receiverId}`).emit('notification:new', {
       title: `Message from ${req.user.name}`,
       message: message.content,
       type: 'message',

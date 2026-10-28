@@ -83,7 +83,6 @@ CREATE TABLE `users` (
   INDEX `idx_users_campus` (`campus`),
   INDEX `idx_users_role` (`role`),
   INDEX `idx_users_trust_score` (`trust_score`),
-  INDEX `idx_users_is_banned` (`is_banned`),
   INDEX `idx_users_locked_until` (`locked_until`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -104,6 +103,9 @@ CREATE TABLE `listings` (
     'Brand New',
     'Like New',
     'Gently Used',
+    'Lightly Used',
+    'Well Used',
+    'Heavily Used',
     'Fair / Academic Usable'
   ) NOT NULL DEFAULT 'Gently Used',
   `campus` ENUM(
@@ -130,7 +132,6 @@ CREATE TABLE `listings` (
   INDEX `idx_listings_seller_status` (`seller_id`, `status`),
   INDEX `idx_listings_campus` (`campus`),
   INDEX `idx_listings_category` (`category`),
-  INDEX `idx_listings_status` (`status`),
   INDEX `idx_listings_status_created` (`status`, `created_at`),
   INDEX `idx_listings_status_campus` (`status`, `campus`, `created_at`),
   INDEX `idx_listings_status_cat` (`status`, `category`, `created_at`),
@@ -263,7 +264,6 @@ CREATE TABLE `transactions` (
   `payment_method` ENUM('cash', 'gcash', 'maya', 'barter', 'free') NOT NULL DEFAULT 'cash',
   `payment_status` ENUM('unpaid', 'paid', 'refunded') NOT NULL DEFAULT 'unpaid',
   `status` ENUM('pending', 'completed', 'cancelled', 'disputed') NOT NULL DEFAULT 'pending',
-  `selected_variation` VARCHAR(150) DEFAULT NULL,
   `variation_id` VARCHAR(36) DEFAULT NULL,
   `notes` TEXT DEFAULT NULL,
   `completed_at` DATETIME DEFAULT NULL,
@@ -277,9 +277,7 @@ CREATE TABLE `transactions` (
   FOREIGN KEY (`seller_id`) REFERENCES `users` (`id`) ON DELETE RESTRICT,
   FOREIGN KEY (`swap_offer_id`) REFERENCES `swap_offers` (`id`) ON DELETE SET NULL,
   INDEX `idx_tx_listing` (`listing_id`),
-  INDEX `idx_tx_buyer` (`buyer_id`),
   INDEX `idx_tx_buyer_status` (`buyer_id`, `status`),
-  INDEX `idx_tx_seller` (`seller_id`),
   INDEX `idx_tx_seller_status` (`seller_id`, `status`),
   INDEX `idx_tx_status` (`status`),
   INDEX `idx_tx_created` (`created_at`)
@@ -299,11 +297,15 @@ CREATE TABLE `conversations` (
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
+  `conversation_key` VARCHAR(160) GENERATED ALWAYS AS (
+    CONCAT(`user_one_id`, ':', `user_two_id`, ':', COALESCE(`listing_id`, 'none'), ':', COALESCE(`flash_request_id`, 'none'))
+  ) STORED,
+
   FOREIGN KEY (`listing_id`) REFERENCES `listings` (`id`) ON DELETE SET NULL,
   FOREIGN KEY (`flash_request_id`) REFERENCES `flash_requests` (`id`) ON DELETE SET NULL,
   FOREIGN KEY (`user_one_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   FOREIGN KEY (`user_two_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  UNIQUE KEY `uk_conv_participants` (`user_one_id`, `user_two_id`, `listing_id`, `flash_request_id`),
+  UNIQUE KEY `uk_conv_key` (`conversation_key`),
   INDEX `idx_conv_user_one` (`user_one_id`),
   INDEX `idx_conv_user_one_last` (`user_one_id`, `last_message_at`),
   INDEX `idx_conv_user_two` (`user_two_id`),
@@ -358,6 +360,7 @@ CREATE TABLE `reviews` (
   `target_user_id` VARCHAR(36) DEFAULT NULL,
   `rating` TINYINT UNSIGNED NOT NULL CHECK (`rating` BETWEEN 1 AND 5),
   `comment` TEXT DEFAULT NULL,
+  `badges` JSON DEFAULT (JSON_ARRAY()),
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
   FOREIGN KEY (`listing_id`) REFERENCES `listings` (`id`) ON DELETE CASCADE,
@@ -370,18 +373,6 @@ CREATE TABLE `reviews` (
   INDEX `idx_reviews_target_created` (`target_user_id`, `created_at`),
   INDEX `idx_reviews_transaction` (`transaction_id`),
   INDEX `idx_reviews_created_at` (`created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ----------------------------------------------------------------------------
--- 10. REVIEW BADGES TABLE
--- ----------------------------------------------------------------------------
-CREATE TABLE `review_badges` (
-  `id` VARCHAR(36) NOT NULL PRIMARY KEY,
-  `review_id` VARCHAR(36) NOT NULL,
-  `badge` VARCHAR(50) NOT NULL,
-
-  FOREIGN KEY (`review_id`) REFERENCES `reviews` (`id`) ON DELETE CASCADE,
-  INDEX `idx_review_badges_review` (`review_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
@@ -502,7 +493,6 @@ CREATE TABLE `announcements` (
 CREATE TABLE `admin_audit_logs` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
   `admin_id` VARCHAR(36) NOT NULL,
-  `admin_name` VARCHAR(100) NOT NULL,
   `action` VARCHAR(100) NOT NULL,
   `target_type` VARCHAR(50) NOT NULL,
   `target_id` VARCHAR(36) NOT NULL,
@@ -545,7 +535,7 @@ CREATE TABLE `system_config` (
 CREATE TABLE `feature_flags` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
   `name` VARCHAR(100) NOT NULL UNIQUE,
-  `description` VARCHAR(300) DEFAULT NULL,
+  `description` VARCHAR(255) DEFAULT NULL,
   `enabled` BOOLEAN NOT NULL DEFAULT TRUE,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -588,7 +578,42 @@ CREATE TABLE IF NOT EXISTS `security_events` (
   INDEX `idx_security_event_type` (`event_type`),
   INDEX `idx_security_severity` (`severity`),
   INDEX `idx_security_user_id` (`user_id`),
-  INDEX `idx_security_created_at` (`created_at`)
+  INDEX `idx_security_created_at` (`created_at`),
+  CONSTRAINT `fk_security_events_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------
+-- 21. NOTIFICATIONS TABLE (Student System & In-App Activity Notifications)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `notifications` (
+  `id` VARCHAR(36) NOT NULL PRIMARY KEY,
+  `user_id` VARCHAR(36) NOT NULL,
+  `type` VARCHAR(50) NOT NULL,
+  `title` VARCHAR(200) NOT NULL,
+  `message` TEXT NOT NULL,
+  `data` JSON DEFAULT NULL,
+  `is_read` BOOLEAN NOT NULL DEFAULT FALSE,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  INDEX `idx_notifications_user_read` (`user_id`, `is_read`),
+  INDEX `idx_notifications_user_created` (`user_id`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------
+-- 22. USER FAVORITES TABLE (Saved / Watchlist Listings)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `user_favorites` (
+  `id` VARCHAR(36) NOT NULL PRIMARY KEY,
+  `user_id` VARCHAR(36) NOT NULL,
+  `listing_id` VARCHAR(36) NOT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`listing_id`) REFERENCES `listings` (`id`) ON DELETE CASCADE,
+  UNIQUE KEY `uk_user_listing_favorite` (`user_id`, `listing_id`),
+  INDEX `idx_favorites_user` (`user_id`),
+  INDEX `idx_favorites_listing` (`listing_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Re-enable foreign key constraints

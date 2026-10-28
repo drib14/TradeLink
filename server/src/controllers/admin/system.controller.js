@@ -228,13 +228,18 @@ const getAuditLogs = asyncHandler(async (req, res) => {
   const offset = (parsedPage - 1) * parsedLimit;
 
   const logs = await db('admin_audit_logs')
-    .orderBy('created_at', 'desc')
+    .leftJoin('users', 'admin_audit_logs.admin_id', 'users.id')
+    .select(
+      'admin_audit_logs.*',
+      'users.name as user_name'
+    )
+    .orderBy('admin_audit_logs.created_at', 'desc')
     .limit(parsedLimit)
     .offset(offset);
 
   const formatted = logs.map((l) => ({
     id: l.id,
-    adminName: l.admin_name,
+    adminName: l.user_name || l.admin_name || 'System Admin',
     action: l.action,
     targetType: l.target_type,
     targetId: l.target_id,
@@ -316,18 +321,20 @@ const getSystemConfig = asyncHandler(async (req, res) => {
     ? (typeof config.config_value === 'string' ? JSON.parse(config.config_value) : config.config_value)
     : {};
 
+  const isAdmin = req.user && req.user.role === 'admin';
+
   res.status(200).json({
     status: 'success',
     data: {
       config: {
         ...parsedConfig,
-        lastUpdatedBy: config?.last_updated_by || 'system',
+        lastUpdatedBy: isAdmin ? (config?.last_updated_by || 'system') : undefined,
         lastUpdatedAt: config?.updated_at || new Date()
       },
       featureFlags: flags.map((f) => ({
         id: f.id,
         name: f.name,
-        description: f.description,
+        description: isAdmin ? f.description : undefined,
         enabled: Boolean(f.enabled),
         updatedAt: f.updated_at
       }))

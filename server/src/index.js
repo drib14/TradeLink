@@ -40,10 +40,10 @@ app.use(
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "https://images.unsplash.com", "https:"],
-        connectSrc: ["'self'", "https://res.cloudinary.com", "wss://tradelink-backend.vercel.app", "wss:", "ws://localhost:3001", "ws:"],
-        fontSrc: ["'self'", "https:", "data:"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "https://images.unsplash.com"],
+        connectSrc: ["'self'", "https://res.cloudinary.com", "wss:", "ws:"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
         objectSrc: ["'none'"],
         baseUri: ["'self'"],
         formAction: ["'self'"],
@@ -69,7 +69,7 @@ app.use((req, res, next) => {
   res.setHeader('X-Request-ID', req.id);
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('X-XSS-Protection', '0');
   res.setHeader('X-Download-Options', 'noopen');
   res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
   if (env.isProduction) {

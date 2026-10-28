@@ -64,9 +64,13 @@ const createReview = asyncHandler(async (req, res, next) => {
     return next(new AppError('You have already submitted a review for this item.', 409));
   }
 
+  const { badges: inputBadges, traitBadges } = req.body;
+  const rawBadges = Array.isArray(inputBadges) ? inputBadges : (Array.isArray(traitBadges) ? traitBadges : []);
+  const safeBadges = rawBadges.map((b) => String(b).trim()).filter(Boolean);
+
   const reviewId = `rev_${uuidv4()}`;
 
-  await db('reviews').insert({
+  const reviewData = {
     id: reviewId,
     listing_id: listingId,
     reviewer_id: req.user.id,
@@ -75,7 +79,14 @@ const createReview = asyncHandler(async (req, res, next) => {
     rating: numRating,
     comment: comment ? comment.trim() : null,
     created_at: new Date()
-  });
+  };
+
+  const hasBadgesCol = await db.schema.hasColumn('reviews', 'badges').catch(() => false);
+  if (hasBadgesCol) {
+    reviewData.badges = JSON.stringify(safeBadges);
+  }
+
+  await db('reviews').insert(reviewData);
 
   const stats = await db('reviews')
     .where({ listing_id: listingId })
@@ -94,7 +105,8 @@ const createReview = asyncHandler(async (req, res, next) => {
     data: {
       reviewId,
       listingRating: Number(avgRating),
-      totalReviews
+      totalReviews,
+      badges: safeBadges
     }
   });
 });
@@ -118,6 +130,7 @@ const getListingReviews = asyncHandler(async (req, res, next) => {
       'reviews.listing_id as listingId',
       'reviews.rating',
       'reviews.comment',
+      'reviews.badges',
       'reviews.created_at as createdAt',
       'reviewer.id as reviewerId',
       'reviewer.name as reviewerName',
@@ -127,6 +140,11 @@ const getListingReviews = asyncHandler(async (req, res, next) => {
       'reviewer.is_verified as reviewerIsVerified'
     )
     .orderBy('reviews.created_at', 'desc');
+
+  const formattedReviews = reviews.map((r) => ({
+    ...r,
+    badges: r.badges ? (typeof r.badges === 'string' ? JSON.parse(r.badges) : r.badges) : []
+  }));
 
   const avgRating = reviews.length > 0
     ? Number((reviews.reduce((sum, r) => sum + Number(r.rating), 0) / reviews.length).toFixed(1))
@@ -138,7 +156,7 @@ const getListingReviews = asyncHandler(async (req, res, next) => {
       listingId,
       rating: avgRating,
       totalReviews: reviews.length,
-      reviews
+      reviews: formattedReviews
     }
   });
 });

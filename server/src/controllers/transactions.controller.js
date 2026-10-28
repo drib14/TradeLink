@@ -282,8 +282,14 @@ const createTransaction = asyncHandler(async (req, res, next) => {
     notes: notes ? notes.trim() : null
   };
 
+  const hasVariationCol = await db.schema.hasColumn('transactions', 'selected_variation').catch(() => false);
+  const txInsertData = { ...newTx };
+  if (!hasVariationCol) {
+    delete txInsertData.selected_variation;
+  }
+
   await db.transaction(async (trx) => {
-    await trx('transactions').insert(newTx);
+    await trx('transactions').insert(txInsertData);
     // Mark listing as reserved
     await trx('listings').where({ id: targetListingId }).update({ status: 'reserved' });
   });
