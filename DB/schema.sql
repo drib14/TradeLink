@@ -13,6 +13,8 @@ USE `tradelink_db_test`;
 -- Disable foreign key checks for clean teardown and recreation
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS `user_favorites`;
+DROP TABLE IF EXISTS `notifications`;
 DROP TABLE IF EXISTS `security_events`;
 DROP TABLE IF EXISTS `review_badges`;
 DROP TABLE IF EXISTS `reviews`;
@@ -21,6 +23,7 @@ DROP TABLE IF EXISTS `conversations`;
 DROP TABLE IF EXISTS `transactions`;
 DROP TABLE IF EXISTS `swap_offers`;
 DROP TABLE IF EXISTS `flash_requests`;
+DROP TABLE IF EXISTS `listing_variations`;
 DROP TABLE IF EXISTS `listing_views`;
 DROP TABLE IF EXISTS `listing_media`;
 DROP TABLE IF EXISTS `listings`;
@@ -42,7 +45,7 @@ CREATE TABLE `users` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
   `name` VARCHAR(100) NOT NULL,
   `email` VARCHAR(150) NOT NULL UNIQUE,
-  `student_id` VARCHAR(20) NOT NULL UNIQUE,
+  `student_id` BIGINT UNSIGNED NOT NULL UNIQUE,
   `password_hash` VARCHAR(255) NOT NULL,
   `role` ENUM('student', 'admin') NOT NULL DEFAULT 'student',
   `campus` ENUM(
@@ -118,17 +121,18 @@ CREATE TABLE `listings` (
     'UC Medical Center',
     'UC PRI'
   ) NOT NULL,
-  `department` VARCHAR(50) DEFAULT NULL,
+  `department` VARCHAR(100) DEFAULT NULL,
   `accepted_payment_methods` VARCHAR(255) NOT NULL DEFAULT 'cash,gcash,maya',
   `status` ENUM('active', 'reserved', 'sold', 'swapped', 'donated', 'archived', 'banned') NOT NULL DEFAULT 'active',
   `views_count` INT UNSIGNED NOT NULL DEFAULT 0,
   `quantity` INT UNSIGNED NOT NULL DEFAULT 1,
   `is_featured` BOOLEAN NOT NULL DEFAULT FALSE,
+  `rating` DECIMAL(2,1) NOT NULL DEFAULT 0.0,
+  `total_reviews` INT UNSIGNED NOT NULL DEFAULT 0,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
   FOREIGN KEY (`seller_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  INDEX `idx_listings_seller` (`seller_id`),
   INDEX `idx_listings_seller_status` (`seller_id`, `status`),
   INDEX `idx_listings_campus` (`campus`),
   INDEX `idx_listings_category` (`category`),
@@ -155,13 +159,13 @@ CREATE TABLE `listing_media` (
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
   FOREIGN KEY (`listing_id`) REFERENCES `listings` (`id`) ON DELETE CASCADE,
-  INDEX `idx_listing_media_listing` (`listing_id`)
+  INDEX `idx_listing_media_listing` (`listing_id`, `display_order`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
--- 3B. LISTING UNIQUE VIEWS TABLE (Owner Exclusion & Deduplication)
+-- 4. LISTING UNIQUE VIEWS TABLE (Owner Exclusion & Deduplication)
 -- ----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS `listing_views` (
+CREATE TABLE `listing_views` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
   `listing_id` VARCHAR(36) NOT NULL,
   `viewer_identifier` VARCHAR(128) NOT NULL,
@@ -172,18 +176,18 @@ CREATE TABLE IF NOT EXISTS `listing_views` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
--- 3C. LISTING VARIATIONS TABLE (Sizes, Editions, Multi-Item Options)
+-- 5. LISTING VARIATIONS TABLE (Sizes, Editions, Multi-Item Options)
 -- ----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS `listing_variations` (
+CREATE TABLE `listing_variations` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
   `listing_id` VARCHAR(36) NOT NULL,
   `title` VARCHAR(150) NOT NULL,
-  `price` DECIMAL(10, 2) DEFAULT NULL,
+  `price` DECIMAL(10,2) DEFAULT NULL,
   `image_url` VARCHAR(500) DEFAULT NULL,
-  `image_index` INT DEFAULT 0,
-  `quantity` INT DEFAULT 1,
-  `is_available` BOOLEAN DEFAULT TRUE,
-  `display_order` INT DEFAULT 0,
+  `image_index` INT UNSIGNED DEFAULT 0,
+  `quantity` INT UNSIGNED NOT NULL DEFAULT 1,
+  `is_available` BOOLEAN NOT NULL DEFAULT TRUE,
+  `display_order` INT UNSIGNED NOT NULL DEFAULT 0,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
   INDEX `idx_variations_listing` (`listing_id`),
@@ -191,7 +195,7 @@ CREATE TABLE IF NOT EXISTS `listing_variations` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
--- 4. FLASH MARKET REQUESTS TABLE (Urgent Buy/Sell/Swap Requests)
+-- 6. FLASH MARKET REQUESTS TABLE (Urgent Buy/Sell/Swap Requests)
 -- ----------------------------------------------------------------------------
 CREATE TABLE `flash_requests` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
@@ -214,17 +218,20 @@ CREATE TABLE `flash_requests` (
   `image_url` VARCHAR(500) DEFAULT NULL,
   `status` ENUM('open', 'fulfilled', 'cancelled', 'expired') NOT NULL DEFAULT 'open',
   `offers_count` INT UNSIGNED NOT NULL DEFAULT 0,
+  `duration_hours` INT UNSIGNED NOT NULL DEFAULT 24,
+  `expires_at` DATETIME DEFAULT NULL,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
   FOREIGN KEY (`requester_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   INDEX `idx_flash_requester` (`requester_id`),
   INDEX `idx_flash_campus` (`target_campus`),
-  INDEX `idx_flash_status` (`status`)
+  INDEX `idx_flash_status` (`status`),
+  INDEX `idx_flash_expires` (`status`, `expires_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
--- 5. SWAP OFFERS / BARTER PROPOSALS TABLE
+-- 7. SWAP OFFERS / BARTER PROPOSALS TABLE
 -- ----------------------------------------------------------------------------
 CREATE TABLE `swap_offers` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
@@ -236,6 +243,7 @@ CREATE TABLE `swap_offers` (
   `offered_listing_id` VARCHAR(36) DEFAULT NULL,
   `cash_adjustment` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
   `adjustment_type` ENUM('none', 'proposer_adds_cash', 'proposer_requests_cash') NOT NULL DEFAULT 'none',
+  `selected_variation` VARCHAR(150) DEFAULT NULL,
   `status` ENUM('pending', 'accepted', 'rejected', 'withdrawn', 'cancelled') NOT NULL DEFAULT 'pending',
   `status_note` VARCHAR(255) DEFAULT NULL,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -250,7 +258,7 @@ CREATE TABLE `swap_offers` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
--- 6. TRANSACTIONS TABLE (Student Purchases, Swaps & Donations)
+-- 8. TRANSACTIONS TABLE (Student Purchases, Swaps & Donations)
 -- ----------------------------------------------------------------------------
 CREATE TABLE `transactions` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
@@ -264,7 +272,11 @@ CREATE TABLE `transactions` (
   `payment_method` ENUM('cash', 'gcash', 'maya', 'barter', 'free') NOT NULL DEFAULT 'cash',
   `payment_status` ENUM('unpaid', 'paid', 'refunded') NOT NULL DEFAULT 'unpaid',
   `status` ENUM('pending', 'completed', 'cancelled', 'disputed') NOT NULL DEFAULT 'pending',
+  `selected_variation` VARCHAR(150) DEFAULT NULL,
   `variation_id` VARCHAR(36) DEFAULT NULL,
+  `verification_code_hash` VARCHAR(255) DEFAULT NULL,
+  `failed_handshake_attempts` INT UNSIGNED NOT NULL DEFAULT 0,
+  `handshake_locked_until` DATETIME DEFAULT NULL,
   `notes` TEXT DEFAULT NULL,
   `completed_at` DATETIME DEFAULT NULL,
   `cancelled_at` DATETIME DEFAULT NULL,
@@ -284,7 +296,7 @@ CREATE TABLE `transactions` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
--- 7. CONVERSATIONS TABLE
+-- 9. CONVERSATIONS TABLE
 -- ----------------------------------------------------------------------------
 CREATE TABLE `conversations` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
@@ -306,9 +318,7 @@ CREATE TABLE `conversations` (
   FOREIGN KEY (`user_one_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   FOREIGN KEY (`user_two_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   UNIQUE KEY `uk_conv_key` (`conversation_key`),
-  INDEX `idx_conv_user_one` (`user_one_id`),
   INDEX `idx_conv_user_one_last` (`user_one_id`, `last_message_at`),
-  INDEX `idx_conv_user_two` (`user_two_id`),
   INDEX `idx_conv_user_two_last` (`user_two_id`, `last_message_at`),
   INDEX `idx_conv_listing` (`listing_id`),
   INDEX `idx_conv_flash` (`flash_request_id`),
@@ -316,7 +326,7 @@ CREATE TABLE `conversations` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
--- 8. MESSAGES TABLE (With Media Attachments & Direct Context Links)
+-- 10. MESSAGES TABLE (With Media Attachments & Direct Context Links)
 -- ----------------------------------------------------------------------------
 CREATE TABLE `messages` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
@@ -339,7 +349,6 @@ CREATE TABLE `messages` (
   FOREIGN KEY (`swap_offer_id`) REFERENCES `swap_offers` (`id`) ON DELETE SET NULL,
   FOREIGN KEY (`transaction_id`) REFERENCES `transactions` (`id`) ON DELETE SET NULL,
   FOREIGN KEY (`flash_request_id`) REFERENCES `flash_requests` (`id`) ON DELETE SET NULL,
-  INDEX `idx_messages_conversation` (`conversation_id`),
   INDEX `idx_msg_conv_created` (`conversation_id`, `created_at`),
   INDEX `idx_messages_receiver_read` (`receiver_id`, `is_read`),
   INDEX `idx_messages_sender` (`sender_id`),
@@ -350,10 +359,10 @@ CREATE TABLE `messages` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
--- 9. PRODUCT REVIEWS TABLE (Item Reviews & Ratings)
+-- 11. PRODUCT REVIEWS TABLE (Item Reviews & Ratings)
 -- ----------------------------------------------------------------------------
 CREATE TABLE `reviews` (
-  `id` VARCHAR(36) NOT NULL PRIMARY KEY,
+  `id` VARCHAR(64) NOT NULL PRIMARY KEY,
   `listing_id` VARCHAR(36) NOT NULL,
   `reviewer_id` VARCHAR(36) NOT NULL,
   `transaction_id` VARCHAR(36) DEFAULT NULL,
@@ -369,19 +378,18 @@ CREATE TABLE `reviews` (
   FOREIGN KEY (`transaction_id`) REFERENCES `transactions` (`id`) ON DELETE SET NULL,
   INDEX `idx_reviews_listing` (`listing_id`),
   INDEX `idx_reviews_reviewer` (`reviewer_id`),
-  INDEX `idx_reviews_target` (`target_user_id`),
   INDEX `idx_reviews_target_created` (`target_user_id`, `created_at`),
   INDEX `idx_reviews_transaction` (`transaction_id`),
   INDEX `idx_reviews_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
--- 11. STUDENT ID VERIFICATION REQUESTS TABLE
+-- 12. STUDENT ID VERIFICATION REQUESTS TABLE
 -- ----------------------------------------------------------------------------
 CREATE TABLE `verification_requests` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
   `user_id` VARCHAR(36) NOT NULL,
-  `student_id_number` VARCHAR(50) NOT NULL,
+  `student_id_number` BIGINT UNSIGNED NOT NULL,
   `id_photo_url` VARCHAR(500) NOT NULL,
   `selfie_photo_url` VARCHAR(500) DEFAULT NULL,
   `status` ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
@@ -401,15 +409,17 @@ CREATE TABLE `verification_requests` (
   FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   FOREIGN KEY (`reviewed_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
   INDEX `idx_verif_user` (`user_id`),
+  INDEX `idx_verif_student_id` (`student_id_number`),
   INDEX `idx_verif_reviewer` (`reviewed_by`),
   INDEX `idx_verif_status` (`status`),
   INDEX `idx_verif_suspicious` (`is_suspicious`),
   INDEX `idx_verif_photo_hash` (`id_photo_hash`),
+  INDEX `idx_verif_selfie_hash` (`selfie_photo_hash`),
   INDEX `idx_verif_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
--- 12. FLAGGED LISTINGS / MODERATION REPORTS TABLE
+-- 13. FLAGGED LISTINGS / MODERATION REPORTS TABLE
 -- ----------------------------------------------------------------------------
 CREATE TABLE `flagged_listings` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
@@ -433,7 +443,7 @@ CREATE TABLE `flagged_listings` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
--- 13. TRADE DISPUTES TABLE
+-- 14. TRADE DISPUTES TABLE
 -- ----------------------------------------------------------------------------
 CREATE TABLE `trade_disputes` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
@@ -459,7 +469,7 @@ CREATE TABLE `trade_disputes` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
--- 14. CAMPUS ANNOUNCEMENTS BULLETIN TABLE
+-- 15. CAMPUS ANNOUNCEMENTS BULLETIN TABLE
 -- ----------------------------------------------------------------------------
 CREATE TABLE `announcements` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
@@ -477,22 +487,23 @@ CREATE TABLE `announcements` (
     'UC PRI'
   ) NOT NULL DEFAULT 'All',
   `type` ENUM('info', 'alert', 'event') NOT NULL DEFAULT 'info',
-  `author_id` VARCHAR(36) NOT NULL,
+  `author_id` VARCHAR(36) DEFAULT NULL,
   `is_active` BOOLEAN NOT NULL DEFAULT TRUE,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-  FOREIGN KEY (`author_id`) REFERENCES `users` (`id`) ON DELETE RESTRICT,
+  FOREIGN KEY (`author_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
   INDEX `idx_ann_campus` (`campus`),
   INDEX `idx_ann_active` (`is_active`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
--- 15. ADMIN AUDIT LOGS TABLE
+-- 16. ADMIN AUDIT LOGS TABLE
 -- ----------------------------------------------------------------------------
 CREATE TABLE `admin_audit_logs` (
-  `id` VARCHAR(36) NOT NULL PRIMARY KEY,
-  `admin_id` VARCHAR(36) NOT NULL,
+  `id` VARCHAR(64) NOT NULL PRIMARY KEY,
+  `admin_id` VARCHAR(36) DEFAULT NULL,
+  `admin_name` VARCHAR(100) DEFAULT NULL,
   `action` VARCHAR(100) NOT NULL,
   `target_type` VARCHAR(50) NOT NULL,
   `target_id` VARCHAR(36) NOT NULL,
@@ -500,27 +511,27 @@ CREATE TABLE `admin_audit_logs` (
   `ip_address` VARCHAR(45) DEFAULT NULL,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-  FOREIGN KEY (`admin_id`) REFERENCES `users` (`id`) ON DELETE RESTRICT,
+  FOREIGN KEY (`admin_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
   INDEX `idx_audit_admin` (`admin_id`),
   INDEX `idx_audit_action` (`action`),
   INDEX `idx_audit_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
--- 16. PROHIBITED KEYWORDS TABLE
+-- 17. PROHIBITED KEYWORDS TABLE
 -- ----------------------------------------------------------------------------
 CREATE TABLE `prohibited_keywords` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
   `keyword` VARCHAR(100) NOT NULL UNIQUE,
-  `added_by` VARCHAR(36) NOT NULL,
+  `added_by` VARCHAR(36) DEFAULT NULL,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-  FOREIGN KEY (`added_by`) REFERENCES `users` (`id`) ON DELETE RESTRICT,
+  FOREIGN KEY (`added_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
   INDEX `idx_keywords_added_by` (`added_by`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
--- 17. SYSTEM CONFIGURATION
+-- 18. SYSTEM CONFIGURATION
 -- ----------------------------------------------------------------------------
 CREATE TABLE `system_config` (
   `config_key` VARCHAR(50) NOT NULL PRIMARY KEY,
@@ -530,7 +541,7 @@ CREATE TABLE `system_config` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
--- 18. FEATURE FLAGS TABLE
+-- 19. FEATURE FLAGS TABLE
 -- ----------------------------------------------------------------------------
 CREATE TABLE `feature_flags` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
@@ -541,12 +552,12 @@ CREATE TABLE `feature_flags` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
--- 19. PASSWORD RESET REQUESTS TABLE
+-- 20. PASSWORD RESET REQUESTS TABLE
 -- ----------------------------------------------------------------------------
 CREATE TABLE `password_reset_requests` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
   `user_id` VARCHAR(36) NOT NULL,
-  `status` ENUM('pending', 'approved', 'rejected', 'completed') NOT NULL DEFAULT 'pending',
+  `status` ENUM('pending', 'sent', 'approved', 'rejected', 'completed') NOT NULL DEFAULT 'pending',
   `code_hash` VARCHAR(255) DEFAULT NULL,
   `code_exp` DATETIME DEFAULT NULL,
   `reviewed_by` VARCHAR(36) DEFAULT NULL,
@@ -563,15 +574,15 @@ CREATE TABLE `password_reset_requests` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
--- 20. SECURITY EVENTS AUDIT LOG TABLE
+-- 21. SECURITY EVENTS AUDIT LOG TABLE
 -- ----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS `security_events` (
+CREATE TABLE `security_events` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
   `event_type` VARCHAR(100) NOT NULL,
   `severity` ENUM('info', 'warning', 'critical') NOT NULL DEFAULT 'info',
   `user_id` VARCHAR(36) DEFAULT NULL,
   `ip_address` VARCHAR(45) DEFAULT NULL,
-  `user_agent` VARCHAR(256) DEFAULT NULL,
+  `user_agent` VARCHAR(500) DEFAULT NULL,
   `details` TEXT DEFAULT NULL,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -583,9 +594,9 @@ CREATE TABLE IF NOT EXISTS `security_events` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
--- 21. NOTIFICATIONS TABLE (Student System & In-App Activity Notifications)
+-- 22. NOTIFICATIONS TABLE (Student System & In-App Activity Notifications)
 -- ----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS `notifications` (
+CREATE TABLE `notifications` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
   `user_id` VARCHAR(36) NOT NULL,
   `type` VARCHAR(50) NOT NULL,
@@ -601,9 +612,9 @@ CREATE TABLE IF NOT EXISTS `notifications` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
--- 22. USER FAVORITES TABLE (Saved / Watchlist Listings)
+-- 23. USER FAVORITES TABLE (Saved / Watchlist Listings)
 -- ----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS `user_favorites` (
+CREATE TABLE `user_favorites` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
   `user_id` VARCHAR(36) NOT NULL,
   `listing_id` VARCHAR(36) NOT NULL,
@@ -612,7 +623,6 @@ CREATE TABLE IF NOT EXISTS `user_favorites` (
   FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   FOREIGN KEY (`listing_id`) REFERENCES `listings` (`id`) ON DELETE CASCADE,
   UNIQUE KEY `uk_user_listing_favorite` (`user_id`, `listing_id`),
-  INDEX `idx_favorites_user` (`user_id`),
   INDEX `idx_favorites_listing` (`listing_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

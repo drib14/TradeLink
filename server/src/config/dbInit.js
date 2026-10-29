@@ -419,7 +419,7 @@ async function autoInitDatabase() {
         id: 'user-admin-main',
         name: adminName,
         email: adminEmail,
-        student_id: 'ADMIN001',
+        student_id: '10000001',
         password_hash: adminPasswordHash,
         role: 'admin',
         campus: 'UC Main',
@@ -711,10 +711,10 @@ async function autoInitDatabase() {
         if (Number(studentCountRow?.count || 0) <= 2) {
           const defaultPasswordHash = await bcrypt.hash('TradeLink@2026', 10);
           await db('users').insert([
-            { id: 'student-1', name: 'Maria Santos', email: 'maria.santos@uc.edu.ph', student_id: '2022-01452', password_hash: defaultPasswordHash, role: 'student', campus: 'UC Main', department: 'CEA', avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80', is_verified: true, trust_score: 98, rating: 4.9, total_reviews: 14, completed_trades: 18, punctuality_rate: 96, bio: 'BS Civil Engineering student. Fast responder.', is_banned: false },
-            { id: 'student-2', name: 'Joshua Tan', email: 'joshua.tan@uc.edu.ph', student_id: '2023-08912', password_hash: defaultPasswordHash, role: 'student', campus: 'UC Banilad', department: 'CON', avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80', is_verified: true, trust_score: 94, rating: 4.8, total_reviews: 8, completed_trades: 11, punctuality_rate: 92, bio: 'College of Nursing student.', is_banned: false },
-            { id: 'student-3', name: 'Bea Alonzo', email: 'bea.alonzo@uc.edu.ph', student_id: '2021-04519', password_hash: defaultPasswordHash, role: 'student', campus: 'UC METC', department: 'CME', avatar_url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=300&q=80', is_verified: true, trust_score: 96, rating: 5.0, total_reviews: 19, completed_trades: 24, punctuality_rate: 100, bio: 'Maritime Education student.', is_banned: false },
-            { id: 'student-4', name: 'Kenjiro Sato', email: 'kenjiro.sato@uc.edu.ph', student_id: '2024-00128', password_hash: defaultPasswordHash, role: 'student', campus: 'UC LM', department: 'CBA', avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80', is_verified: true, trust_score: 92, rating: 4.7, total_reviews: 5, completed_trades: 7, punctuality_rate: 90, bio: 'Business Administration freshman.', is_banned: false }
+            { id: 'student-1', name: 'Maria Santos', email: 'maria.santos@uc.edu.ph', student_id: 202201452, password_hash: defaultPasswordHash, role: 'student', campus: 'UC Main', department: 'CEA', avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80', is_verified: true, trust_score: 98, rating: 4.9, total_reviews: 14, completed_trades: 18, punctuality_rate: 96, bio: 'BS Civil Engineering student. Fast responder.', is_banned: false },
+            { id: 'student-2', name: 'Joshua Tan', email: 'joshua.tan@uc.edu.ph', student_id: 202308912, password_hash: defaultPasswordHash, role: 'student', campus: 'UC Banilad', department: 'CON', avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80', is_verified: true, trust_score: 94, rating: 4.8, total_reviews: 8, completed_trades: 11, punctuality_rate: 92, bio: 'College of Nursing student.', is_banned: false },
+            { id: 'student-3', name: 'Bea Alonzo', email: 'bea.alonzo@uc.edu.ph', student_id: 202104519, password_hash: defaultPasswordHash, role: 'student', campus: 'UC METC', department: 'CME', avatar_url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=300&q=80', is_verified: true, trust_score: 96, rating: 5.0, total_reviews: 19, completed_trades: 24, punctuality_rate: 100, bio: 'Maritime Education student.', is_banned: false },
+            { id: 'student-4', name: 'Kenjiro Sato', email: 'kenjiro.sato@uc.edu.ph', student_id: 202400128, password_hash: defaultPasswordHash, role: 'student', campus: 'UC LM', department: 'CBA', avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80', is_verified: true, trust_score: 92, rating: 4.7, total_reviews: 5, completed_trades: 7, punctuality_rate: 90, bio: 'Business Administration freshman.', is_banned: false }
           ]).catch(() => {});
         }
 

@@ -50,6 +50,7 @@
     "nodemailer": "^6.9.14",
     "sharp": "^0.35.4",
     "socket.io": "^4.7.5",
+    "tesseract.js": "^7.0.0",
     "uuid": "^10.0.0",
     "winston": "^3.13.0",
     "xss": "^1.0.15"

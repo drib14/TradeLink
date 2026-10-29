@@ -262,7 +262,7 @@ const getAllUsers = asyncHandler(async (req, res) => {
       builder
         .where('name', 'like', q)
         .orWhere('email', 'like', q)
-        .orWhere('student_id', 'like', q);
+        .orWhereRaw('CAST(student_id AS CHAR) LIKE ?', [q]);
     });
   }
 

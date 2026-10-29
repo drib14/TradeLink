@@ -26,7 +26,14 @@ const login = asyncHandler(async (req, res, next) => {
   const user = await db('users')
     .where((builder) => {
       builder.whereRaw('LOWER(email) = ?', [cleanIdentifier])
-        .orWhereRaw('LOWER(student_id) = ?', [cleanIdentifier]);
+        .orWhere((subBuilder) => {
+          const digits = cleanIdentifier.replace(/\D/g, '');
+          if (digits.length >= 6) {
+            subBuilder.where({ student_id: digits });
+          } else {
+            subBuilder.whereRaw('1 = 0');
+          }
+        });
     })
     .andWhere({ role: 'admin' })
     .first();

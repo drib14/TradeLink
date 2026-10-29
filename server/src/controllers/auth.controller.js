@@ -113,14 +113,20 @@ const login = asyncHandler(async (req, res, next) => {
   const cleanDigits = rawQuery.replace(/\D/g, '');
 
   let user = await db('users')
-    .where({ student_id: rawQuery })
+    .where((builder) => {
+      if (cleanDigits.length >= 6) {
+        builder.where({ student_id: cleanDigits });
+      } else {
+        builder.whereRaw('1 = 0');
+      }
+    })
     .orWhereRaw('LOWER(email) = ?', [rawQuery.toLowerCase()])
     .first();
 
   if (!user && cleanDigits.length >= 6) {
     user = await db('users')
       .where({ student_id: cleanDigits })
-      .orWhereRaw("REPLACE(REPLACE(student_id, '-', ''), ' ', '') = ?", [cleanDigits])
+      // numeric student_id already indexed and checked
       .first();
   }
 
