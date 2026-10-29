@@ -6,7 +6,7 @@ describe('Unit Test: Email Service & Dynamic Live URL Resolution', () => {
 
   afterEach(() => {
     process.env.NODE_ENV = originalEnv;
-    process.env.APP_URL = originalAppUrl;
+    if (originalAppUrl === undefined) { delete process.env.APP_URL; } else { process.env.APP_URL = originalAppUrl; }
   });
 
   describe('Dynamic Live URL Resolution (getAppBaseUrl & getAdminBaseUrl)', () => {
@@ -34,7 +34,7 @@ describe('Unit Test: Email Service & Dynamic Live URL Resolution', () => {
       const url = emailService.getAppBaseUrl(mockReq);
       expect(url).not.toContain('localhost');
       expect(url).not.toContain('127.0.0.1');
-      expect(url.startsWith('https://')).toBe(true);
+      expect(url.startsWith("https://")).toBe(true);
     });
 
     it('should resolve admin live URL properly without localhost in production', () => {
@@ -44,7 +44,7 @@ describe('Unit Test: Email Service & Dynamic Live URL Resolution', () => {
       };
       const url = emailService.getAdminBaseUrl(mockReq);
       expect(url).not.toContain('localhost');
-      expect(url.startsWith('https://')).toBe(true);
+      expect(url.startsWith("https://")).toBe(true);
     });
   });
 

@@ -49,7 +49,7 @@ describe('Mobile App API Client Test Suite', () => {
       expect.objectContaining({
         status: 'error',
         statusCode: 401,
-        message: 'Session expired.',
+        message: 'Your session has expired. Please log in again.',
       })
     );
   });

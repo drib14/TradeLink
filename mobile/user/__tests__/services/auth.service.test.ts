@@ -7,6 +7,8 @@ jest.mock('../../services/api', () => ({
     get: jest.fn(),
     patch: jest.fn(),
   },
+  setMobileTokens: jest.fn(),
+  clearMobileTokens: jest.fn(),
   setMobileAccessToken: jest.fn(),
   getMobileAccessToken: jest.fn(),
 }));

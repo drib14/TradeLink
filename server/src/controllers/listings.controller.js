@@ -13,10 +13,10 @@ function escapeLike(str) {
 }
 
 // In-memory LRU cache to quickly avoid duplicate DB checks for repeat views in current process (bounded memory with TTL)
-const { LRUCache } = require('lru-cache');
+const LRUCache = require('lru-cache').LRUCache || require('lru-cache');
 const viewCache = new LRUCache({
   max: 50000,
-  ttl: 60 * 60 * 1000 // 1 hour TTL
+  maxAge: 60 * 60 * 1000, ttl: 60 * 60 * 1000 // 1 hour TTL
 });
 
 /**

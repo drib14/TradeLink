@@ -149,7 +149,7 @@ function getAppBaseUrl(req = null) {
   }
 
   // 2. Explicit APP_URL from env
-  if (process.env.APP_URL && process.env.APP_URL.trim()) {
+  if (process.env.APP_URL && process.env.APP_URL.trim() && process.env.APP_URL !== 'undefined') {
     const candidate = process.env.APP_URL.trim().replace(/\/+$/, '');
     if (!isProduction || (!candidate.includes('localhost') && !candidate.includes('127.0.0.1'))) {
       return candidate;
@@ -204,7 +204,7 @@ function getAdminBaseUrl(req = null) {
   }
 
   // 2. Explicit ADMIN_APP_URL or ADMIN_URL from env
-  if (process.env.ADMIN_APP_URL && process.env.ADMIN_APP_URL.trim()) {
+  if (process.env.ADMIN_APP_URL && process.env.ADMIN_APP_URL.trim() && process.env.ADMIN_APP_URL !== 'undefined') {
     const candidate = process.env.ADMIN_APP_URL.trim().replace(/\/+$/, '');
     if (!isProduction || (!candidate.includes('localhost') && !candidate.includes('127.0.0.1'))) {
       return candidate;

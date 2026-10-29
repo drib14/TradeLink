@@ -15,6 +15,7 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
     '^@react-native-async-storage/async-storage$': '<rootDir>/__tests__/mocks/asyncStorage.js',
-    '^react-native$': '<rootDir>/__tests__/mocks/reactNative.js'
+    '^react-native$': '<rootDir>/__tests__/mocks/reactNative.js',
+    '^expo-secure-store$': '<rootDir>/__tests__/mocks/secureStore.js'
   }
 };

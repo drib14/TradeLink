@@ -77,6 +77,7 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
 
   const [isClosing, setIsClosing] = useState(false);
   const [shouldRender, setShouldRender] = useState(false);
+  const [isOpeningChat, setIsOpeningChat] = useState(false);
 
   const handleClose = useCallback(() => {
     if (isSubmitting) return;
@@ -208,7 +209,7 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
     }
   };
 
-  const [isOpeningChat, setIsOpeningChat] = useState(false);
+  
 
   const handleOpenChat = async () => {
     setIsOpeningChat(true);
