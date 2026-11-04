@@ -96,7 +96,8 @@ const register = asyncHandler(async (req, res, next) => {
     message: 'Account created successfully. Welcome to TradeLink.',
     data: {
       user: serializeUser(newUser, { isSelf: true }),
-      accessToken
+      accessToken,
+      refreshToken
     }
   });
 });
@@ -216,7 +217,8 @@ const login = asyncHandler(async (req, res, next) => {
     message: 'Login successful.',
     data: {
       user: serializeUser(user, { isSelf: true, isAdmin: false }),
-      accessToken
+      accessToken,
+      refreshToken
     }
   });
 });
@@ -225,7 +227,7 @@ const login = asyncHandler(async (req, res, next) => {
  * Refresh access token using HttpOnly refresh token cookie
  */
 const refreshToken = asyncHandler(async (req, res, next) => {
-  const token = req.cookies?.refreshToken || req.headers['x-refresh-token'];
+  const token = req.cookies?.refreshToken || req.headers['x-refresh-token'] || req.body?.refreshToken;
 
   if (!token) {
     return next(new AppError('Refresh token missing. Please log in.', 401));

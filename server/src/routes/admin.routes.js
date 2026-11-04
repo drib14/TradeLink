@@ -28,6 +28,7 @@ router.use(authenticateAdmin);
 
 // Stats & Overview
 router.get('/stats', adminController.getStats);
+router.get('/metrics', adminController.getStats);
 router.get('/analytics', adminController.getAnalytics);
 
 // Listings Full Admin CRUD

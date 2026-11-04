@@ -162,6 +162,12 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
     return next(new AppError('Student ID number and valid ID photo are required.', 400));
   }
 
+  // Check if current user is already verified
+  const currentUserRecord = await db('users').where({ id: req.user.id }).first();
+  if (currentUserRecord && currentUserRecord.is_verified) {
+    return next(new AppError('Your student account is already verified.', 400));
+  }
+
   // Basic image data sanity check
   const isDataUrl = (str) => typeof str === 'string' && (str.startsWith('data:image/') || str.startsWith('http'));
   if (!isDataUrl(rawIdPhoto)) {

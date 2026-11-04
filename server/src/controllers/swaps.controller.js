@@ -255,7 +255,7 @@ const proposeSwap = asyncHandler(async (req, res, next) => {
  */
 const respondToSwap = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
-  const { status } = req.body;
+  const status = req.body.status || (req.body.action === 'accept' ? 'accepted' : req.body.action === 'decline' ? 'declined' : req.body.action);
 
   const swap = await db('swap_offers')
     .join('listings as target', 'swap_offers.listing_id', 'target.id')
