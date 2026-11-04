@@ -312,6 +312,12 @@ async function request<T = any>(
 
     // Network error — server unreachable or booting up
     if (isNetworkError) {
+      console.error('[API Network Error]', {
+        url,
+        method,
+        error: err?.message || err,
+        configuredBaseUrl: API_BASE_URL
+      });
       throw {
         status: 'error',
         message: 'Server unreachable or spinning up from cold start. Please check connection.',

@@ -118,6 +118,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
+      console.log('[AuthContext] Initiating student registration for:', {
+        email: data.email.trim(),
+        studentId: cleanDigits,
+        campus: data.campus
+      });
       const result = await authService.register({
         name: data.name.trim(),
         studentId: cleanDigits,
@@ -128,11 +133,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         avatar: data.avatar,
         idPhotoUrl: data.idPhotoUrl,
       });
+      console.log('[AuthContext] Registration successful for:', result.user.email);
       setCurrentUser(result.user);
       setUsers((prev) => [result.user, ...prev.filter(u => u.id !== result.user.id)]);
       setIsOffline(false);
       return { success: true, message: result.message };
     } catch (err: any) {
+      console.error('[AuthContext] Registration error:', err);
       return { success: false, message: err?.message || 'Registration failed.' };
     }
   }, []);
