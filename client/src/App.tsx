@@ -299,6 +299,7 @@ export const MainApp: React.FC = () => {
         onClose={() => setIsAuthModalOpen(false)}
         onRegisterSuccess={() => {
           setIsAuthModalOpen(false);
+          setIsVerificationModalOpen(true);
         }}
       />
 
