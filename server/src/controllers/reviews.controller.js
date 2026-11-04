@@ -99,6 +99,30 @@ const createReview = asyncHandler(async (req, res, next) => {
   const totalReviews = Number(stats?.total_reviews) || 1;
   const avgRating = totalReviews > 0 ? parseFloat(stats.avg_rating).toFixed(1) : Number(numRating).toFixed(1);
 
+  // Update listing aggregate rating and review count
+  await db('listings').where({ id: listingId }).update({
+    rating: avgRating,
+    total_reviews: totalReviews
+  });
+
+  // Update seller profile aggregate rating and review count
+  const sellerStats = await db('reviews')
+    .where({ target_user_id: listing.seller_id })
+    .select(
+      db.raw('COUNT(*) as total_reviews'),
+      db.raw('AVG(rating) as avg_rating')
+    )
+    .first();
+
+  if (sellerStats) {
+    const sellerTotalReviews = Number(sellerStats.total_reviews) || 0;
+    const sellerAvgRating = sellerTotalReviews > 0 ? parseFloat(sellerStats.avg_rating).toFixed(1) : 0.0;
+    await db('users').where({ id: listing.seller_id }).update({
+      rating: sellerAvgRating,
+      total_reviews: sellerTotalReviews
+    });
+  }
+
   res.status(201).json({
     status: 'success',
     message: 'Product review submitted! Thank you for sharing your experience.',

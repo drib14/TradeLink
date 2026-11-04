@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../config/db');
 const AppError = require('../utils/AppError');
@@ -149,7 +150,9 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
     idPhotoUrl,
     idCardImageUrl,
     selfiePhotoUrl,
-    enrollmentProofUrl
+    enrollmentProofUrl,
+    sessionToken,
+    telemetry
   } = req.body;
 
   const rawIdPhoto = idPhotoUrl || idCardImageUrl;
@@ -243,24 +246,57 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
 
   const targetVerifId = existingPending ? existingPending.id : uuidv4();
 
+  // Default fallback values (Admin KYC)
+  let status = 'pending';
+  let confidenceScore = 100;
+  let isSuspicious = 0;
+  let suspiciousReasons = null;
+  let verificationMethod = 'admin_kyc';
+  let credentialDiagnostics = {
+    verifiedFormat: cleanId,
+    submittedAt: new Date().toISOString(),
+    secondaryProofProvided: Boolean(resolvedSecondaryProof)
+  };
+
+  // Evaluate through biometric verification engine if telemetry or session is provided
+  if (telemetry && (telemetry.facialMatchScore !== undefined || telemetry.livenessPassed !== undefined || sessionToken)) {
+    try {
+      const evaluation = await studentVerificationEngine.evaluateVerification({
+        user: req.user,
+        studentId: cleanId,
+        idPhotoUrl: rawIdPhoto,
+        selfiePhotoUrl: secondaryProof || rawIdPhoto,
+        sessionToken,
+        telemetry
+      });
+
+      status = evaluation.status || (evaluation.isApproved ? 'approved' : 'pending');
+      confidenceScore = evaluation.confidenceScore || 85;
+      isSuspicious = evaluation.isSuspicious ? 1 : 0;
+      if (evaluation.suspiciousReasons && evaluation.suspiciousReasons.length > 0) {
+        suspiciousReasons = JSON.stringify(evaluation.suspiciousReasons);
+      }
+      credentialDiagnostics = evaluation.credentialDiagnostics || credentialDiagnostics;
+      verificationMethod = evaluation.isApproved ? 'biometric_automated' : 'biometric_assisted_kyc';
+    } catch (evalErr) {
+      console.warn('[submitIdVerification] Biometric engine evaluation error, routing to manual review:', evalErr.message);
+    }
+  }
+
   const verifData = {
     student_id_number: cleanId,
     id_photo_url: resolvedIdPhoto,
     selfie_photo_url: resolvedSecondaryProof || resolvedIdPhoto,
-    status: 'pending',
-    confidence_score: 100,
-    is_suspicious: 0,
-    suspicious_reasons: null,
-    credential_diagnostics: JSON.stringify({
-      verifiedFormat: cleanId,
-      submittedAt: new Date().toISOString(),
-      secondaryProofProvided: Boolean(resolvedSecondaryProof)
-    }),
+    status,
+    confidence_score: confidenceScore,
+    is_suspicious: isSuspicious,
+    suspicious_reasons: suspiciousReasons,
+    credential_diagnostics: typeof credentialDiagnostics === 'string' ? credentialDiagnostics : JSON.stringify(credentialDiagnostics),
     id_photo_hash: idPhotoHash,
     selfie_photo_hash: secondaryHash,
-    verification_method: 'admin_kyc',
+    verification_method: verificationMethod,
     reviewed_by: null,
-    reviewed_at: null,
+    reviewed_at: status === 'approved' ? new Date() : null,
     rejection_reason: null,
     updated_at: new Date()
   };
@@ -276,12 +312,17 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
     });
   }
 
-  // Update user's student_id in users table
-  await db('users').where({ id: req.user.id }).update({
+  // Update user's student_id and verification status in users table
+  const userUpdates = {
     student_id: cleanId,
     id_photo_url: resolvedIdPhoto,
     updated_at: new Date()
-  });
+  };
+  if (status === 'approved') {
+    userUpdates.is_verified = true;
+    userUpdates.trust_score = db.raw('LEAST(100, trust_score + 25)');
+  }
+  await db('users').where({ id: req.user.id }).update(userUpdates);
 
   // Record audit log
   const clientIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1';
@@ -301,11 +342,15 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
   }
   await db('admin_audit_logs').insert(verifLog).catch(() => {});
 
+  const isAutoApproved = status === 'approved';
   res.status(200).json({
     status: 'success',
-    message: 'Your student verification documents have been securely submitted. An authorized UC campus administrator will review your credentials shortly.',
+    message: isAutoApproved
+      ? 'Instant University of Cebu biometric verification approved! Your student badge is now active.'
+      : 'Your student verification documents have been securely submitted. An authorized UC campus administrator will review your credentials shortly.',
     data: {
-      status: 'pending',
+      status,
+      autoApproved: isAutoApproved,
       studentIdNumber: cleanId,
       submittedAt: new Date().toISOString()
     }

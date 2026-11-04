@@ -112,7 +112,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const register = useCallback(async (data: RegisterData): Promise<{ success: boolean; message: string }> => {
-    const cleanDigits = data.studentId.replace(/[^a-zA-Z0-9]/g, '');
+    const cleanDigits = data.studentId.replace(/\D/g, '');
     if (cleanDigits.length < 6) {
       return { success: false, message: 'Invalid Student ID. Must contain at least 6 characters.' };
     }
@@ -199,7 +199,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       sessionToken?: string,
       telemetry?: any
     ) => {
-      const cleanId = studentIdNumber.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+      const cleanId = studentIdNumber.replace(/\D/g, '');
       const res = await usersService.submitIdVerification(cleanId, idPhotoUrl, selfiePhotoUrl, sessionToken, telemetry);
 
     const isAutoApproved = Boolean(res?.autoApproved || res?.data?.autoApproved);
