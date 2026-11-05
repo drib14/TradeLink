@@ -67,7 +67,7 @@ async function autoInitDatabase() {
           \`code_hash\` VARCHAR(255) DEFAULT NULL,
           \`code_exp\` DATETIME DEFAULT NULL,
           \`reviewed_by\` VARCHAR(36) DEFAULT NULL,
-          \`admin_note\` VARCHAR(500) DEFAULT NULL,
+          \`admin_note\` VARCHAR(255) DEFAULT NULL,
           \`created_at\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
           \`updated_at\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           \`reviewed_at\` DATETIME DEFAULT NULL,
@@ -216,7 +216,7 @@ async function autoInitDatabase() {
     const hasFlashImageCol = await db.schema.hasColumn('flash_requests', 'image_url').catch(() => false);
     if (!hasFlashImageCol) {
       await db.schema.alterTable('flash_requests', (t) => {
-        t.string('image_url', 500).nullable();
+        t.string('image_url', 255).nullable();
       }).catch(() => {});
       logger.info('[DB Init] Added image_url column to flash_requests table.');
     }
@@ -301,7 +301,7 @@ async function autoInitDatabase() {
           \`listing_id\` VARCHAR(36) NOT NULL,
           \`title\` VARCHAR(150) NOT NULL,
           \`price\` DECIMAL(10, 2) DEFAULT NULL,
-          \`image_url\` VARCHAR(500) DEFAULT NULL,
+          \`image_url\` VARCHAR(255) DEFAULT NULL,
           \`image_index\` INT DEFAULT 0,
           \`quantity\` INT DEFAULT 1,
           \`is_available\` BOOLEAN DEFAULT TRUE,

@@ -27,6 +27,19 @@ ALTER TABLE `listings`
     'Fair / Academic Usable'
   ) NOT NULL DEFAULT 'Gently Used';
 
+ALTER TABLE `messages`
+  MODIFY COLUMN `media_url` VARCHAR(255) DEFAULT NULL;
+
+ALTER TABLE `verification_requests`
+  MODIFY COLUMN `id_photo_url` VARCHAR(255) NOT NULL,
+  MODIFY COLUMN `selfie_photo_url` VARCHAR(255) DEFAULT NULL;
+
+ALTER TABLE `password_reset_requests`
+  MODIFY COLUMN `admin_note` VARCHAR(255) DEFAULT NULL;
+
+ALTER TABLE `security_events`
+  MODIFY COLUMN `user_agent` VARCHAR(255) DEFAULT NULL;
+
 -- 2. Security Events: Add foreign key constraint
 ALTER TABLE `security_events`
   ADD CONSTRAINT `fk_security_events_user` 
