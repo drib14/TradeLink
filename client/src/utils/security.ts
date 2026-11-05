@@ -107,11 +107,13 @@ export function decodeHashedId(token: string | null | undefined): string {
  * Masks student ID number for public profile viewing.
  * Example: '19283746' -> '•••• 3746', or '••••••••'
  */
-export function maskStudentId(studentId?: string | null, isSelfOrAdmin: boolean = false): string {
-  if (!studentId) return '••••••••';
-  if (isSelfOrAdmin) return studentId;
+export function maskStudentId(studentId?: string | number | null, isSelfOrAdmin: boolean = false): string {
+  if (studentId === null || studentId === undefined || studentId === '') return '••••••••';
+  const str = String(studentId).trim();
+  if (!str) return '••••••••';
+  if (isSelfOrAdmin) return str;
 
-  const clean = studentId.replace(/\s+/g, '');
+  const clean = str.replace(/\s+/g, '');
   if (clean.length <= 4) {
     return '••••••••';
   }
@@ -125,9 +127,10 @@ export function maskStudentId(studentId?: string | null, isSelfOrAdmin: boolean 
  */
 export function maskEmail(email?: string | null, isSelfOrAdmin: boolean = false): string {
   if (!email) return '';
-  if (isSelfOrAdmin) return email;
+  const str = String(email).trim();
+  if (isSelfOrAdmin) return str;
 
-  const parts = email.split('@');
+  const parts = str.split('@');
   if (parts.length !== 2) return '••••••••';
 
   const [username, domain] = parts;

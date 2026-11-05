@@ -18,7 +18,7 @@ function serializeUser(user, options = {}) {
   const base = {
     id: user.id,
     name: user.name,
-    studentId: user.student_id || user.studentId,
+    studentId: user.student_id != null ? String(user.student_id) : (user.studentId != null ? String(user.studentId) : ''),
     role: user.role || 'student',
     campus: user.campus,
     department: user.department || user.college || '',

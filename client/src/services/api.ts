@@ -69,10 +69,16 @@ function addRefreshSubscriber(cb: (token: string) => void) {
 
 export async function attemptTokenRefresh(): Promise<string | null> {
   try {
+    const csrfToken = getCsrfToken();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (csrfToken) {
+      headers['X-CSRF-Token'] = csrfToken;
+    }
+
     const res = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
       method: 'POST',
       credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
     });
 
     if (!res.ok) return null;

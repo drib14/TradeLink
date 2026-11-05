@@ -88,9 +88,11 @@ export function decodeHashedId(token: string | null | undefined): string {
   }
 }
 
-export function maskStudentId(studentId?: string | null): string {
-  if (!studentId) return '••••••••';
-  const clean = studentId.replace(/\s+/g, '');
+export function maskStudentId(studentId?: string | number | null): string {
+  if (studentId === null || studentId === undefined || studentId === '') return '••••••••';
+  const str = String(studentId).trim();
+  if (!str) return '••••••••';
+  const clean = str.replace(/\s+/g, '');
   if (clean.length <= 4) return '••••••••';
   return `•••• ${clean.slice(-4)}`;
 }

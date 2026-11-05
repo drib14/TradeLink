@@ -8,11 +8,14 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 const EXEMPT_PREFIXES = [
   '/auth/register',
   '/auth/login',
+  '/auth/refresh-token',
   '/auth/forgot-password',
   '/auth/verify-reset-code',
   '/auth/reset-password',
   '/admin-auth/login',
-  '/admin-auth/forgot-password'
+  '/admin-auth/refresh-token',
+  '/admin-auth/forgot-password',
+  '/admin-auth/reset-password'
 ];
 
 /**
