@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useMarket } from '../context/MarketContext';
 import { useAuth } from '../context/AuthContext';
 import { useFlashMarket } from '../context/FlashMarketContext';
+import { useCategories } from '../hooks/useCategories';
 import { ListingCard } from '../components/marketplace/ListingCard';
 import { CampusCarouselBanner } from '../components/home/CampusCarouselBanner';
 import { ListingCardSkeleton } from '../components/common/SkeletonLoader';
@@ -28,7 +29,19 @@ interface HomePageProps {
 }
 
 export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenChat: _onOpenChat }) => {
+  const { categories } = useCategories();
   const { listings, isLoading, selectedCampus, setSelectedCampus, selectedCategory, setSelectedCategory, favorites } = useMarket();
+
+  const getCategoryIcon = (name: string) => {
+    const n = name.toLowerCase();
+    if (n.includes('book') || n.includes('text')) return BookOpen;
+    if (n.includes('uniform') || n.includes('apparel') || n.includes('cloth')) return Shirt;
+    if (n.includes('electron') || n.includes('calc') || n.includes('tech') || n.includes('gadget')) return Laptop;
+    if (n.includes('dorm') || n.includes('living')) return Home;
+    if (n.includes('game') || n.includes('gaming')) return Gamepad2;
+    if (n.includes('high') || n.includes('senior') || n.includes('junior')) return GraduationCap;
+    return ShoppingBag;
+  };
   const { requests: flashRequests } = useFlashMarket();
   const [activeFeedTab, setActiveFeedTab] = useState<'all' | 'swaps' | 'free'>('all');
 
@@ -151,12 +164,11 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenChat: _onO
         >
           {[
             { id: 'All', label: 'All Items', icon: ShoppingBag },
-            { id: 'Textbooks', label: 'Textbooks & Reviewers', icon: BookOpen },
-            { id: 'Uniforms', label: 'Uniforms & Scrubs', icon: Shirt },
-            { id: 'Electronics', label: 'Tech & Calculators', icon: Laptop },
-            { id: 'Dorm', label: 'Dorm & Living', icon: Home },
-            { id: 'Senior High', label: 'Senior High (SHS)', icon: GraduationCap },
-            { id: 'Gaming', label: 'Gaming Gear', icon: Gamepad2 }
+            ...categories.map((c) => ({
+              id: c.name,
+              label: c.name,
+              icon: getCategoryIcon(c.name)
+            }))
           ].map((cat) => {
             const Icon = cat.icon;
             const isSelected = selectedCategory === cat.id;

@@ -541,214 +541,60 @@ async function autoInitDatabase() {
         .catch(() => {});
     }
 
-    // 8. Baseline demo data (development/test only, and only if database has zero listings)
-    if (!env.isProduction && hasListingsTable && hasUsersTable) {
-      const listingCountRow = await db('listings').count('id as count').first().catch(() => ({ count: 0 }));
-      const listingCount = Number(listingCountRow?.count || 0);
-      if (listingCount === 0) {
-        // 8a. Sample Student Accounts
-        const authenticStudents = [
-        {
-          id: '2d48f605-38e5-4ccc-ba1f-9ffdee81e0cf',
-          name: 'Jhonrid Ramirez',
-          email: 'jhondribramirez7@gmail.com',
-          student_id: '21560206',
-          password_hash: '$2a$12$l4q.AQav1PSk5CBuAUI6FOLBubQYT.QXc169rCGL6ApytxymoFdCW',
-          role: 'student',
-          campus: 'UC Main',
-          department: 'CCS',
-          avatar_url: 'https://res.cloudinary.com/uyytbpe1/image/upload/v1789912012/tradelink/avatars/f6fd7040-0194-4c5d-af22-2944bf766ef1.jpg',
-          is_verified: true,
-          id_photo_url: 'https://res.cloudinary.com/uyytbpe1/image/upload/v1789911633/tradelink/id-photos/4fe2b616-917c-424b-bd52-41ac56542b93.jpg',
-          trust_score: 100,
-          rating: 5.0,
-          total_reviews: 4,
-          completed_trades: 4,
-          punctuality_rate: 100,
-          bio: 'Student at UC Main - CCS.',
-          is_banned: false,
-          token_version: 2
-        },
-        {
-          id: '1cff8fa6-a2df-42a5-b2fd-034977ef8dd6',
-          name: 'Mark Joshua Alducente',
-          email: 'markjellgeolin@gmail.com',
-          student_id: '20956496',
-          password_hash: '$2a$12$w4ca0sXZRS3SbVZzCnyhw.eXQinD2EDdT4rePP/WffCkrvaNYsLvy',
-          role: 'student',
-          campus: 'UC Main',
-          department: 'CCS',
-          avatar_url: null,
-          is_verified: true,
-          id_photo_url: null,
-          trust_score: 95,
-          rating: 4.8,
-          total_reviews: 2,
-          completed_trades: 2,
-          punctuality_rate: 95,
-          bio: 'Student at UC Main - CCS.',
-          is_banned: false,
-          token_version: 2
+    // 8. Ensure categories table and baseline categories exist
+    const hasCategoriesTable = await db.schema.hasTable('categories');
+    if (!hasCategoriesTable) {
+      await db.schema.createTable('categories', (table) => {
+        table.string('id', 36).primary();
+        table.string('name', 100).notNullable().unique();
+        table.string('slug', 100).notNullable();
+        table.string('icon', 50).nullable();
+        table.integer('display_order').defaultTo(0);
+        table.boolean('is_active').defaultTo(true);
+        table.string('created_by', 36).nullable();
+        table.timestamp('created_at').defaultTo(db.fn.now());
+        table.timestamp('updated_at').defaultTo(db.fn.now());
+
+        table.index(['slug'], 'idx_categories_slug');
+        table.index(['display_order'], 'idx_categories_display_order');
+        table.index(['is_active'], 'idx_categories_is_active');
+      }).catch((err) => {
+        logger.warn(`[DB Init] Could not create categories table: ${err.message}`);
+      });
+      logger.info('[DB Init] Created categories table.');
+    }
+
+    if (await db.schema.hasTable('categories')) {
+      const catCount = await db('categories').count('id as count').first();
+      if (Number(catCount?.count || 0) === 0) {
+        const { v4: uuidv4 } = require('uuid');
+        const defaultCats = [
+          'Electronics & Gadgets',
+          'Textbooks & Reviewers',
+          'Uniforms & Apparel',
+          'Calculators & Electronics',
+          'Fashion & Sneakers',
+          'Music & Instruments',
+          'Audio & Gadgets',
+          'Dorm & Living',
+          'Gaming & Tech',
+          'Medical Equipment',
+          'Junior High School Books & Reviewers',
+          'Senior High Reviewers & Books',
+          'General Supplies'
+        ];
+        for (let i = 0; i < defaultCats.length; i++) {
+          const name = defaultCats[i];
+          const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+          await db('categories').insert({
+            id: uuidv4(),
+            name,
+            slug: slug || 'general',
+            display_order: i + 1,
+            is_active: true
+          }).catch(() => {});
         }
-      ];
-
-      for (const student of authenticStudents) {
-        const existingStudent = await db('users').where({ id: student.id }).first();
-        if (!existingStudent) {
-          await db('users').insert(student).catch(() => {});
-        } else {
-          await db('users').where({ id: student.id }).update({ department: student.department }).catch(() => {});
-        }
-      }
-
-      // 8b. Authentic Marketplace Listings
-      const authenticListings = [
-        {
-          id: '26568d11-2e87-4b7d-8621-fd84e0d28d2f',
-          seller_id: '2d48f605-38e5-4ccc-ba1f-9ffdee81e0cf',
-          title: 'Customized Keychain – Personalized Design',
-          description: 'A sturdy metal keychain featuring a custom design. Perfect for showing school spirit on bags, keys, or backpacks.',
-          price: 25.00,
-          original_srp: 25.00,
-          trade_mode: 'buy_sell',
-          swap_preference: null,
-          category: 'General Supplies',
-          condition: 'Brand New',
-          campus: 'UC Main',
-          department: 'CCS',
-          accepted_payment_methods: 'cash',
-          status: 'active',
-          views_count: 24,
-          quantity: 1,
-          is_featured: true
-        },
-        {
-          id: '83ae9af7-0b79-4381-a130-0a6a90ac93bc',
-          seller_id: '2d48f605-38e5-4ccc-ba1f-9ffdee81e0cf',
-          title: 'Coffee Coasters',
-          description: 'A neat set of 12 coffee coasters perfect for dorm rooms or study areas. Made of sturdy cork with a stylish Teacher\'s Day slogan. Ideal for protecting desks and tables.',
-          price: 50.00,
-          original_srp: 50.00,
-          trade_mode: 'buy_sell',
-          swap_preference: null,
-          category: 'General Supplies',
-          condition: 'Brand New',
-          campus: 'UC Main',
-          department: 'CCS',
-          accepted_payment_methods: 'cash',
-          status: 'active',
-          views_count: 18,
-          quantity: 1,
-          is_featured: true
-        },
-        {
-          id: 'e79b8ce9-55f0-4fa7-b927-3cdf32abb35e',
-          seller_id: '2d48f605-38e5-4ccc-ba1f-9ffdee81e0cf',
-          title: 'Wooden Stand – Teacher\'s Day Gift',
-          description: 'A simple and thoughtful gift to show appreciation for your favorite teacher. Perfect for Teacher’s Day, teacher appreciation, or end-of-school celebrations. \n\n🎁 FREE CHOCOLATE with every purchase! \n\nGive a little thank-you that comes with a sweet surprise!',
-          price: 100.00,
-          original_srp: 100.00,
-          trade_mode: 'buy_sell',
-          swap_preference: null,
-          category: 'General Supplies',
-          condition: 'Brand New',
-          campus: 'UC Main',
-          department: 'CCS',
-          accepted_payment_methods: 'cash',
-          status: 'active',
-          views_count: 32,
-          quantity: 1,
-          is_featured: true
-        },
-        {
-          id: '9bb30be0-fb23-482e-a53c-e1069bb49014',
-          seller_id: '1cff8fa6-a2df-42a5-b2fd-034977ef8dd6',
-          title: 'Whiteboard Eraser',
-          description: 'Eraser for any whiteboard marks. Approved for classroom and lecture hall use.',
-          price: 0.00,
-          original_srp: null,
-          trade_mode: 'swap',
-          swap_preference: 'Open to any fair offer',
-          category: 'General Supplies',
-          condition: 'Fair / Academic Usable',
-          campus: 'UC Main',
-          department: 'CCS',
-          accepted_payment_methods: 'cash',
-          status: 'active',
-          views_count: 15,
-          quantity: 1,
-          is_featured: false
-        }
-      ];
-
-      for (const listing of authenticListings) {
-        const existingListing = await db('listings').where({ id: listing.id }).first();
-        if (!existingListing) {
-          await db('listings').insert(listing).catch(() => {});
-        } else {
-          await db('listings').where({ id: listing.id }).update({ department: listing.department, status: 'active' }).catch(() => {});
-        }
-      }
-
-      // 8c. Authentic Listing Media (Cloudinary Hosted)
-      const authenticMedia = [
-        { id: '3e2a63a6-1e88-4189-b9e8-7e47eb4b6089', listing_id: '26568d11-2e87-4b7d-8621-fd84e0d28d2f', media_url: 'https://res.cloudinary.com/uyytbpe1/image/upload/v1790653514/tradelink/listings/c67e71d7-1444-4ea2-9f4c-3a560dbe12ff.jpg', media_type: 'image', is_primary: true, display_order: 0 },
-        { id: 'a4abb9a7-7340-48ca-839e-6958e06f39df', listing_id: '26568d11-2e87-4b7d-8621-fd84e0d28d2f', media_url: 'https://res.cloudinary.com/uyytbpe1/image/upload/v1790653517/tradelink/listings/7b8f438e-b4da-4692-97cf-f3bd4163d37f.jpg', media_type: 'image', is_primary: false, display_order: 1 },
-        { id: '94e49c85-2729-4126-9918-b963e3e8e6ce', listing_id: '83ae9af7-0b79-4381-a130-0a6a90ac93bc', media_url: 'https://res.cloudinary.com/uyytbpe1/image/upload/v1790659334/tradelink/listings/38d5893e-2ec9-4e91-b705-d06ad4adfa2f.jpg', media_type: 'image', is_primary: true, display_order: 0 },
-        { id: '34070386-adfa-4246-8d9a-c7c47684f891', listing_id: 'e79b8ce9-55f0-4fa7-b927-3cdf32abb35e', media_url: 'https://res.cloudinary.com/uyytbpe1/image/upload/v1790551896/tradelink/listings/bce4f85d-6710-479e-a599-739cc15949f9.jpg', media_type: 'image', is_primary: true, display_order: 0 },
-        { id: '28afded4-30ac-490e-a6da-81d25efba20e', listing_id: 'e79b8ce9-55f0-4fa7-b927-3cdf32abb35e', media_url: 'https://res.cloudinary.com/uyytbpe1/image/upload/v1790551898/tradelink/listings/9cb90b97-ea38-4164-8588-ce9e6c5c2337.jpg', media_type: 'image', is_primary: false, display_order: 1 },
-        { id: 'bb7fdcde-ae79-4577-9534-a5059eadc91a', listing_id: 'e79b8ce9-55f0-4fa7-b927-3cdf32abb35e', media_url: 'https://res.cloudinary.com/uyytbpe1/image/upload/v1790551901/tradelink/listings/bb39ad99-ea26-480d-8914-ac17a5894fa2.jpg', media_type: 'image', is_primary: false, display_order: 2 },
-        { id: '71ec2c99-8d49-4edd-8727-6adb9db7bfa8', listing_id: 'e79b8ce9-55f0-4fa7-b927-3cdf32abb35e', media_url: 'https://res.cloudinary.com/uyytbpe1/image/upload/v1790551907/tradelink/listings/4bbdb21c-98cc-42af-af00-1387545d9fcb.jpg', media_type: 'image', is_primary: false, display_order: 3 },
-        { id: 'a52ff2cc-2104-4839-bc67-50bfb3faa176', listing_id: 'e79b8ce9-55f0-4fa7-b927-3cdf32abb35e', media_url: 'https://res.cloudinary.com/uyytbpe1/image/upload/v1790551910/tradelink/listings/c1f9d20a-45d7-47e0-b459-a584532354a5.jpg', media_type: 'image', is_primary: false, display_order: 4 },
-        { id: '4d3e166c-4ca1-44b7-9e7e-bf4f37e9d885', listing_id: '9bb30be0-fb23-482e-a53c-e1069bb49014', media_url: 'https://res.cloudinary.com/uyytbpe1/image/upload/v1790303118/tradelink/listings/52d71413-0b53-4eac-b992-86f560b88314.jpg', media_type: 'image', is_primary: true, display_order: 0 }
-      ];
-
-      for (const media of authenticMedia) {
-        const existingMedia = await db('listing_media').where({ id: media.id }).first();
-        if (!existingMedia) {
-          await db('listing_media').insert(media).catch(() => {});
-        }
-      }
-
-      // 8d. Baseline demo listings
-      const studentCountRow = await db('users').where({ role: 'student' }).count('id as count').first().catch(() => ({ count: 0 }));
-      if (Number(studentCountRow?.count || 0) <= 2) {
-        const defaultPasswordHash = await bcrypt.hash(finalAdminPassword, 10);
-        await db('users').insert([
-            { id: 'student-1', name: 'Maria Santos', email: 'maria.santos@uc.edu.ph', student_id: 202201452, password_hash: defaultPasswordHash, role: 'student', campus: 'UC Main', department: 'CEA', avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80', is_verified: true, trust_score: 98, rating: 4.9, total_reviews: 14, completed_trades: 18, punctuality_rate: 96, bio: 'BS Civil Engineering student. Fast responder.', is_banned: false },
-            { id: 'student-2', name: 'Joshua Tan', email: 'joshua.tan@uc.edu.ph', student_id: 202308912, password_hash: defaultPasswordHash, role: 'student', campus: 'UC Banilad', department: 'CON', avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80', is_verified: true, trust_score: 94, rating: 4.8, total_reviews: 8, completed_trades: 11, punctuality_rate: 92, bio: 'College of Nursing student.', is_banned: false },
-            { id: 'student-3', name: 'Bea Alonzo', email: 'bea.alonzo@uc.edu.ph', student_id: 202104519, password_hash: defaultPasswordHash, role: 'student', campus: 'UC METC', department: 'CME', avatar_url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=300&q=80', is_verified: true, trust_score: 96, rating: 5.0, total_reviews: 19, completed_trades: 24, punctuality_rate: 100, bio: 'Maritime Education student.', is_banned: false },
-            { id: 'student-4', name: 'Kenjiro Sato', email: 'kenjiro.sato@uc.edu.ph', student_id: 202400128, password_hash: defaultPasswordHash, role: 'student', campus: 'UC LM', department: 'CBA', avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80', is_verified: true, trust_score: 92, rating: 4.7, total_reviews: 5, completed_trades: 7, punctuality_rate: 90, bio: 'Business Administration freshman.', is_banned: false }
-          ]).catch(() => {});
-        }
-
-        await db('listings').insert([
-          { id: 'list-1', seller_id: 'student-1', title: 'Casio fx-991ES Plus 2nd Edition Scientific Calculator', description: 'Original scientific calculator with natural textbook display and two-way power (solar + battery). Approved for UC midterm and board exams.', price: 850.00, original_srp: 1400.00, trade_mode: 'buy_sell', category: 'Electronics', condition: 'Like New', campus: 'UC Main', department: 'CEA', accepted_payment_methods: 'cash,gcash,maya', status: 'active', views_count: 84, quantity: 1, is_featured: true },
-          { id: 'list-2', seller_id: 'student-2', title: 'Nursing Pharmacology & Medical-Surgical Reviewer', description: 'Comprehensive nursing pharmacology and med-surg review compilation with high-yield drug tables and mnemonic charts.', price: 420.00, original_srp: 750.00, trade_mode: 'buy_sell', category: 'Textbooks', condition: 'Gently Used', campus: 'UC Banilad', department: 'CON', accepted_payment_methods: 'cash,gcash', status: 'active', views_count: 112, quantity: 1, is_featured: true },
-          { id: 'list-3', seller_id: 'student-2', title: 'Littmann Classic III Monitoring Stethoscope', description: 'Acoustically superior dual-sided stainless steel chestpiece stethoscope. Used for 1 hospital semester rotation, in pristine medical condition.', price: 3400.00, original_srp: 5200.00, trade_mode: 'buy_sell', category: 'Electronics', condition: 'Like New', campus: 'UC Banilad', department: 'CON', accepted_payment_methods: 'cash,gcash,maya', status: 'active', views_count: 67, quantity: 1, is_featured: false },
-          { id: 'list-4', seller_id: 'student-1', title: 'Engineering Technical Drafting Tool Set', description: 'Complete technical architectural plate drawing set including Rotring precision compass, acrylic triangles, and mechanical pencils.', price: 650.00, original_srp: 1100.00, trade_mode: 'buy_sell', category: 'School Supplies', condition: 'Gently Used', campus: 'UC Main', department: 'CEA', accepted_payment_methods: 'cash,gcash', status: 'active', views_count: 45, quantity: 1, is_featured: false },
-          { id: 'list-5', seller_id: 'student-3', title: 'Official UC Female College Polo Uniform (Size M)', description: 'Standard University of Cebu female college uniform polos with embroidered university crest. Clean collars, professionally washed.', price: 550.00, original_srp: 900.00, trade_mode: 'buy_sell', category: 'Uniforms', condition: 'Gently Used', campus: 'UC METC', department: 'CME', accepted_payment_methods: 'cash,gcash', status: 'active', views_count: 93, quantity: 2, is_featured: false },
-          { id: 'list-6', seller_id: 'student-3', title: 'UC Marine Engineering Epaulettes & Dress Uniform Cap', description: 'Authentic CME marine transportation epaulettes with anchor insignia plus standard service dress visor cap.', price: 0.00, original_srp: null, trade_mode: 'swap', swap_preference: 'BSIT / CEA reference textbooks or Casio ClassWiz', category: 'Uniforms', condition: 'Like New', campus: 'UC METC', department: 'CME', accepted_payment_methods: 'cash,gcash', status: 'active', views_count: 38, quantity: 1, is_featured: false },
-          { id: 'list-7', seller_id: 'student-4', title: 'Accounting Information Systems 14th Edition Hardcover', description: 'Comprehensive accounting and ERP management course reference textbook. Complete pages, zero missing leaves.', price: 0.00, original_srp: null, trade_mode: 'swap', swap_preference: 'Financial Management by Brigham or JHS Reviewer', category: 'Textbooks', condition: 'Gently Used', campus: 'UC LM', department: 'CBA', accepted_payment_methods: 'cash,gcash', status: 'active', views_count: 29, quantity: 1, is_featured: false },
-          { id: 'list-8', seller_id: 'student-2', title: 'Complete 1st Year Chemistry Review Notes & Binder', description: 'Organised notes for General Chemistry lecture series. Free student donation for incoming 1st year health sciences students.', price: 0.00, original_srp: null, trade_mode: 'free_donation', category: 'Textbooks', condition: 'Gently Used', campus: 'UC Banilad', department: 'CON', accepted_payment_methods: 'cash', status: 'active', views_count: 51, quantity: 1, is_featured: false },
-          { id: 'list-9', seller_id: 'student-4', title: 'Official UC Campus Lanyard & Clip-On ID Holder Pack', description: 'Brand new University of Cebu navy and gold woven campus lanyard with safety breakaway clip and clear ID casing.', price: 0.00, original_srp: null, trade_mode: 'free_donation', category: 'School Supplies', condition: 'Brand New', campus: 'UC LM', department: 'CBA', accepted_payment_methods: 'cash', status: 'active', views_count: 42, quantity: 3, is_featured: false },
-          { id: 'list-10', seller_id: 'student-2', title: 'Anti-Fog Impact Laboratory Safety Goggles', description: 'ANSI-certified clear side-shield laboratory goggles required for campus organic chemistry and physics lab sessions.', price: 0.00, original_srp: null, trade_mode: 'free_donation', category: 'School Supplies', condition: 'Gently Used', campus: 'UC Banilad', department: 'CON', accepted_payment_methods: 'cash', status: 'active', views_count: 23, quantity: 1, is_featured: false }
-        ]).catch(() => {});
-
-        await db('listing_media').insert([
-          { id: 'med-1', listing_id: 'list-1', media_url: 'https://images.unsplash.com/photo-1594980596870-8aa52a78d8cd?auto=format&fit=crop&w=800&q=80', media_type: 'image', is_primary: true, display_order: 0 },
-          { id: 'med-2', listing_id: 'list-2', media_url: 'https://images.unsplash.com/photo-1532012164546-f432f2e3777a?auto=format&fit=crop&w=800&q=80', media_type: 'image', is_primary: true, display_order: 0 },
-          { id: 'med-3', listing_id: 'list-3', media_url: 'https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?auto=format&fit=crop&w=800&q=80', media_type: 'image', is_primary: true, display_order: 0 },
-          { id: 'med-4', listing_id: 'list-4', media_url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80', media_type: 'image', is_primary: true, display_order: 0 },
-          { id: 'med-5', listing_id: 'list-5', media_url: 'https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?auto=format&fit=crop&w=800&q=80', media_type: 'image', is_primary: true, display_order: 0 },
-          { id: 'med-6', listing_id: 'list-6', media_url: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=800&q=80', media_type: 'image', is_primary: true, display_order: 0 },
-          { id: 'med-7', listing_id: 'list-7', media_url: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80', media_type: 'image', is_primary: true, display_order: 0 },
-          { id: 'med-8', listing_id: 'list-8', media_url: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&w=800&q=80', media_type: 'image', is_primary: true, display_order: 0 },
-          { id: 'med-9', listing_id: 'list-9', media_url: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80', media_type: 'image', is_primary: true, display_order: 0 },
-          { id: 'med-10', listing_id: 'list-10', media_url: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80', media_type: 'image', is_primary: true, display_order: 0 }
-        ]).catch(() => {});
-
-        logger.info('[DB Init] Self-healed: restored baseline academic campus listings and media.');
+        logger.info(`[DB Init] Seeded ${defaultCats.length} default categories.`);
       }
     }
 

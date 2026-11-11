@@ -26,8 +26,8 @@ const createListingSchema = Joi.object({
   originalSrp: Joi.number().min(0).max(200000).default(0),
   tradeMode: Joi.string().valid(...TRADE_MODES).required(),
   swapPreference: Joi.string().trim().max(300).allow('', null),
-  category: Joi.string().valid(...CATEGORIES).required().messages({
-    'any.only': 'Please select a valid category from the approved list.'
+  category: Joi.string().trim().min(2).max(100).required().messages({
+    'string.empty': 'Please select or enter a listing category.'
   }),
   condition: Joi.string().valid(...CONDITIONS).required(),
   quantity: Joi.number().integer().min(1).max(999).default(1),
@@ -51,7 +51,7 @@ const updateListingSchema = Joi.object({
   originalSrp: Joi.number().min(0).max(200000),
   tradeMode: Joi.string().valid(...TRADE_MODES),
   swapPreference: Joi.string().trim().max(300).allow('', null),
-  category: Joi.string().valid(...CATEGORIES),
+  category: Joi.string().trim().min(2).max(100),
   condition: Joi.string().valid(...CONDITIONS),
   quantity: Joi.number().integer().min(0).max(999),
   tags: Joi.array().items(Joi.string().trim().max(50)).max(10),

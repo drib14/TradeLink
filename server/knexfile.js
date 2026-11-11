@@ -68,7 +68,7 @@ const buildConnection = (targetEnv = 'development') => {
     const port = rawPort || (isTidbHost(host) ? 4000 : 3306);
     const user = rawUser || 'root';
     const password = rawPass || '';
-    const database = rawDbName || (isTargetProd ? 'tradelink_db' : 'tradelink_db_test');
+    const database = rawDbName || 'tradelink_db';
 
     // TiDB Cloud Serverless ALWAYS requires TLS/SSL regardless of NODE_ENV
     const requiresSsl =
@@ -99,7 +99,7 @@ const buildConnection = (targetEnv = 'development') => {
     port: 3306,
     user: 'root',
     password: '',
-    database: isTargetProd ? 'tradelink_db' : 'tradelink_db_test',
+    database: rawDbName || 'tradelink_db',
     charset: 'utf8mb4',
     timezone: '+00:00',
     connectTimeout: 20000,

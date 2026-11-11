@@ -7,7 +7,6 @@ import { useAuth } from '../../context/AuthContext';
 import { useMarket } from '../../context/MarketContext';
 import { useChat } from '../../context/ChatContext';
 import { useToast } from '../common/Toast';
-import { aiService, BarterAppraisal } from '../../services/ai.service';
 
 interface SwapProposalModalProps {
   isOpen: boolean;
@@ -49,8 +48,6 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
 
   const [customDescription, setCustomDescription] = useState('');
   const [cashTopUp, setCashTopUp] = useState<number>(0);
-  const [isEvaluating, setIsEvaluating] = useState<boolean>(false);
-  const [appraisal, setAppraisal] = useState<BarterAppraisal | null>(null);
 
   React.useEffect(() => {
     if (isOpen) {
@@ -143,51 +140,6 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
       'success'
     );
     onClose();
-  };
-
-  const handleEvaluateFairTrade = async () => {
-    const offeredDesc = selectedMyListing ? selectedMyListing.title : customDescription.trim();
-    if (!offeredDesc) {
-      showToast('Item Needed', 'Please select or describe the item you want to offer first.', 'warning');
-      return;
-    }
-
-    setIsEvaluating(true);
-    try {
-      const offeredItem = selectedMyListing
-        ? {
-            title: selectedMyListing.title,
-            condition: selectedMyListing.condition,
-            price: selectedMyListing.price,
-            description: selectedMyListing.description
-          }
-        : {
-            title: customDescription.trim(),
-            condition: 'Good',
-            price: 0,
-            description: customDescription.trim()
-          };
-
-      const requestedItem = {
-        title: targetListing.title,
-        condition: targetListing.condition,
-        price: targetListing.price,
-        description: targetListing.description
-      };
-
-      const result = await aiService.estimateBarter({
-        offeredItem,
-        requestedItem,
-        offeredListingId: selectedMyListing?.id,
-        requestedListingId: targetListing.id
-      });
-
-      setAppraisal(result);
-    } catch {
-      showToast('Appraisal Unavailable', 'Could not complete fair-trade evaluation at this time.', 'error');
-    } finally {
-      setIsEvaluating(false);
-    }
   };
 
   return (
@@ -451,84 +403,6 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
               </button>
             )}
           </div>
-        </div>
-
-        {/* Section 2.5: AI Fair-Trade Appraisal Integration */}
-        <div style={{ border: '1px solid var(--border-subtle, #E2E8F0)', borderRadius: '10px', padding: '0.85rem', backgroundColor: '#FAFAFB' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                Fair-Trade Valuation Check
-              </span>
-              <p style={{ margin: 0, fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-                Powered by campus valuation intelligence
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={handleEvaluateFairTrade}
-              disabled={isEvaluating}
-              style={{
-                padding: '0.35rem 0.75rem',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                borderRadius: '6px',
-                border: '1px solid var(--uc-blue)',
-                backgroundColor: isEvaluating ? '#E2E8F0' : '#FFFFFF',
-                color: 'var(--uc-blue)',
-                cursor: isEvaluating ? 'not-allowed' : 'pointer'
-              }}
-            >
-              {isEvaluating ? 'Evaluating...' : 'Evaluate Trade Fairness'}
-            </button>
-          </div>
-
-          {appraisal && (
-            <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-subtle, #E2E8F0)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
-                <span
-                  style={{
-                    fontSize: '0.72rem',
-                    fontWeight: 800,
-                    textTransform: 'uppercase',
-                    padding: '0.15rem 0.5rem',
-                    borderRadius: '4px',
-                    backgroundColor: appraisal.fair ? '#ECFDF5' : '#FFFBEB',
-                    color: appraisal.fair ? '#047857' : '#B45309',
-                    border: `1px solid ${appraisal.fair ? '#A7F3D0' : '#FDE68A'}`
-                  }}
-                >
-                  {appraisal.fair ? 'Balanced Trade' : 'Unequal Value'} ({appraisal.fairness_score}/100)
-                </span>
-                {appraisal.suggested_cash_top_up_php > 0 && (
-                  <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
-                    Suggested Top-up: ₱{appraisal.suggested_cash_top_up_php.toLocaleString()}
-                  </span>
-                )}
-              </div>
-              <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: '0 0 0.5rem 0', lineHeight: 1.4 }}>
-                {appraisal.analysis}
-              </p>
-              {appraisal.suggested_cash_top_up_php > 0 && appraisal.cash_top_up_payer === 'offered_party' && (
-                <button
-                  type="button"
-                  onClick={() => setCashTopUp(appraisal.suggested_cash_top_up_php)}
-                  style={{
-                    fontSize: '0.72rem',
-                    fontWeight: 700,
-                    padding: '0.25rem 0.6rem',
-                    borderRadius: '5px',
-                    backgroundColor: 'var(--uc-gold, #FFC72C)',
-                    border: 'none',
-                    color: '#002B7F',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Set Suggested Top-up (+₱{appraisal.suggested_cash_top_up_php.toLocaleString()})
-                </button>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Section 3: Campus Chat Coordination Note */}

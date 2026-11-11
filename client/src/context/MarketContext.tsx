@@ -90,8 +90,10 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
         // Category filter
         if (selectedCategory !== 'All') {
-          const matchCat = item.category.toLowerCase().includes(selectedCategory.toLowerCase());
-          const matchTag = item.tags?.some((t) => t.toLowerCase().includes(selectedCategory.toLowerCase()));
+          const catLower = (item.category || '').toLowerCase();
+          const selLower = selectedCategory.toLowerCase();
+          const matchCat = catLower === selLower || catLower.includes(selLower) || selLower.includes(catLower);
+          const matchTag = item.tags?.some((t) => t.toLowerCase().includes(selLower) || selLower.includes(t.toLowerCase()));
           if (!matchCat && !matchTag) return false;
         }
         // Trade Mode filter

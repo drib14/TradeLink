@@ -8,7 +8,7 @@ import { ConfirmModal } from '../components/common/ConfirmModal';
 import { PaymentMethodCheckboxGroup, PaymentMethodBadge } from '../components/common/PaymentLogos';
 import { TradeLinkIcon } from '../components/common/TradeLinkIcon';
 import { TradeMode, ConditionGrade } from '../types';
-import { aiService } from '../services/ai.service';
+import { useCategories } from '../hooks/useCategories';
 import {
   Film,
   Tag,
@@ -33,22 +33,6 @@ interface CreateListingPageProps {
   onOpenAuth?: () => void;
   initialMode?: PostingFormMode;
 }
-
-const CATEGORY_OPTIONS = [
-  'Electronics & Gadgets',
-  'Textbooks & Reviewers',
-  'Uniforms & Apparel',
-  'Calculators & Electronics',
-  'Fashion & Sneakers',
-  'Music & Instruments',
-  'Audio & Gadgets',
-  'Dorm & Living',
-  'Gaming & Tech',
-  'Medical Equipment',
-  'Junior High School Books & Reviewers',
-  'Senior High Reviewers & Books',
-  'General Supplies'
-];
 
 const SWAP_INSPIRATION_CHIPS = [
   'Open to any fair offer',
@@ -76,10 +60,15 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
   // Wizard Step (1: Details, 2: Media, 3: Pricing/Barter, 4: Preview)
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1);
 
+  // Dynamic Categories
+  const { categories, addCategory } = useCategories();
+
   // Form states
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState(CATEGORY_OPTIONS[0]);
+  const [category, setCategory] = useState('Electronics & Gadgets');
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
+  const [customCategoryName, setCustomCategoryName] = useState('');
   const [condition, setCondition] = useState<ConditionGrade>('Gently Used');
   const [quantity, setQuantity] = useState<number>(1);
   const [sellType, setSellType] = useState<'paid' | 'free'>('paid');
@@ -150,11 +139,6 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
   const removeVariation = (id: string) => {
     setVariations((prev) => prev.filter((v) => v.id !== id));
   };
-
-  // AI Assistant states
-  const [aiQuery, setAiQuery] = useState('');
-  const [isAutofilling, setIsAutofilling] = useState(false);
-  const [aiNotice, setAiNotice] = useState<string | null>(null);
 
   // Sync initialMode if passed or navigated
   useEffect(() => {
@@ -295,9 +279,20 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
           displayOrder: idx
         }));
 
+      let finalCategory = category;
+      if (category === 'Other' || isCustomCategory) {
+        finalCategory = customCategoryName.trim();
+        if (!finalCategory) {
+          showToast('Category Required', 'Please enter your custom category name.', 'warning');
+          setIsSubmitting(false);
+          return;
+        }
+        addCategory(finalCategory);
+      }
+
       const newListing = await addListing({
         title: title.trim(),
-        category: category.trim(),
+        category: finalCategory.trim(),
         description: description.trim(),
         price: computedPrice,
         originalSrp: computedSrp,
@@ -312,15 +307,15 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
           mediaType: (url.match(/\.(mp4|webm|mov|mkv)$/i) || url.includes('/video/upload/')) ? 'video' : 'image',
           isPrimary: idx === 0
         })),
-        tags: tags.length > 0 ? tags.slice(0, 10) : [category.split(' ')[0] || 'Campus', formMode === 'swap' ? 'Swap' : 'ForSale'],
+        tags: tags.length > 0 ? tags.slice(0, 10) : [finalCategory.split(' ')[0] || 'Campus', formMode === 'swap' ? 'Swap' : 'ForSale'],
         sellerId: currentUser?.id,
         sellerName: currentUser?.name,
         sellerAvatar: currentUser?.avatar,
         sellerCampus: currentUser?.campus,
         sellerDepartment: currentUser?.department || currentUser?.college,
         sellerCollege: currentUser?.department || currentUser?.college,
-        sellerIsVerified: true,
-        sellerTrustScore: 0,
+        sellerIsVerified: Boolean(currentUser?.isVerified),
+        sellerTrustScore: Number(currentUser?.trustScore || 0),
         acceptedPaymentMethods: ['cash']
       });
 
@@ -342,43 +337,6 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
       }
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleAiAutofill = async () => {
-    const q = (aiQuery || title).trim();
-    if (!q) {
-      showToast('Item Name Required', 'Enter an item keyword (e.g. Calculus Stewart or UC PE Shirt) to auto-fill.', 'warning');
-      return;
-    }
-    setIsAutofilling(true);
-    setAiNotice(null);
-    try {
-      const draft = await aiService.autofillListing(q);
-      if (draft.title) setTitle(draft.title);
-      if (draft.description) setDescription(draft.description);
-      if (draft.suggested_price && !price) {
-        setPrice(draft.suggested_price);
-      }
-      if (draft.condition) {
-        setCondition(draft.condition as ConditionGrade);
-      }
-      if (draft.category) {
-        const found = CATEGORY_OPTIONS.find((c) =>
-          c.toLowerCase().includes(draft.category.toLowerCase()) ||
-          draft.category.toLowerCase().includes(c.toLowerCase())
-        );
-        if (found) setCategory(found);
-      }
-      if (Array.isArray(draft.tags) && draft.tags.length > 0) {
-        setTags((prev) => [...new Set([...prev, ...draft.tags])].slice(0, 5));
-      }
-      setAiNotice('Listing draft populated. Review and adjust any details as needed.');
-      showToast('Draft Generated', 'Listing details autofilled by AI.', 'success');
-    } catch {
-      showToast('Autofill Unavailable', 'Could not generate draft right now. Please fill details manually.', 'error');
-    } finally {
-      setIsAutofilling(false);
     }
   };
 
@@ -627,64 +585,6 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
             </h3>
           </div>
 
-          {/* AI Listing Assistant Card */}
-          <div
-            style={{
-              padding: '0.85rem 1rem',
-              borderRadius: '10px',
-              backgroundColor: '#F8FAFC',
-              border: '1px solid var(--border-subtle, #E2E8F0)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.5rem'
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--uc-blue)' }}>
-                Quick Auto-Fill
-              </span>
-            </div>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <input
-                type="text"
-                value={aiQuery}
-                onChange={(e) => setAiQuery(e.target.value)}
-                placeholder="Item name (e.g. Calculus 8th Stewart or UC Maroon Polo L)"
-                className="clean-input"
-                style={{ fontSize: '0.82rem', padding: '0.45rem 0.75rem', flex: 1 }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleAiAutofill();
-                  }
-                }}
-              />
-              <button
-                type="button"
-                onClick={handleAiAutofill}
-                disabled={isAutofilling}
-                style={{
-                  padding: '0.45rem 1rem',
-                  fontSize: '0.8rem',
-                  fontWeight: 800,
-                  borderRadius: '8px',
-                  backgroundColor: 'var(--uc-blue)',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  cursor: isAutofilling ? 'not-allowed' : 'pointer',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                {isAutofilling ? 'Generating...' : 'Auto-Fill Details'}
-              </button>
-            </div>
-            {aiNotice && (
-              <span style={{ fontSize: '0.74rem', color: 'var(--accent-green, #059669)', fontWeight: 600 }}>
-                {aiNotice}
-              </span>
-            )}
-          </div>
-
           {/* Title */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
@@ -716,16 +616,37 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
               Category *
             </label>
             <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
+              value={isCustomCategory ? 'Other' : category}
+              onChange={(e) => {
+                if (e.target.value === 'Other') {
+                  setIsCustomCategory(true);
+                  setCategory('Other');
+                } else {
+                  setIsCustomCategory(false);
+                  setCategory(e.target.value);
+                }
+              }}
               className="clean-input"
             >
-              {CATEGORY_OPTIONS.map((c) => (
-                <option key={c} value={c}>
-                  {c}
+              {categories.map((c) => (
+                <option key={c.id || c.name} value={c.name}>
+                  {c.name}
                 </option>
               ))}
+              <option value="Other">+ Other (Create New Category)</option>
             </select>
+            {isCustomCategory && (
+              <div style={{ marginTop: '0.45rem' }}>
+                <input
+                  type="text"
+                  value={customCategoryName}
+                  onChange={(e) => setCustomCategoryName(e.target.value)}
+                  placeholder="Type your new custom category name (e.g. Lab Equipment, Architecture Gear)..."
+                  className="clean-input"
+                  required
+                />
+              </div>
+            )}
           </div>
 
           {/* Condition Grade */}

@@ -8,7 +8,8 @@ const {
   loginSchema,
   forgotPasswordSchema,
   verifyResetCodeSchema,
-  resetPasswordSchema
+  resetPasswordSchema,
+  changePasswordSchema
 } = require('../validations/auth.validation');
 const { authLimiter, passwordResetLimiter, resetCodeLimiter } = require('../middleware/rateLimiter');
 
@@ -19,6 +20,7 @@ router.post('/logout', authenticate, authController.logout);
 router.post('/forgot-password', passwordResetLimiter, validate(forgotPasswordSchema), authController.forgotPassword);
 router.post('/verify-reset-code', resetCodeLimiter, passwordResetLimiter, validate(verifyResetCodeSchema), authController.verifyResetCode);
 router.post('/reset-password', resetCodeLimiter, passwordResetLimiter, validate(resetPasswordSchema), authController.resetPassword);
+router.post('/change-password', authenticate, validate(changePasswordSchema), authController.changePassword);
 router.get('/me', authenticate, authController.getMe);
 
 module.exports = router;

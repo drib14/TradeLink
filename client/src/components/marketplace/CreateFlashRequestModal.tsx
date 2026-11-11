@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../common/Toast';
 import { Campus } from '../../types';
 import { DragDropUpload } from '../common/DragDropUpload';
+import { useCategories } from '../../hooks/useCategories';
 import { X, Zap, CheckCircle2, Clock, AlertCircle, Tag, HelpCircle, Gift } from 'lucide-react';
 
 interface CreateFlashRequestModalProps {
@@ -20,9 +21,12 @@ export const CreateFlashRequestModal: React.FC<CreateFlashRequestModalProps> = (
   const { currentUser } = useAuth();
   const { addRequest } = useFlashMarket();
   const { showToast } = useToast();
+  const { categories, addCategory } = useCategories();
 
   const [itemTitle, setItemTitle] = useState('');
-  const [category, setCategory] = useState('Textbooks');
+  const [category, setCategory] = useState('Textbooks & Reviewers');
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
+  const [customCategoryName, setCustomCategoryName] = useState('');
   const [priceMode, setPriceMode] = useState<FlashPriceMode>('fixed');
   const [targetBudget, setTargetBudget] = useState<number | ''>('');
   const [urgency, setUrgency] = useState<'Immediate / Urgent' | 'This Week' | 'Flexible'>('Immediate / Urgent');
@@ -96,11 +100,21 @@ export const CreateFlashRequestModal: React.FC<CreateFlashRequestModalProps> = (
 
     const priceLabel = priceMode === 'free' ? ' [FREE Donation Request]' : priceMode === 'negotiable' ? ' [Open to Offers]' : '';
 
+    let finalCategory = category;
+    if (category === 'Other' || isCustomCategory) {
+      finalCategory = customCategoryName.trim();
+      if (!finalCategory) {
+        showToast('Category Required', 'Please enter your custom category name.', 'warning');
+        return;
+      }
+      addCategory(finalCategory);
+    }
+
     setIsSubmitting(true);
     try {
       await addRequest({
         itemTitle: `${itemTitle.trim()}${priceLabel}`,
-        category,
+        category: finalCategory,
         urgency,
         preferredCampus,
         targetBudget: budgetValue,
@@ -210,17 +224,38 @@ export const CreateFlashRequestModal: React.FC<CreateFlashRequestModalProps> = (
                 Category
               </label>
               <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
+                value={isCustomCategory ? 'Other' : category}
+                onChange={(e) => {
+                  if (e.target.value === 'Other') {
+                    setIsCustomCategory(true);
+                    setCategory('Other');
+                  } else {
+                    setIsCustomCategory(false);
+                    setCategory(e.target.value);
+                  }
+                }}
                 style={{ width: '100%', padding: '0.6rem', borderRadius: '10px', border: '1.5px solid #CBD5E1', fontSize: '0.82rem', color: '#0F172A', outline: 'none' }}
               >
-                <option value="Textbooks">Textbooks & Reviewers</option>
-                <option value="Electronics">Electronics & Calculators</option>
-                <option value="Uniforms & Gear">Uniforms & Scrubs</option>
-                <option value="Instruments">Instruments & Tools</option>
-                <option value="Fashion">Fashion & Shoes</option>
-                <option value="Dorm">Dorm & Supplies</option>
+                {categories.map((c) => (
+                  <option key={c.id || c.name} value={c.name}>
+                    {c.name}
+                  </option>
+                ))}
+                <option value="Other">+ Other (Custom)</option>
               </select>
+              {isCustomCategory && (
+                <div style={{ marginTop: '0.35rem' }}>
+                  <input
+                    type="text"
+                    value={customCategoryName}
+                    onChange={(e) => setCustomCategoryName(e.target.value)}
+                    placeholder="Enter category name..."
+                    className="clean-input"
+                    style={{ fontSize: '0.8rem', padding: '0.45rem' }}
+                    required
+                  />
+                </div>
+              )}
             </div>
 
             <div>

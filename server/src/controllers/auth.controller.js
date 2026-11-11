@@ -498,6 +498,51 @@ const resetPassword = asyncHandler(async (req, res, next) => {
 });
 
 /**
+ * Change password for authenticated user
+ */
+const changePassword = asyncHandler(async (req, res, next) => {
+  const { currentPassword, newPassword } = req.body;
+
+  const user = await db('users').where({ id: req.user.id }).first();
+  if (!user) {
+    return next(new AppError('User account not found.', 404));
+  }
+
+  const isMatch = await bcrypt.compare(currentPassword, user.password_hash);
+  if (!isMatch) {
+    return next(new AppError('Incorrect current password.', 400));
+  }
+
+  const isSamePassword = await bcrypt.compare(newPassword, user.password_hash);
+  if (isSamePassword) {
+    return next(new AppError('New password cannot be the same as your current password.', 400));
+  }
+
+  const passwordHash = await bcrypt.hash(newPassword, 12);
+  const nextTokenVersion = (user.token_version || 1) + 1;
+
+  await db('users').where({ id: user.id }).update({
+    password_hash: passwordHash,
+    token_version: nextTokenVersion,
+    password_changed_at: new Date(),
+    refresh_token_hash: null
+  });
+
+  logSecurityEvent({
+    event: 'PASSWORD_CHANGED',
+    severity: 'info',
+    userId: user.id,
+    details: { reason: 'User initiated password change' },
+    req
+  });
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Password changed successfully.'
+  });
+});
+
+/**
  * Get current authenticated user session
  */
 const getMe = asyncHandler(async (req, res) => {
@@ -517,5 +562,6 @@ module.exports = {
   forgotPassword,
   verifyResetCode,
   resetPassword,
+  changePassword,
   getMe
 };

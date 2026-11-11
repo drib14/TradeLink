@@ -88,11 +88,29 @@ const resetPasswordSchema = Joi.object({
 const updateProfileSchema = Joi.object({
   name: Joi.string().trim().min(2).max(100),
   bio: Joi.string().trim().max(1000).allow(''),
-  avatar: Joi.string().uri().allow('', null),
+  avatar: Joi.string().allow('', null),
   campus: Joi.string().valid(...CAMPUSES),
   department: Joi.string().trim().max(100),
   college: Joi.string().trim().max(100),
   yearLevel: Joi.string().trim().max(50).allow('', null)
+});
+
+const changePasswordSchema = Joi.object({
+  currentPassword: Joi.string().required().messages({
+    'string.empty': 'Please enter your current password.'
+  }),
+  newPassword: Joi.string().min(8).max(100)
+    .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?])/)
+    .required()
+    .messages({
+      'string.min': 'New password must be at least 8 characters.',
+      'string.pattern.base': 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.',
+      'string.empty': 'Please enter your new password.'
+    }),
+  confirmPassword: Joi.string().valid(Joi.ref('newPassword')).required().messages({
+    'any.only': 'Passwords do not match.',
+    'string.empty': 'Please confirm your new password.'
+  })
 });
 
 const adminLoginSchema = Joi.object({
@@ -132,6 +150,7 @@ module.exports = {
   verifyResetCodeSchema,
   resetPasswordSchema,
   updateProfileSchema,
+  changePasswordSchema,
   adminLoginSchema,
   adminForgotPasswordSchema,
   adminResetPasswordSchema

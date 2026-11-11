@@ -10,6 +10,7 @@ import { CampusBadge } from '../components/common/CampusBadge';
 import { TradeLinkIcon } from '../components/common/TradeLinkIcon';
 import { ListingCard } from '../components/marketplace/ListingCard';
 import { Modal } from '../components/common/Modal';
+import { api } from '../services/api';
 import { reviewsService } from '../services/reviews.service';
 import { usersService } from '../services/users.service';
 import { User, Listing, Review, FlashRequest } from '../types';
@@ -43,6 +44,9 @@ import {
   Info,
   Sparkles,
   List,
+  Lock,
+  EyeOff,
+  Key,
   LayoutGrid,
   TrendingUp,
   BarChart3,
@@ -163,6 +167,16 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
     parsePaymentMethods(targetUser?.paymentMethods)
   );
 
+  // Password change state in Profile Modal
+  const [showPasswordSection, setShowPasswordSection] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
   const [userReviews, setUserReviews] = useState<Review[]>([]);
 
@@ -235,12 +249,24 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   // Category palette & distribution for data visualization
   const categoryPalette: Record<string, string> = {
     'Textbooks & Reviewers': '#002B7F',
-    'Uniforms & Scrubs': '#D97706',
+    'Uniforms & Apparel': '#D97706',
     'Electronics & Gadgets': '#2563EB',
-    'School & Art Supplies': '#059669',
-    'Org Merch & Lanyards': '#7C3AED',
+    'Calculators & Electronics': '#0284C7',
+    'Fashion & Sneakers': '#4F46E5',
+    'Music & Instruments': '#7C3AED',
+    'Audio & Gadgets': '#0EA5E9',
     'Dorm & Living': '#EA580C',
-    'Other Campus Items': '#64748B'
+    'Gaming & Tech': '#10B981',
+    'Medical Equipment': '#059669',
+    'General Supplies': '#64748B'
+  };
+
+  const getCategoryColor = (name: string) => {
+    if (categoryPalette[name]) return categoryPalette[name];
+    const colors = ['#002B7F', '#1E40AF', '#2563EB', '#3B82F6', '#0284C7', '#0F766E', '#059669', '#D97706', '#EA580C', '#4F46E5', '#64748B'];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    return colors[Math.abs(hash) % colors.length];
   };
 
   const categoryStats = useMemo(() => {
@@ -262,7 +288,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
       count: data.count,
       value: data.value,
       percentage: Math.max(1, Math.round((data.count / totalItems) * 100)),
-      color: categoryPalette[name] || '#64748B'
+      color: getCategoryColor(name)
     }));
 
     if (entries.length === 0) {
@@ -449,6 +475,49 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
     });
     setIsEditProfileModalOpen(false);
     showToast('Profile Updated', 'Your profile details and trading preferences have been saved.', 'success');
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentPassword) {
+      showToast('Current Password Required', 'Please enter your current password.', 'warning');
+      return;
+    }
+    if (newPassword.length < 8) {
+      showToast('Password Too Short', 'New password must be at least 8 characters long.', 'warning');
+      return;
+    }
+    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?])/.test(newPassword)) {
+      showToast('Weak Password', 'New password must contain uppercase, lowercase, number, and special character.', 'warning');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      showToast('Passwords Do Not Match', 'New password and confirmation must match.', 'warning');
+      return;
+    }
+    if (currentPassword === newPassword) {
+      showToast('Same Password', 'New password cannot be the same as your current password.', 'warning');
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      await api.post('/auth/change-password', {
+        currentPassword,
+        newPassword,
+        confirmPassword
+      });
+      showToast('Password Changed', 'Your account password has been updated successfully.', 'success');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setShowPasswordSection(false);
+    } catch (err: any) {
+      const msg = err.response?.data?.message || err.message || 'Incorrect current password. Please try again.';
+      showToast('Update Failed', msg, 'error');
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   const handleStartChatWithUser = async () => {
@@ -2247,6 +2316,112 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>(Standard campus peer settlement)</span>
               </div>
             </div>
+          </div>
+
+          {/* CHANGE PASSWORD SECTION */}
+          <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Lock size={15} color="var(--uc-blue)" />
+                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--uc-blue)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Account Security
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPasswordSection(!showPasswordSection)}
+                className="btn-ghost"
+                style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--uc-blue)', padding: '0.2rem 0.5rem' }}
+              >
+                {showPasswordSection ? 'Cancel' : 'Change Password'}
+              </button>
+            </div>
+
+            {showPasswordSection && (
+              <div style={{ padding: '0.85rem', backgroundColor: 'var(--bg-subtle, #F8FAFC)', borderRadius: '10px', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
+                    Current Password *
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type={showCurrentPassword ? 'text' : 'password'}
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      placeholder="Current password"
+                      className="clean-input"
+                      style={{ fontSize: '0.82rem', padding: '0.5rem 2.2rem 0.5rem 0.65rem' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      style={{ position: 'absolute', right: '0.6rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                    >
+                      {showCurrentPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
+                    New Password *
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type={showNewPassword ? 'text' : 'password'}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="At least 8 chars (uppercase, lowercase, number, symbol)"
+                      className="clean-input"
+                      style={{ fontSize: '0.82rem', padding: '0.5rem 2.2rem 0.5rem 0.65rem' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      style={{ position: 'absolute', right: '0.6rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                    >
+                      {showNewPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
+                    Confirm New Password *
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Re-type new password"
+                      className="clean-input"
+                      style={{ fontSize: '0.82rem', padding: '0.5rem 2.2rem 0.5rem 0.65rem' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      style={{ position: 'absolute', right: '0.6rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                    >
+                      {showConfirmPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+                  <button
+                    type="button"
+                    onClick={handleChangePassword}
+                    disabled={isChangingPassword}
+                    className="btn-primary"
+                    style={{ padding: '0.45rem 1rem', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                  >
+                    <Key size={13} />
+                    <span>{isChangingPassword ? 'Updating...' : 'Update Password'}</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>

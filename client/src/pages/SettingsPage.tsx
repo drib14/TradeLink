@@ -15,8 +15,14 @@ import {
   ToggleLeft,
   ToggleRight,
   LogOut,
-  Check
+  Check,
+  Camera,
+  Lock,
+  Eye,
+  EyeOff,
+  Key
 } from 'lucide-react';
+import { api } from '../services/api';
 
 interface SettingsPageProps {
   onNavigate: (view: string, param?: any) => void;
@@ -46,6 +52,15 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate, onOpenAu
   const [showCampus, setShowCampus] = useState(true);
   const [showOnline, setShowOnline] = useState(true);
   const [profilePublic, setProfilePublic] = useState(true);
+
+  // Password settings
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   // Keep input fields synchronized whenever currentUser updates
   useEffect(() => {
@@ -104,6 +119,48 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate, onOpenAu
         department: departmentInput.trim() || undefined
       });
       showToast('Settings Saved', 'Your student account details have been updated.', 'success');
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentPassword) {
+      showToast('Current Password Required', 'Please enter your current password.', 'warning');
+      return;
+    }
+    if (newPassword.length < 8) {
+      showToast('Password Too Short', 'New password must be at least 8 characters long.', 'warning');
+      return;
+    }
+    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?])/.test(newPassword)) {
+      showToast('Weak Password', 'New password must contain uppercase, lowercase, number, and special character.', 'warning');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      showToast('Passwords Do Not Match', 'New password and confirmation must match.', 'warning');
+      return;
+    }
+    if (currentPassword === newPassword) {
+      showToast('Same Password', 'New password cannot be the same as your current password.', 'warning');
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      await api.post('/auth/change-password', {
+        currentPassword,
+        newPassword,
+        confirmPassword
+      });
+      showToast('Password Changed', 'Your account password has been updated successfully.', 'success');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err: any) {
+      const msg = err.response?.data?.message || err.message || 'Incorrect current password. Please try again.';
+      showToast('Update Failed', msg, 'error');
+    } finally {
+      setIsChangingPassword(false);
     }
   };
 
@@ -228,7 +285,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate, onOpenAu
         <div className="clean-card" style={{ padding: '1.75rem', minWidth: 0 }}>
           {/* 1. ACCOUNT PROFILE */}
           {activeSection === 'account' && (
-            <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div>
                 <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary, #0F172A)' }}>Student Account Profile</h3>
                 <p className="form-helper" style={{ marginTop: '0.2rem', fontSize: '0.8rem', color: 'var(--text-muted, #64748B)' }}>
@@ -297,16 +355,64 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate, onOpenAu
               </div>
 
               <div>
-                <label className="form-label" style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.3rem' }}>
-                  Profile Photo URL (Optional)
+                <label className="form-label" style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                  Profile Photo (File Upload)
                 </label>
-                <input
-                  type="url"
-                  value={avatarInput}
-                  onChange={(e) => setAvatarInput(e.target.value)}
-                  placeholder="https://... (Leave blank to use your name initials)"
-                  className="clean-input"
-                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  <label
+                    className="btn-secondary"
+                    style={{
+                      padding: '0.55rem 1rem',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      borderRadius: '10px'
+                    }}
+                  >
+                    <Camera size={15} />
+                    <span>{avatarInput ? 'Change Photo' : 'Upload Image File'}</span>
+                    <input
+                      type="file"
+                      accept="image/png, image/jpeg, image/webp"
+                      style={{ display: 'none' }}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          if (file.size > 8 * 1024 * 1024) {
+                            showToast('File Too Large', 'Please select an image smaller than 8MB.', 'warning');
+                            return;
+                          }
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            if (typeof reader.result === 'string') {
+                              setAvatarInput(reader.result);
+                            }
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                  </label>
+
+                  {avatarInput && (
+                    <button
+                      type="button"
+                      onClick={() => setAvatarInput('')}
+                      className="btn-ghost"
+                      style={{
+                        padding: '0.55rem 0.85rem',
+                        fontSize: '0.8rem',
+                        color: 'var(--accent-red, #DC2626)',
+                        fontWeight: 700
+                      }}
+                    >
+                      Clear Photo
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div>
@@ -342,6 +448,104 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate, onOpenAu
                 <Save size={15} /> Save Changes
               </button>
             </form>
+
+            {/* Change Password Card */}
+            <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-subtle, #E2E8F0)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                <Lock size={18} color="var(--uc-blue, #002B7F)" />
+                <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary, #0F172A)', margin: 0 }}>
+                  Change Account Password
+                </h4>
+              </div>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted, #64748B)', marginBottom: '1rem' }}>
+                Keep your student account secure with a strong password containing letters, numbers, and symbols.
+              </p>
+
+              <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', maxWidth: '420px' }}>
+                <div>
+                  <label className="form-label" style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.3rem' }}>
+                    Current Password *
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type={showCurrentPassword ? 'text' : 'password'}
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      placeholder="Enter current password"
+                      className="clean-input"
+                      style={{ paddingRight: '2.5rem' }}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                    >
+                      {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="form-label" style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.3rem' }}>
+                    New Password *
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type={showNewPassword ? 'text' : 'password'}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="At least 8 characters (mixed case, number, symbol)"
+                      className="clean-input"
+                      style={{ paddingRight: '2.5rem' }}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                    >
+                      {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="form-label" style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.3rem' }}>
+                    Confirm New Password *
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Re-enter new password"
+                      className="clean-input"
+                      style={{ paddingRight: '2.5rem' }}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                    >
+                      {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={isChangingPassword}
+                  style={{ width: 'fit-content', marginTop: '0.25rem', padding: '0.6rem 1.35rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                >
+                  <Key size={14} />
+                  <span>{isChangingPassword ? 'Updating...' : 'Update Password'}</span>
+                </button>
+              </form>
+            </div>
+            </div>
           )}
 
           {/* 2. NOTIFICATIONS */}

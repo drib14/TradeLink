@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useMarket } from '../../context/MarketContext';
+import { useCategories } from '../../hooks/useCategories';
 import { RotateCcw, X, SlidersHorizontal, DollarSign, Building2, Tag } from 'lucide-react';
 import { ConditionGrade } from '../../types';
 
 export const FilterBar: React.FC = () => {
+  const { categories } = useCategories();
   const {
     selectedCampus,
     setSelectedCampus,
@@ -26,15 +28,10 @@ export const FilterBar: React.FC = () => {
 
   const tagChips = [
     { id: 'All', label: 'All Categories' },
-    { id: 'Junior High', label: 'Junior High (JHS)' },
-    { id: 'Senior High', label: 'Senior High (SHS)' },
-    { id: 'Electronics', label: 'Tech & Gadgets' },
-    { id: 'Fashion', label: 'Fashion & Footwear' },
-    { id: 'Music', label: 'Music & Audio' },
-    { id: 'Textbooks', label: 'Textbooks & Reviewers' },
-    { id: 'Uniforms', label: 'Uniforms & Scrubs' },
-    { id: 'Gaming', label: 'Gaming & PC Gear' },
-    { id: 'Dorm', label: 'Dorm & Living' }
+    ...categories.map((c) => ({
+      id: c.name,
+      label: c.name
+    }))
   ];
 
   const conditions: { id: 'All' | ConditionGrade; label: string }[] = [
