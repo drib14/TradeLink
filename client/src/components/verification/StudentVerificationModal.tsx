@@ -255,9 +255,9 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
         setMatchResult(match);
         setFacialMatchScore(match.matchScore);
         if (match.isMatchOver85) {
-          showToast('Biometric Match Verified', `Face match confidence: ${match.matchScore}%.`, 'success');
+          showToast('Selfie Verified', 'Your photo matches your ID. You are ready to submit!', 'success');
         } else {
-          showToast('Biometric Match Computed', `Score: ${match.matchScore}%. Queued for admin verification.`, 'info');
+          showToast('Photo Saved', 'Photo captured. Our team will verify it for you.', 'info');
         }
       } catch (err: any) {
         console.warn('Biometric comparison error:', err);
@@ -369,16 +369,16 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
       setStep('submitted');
 
       if (isAuto) {
-        showToast('Instant Verification Approved!', 'Your UC student credentials and live biometric match have been approved.', 'success');
+        showToast('Account Verified!', 'You are now verified and can start buying, selling, and swapping items.', 'success');
       } else {
-        showToast('Documents Submitted', 'Your student credentials have been sent to campus administration for KYC review.', 'success');
+        showToast('Verification Submitted', 'Thanks! We received your documents and will review them shortly.', 'success');
       }
 
       if (onSuccess) {
         onSuccess();
       }
     } catch (err: any) {
-      showToast('Submission Failed', err?.message || 'Could not submit verification. Please try again.', 'error');
+      showToast('Could not submit', err?.message || 'Something went wrong while submitting. Please check your photos and try again.', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -392,7 +392,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
         onClose();
       }}
       title="Student ID Verification"
-      subtitle="Official University of Cebu campus biometric verification"
+      subtitle="Verify your student status to start trading on campus"
       icon={<ShieldCheck size={22} color="#FFC72C" />}
       maxWidth="620px"
     >
@@ -429,8 +429,8 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
                 </h3>
                 <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', marginTop: '0.35rem', lineHeight: 1.5 }}>
                   {serverStatus === 'approved'
-                    ? 'Your University of Cebu student badge is fully activated. You have full listing, trading, and swap access across campus.'
-                    : 'Your student ID credentials are in the administrative review queue. An authorized campus administrator will verify your documents shortly.'}
+                    ? 'You are all set! You have full access to list, buy, and swap items with other students across campus.'
+                    : 'We received your documents. Campus moderators will review and approve your account shortly.'}
                 </p>
               </div>
 
@@ -529,7 +529,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.76rem', color: 'var(--text-muted)' }}>
                 <span style={{ fontWeight: 800, color: 'var(--uc-blue, #002B7F)' }}>Step 1 of 3:</span>
-                <span>Enter your official UC student number and upload your physical ID card</span>
+                <span>Enter your student number and upload a photo of your student ID</span>
               </div>
 
               <div>
@@ -553,13 +553,13 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
                   }}
                 />
                 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'block' }}>
-                  Must match the student number printed on your physical University of Cebu ID card.
+                  Numbers only, exactly as printed on your ID card.
                 </span>
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-                  Physical Student ID Card Photo <span style={{ color: '#DC2626' }}>*</span>
+                  Student ID Card Photo <span style={{ color: '#DC2626' }}>*</span>
                 </label>
 
                 <input
@@ -711,7 +711,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.76rem', color: 'var(--text-muted)' }}>
                 <span style={{ fontWeight: 800, color: 'var(--uc-blue, #002B7F)' }}>Step 2 of 3:</span>
-                <span>Live camera selfie and anti-spoof liveness verification</span>
+                <span>Take a quick selfie to confirm your identity</span>
               </div>
 
               {cameraError ? (
@@ -785,7 +785,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
                       style={{ width: '100%', height: '280px', objectFit: 'contain' }}
                     />
 
-                    {/* Biometric Match Overlay Badge */}
+                    {/* Status Badge */}
                     <div
                       style={{
                         position: 'absolute',
@@ -796,45 +796,23 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
                         gap: '0.35rem'
                       }}
                     >
-                      {livenessScore !== null && (
-                        <div
-                          style={{
-                            backgroundColor: 'rgba(15, 23, 42, 0.85)',
-                            backdropFilter: 'blur(4px)',
-                            padding: '0.3rem 0.65rem',
-                            borderRadius: '20px',
-                            color: '#10B981',
-                            fontSize: '0.75rem',
-                            fontWeight: 700,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.35rem'
-                          }}
-                        >
-                          <CheckCircle2 size={13} />
-                          <span>Liveness: {livenessScore}% Verified</span>
-                        </div>
-                      )}
-
-                      {antiSpoofScore !== null && (
-                        <div
-                          style={{
-                            backgroundColor: 'rgba(15, 23, 42, 0.85)',
-                            backdropFilter: 'blur(4px)',
-                            padding: '0.3rem 0.65rem',
-                            borderRadius: '20px',
-                            color: '#38BDF8',
-                            fontSize: '0.75rem',
-                            fontWeight: 700,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.35rem'
-                          }}
-                        >
-                          <Sparkles size={13} />
-                          <span>Real Face: {antiSpoofScore}%</span>
-                        </div>
-                      )}
+                      <div
+                        style={{
+                          backgroundColor: 'rgba(15, 23, 42, 0.85)',
+                          backdropFilter: 'blur(4px)',
+                          padding: '0.3rem 0.65rem',
+                          borderRadius: '20px',
+                          color: '#10B981',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.35rem'
+                        }}
+                      >
+                        <CheckCircle2 size={13} />
+                        <span>Selfie Captured</span>
+                      </div>
                     </div>
 
                     <button
@@ -895,12 +873,10 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
                       </div>
                       <div>
                         <div style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                          {isComparing ? 'Comparing with ID photo...' : matchResult?.statusMessage || 'Facial comparison complete'}
+                          {isComparing ? 'Checking your photo...' : matchResult?.statusMessage || 'Photo ready'}
                         </div>
                         <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-                          {facialMatchScore !== null
-                            ? `Facial similarity: ${facialMatchScore}% • High accuracy neural embedding`
-                            : 'Neural comparison computed via @vladmandic/human'}
+                          {isComparing ? 'Please wait a moment...' : 'Ready for submission'}
                         </div>
                       </div>
                     </div>
@@ -908,12 +884,15 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
                     {facialMatchScore !== null && (
                       <span
                         style={{
-                          fontSize: '1.05rem',
-                          fontWeight: 900,
-                          color: facialMatchScore >= 80 ? '#059669' : '#0284C7'
+                          fontSize: '0.84rem',
+                          fontWeight: 800,
+                          color: '#059669',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.25rem'
                         }}
                       >
-                        {facialMatchScore}%
+                        <CheckCircle2 size={16} /> Ready
                       </span>
                     )}
                   </div>
@@ -998,46 +977,6 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
                       {isLiveDetected ? <CheckCircle2 size={14} /> : <Info size={14} />}
                       <span>{liveFeedback}</span>
                     </div>
-
-                    {/* Liveness / Anti-spoof Real-time Badges */}
-                    {livenessScore !== null && (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          bottom: '0.75rem',
-                          left: '0.75rem',
-                          display: 'flex',
-                          gap: '0.4rem'
-                        }}
-                      >
-                        <span
-                          style={{
-                            backgroundColor: 'rgba(0,0,0,0.7)',
-                            padding: '0.25rem 0.55rem',
-                            borderRadius: '12px',
-                            color: livenessScore >= 65 ? '#10B981' : '#F59E0B',
-                            fontSize: '0.72rem',
-                            fontWeight: 700
-                          }}
-                        >
-                          Liveness: {livenessScore}%
-                        </span>
-                        {antiSpoofScore !== null && (
-                          <span
-                            style={{
-                              backgroundColor: 'rgba(0,0,0,0.7)',
-                              padding: '0.25rem 0.55rem',
-                              borderRadius: '12px',
-                              color: antiSpoofScore >= 50 ? '#38BDF8' : '#F59E0B',
-                              fontSize: '0.72rem',
-                              fontWeight: 700
-                            }}
-                          >
-                            Real: {antiSpoofScore}%
-                          </span>
-                        )}
-                      </div>
-                    )}
                   </div>
 
                   {/* Camera Controls */}
@@ -1063,7 +1002,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
                       }}
                     >
                       <Camera size={18} />
-                      <span>{isLiveDetected ? 'Capture Verified Selfie' : 'Capture Selfie'}</span>
+                      <span>Take Photo</span>
                     </button>
                   </div>
                 </div>
@@ -1116,7 +1055,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
                   type="button"
                   onClick={() => {
                     if (!selfiePhotoUrl) {
-                      showToast('Selfie Required', 'Please capture your live selfie before proceeding.', 'warning');
+                      showToast('Photo Needed', 'Please take your photo before continuing.', 'warning');
                       return;
                     }
                     stopCamera();
@@ -1354,9 +1293,9 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
                 </div>
                 {selfiePhotoUrl ? (
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>Live Biometric Selfie:</span>
+                    <span style={{ color: 'var(--text-muted)' }}>Selfie Photo:</span>
                     <span style={{ color: '#059669', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
-                      <CheckCircle2 size={14} /> {facialMatchScore !== null ? `${facialMatchScore}% Match` : 'Captured'}
+                      <CheckCircle2 size={14} /> Ready
                     </span>
                   </div>
                 ) : (
@@ -1407,7 +1346,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
               >
                 <Info size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
                 <span>
-                  <strong>Campus Privacy & Biometric Security:</strong> Live face embeddings and documents are encrypted with SHA-256 signatures and processed strictly according to UC institutional guidelines. TradeLink never shares student verification data with third parties.
+                  <strong>Privacy & Security:</strong> Your student ID and selfie are encrypted and used only to confirm your campus enrollment. TradeLink never shares student verification photos with third parties.
                 </span>
               </div>
 
@@ -1487,8 +1426,8 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
                 </h3>
                 <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', marginTop: '0.35rem', lineHeight: 1.5 }}>
                   {serverStatus === 'approved'
-                    ? 'Congratulations! Your student credentials and biometric live match passed instant institutional verification. Full trading and swap badges are active.'
-                    : 'Your student credentials have been securely transmitted to University of Cebu campus administration for KYC review.'}
+                    ? 'Congratulations! Your student verification was approved. You can now post listings, buy, and trade freely.'
+                    : 'Your documents have been submitted. Campus moderators will review and approve your account shortly.'}
                 </p>
               </div>
 
@@ -1508,7 +1447,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
               >
                 <div>• Your Student ID: <strong>{studentIdInput}</strong></div>
                 <div>• Status: <strong style={{ color: serverStatus === 'approved' ? '#059669' : '#D97706', textTransform: 'uppercase' }}>{serverStatus}</strong></div>
-                <div>• Review Desk: <strong>University of Cebu Campus KYC</strong></div>
+                <div>• Verification: <strong>Campus Student Verification</strong></div>
               </div>
 
               <button

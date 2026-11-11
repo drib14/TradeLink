@@ -417,7 +417,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 borderRadius: '9999px',
                 fontSize: '0.82rem',
                 fontWeight: 800,
-                background: 'linear-gradient(135deg, #002B7F 0%, #0A3EA8 100%)',
+                background: 'var(--uc-blue, #002B7F)',
                 boxShadow: '0 4px 14px rgba(0, 43, 127, 0.25)',
                 display: 'inline-flex',
                 alignItems: 'center',

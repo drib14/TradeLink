@@ -396,9 +396,13 @@ async function autoInitDatabase() {
 
     // 2. Ensure Sole Administrator Account Exists using environment variables
     const adminEmail = process.env.ADMIN_SEED_EMAIL || process.env.ADMIN_EMAIL || 'uc.tradelink@gmail.com';
-    const adminPassword = process.env.ADMIN_SEED_PASSWORD || process.env.ADMIN_PASSWORD || 'TradeLink@2026';
+    const adminPassword = process.env.ADMIN_SEED_PASSWORD || process.env.ADMIN_PASSWORD;
+    if (!adminPassword && env.isProduction) {
+      throw new Error('[DB Init] ADMIN_SEED_PASSWORD is required in production environment.');
+    }
+    const finalAdminPassword = adminPassword || 'TradeLink@2026';
     const adminName = process.env.ADMIN_SEED_NAME || 'TradeLink Admin';
-    const adminPasswordHash = await bcrypt.hash(adminPassword, 10);
+    const adminPasswordHash = await bcrypt.hash(finalAdminPassword, 10);
 
     // Remove legacy or alternative admin accounts
     await db('users').where({ email: 'admin@uc.edu.ph' }).del().catch(() => {});
@@ -537,10 +541,13 @@ async function autoInitDatabase() {
         .catch(() => {});
     }
 
-    // 8. Self-healing: Ensure authentic student accounts, listings, and baseline university items
-    if (hasListingsTable && hasUsersTable) {
-      // 8a. Authentic Verified Student Accounts
-      const authenticStudents = [
+    // 8. Baseline demo data (development/test only, and only if database has zero listings)
+    if (!env.isProduction && hasListingsTable && hasUsersTable) {
+      const listingCountRow = await db('listings').count('id as count').first().catch(() => ({ count: 0 }));
+      const listingCount = Number(listingCountRow?.count || 0);
+      if (listingCount === 0) {
+        // 8a. Sample Student Accounts
+        const authenticStudents = [
         {
           id: '2d48f605-38e5-4ccc-ba1f-9ffdee81e0cf',
           name: 'Jhonrid Ramirez',
@@ -703,14 +710,11 @@ async function autoInitDatabase() {
         }
       }
 
-      // 8d. Baseline demo listings if catalogue is still under-populated
-      const listingCountRow = await db('listings').count('id as count').first().catch(() => ({ count: 0 }));
-      const listingCount = Number(listingCountRow?.count || 0);
-      if (listingCount <= 4) {
-        const studentCountRow = await db('users').where({ role: 'student' }).count('id as count').first().catch(() => ({ count: 0 }));
-        if (Number(studentCountRow?.count || 0) <= 2) {
-          const defaultPasswordHash = await bcrypt.hash('TradeLink@2026', 10);
-          await db('users').insert([
+      // 8d. Baseline demo listings
+      const studentCountRow = await db('users').where({ role: 'student' }).count('id as count').first().catch(() => ({ count: 0 }));
+      if (Number(studentCountRow?.count || 0) <= 2) {
+        const defaultPasswordHash = await bcrypt.hash(finalAdminPassword, 10);
+        await db('users').insert([
             { id: 'student-1', name: 'Maria Santos', email: 'maria.santos@uc.edu.ph', student_id: 202201452, password_hash: defaultPasswordHash, role: 'student', campus: 'UC Main', department: 'CEA', avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80', is_verified: true, trust_score: 98, rating: 4.9, total_reviews: 14, completed_trades: 18, punctuality_rate: 96, bio: 'BS Civil Engineering student. Fast responder.', is_banned: false },
             { id: 'student-2', name: 'Joshua Tan', email: 'joshua.tan@uc.edu.ph', student_id: 202308912, password_hash: defaultPasswordHash, role: 'student', campus: 'UC Banilad', department: 'CON', avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80', is_verified: true, trust_score: 94, rating: 4.8, total_reviews: 8, completed_trades: 11, punctuality_rate: 92, bio: 'College of Nursing student.', is_banned: false },
             { id: 'student-3', name: 'Bea Alonzo', email: 'bea.alonzo@uc.edu.ph', student_id: 202104519, password_hash: defaultPasswordHash, role: 'student', campus: 'UC METC', department: 'CME', avatar_url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=300&q=80', is_verified: true, trust_score: 96, rating: 5.0, total_reviews: 19, completed_trades: 24, punctuality_rate: 100, bio: 'Maritime Education student.', is_banned: false },

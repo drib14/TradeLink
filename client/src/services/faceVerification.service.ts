@@ -177,15 +177,15 @@ export async function detectLiveFace(video: HTMLVideoElement): Promise<LiveFaceR
 
     const isLive = livenessScore >= 65 && antiSpoofScore >= 50;
 
-    let message = 'Live face detected';
+    let message = 'Face detected';
     if (!isLive) {
       if (livenessScore < 65) {
-        message = 'Please blink or move slightly to verify liveness';
+        message = 'Please look straight at the camera';
       } else if (antiSpoofScore < 50) {
-        message = 'Avoid glare or screen reflections';
+        message = 'Make sure there is good lighting without glare';
       }
     } else {
-      message = `Liveness verified (${livenessScore}%) - Hold steady`;
+      message = 'Looking good! Hold still for your photo.';
     }
 
     const box = face.box
@@ -296,11 +296,11 @@ export async function compareIdAndSelfie(
 
     let statusMessage = '';
     if (matchScore >= 85) {
-      statusMessage = `Facial match verified (${matchScore}% confidence). Matches student ID photo.`;
+      statusMessage = 'Your selfie matches your student ID photo.';
     } else if (matchScore >= 65) {
-      statusMessage = `Acceptable facial match (${matchScore}%). Queued for quick admin verification.`;
+      statusMessage = 'Photo saved. Campus staff will verify your account shortly.';
     } else {
-      statusMessage = `Low facial similarity (${matchScore}%). Manual review required.`;
+      statusMessage = 'Photos look a bit different, but submitted for staff review.';
     }
 
     return {

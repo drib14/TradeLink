@@ -171,7 +171,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         showToast('Login Failed', displayMsg, 'error');
       }
     } catch (err: any) {
-      showToast('Error', err?.message || 'Login encountered an issue.', 'error');
+      showToast('Login Failed', err?.message || 'Could not sign in. Please check your student ID and password, then try again.', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -212,7 +212,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         showToast('Registration Error', res.message, 'error');
       }
     } catch (err: any) {
-      showToast('Error', err?.message || 'Registration failed.', 'error');
+      showToast('Registration Error', err?.message || 'Could not create account. Please check your details and try again.', 'error');
     } finally {
       setIsSubmitting(false);
     }

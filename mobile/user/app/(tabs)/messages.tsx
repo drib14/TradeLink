@@ -66,7 +66,7 @@ export default function MessagesScreen() {
           const participant = item.otherParticipant || {
             name: item.participantName || 'Student',
             avatar: item.participantAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
-            isVerified: true,
+            isVerified: Boolean(item.otherParticipant?.isVerified ?? item.participantIsVerified ?? item.isVerified ?? false),
             campus: item.participantCampus || 'UC Main',
           };
           return (

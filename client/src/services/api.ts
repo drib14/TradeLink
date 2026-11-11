@@ -274,9 +274,16 @@ async function request<T = any>(
         } as ApiError;
       }
       if (!res.ok) {
+        let friendlyMessage = 'Something went wrong. Please try again.';
+        if (res.status === 404) friendlyMessage = 'The requested item or page could not be found.';
+        else if (res.status === 403) friendlyMessage = 'You do not have permission to do this.';
+        else if (res.status === 401) friendlyMessage = 'Please log in to continue.';
+        else if (res.status === 429) friendlyMessage = 'Too many attempts. Please wait a moment before trying again.';
+        else if (res.status >= 500) friendlyMessage = 'The server is temporarily unavailable. Please try again in a moment.';
+
         throw {
           status: 'error',
-          message: `Request failed with status ${res.status}: ${res.statusText || 'Server Error'}`,
+          message: friendlyMessage,
           statusCode: res.status,
         } as ApiError;
       }
@@ -290,9 +297,16 @@ async function request<T = any>(
           statusCode: 413,
         } as ApiError;
       }
+      let defaultError = 'Something went wrong. Please try again.';
+      if (res.status === 404) defaultError = 'The requested item or page could not be found.';
+      else if (res.status === 403) defaultError = 'You do not have permission to do this.';
+      else if (res.status === 401) defaultError = 'Please log in to continue.';
+      else if (res.status === 429) defaultError = 'Too many attempts. Please wait a moment before trying again.';
+      else if (res.status >= 500) defaultError = 'The server is temporarily unavailable. Please try again in a moment.';
+
       throw {
         status: 'error',
-        message: json?.message || `Request failed with status ${res.status}`,
+        message: json?.message || defaultError,
         statusCode: res.status,
       } as ApiError;
     }
@@ -326,7 +340,7 @@ async function request<T = any>(
       });
       throw {
         status: 'error',
-        message: 'Server unreachable or spinning up from cold start. Please check connection.',
+        message: 'Unable to connect to TradeLink. Please check your internet connection and try again.',
         statusCode: 0,
       } as ApiError;
     }
@@ -402,6 +416,8 @@ export function sanitizeMediaUrl(url: string | null | undefined): string {
     'data:image/'
   ];
   if (trusted.some((domain) => trimmed.startsWith(domain))) return trimmed;
-  if (trimmed.startsWith('http://localhost:') || trimmed.startsWith('http://127.0.0.1:')) return trimmed; // Dev only
+  if (import.meta.env.DEV && (trimmed.startsWith('http://localhost:') || trimmed.startsWith('http://127.0.0.1:'))) {
+    return trimmed;
+  }
   return '';
 }

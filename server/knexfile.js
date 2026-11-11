@@ -26,8 +26,8 @@ const buildConnection = (targetEnv = 'development') => {
   const rawDbName = cleanStr(process.env.DB_NAME);
   const rawSsl = cleanStr(process.env.DB_SSL).toLowerCase();
 
-  // 1. If DATABASE_URL is provided, parse it
-  if (rawDbUrl) {
+  // 1. In production, prioritize cloud DATABASE_URL if provided
+  if (isTargetProd && rawDbUrl) {
     try {
       const parsedUrl = new URL(rawDbUrl);
       const host = parsedUrl.hostname;

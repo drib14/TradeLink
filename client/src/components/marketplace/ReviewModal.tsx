@@ -108,7 +108,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
     }
 
     if (!targetUserId) {
-      showToast('Error', 'Counterpart student information missing.', 'error');
+      showToast('Missing Student Info', 'Could not find the other student profile. Please refresh the page and try again.', 'error');
       return;
     }
 
