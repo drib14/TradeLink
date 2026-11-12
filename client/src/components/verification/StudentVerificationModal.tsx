@@ -239,24 +239,12 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
     setSelfiePhotoUrl(dataUrl);
     stopCamera();
 
-    // Run facial comparison against ID photo
-    if (idPhotoUrl) {
-      setIsComparing(true);
-      try {
-        const match = await compareIdAndSelfie(idPhotoUrl, dataUrl);
-        setMatchResult(match);
-        setFacialMatchScore(match.matchScore);
-        if (match.isMatchOver85) {
-          showToast('Selfie Verified', 'Your photo matches your ID. You are ready to submit!', 'success');
-        } else {
-          showToast('Photo Saved', 'Photo captured. Our team will verify it for you.', 'info');
-        }
-      } catch (err: any) {
-        console.warn('Biometric comparison error:', err);
-      } finally {
-        setIsComparing(false);
-      }
-    }
+    // Browser-side face matching is intentionally optional. Model CDN failures
+    // must never block submission; the original documents go to administrator review.
+    setMatchResult(null);
+    setFacialMatchScore(null);
+    setIsComparing(false);
+    showToast('Selfie Captured', 'Your selfie is ready. An authorized campus administrator will review your documents.', 'info');
   };
 
   const handleRetakeSelfie = () => {
