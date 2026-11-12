@@ -16,7 +16,9 @@ import {
   ShieldCheck,
   Flame,
   Sparkles,
-  Layers
+  Layers,
+  CheckCircle2,
+  Search
 } from 'lucide-react';
 import { ConditionGrade } from '../../types';
 import { CampusDropdown } from '../common/CampusDropdown';
@@ -53,10 +55,10 @@ export const FilterBar: React.FC = () => {
 
   const conditionOptions: SelectOption[] = [
     { value: 'All', label: 'All Conditions', icon: <Sparkles size={13} /> },
-    { value: 'Brand New', label: 'Brand New', badge: '10/10', badgeBg: '#ECFDF5', badgeColor: '#047857' },
-    { value: 'Like New', label: 'Like New', badge: '9/10', badgeBg: '#EFF6FF', badgeColor: '#1D4ED8' },
-    { value: 'Good', label: 'Good Condition', badge: '7-8/10', badgeBg: '#FFFBEB', badgeColor: '#B45309' },
-    { value: 'Fair', label: 'Fair Condition', badge: '5-6/10', badgeBg: '#F1F5F9', badgeColor: '#475569' }
+    { value: 'Brand New', label: 'Brand New', icon: <Sparkles size={13} />, badge: '10/10', badgeBg: '#ECFDF5', badgeColor: '#047857' },
+    { value: 'Like New', label: 'Like New', icon: <ShieldCheck size={13} />, badge: '9/10', badgeBg: '#EFF6FF', badgeColor: '#1D4ED8' },
+    { value: 'Good', label: 'Good Condition', icon: <CheckCircle2 size={13} />, badge: '7-8/10', badgeBg: '#FFFBEB', badgeColor: '#B45309' },
+    { value: 'Fair', label: 'Fair Condition', icon: <Tag size={13} />, badge: '5-6/10', badgeBg: '#F1F5F9', badgeColor: '#475569' }
   ];
 
   const sortByOptions: SelectOption[] = [
@@ -68,10 +70,11 @@ export const FilterBar: React.FC = () => {
   ];
 
   const tagChips = [
-    { id: 'All', label: 'All Categories' },
+    { id: 'All', label: 'All Categories', icon: <Layers size={12} /> },
     ...categories.map((c) => ({
       id: c.name,
-      label: c.name
+      label: c.name,
+      icon: <Tag size={12} />
     }))
   ];
 
@@ -137,7 +140,7 @@ export const FilterBar: React.FC = () => {
                 flexShrink: 0
               }}
             >
-              {chip.label}
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>{chip.icon}{chip.label}</span>
             </button>
           );
         })}
@@ -412,7 +415,7 @@ export const FilterBar: React.FC = () => {
                 border: '1px solid rgba(0, 43, 127, 0.15)'
               }}
             >
-              Mode: {selectedTradeMode === 'buy_sell' ? 'Buy & Sell' : selectedTradeMode === 'swap' ? 'Swap' : 'Free'}
+              {selectedTradeMode === 'buy_sell' ? <DollarSign size={11} /> : selectedTradeMode === 'swap' ? <Repeat size={11} /> : <Gift size={11} />} Mode: {selectedTradeMode === 'buy_sell' ? 'Buy & Sell' : selectedTradeMode === 'swap' ? 'Swap' : 'Free'}
               <button
                 onClick={() => setSelectedTradeMode('All')}
                 style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', color: 'var(--uc-blue)' }}
@@ -437,7 +440,7 @@ export const FilterBar: React.FC = () => {
                 border: '1px solid rgba(0, 43, 127, 0.15)'
               }}
             >
-              Condition: {selectedCondition}
+              <Sparkles size={11} /> Condition: {selectedCondition}
               <button
                 onClick={() => setSelectedCondition('All')}
                 style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', color: 'var(--uc-blue)' }}
@@ -462,7 +465,7 @@ export const FilterBar: React.FC = () => {
                 border: '1px solid rgba(0, 43, 127, 0.15)'
               }}
             >
-              Price: ₱{priceRange[0].toLocaleString()} - ₱{priceRange[1].toLocaleString()}
+              <DollarSign size={11} /> Price: ₱{priceRange[0].toLocaleString()} - ₱{priceRange[1].toLocaleString()}
               <button
                 onClick={() => setPriceRange([0, 50000])}
                 style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', color: 'var(--uc-blue)' }}
@@ -487,7 +490,7 @@ export const FilterBar: React.FC = () => {
                 border: '1px solid rgba(0, 43, 127, 0.15)'
               }}
             >
-              "{searchQuery}"
+              <Search size={11} /> "{searchQuery}"
               <button
                 onClick={() => setSearchQuery('')}
                 style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', color: 'var(--uc-blue)' }}
