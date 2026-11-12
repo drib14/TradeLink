@@ -1020,8 +1020,6 @@ input[type="range"]::-moz-range-thumb {
 }
 
 body:has(.modal-backdrop-custom) .mobile-nav-bar,
-body:has([role="dialog"]) .mobile-nav-bar,
-body:has([role="alertdialog"]) .mobile-nav-bar,
 body.modal-open .mobile-nav-bar { display: none !important; pointer-events: none !important; }
 
 @media (max-width: 640px) {
