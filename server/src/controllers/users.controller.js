@@ -158,7 +158,7 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
   } = req.body;
 
   const rawIdPhoto = idPhotoUrl || idCardImageUrl;
-  const secondaryProof = enrollmentProofUrl || selfiePhotoUrl || null;
+  // Prefer the actual selfie for the selfie column; enrollment proof is only a fallback.\n  const secondaryProof = selfiePhotoUrl || enrollmentProofUrl || null;
 
   if (!studentIdNumber || !rawIdPhoto) {
     return next(new AppError('Student ID number and valid ID photo are required.', 400));
@@ -280,7 +280,7 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
       });
 
       status = evaluation.status || (evaluation.isApproved ? 'approved' : 'pending');
-      confidenceScore = evaluation.confidenceScore || 85;
+      confidenceScore = evaluation.confidenceScore ?? 85;
       isSuspicious = evaluation.isSuspicious ? 1 : 0;
       if (evaluation.suspiciousReasons && evaluation.suspiciousReasons.length > 0) {
         suspiciousReasons = JSON.stringify(evaluation.suspiciousReasons);
