@@ -473,16 +473,16 @@ async function evaluateVerification({
 
   // If not auto-approved, mark as suspicious for challenge bypass, duplicate, or severely low match (<50%)
   // Natural minor face differences (60-84%) are routed as standard pending review for admin
-  const isSuspicious = hasCriticalFraud || (Number(awsVerification.faceSimilarity || 0) < 50);
+  const isSuspicious = hasCriticalFraud || Boolean(awsVerification.configured && awsVerification.faceMatched === false && Number(awsVerification.faceSimilarity || 0) < 50);
   const status = isApproved ? 'approved' : 'pending';
   const reviewEstimate = isApproved ? 'immediate' : '1-3 business days';
 
-  logger.info(`[Student Verification Engine] Evaluated user [${user.id}]: score=${confidenceScore}%, facialMatch=${facialMatch.matchScore}%, status=${status}, isApproved=${isApproved}, suspiciousCount=${suspiciousReasons.length}`);
+  logger.info(`[Student Verification Engine] Evaluated user [${user.id}]: score=${confidenceScore}%, facialMatch=${awsVerification.faceSimilarity || 0}%, status=${status}, isApproved=${isApproved}, suspiciousCount=${suspiciousReasons.length}`);
 
   return {
     isApproved,
     isSuspicious,
-    confidenceScore: isApproved ? Math.max(confidenceScore, facialMatch.matchScore) : confidenceScore,
+    confidenceScore,
     facialMatchScore: awsVerification.faceSimilarity || 0,
     awsVerification,
     autoApprovalEligible: false,
