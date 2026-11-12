@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const db = require('../config/db');
 const verificationSessionService = require('./verificationSession.service');
 const logger = require('../utils/logger');
+const awsDocumentVerification = require('./awsDocumentVerification.service');
 
 /**
  * Computes a SHA-256 hash of an image data string or buffer
@@ -426,25 +427,25 @@ async function evaluateVerification({
   };
 
   // -------------------------------------------------------------
-  // 6. Facial Matching & Biometric Liveness Engine
-  // -------------------------------------------------------------
-  const facialMatch = computeFacialMatch({
-    idPhotoUrl,
-    selfiePhotoUrl,
-    telemetry,
-    sessionValid: Boolean(sessionToken && diagnostics.sessionChallenge?.passed)
+  // 6. Trusted server-side OCR and face comparison. Browser telemetry is never
+  // accepted as identity evidence or used to calculate an approval score.
+  const awsVerification = await awsDocumentVerification.verifyStudentDocuments({
+    idPhotoUrl, selfiePhotoUrl, studentId: cleanId, studentName: user.name
   });
-
   diagnostics.facialMatch = {
-    score: facialMatch.matchScore,
-    passed: facialMatch.isMatchOver90,
-    details: facialMatch.details
+    score: awsVerification.faceSimilarity || 0,
+    passed: Boolean(awsVerification.faceMatched),
+    provider: 'aws_rekognition',
+    details: awsVerification
   };
-
-  if (facialMatch.matchScore < 85) {
-    suspiciousReasons.push(
-      `Automated facial match between ID card and live selfie was ${facialMatch.matchScore}% (below 85% threshold for instant approval). Forwarded for manual admin review.`
-    );
+  diagnostics.documentOcr = {
+    passed: Boolean(awsVerification.studentIdFound && awsVerification.studentNameFound),
+    provider: 'aws_textract',
+    studentIdFound: Boolean(awsVerification.studentIdFound),
+    studentNameFound: Boolean(awsVerification.studentNameFound)
+  };
+  if (!awsVerification.passed) {
+    suspiciousReasons.push(awsVerification.reason || 'Trusted AWS verification did not pass.');
   }
 
   // -------------------------------------------------------------
@@ -462,16 +463,17 @@ async function evaluateVerification({
            r.includes('session validation failed')
   );
 
-  // Automated Instant Approval Conditions:
-  // 1. Confidence Score must be at least 85%
-  // 2. Facial match score must be at least 85%
-  // 3. ID image is clear and not blurred
-  // 4. Zero duplicate or fraud flags
-  const isApproved = confidenceScore >= 85 && facialMatch.matchScore >= 85 && !idSharpness.isBlurred && !hasCriticalFraud && suspiciousReasons.length === 0;
+  // CompareFaces and OCR do not prove a live camera capture. Until AWS Face
+  // Liveness is integrated into the capture UI and verified server-side, every
+  // submission remains pending for an authorized campus reviewer.
+  const trustedLivenessVerified = false;
+  const isApproved = Boolean(awsVerification.passed && trustedLivenessVerified &&
+    confidenceScore >= 85 && !idSharpness.isBlurred &&
+    !hasCriticalFraud && suspiciousReasons.length === 0);
 
   // If not auto-approved, mark as suspicious for challenge bypass, duplicate, or severely low match (<50%)
   // Natural minor face differences (60-84%) are routed as standard pending review for admin
-  const isSuspicious = hasCriticalFraud || (facialMatch.matchScore < 50);
+  const isSuspicious = hasCriticalFraud || (Number(awsVerification.faceSimilarity || 0) < 50);
   const status = isApproved ? 'approved' : 'pending';
   const reviewEstimate = isApproved ? 'immediate' : '1-3 business days';
 
@@ -481,7 +483,9 @@ async function evaluateVerification({
     isApproved,
     isSuspicious,
     confidenceScore: isApproved ? Math.max(confidenceScore, facialMatch.matchScore) : confidenceScore,
-    facialMatchScore: facialMatch.matchScore,
+    facialMatchScore: awsVerification.faceSimilarity || 0,
+    awsVerification,
+    autoApprovalEligible: false,
     reviewEstimate,
     status,
     suspiciousReasons,
