@@ -53,7 +53,9 @@
     "tesseract.js": "^7.0.0",
     "uuid": "^10.0.0",
     "winston": "^3.13.0",
-    "xss": "^1.0.15"
+    "xss": "^1.0.15",
+    "@aws-sdk/client-rekognition": "^3.900.0",
+    "@aws-sdk/client-textract": "^3.900.0"
   },
   "devDependencies": {
     "cross-env": "^10.1.0",
