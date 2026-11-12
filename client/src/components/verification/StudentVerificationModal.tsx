@@ -23,8 +23,6 @@ import { Modal } from '../common/Modal';
 import { compressImage } from '../../utils/imageCompressor';
 import {
   detectLiveFace,
-  compareIdAndSelfie,
-  loadFaceModels,
   FaceMatchResult
 } from '../../services/faceVerification.service';
 
@@ -134,9 +132,6 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
       })
       .catch(() => {});
 
-    // Preload biometric models in background
-    loadFaceModels().catch(() => {});
-
     return () => {
       stopCamera();
     };
@@ -146,12 +141,10 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
   const startCamera = useCallback(async () => {
     stopCamera();
     setCameraError(null);
-    setIsModelLoading(true);
-    setLiveFeedback('Starting camera and loading neural models...');
+    setIsModelLoading(false);
+    setLiveFeedback('Starting camera. Your selfie will be submitted for administrator review.');
 
     try {
-      await loadFaceModels();
-      setIsModelLoading(false);
 
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -167,8 +160,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
         setIsCameraActive(true);
-        setLiveFeedback('Position your face in the center guide');
-        startDetectionLoop();
+        setLiveFeedback('Center your face in the frame, then capture your selfie. Automated face models are optional; an administrator reviews every submission.');
       }
     } catch (err: any) {
       setIsModelLoading(false);
