@@ -199,7 +199,39 @@ async function autoInitDatabase() {
     }
 
     // 1d. Ensure verification_requests columns exist for automated approval and fraud analysis
-    const hasVerifTable = await db.schema.hasTable('verification_requests').catch(() => false);
+    let hasVerifTable = await db.schema.hasTable('verification_requests').catch(() => false);
+    if (!hasVerifTable) {
+      await db.schema.createTable('verification_requests', (t) => {
+        t.string('id', 36).primary();
+        t.string('user_id', 36).notNullable().references('id').inTable('users').onDelete('CASCADE');
+        t.bigInteger('student_id_number').unsigned().notNullable();
+        t.string('id_photo_url', 255).notNullable();
+        t.string('selfie_photo_url', 255).nullable();
+        t.enu('status', ['pending', 'approved', 'rejected']).notNullable().defaultTo('pending');
+        t.integer('confidence_score').unsigned().notNullable().defaultTo(100);
+        t.boolean('is_suspicious').notNullable().defaultTo(false);
+        t.text('suspicious_reasons').nullable();
+        t.text('credential_diagnostics').nullable();
+        t.string('id_photo_hash', 64).nullable();
+        t.string('selfie_photo_hash', 64).nullable();
+        t.string('verification_method', 50).notNullable().defaultTo('admin_kyc');
+        t.string('rejection_reason', 255).nullable();
+        t.string('reviewed_by', 36).nullable().references('id').inTable('users').onDelete('SET NULL');
+        t.dateTime('reviewed_at').nullable();
+        t.dateTime('created_at').notNullable().defaultTo(db.fn.now());
+        t.dateTime('updated_at').notNullable().defaultTo(db.fn.now());
+        t.index('user_id', 'idx_verif_user');
+        t.index('student_id_number', 'idx_verif_student_id');
+        t.index('reviewed_by', 'idx_verif_reviewer');
+        t.index('status', 'idx_verif_status');
+        t.index('is_suspicious', 'idx_verif_suspicious');
+        t.index('id_photo_hash', 'idx_verif_photo_hash');
+        t.index('selfie_photo_hash', 'idx_verif_selfie_hash');
+        t.index('created_at', 'idx_verif_created_at');
+      });
+      hasVerifTable = true;
+      logger.info('[DB Init] Created missing verification_requests table.');
+    }
     if (hasVerifTable) {
       const hasConfidenceCol = await db.schema.hasColumn('verification_requests', 'confidence_score').catch(() => false);
       if (!hasConfidenceCol) {
