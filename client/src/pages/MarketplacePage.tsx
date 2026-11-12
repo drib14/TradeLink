@@ -114,11 +114,17 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <button
-            onClick={() => onNavigate('create-listing')}
+            onClick={() => {
+              if (currentUser && !currentUser.isVerified) {
+                onOpenVerification?.();
+                return;
+              }
+              onNavigate('create-listing');
+            }}
             className="btn-gold"
             style={{ padding: '0.55rem 1.15rem', fontSize: '0.84rem' }}
           >
-            <Plus size={15} /> Sell / Swap Item
+            <Plus size={15} /> {currentUser && !currentUser.isVerified ? 'Verify to Post' : 'Sell / Swap Item'}
           </button>
         </div>
       </div>

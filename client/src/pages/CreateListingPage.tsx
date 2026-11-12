@@ -3,7 +3,6 @@ import { useAuth } from '../context/AuthContext';
 import { useMarket } from '../context/MarketContext';
 import { useToast } from '../components/common/Toast';
 import { DragDropUpload } from '../components/common/DragDropUpload';
-import { StudentVerificationModal } from '../components/verification/StudentVerificationModal';
 import { ConfirmModal } from '../components/common/ConfirmModal';
 import { PaymentMethodCheckboxGroup, PaymentMethodBadge } from '../components/common/PaymentLogos';
 import { TradeLinkIcon } from '../components/common/TradeLinkIcon';
@@ -34,6 +33,7 @@ export type PostingFormMode = 'sell' | 'swap';
 interface CreateListingPageProps {
   onNavigate: (view: string, param?: any) => void;
   onOpenAuth?: () => void;
+  onOpenVerification?: () => void;
   initialMode?: PostingFormMode;
 }
 
@@ -49,6 +49,7 @@ const SWAP_INSPIRATION_CHIPS = [
 export const CreateListingPage: React.FC<CreateListingPageProps> = ({
   onNavigate,
   onOpenAuth,
+  onOpenVerification,
   initialMode = 'sell'
 }) => {
   const { currentUser, isAuthenticated } = useAuth();
@@ -87,7 +88,6 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
-  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
 
   // Item Variations state (matching images to options, e.g. PE 101-104, Math 101-104)
   const [hasVariations, setHasVariations] = useState(false);
@@ -380,14 +380,37 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
     );
   }
 
-  const isPendingVerification = !currentUser.isVerified && (currentUser.verificationStatus === 'pending' || !!currentUser.idPhotoUrl);
-
-  // MVP: Verification check disabled for open access
-  /*
-  if (currentUser && !currentUser.isVerified) {
-    ...
+  // Posting is restricted to verified students. Buying and browsing remain available elsewhere.
+  if (!currentUser.isVerified) {
+    const isPending = currentUser.verificationStatus === 'pending' || Boolean(currentUser.idPhotoUrl);
+    return (
+      <div className="container page-enter" style={{ maxWidth: '620px', padding: '4rem 1.25rem', textAlign: 'center' }}>
+        <div className="clean-card" style={{ padding: '2.25rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ width: '58px', height: '58px', borderRadius: '50%', display: 'grid', placeItems: 'center', background: 'var(--uc-blue-subtle, #EBF1FC)', color: 'var(--uc-blue, #002B7F)' }}>
+            <ShieldAlert size={28} />
+          </div>
+          <div>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 850, color: 'var(--text-primary)' }}>
+              {isPending ? 'Student Verification Pending' : 'Verification Required to Post'}
+            </h2>
+            <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.6, marginTop: '0.55rem' }}>
+              {isPending
+                ? 'Your student documents are awaiting review. You can continue browsing and buying items while our campus team reviews your submission. Posting will unlock after approval.'
+                : 'To keep the campus marketplace trusted, verify your University of Cebu student account before selling, swapping, or publishing any item. You can still browse and buy items.'}
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <button type="button" onClick={() => onOpenVerification?.()} className="btn-gold" style={{ padding: '0.7rem 1.35rem', fontWeight: 800 }}>
+              {isPending ? 'View Verification Status' : 'Verify Student Account'}
+            </button>
+            <button type="button" onClick={() => onNavigate('marketplace')} className="btn-secondary" style={{ padding: '0.7rem 1.25rem', fontWeight: 700 }}>
+              Browse Marketplace
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
-  */
 
   const stepsConfig = formMode === 'sell'
     ? [

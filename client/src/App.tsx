@@ -200,6 +200,7 @@ export const MainApp: React.FC = () => {
                 <CreateListingPage
                   onNavigate={handleNavigate}
                   onOpenAuth={() => setIsAuthModalOpen(true)}
+                  onOpenVerification={() => setIsVerificationModalOpen(true)}
                   initialMode={viewParams?.mode === 'swap' ? 'swap' : 'sell'}
                 />
               );

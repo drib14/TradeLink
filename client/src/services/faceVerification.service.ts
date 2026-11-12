@@ -22,7 +22,8 @@ export interface LiveFaceResult {
 
 const humanConfig: Partial<Config> = {
   backend: 'webgl',
-  modelBasePath: 'https://cdn.jsdelivr.net/npm/@vladmandic/human-models/models/',
+  // Use the upstream model host documented by Human; jsDelivr currently returns 403 for these files.
+  modelBasePath: 'https://vladmandic.github.io/human-models/models/',
   filter: { enabled: true, equalization: false, flip: false },
   face: {
     enabled: true,
