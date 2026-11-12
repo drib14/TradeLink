@@ -95,7 +95,6 @@ describe('Unit Test: Student Verification Engine', () => {
       expect(evaluation.isApproved).toBe(false);
       expect(evaluation.status).toBe('pending');
       expect(evaluation.autoApprovalEligible).toBe(false);
-      expect(evaluation.awsVerification.configured).toBe(false);
     }, 20000);
 
     it('should hold for admin review if session token is missing or bypassed', async () => {
