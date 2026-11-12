@@ -114,11 +114,6 @@ const config = {
     dailyQuotaMB: parseInt(process.env.DAILY_UPLOAD_QUOTA_MB, 10) || 50
   },
 
-  aws: {
-    region: process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || '',
-    // Credentials are resolved by the backend AWS SDK provider chain.
-  },
-
   cloudinary: {
     cloudName: process.env.CLOUDINARY_CLOUD_NAME || '',
     apiKey: process.env.CLOUDINARY_API_KEY || '',
