@@ -2,7 +2,7 @@ const crypto = require('crypto');
 const db = require('../config/db');
 const verificationSessionService = require('./verificationSession.service');
 const logger = require('../utils/logger');
-const awsDocumentVerification = require('./awsDocumentVerification.service');
+const studentDocumentOcr = require('./studentDocumentOcr.service');
 
 /**
  * Computes a SHA-256 hash of an image data string or buffer
@@ -355,24 +355,22 @@ async function evaluateVerification({
   // -------------------------------------------------------------
   // 6. Trusted server-side OCR and face comparison. Browser telemetry is never
   // accepted as identity evidence or used to calculate an approval score.
-  const awsVerification = await awsDocumentVerification.verifyStudentDocuments({
-    idPhotoUrl, selfiePhotoUrl, studentId: cleanId, studentName: user.name
+  const documentVerification = await studentDocumentOcr.verifyStudentDocuments({
+    idPhotoUrl, studentId: cleanId, studentName: user.name
   });
-  diagnostics.facialMatch = {
-    score: awsVerification.faceSimilarity || 0,
-    passed: Boolean(awsVerification.faceMatched),
-    provider: 'aws_rekognition',
-    details: awsVerification
-  };
   diagnostics.documentOcr = {
-    passed: Boolean(awsVerification.studentIdFound && awsVerification.studentNameFound),
-    provider: 'aws_textract',
-    studentIdFound: Boolean(awsVerification.studentIdFound),
-    studentNameFound: Boolean(awsVerification.studentNameFound)
+    passed: Boolean(documentVerification.studentIdFound && documentVerification.studentNameFound),
+    provider: 'tesseract.js_local',
+    studentIdFound: Boolean(documentVerification.studentIdFound),
+    studentNameFound: Boolean(documentVerification.studentNameFound),
+    details: documentVerification
   };
-  if (!awsVerification.passed) {
-    suspiciousReasons.push(awsVerification.reason || 'Trusted AWS verification did not pass.');
-  }
+  if (!documentVerification.passed) suspiciousReasons.push(documentVerification.reason || 'Local OCR did not confirm the document details.');
+  diagnostics.facialMatch = {
+    passed: false,
+    provider: 'manual_review_required',
+    details: 'No automated face matching or liveness detection is performed by the zero-cost configuration.'
+  };
 
   // -------------------------------------------------------------
   // 7. Final Decision Engine (Automated Approval vs Manual Review)
@@ -393,24 +391,23 @@ async function evaluateVerification({
   // Liveness is integrated into the capture UI and verified server-side, every
   // submission remains pending for an authorized campus reviewer.
   const trustedLivenessVerified = false;
-  const isApproved = Boolean(awsVerification.passed && trustedLivenessVerified &&
+  const isApproved = Boolean(documentVerification.passed && trustedLivenessVerified &&
     confidenceScore >= 85 && !idSharpness.isBlurred &&
     !hasCriticalFraud && suspiciousReasons.length === 0);
 
   // If not auto-approved, mark as suspicious for challenge bypass, duplicate, or severely low match (<50%)
   // Natural minor face differences (60-84%) are routed as standard pending review for admin
-  const isSuspicious = hasCriticalFraud || Boolean(awsVerification.configured && awsVerification.faceMatched === false && Number(awsVerification.faceSimilarity || 0) < 50);
+  const isSuspicious = hasCriticalFraud;
   const status = isApproved ? 'approved' : 'pending';
   const reviewEstimate = isApproved ? 'immediate' : '1-3 business days';
 
-  logger.info(`[Student Verification Engine] Evaluated user [${user.id}]: score=${confidenceScore}%, facialMatch=${awsVerification.faceSimilarity || 0}%, status=${status}, isApproved=${isApproved}, suspiciousCount=${suspiciousReasons.length}`);
+  logger.info(`[Student Verification Engine] Evaluated user [${user.id}]: score=${confidenceScore}%, documentOCR=${documentVerification.passed}, status=${status}, isApproved=${isApproved}, suspiciousCount=${suspiciousReasons.length}`);
 
   return {
     isApproved,
     isSuspicious,
     confidenceScore,
-    facialMatchScore: awsVerification.faceSimilarity || 0,
-    awsVerification,
+    documentVerification,
     autoApprovalEligible: false,
     reviewEstimate,
     status,
