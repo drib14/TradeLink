@@ -55,7 +55,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const refreshListings = useCallback(async () => {
     setIsLoading(true);
     try {
-      const serverListings = await listingsService.getListings();
+      const serverListings = await listingsService.getListings({ limit: 1000, status: 'All' });
       if (Array.isArray(serverListings)) {
         setListings(serverListings);
         setIsOffline(false);
@@ -169,8 +169,15 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const markAsSold = async (id: string, isSold: boolean) => {
-    setListings((prev) => prev.map((l) => (l.id === id ? { ...l, isSold } : l)));
-    await listingsService.markAsSold(id, isSold);
+    // Optimistic instant UI update
+    setListings((prev) => prev.map((l) => (l.id === id ? { ...l, isSold, status: isSold ? 'sold' : 'active' } : l)));
+    try {
+      await listingsService.markAsSold(id, isSold);
+    } catch (err) {
+      // Revert if API fails
+      setListings((prev) => prev.map((l) => (l.id === id ? { ...l, isSold: !isSold, status: !isSold ? 'sold' : 'active' } : l)));
+      throw err;
+    }
   };
 
   const updateListingQuantity = async (id: string, quantity: number) => {

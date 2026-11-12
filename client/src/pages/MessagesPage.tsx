@@ -88,6 +88,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
   const { showToast } = useToast();
 
   const [inputMessage, setInputMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
   const [searchFilter, setSearchFilter] = useState('');
   const [filterTab, setFilterTab] = useState<'all' | 'orders' | 'unread'>('all');
   const [isSendingMedia, setIsSendingMedia] = useState(false);
@@ -180,9 +181,11 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
 
   const handleSend = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    if (isSending) return;
     const text = inputMessage.trim();
     if (!text || !activeConversation) return;
 
+    setIsSending(true);
     setInputMessage('');
     sendTypingStatus(false);
 
@@ -190,6 +193,8 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
       await sendMessage(text);
     } catch (err: any) {
       showToast('Message Error', err?.message || 'Failed to send message.', 'error');
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -1372,8 +1377,9 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
 
                   <input
                     type="text"
-                    placeholder="Type an encrypted message..."
+                    placeholder={isSending ? 'Sending encrypted message...' : 'Type an encrypted message...'}
                     value={inputMessage}
+                    disabled={isSending}
                     onChange={(e) => {
                       setInputMessage(e.target.value);
                       sendTypingStatus(e.target.value.length > 0);
@@ -1391,7 +1397,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
 
                   <button
                     type="submit"
-                    disabled={!inputMessage.trim()}
+                    disabled={!inputMessage.trim() || isSending}
                     className="btn-primary"
                     style={{
                       padding: '0.65rem 1.1rem',
@@ -1401,11 +1407,11 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
                       alignItems: 'center',
                       gap: '0.35rem',
                       flexShrink: 0,
-                      opacity: inputMessage.trim() ? 1 : 0.6
+                      opacity: inputMessage.trim() && !isSending ? 1 : 0.6
                     }}
                   >
                     <Send size={15} />
-                    <span className="hidden-xs">Send</span>
+                    <span className="hidden-xs">{isSending ? 'Sending...' : 'Send'}</span>
                   </button>
                 </form>
               </>

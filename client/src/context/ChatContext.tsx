@@ -126,21 +126,42 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     socketService.connect();
 
     const unsubMsg = socketService.onMessage((newMsg: any) => {
+      const incomingId = String(newMsg.id);
+      const incomingConvId = newMsg.conversationId || newMsg.conversation_id;
+
       setMessages((prev) => {
-        if (prev.some((m) => m.id === newMsg.id)) return prev;
+        // Prevent duplicate if already in state by ID
+        if (prev.some((m) => String(m.id) === incomingId)) return prev;
+
+        // If this is our own message arriving via socket, reconcile with optimistic temp message
+        if (currentUser && newMsg.senderId === currentUser.id) {
+          const tempIndex = prev.findIndex(
+            (m) =>
+              String(m.id).startsWith('msg-') &&
+              (m.conversationId === incomingConvId || (m as any).conversation_id === incomingConvId) &&
+              m.senderId === newMsg.senderId &&
+              m.content.trim() === String(newMsg.content || '').trim()
+          );
+          if (tempIndex !== -1) {
+            const next = [...prev];
+            next[tempIndex] = newMsg;
+            return next;
+          }
+        }
+
         return [...prev, newMsg];
       });
 
       setConversations((prev) => {
-        const found = prev.find((c) => c.id === newMsg.conversationId);
+        const found = prev.find((c) => c.id === incomingConvId);
         if (!found) {
           refreshAll();
           return prev;
         }
         return prev.map((c) => {
-          if (c.id === newMsg.conversationId) {
+          if (c.id === incomingConvId) {
             const isSelf = newMsg.senderId === currentUser.id;
-            const isCurrentlyOpen = activeConvId === newMsg.conversationId;
+            const isCurrentlyOpen = activeConvId === incomingConvId;
             return {
               ...c,
               lastMessage: newMsg.content,
@@ -225,7 +246,30 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const activeMessages = useMemo(() => {
     if (!activeConvId) return [];
-    return messages.filter((m) => m.conversationId === activeConvId);
+    const filtered = messages.filter(
+      (m) => (m.conversationId || (m as any).conversation_id) === activeConvId
+    );
+
+    // Track confirmed real messages by sender and content
+    const confirmedContents = new Set(
+      filtered
+        .filter((m) => !String(m.id).startsWith('msg-'))
+        .map((m) => `${m.senderId}:${m.content.trim()}`)
+    );
+
+    const seenIds = new Set<string>();
+    return filtered.filter((m) => {
+      const idStr = String(m.id);
+      if (seenIds.has(idStr)) return false;
+
+      // Drop temp message if the real DB message with the same sender and content is already present
+      if (idStr.startsWith('msg-') && confirmedContents.has(`${m.senderId}:${m.content.trim()}`)) {
+        return false;
+      }
+
+      seenIds.add(idStr);
+      return true;
+    });
   }, [messages, activeConvId]);
 
   const unreadTotal = useMemo(() => {
@@ -459,8 +503,14 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         mediaType
       });
 
-      // Replace temp message with server message
-      setMessages((prev) => prev.map((m) => (m.id === tempId ? sent : m)));
+      // Replace temp message with server message, preventing duplicates if socket already broadcasted
+      setMessages((prev) => {
+        const alreadyHasReal = prev.some((m) => String(m.id) === String(sent.id));
+        if (alreadyHasReal) {
+          return prev.filter((m) => String(m.id) !== tempId);
+        }
+        return prev.map((m) => (String(m.id) === tempId ? sent : m));
+      });
     } catch (err) {
       console.error('Failed to send message:', err);
     }

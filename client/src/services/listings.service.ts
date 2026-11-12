@@ -7,6 +7,7 @@ export interface ListingsFilters {
   category?: string;
   tradeMode?: string;
   condition?: string;
+  status?: string;
   search?: string;
   sortBy?: string;
   priceMin?: number;
@@ -79,7 +80,14 @@ function mapListingFromApi(raw: any): Listing {
     rating: parseFloat(raw.rating ?? 0.0),
     totalReviews: Number(raw.totalReviews ?? raw.total_reviews ?? 0),
     quantity: raw.quantity !== undefined && raw.quantity !== null ? Math.max(0, parseInt(raw.quantity, 10) || 0) : 1,
-    isSold: Boolean((raw.isSold ?? raw.is_sold) || (raw.quantity !== undefined && Number(raw.quantity) === 0)),
+    isSold: Boolean(
+      (raw.isSold ?? raw.is_sold) ||
+      raw.status === 'sold' ||
+      raw.status === 'swapped' ||
+      raw.status === 'donated' ||
+      (raw.quantity !== undefined && Number(raw.quantity) === 0)
+    ),
+    status: raw.status || (Boolean((raw.isSold ?? raw.is_sold) || (raw.quantity !== undefined && Number(raw.quantity) === 0)) ? 'sold' : 'active'),
     acceptedPaymentMethods: (() => {
       const rawMethods = raw.acceptedPaymentMethods || raw.accepted_payment_methods;
       if (!rawMethods) return ['cash', 'gcash', 'maya'] as ('cash' | 'gcash' | 'maya')[];

@@ -71,13 +71,13 @@ const queryListingsSchema = Joi.object({
   category: Joi.string().trim().allow('All', ''),
   tradeMode: Joi.string().valid('All', ...TRADE_MODES).default('All'),
   condition: Joi.string().valid('All', ...CONDITIONS).default('All'),
-  status: Joi.string().valid('All', 'active', 'sold', 'flagged').default('active'),
+  status: Joi.string().valid('All', 'all', 'active', 'sold', 'flagged').default('All'),
   search: Joi.string().trim().max(100).allow(''),
   sortBy: Joi.string().valid('recent', 'price_low', 'price_high', 'trust_high', 'views_high').default('recent'),
   priceMin: Joi.number().min(0).default(0),
   priceMax: Joi.number().min(0).default(100000),
   page: Joi.number().integer().min(1).default(1),
-  limit: Joi.number().integer().min(1).max(100).default(20)
+  limit: Joi.number().integer().min(1).max(1000).default(500)
 });
 
 const reportListingSchema = Joi.object({

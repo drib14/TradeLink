@@ -1,8 +1,26 @@
 import React, { useState } from 'react';
 import { useMarket } from '../../context/MarketContext';
 import { useCategories } from '../../hooks/useCategories';
-import { RotateCcw, X, SlidersHorizontal, DollarSign, Building2, Tag } from 'lucide-react';
+import {
+  RotateCcw,
+  X,
+  SlidersHorizontal,
+  DollarSign,
+  Building2,
+  Tag,
+  Repeat,
+  Gift,
+  Clock,
+  ArrowDown,
+  ArrowUp,
+  ShieldCheck,
+  Flame,
+  Sparkles,
+  Layers
+} from 'lucide-react';
 import { ConditionGrade } from '../../types';
+import { CampusDropdown } from '../common/CampusDropdown';
+import { CustomSelect, SelectOption } from '../common/CustomSelect';
 
 export const FilterBar: React.FC = () => {
   const { categories } = useCategories();
@@ -25,6 +43,29 @@ export const FilterBar: React.FC = () => {
   } = useMarket();
 
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+
+  const tradeModeOptions: SelectOption[] = [
+    { value: 'All', label: 'All Trade Types', icon: <Layers size={13} /> },
+    { value: 'buy_sell', label: 'Buy & Sell Only', icon: <DollarSign size={13} />, badge: '₱ Cash', badgeBg: '#EFF6FF', badgeColor: '#1D4ED8' },
+    { value: 'swap', label: 'Swap / Barter Only', icon: <Repeat size={13} />, badge: '⇄ Swap', badgeBg: '#F5F3FF', badgeColor: '#6D28D9' },
+    { value: 'free_donation', label: 'Free Donations Only', icon: <Gift size={13} />, badge: 'Free ₱0', badgeBg: '#ECFDF5', badgeColor: '#047857' }
+  ];
+
+  const conditionOptions: SelectOption[] = [
+    { value: 'All', label: 'All Conditions', icon: <Sparkles size={13} /> },
+    { value: 'Brand New', label: 'Brand New', badge: '10/10', badgeBg: '#ECFDF5', badgeColor: '#047857' },
+    { value: 'Like New', label: 'Like New', badge: '9/10', badgeBg: '#EFF6FF', badgeColor: '#1D4ED8' },
+    { value: 'Good', label: 'Good Condition', badge: '7-8/10', badgeBg: '#FFFBEB', badgeColor: '#B45309' },
+    { value: 'Fair', label: 'Fair Condition', badge: '5-6/10', badgeBg: '#F1F5F9', badgeColor: '#475569' }
+  ];
+
+  const sortByOptions: SelectOption[] = [
+    { value: 'recent', label: 'Recently Listed', icon: <Clock size={13} /> },
+    { value: 'price_low', label: 'Price: Low to High', icon: <ArrowDown size={13} /> },
+    { value: 'price_high', label: 'Price: High to Low', icon: <ArrowUp size={13} /> },
+    { value: 'trust_high', label: 'Highest Seller Trust', icon: <ShieldCheck size={13} />, badge: 'Verified' },
+    { value: 'views_high', label: 'Most Popular', icon: <Flame size={13} /> }
+  ];
 
   const tagChips = [
     { id: 'All', label: 'All Categories' },
@@ -116,95 +157,47 @@ export const FilterBar: React.FC = () => {
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
           {/* Campus Filter */}
-          <div style={{ position: 'relative', minWidth: '130px', flex: '1 1 130px', maxWidth: '210px' }}>
-            <select
+          <div style={{ position: 'relative', minWidth: '150px', flex: '1 1 150px', maxWidth: '220px' }}>
+            <CampusDropdown
               value={selectedCampus}
-              onChange={(e: any) => setSelectedCampus(e.target.value)}
-              className="clean-input"
-              style={{
-                padding: '0.45rem 0.75rem',
-                fontSize: '0.8rem',
-                fontWeight: 700,
-                color: 'var(--text-primary)',
-                backgroundColor: 'var(--bg-surface)'
-              }}
-              aria-label="Filter by campus"
-            >
-              <option value="All">All Campuses</option>
-              <option value="UC Main">UC Main</option>
-              <option value="UC Banilad">UC Banilad</option>
-              <option value="UC LM">UC LM</option>
-              <option value="UC METC">UC METC</option>
-              <option value="UC Pardo-Talisay">UC Pardo-Talisay</option>
-              <option value="UC South Campus">UC South Campus</option>
-              <option value="UC Medical Center">UC Medical Center</option>
-              <option value="UC PRI">UC PRI</option>
-            </select>
+              onChange={(camp) => setSelectedCampus(camp as any)}
+              allowAll={true}
+              allLabel="All Campuses"
+              size="sm"
+            />
           </div>
 
           {/* Trade Mode Filter */}
-          <div style={{ position: 'relative', minWidth: '120px', flex: '1 1 120px', maxWidth: '220px' }}>
-            <select
+          <div style={{ position: 'relative', minWidth: '140px', flex: '1 1 140px', maxWidth: '220px' }}>
+            <CustomSelect
               value={selectedTradeMode}
-              onChange={(e: any) => setSelectedTradeMode(e.target.value)}
-              className="clean-input"
-              style={{
-                padding: '0.45rem 0.75rem',
-                fontSize: '0.8rem',
-                fontWeight: 700,
-                color: 'var(--text-primary)',
-                backgroundColor: 'var(--bg-surface)'
-              }}
-            >
-              <option value="All">All Trade Types</option>
-              <option value="buy_sell">Buy & Sell Only</option>
-              <option value="swap">Swap / Barter Only</option>
-              <option value="free_donation">Free Donations Only</option>
-            </select>
+              options={tradeModeOptions}
+              onChange={(val) => setSelectedTradeMode(val as any)}
+              size="sm"
+              ariaLabel="Filter by trade type"
+            />
           </div>
 
           {/* Condition Filter */}
-          <div style={{ position: 'relative', minWidth: '120px', flex: '1 1 120px', maxWidth: '200px' }}>
-            <select
+          <div style={{ position: 'relative', minWidth: '140px', flex: '1 1 140px', maxWidth: '200px' }}>
+            <CustomSelect
               value={selectedCondition}
-              onChange={(e: any) => setSelectedCondition(e.target.value)}
-              className="clean-input"
-              style={{
-                padding: '0.45rem 0.75rem',
-                fontSize: '0.8rem',
-                fontWeight: 700,
-                color: 'var(--text-primary)',
-                backgroundColor: 'var(--bg-surface)'
-              }}
-            >
-              {conditions.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
+              options={conditionOptions}
+              onChange={(val) => setSelectedCondition(val as any)}
+              size="sm"
+              ariaLabel="Filter by item condition"
+            />
           </div>
 
           {/* Sort By Filter */}
-          <div style={{ position: 'relative', minWidth: '120px', flex: '1 1 120px', maxWidth: '220px' }}>
-            <select
+          <div style={{ position: 'relative', minWidth: '150px', flex: '1 1 150px', maxWidth: '220px' }}>
+            <CustomSelect
               value={sortBy}
-              onChange={(e: any) => setSortBy(e.target.value)}
-              className="clean-input"
-              style={{
-                padding: '0.45rem 0.75rem',
-                fontSize: '0.8rem',
-                fontWeight: 700,
-                color: 'var(--text-primary)',
-                backgroundColor: 'var(--bg-surface)'
-              }}
-            >
-              <option value="recent">Recently Listed</option>
-              <option value="price_low">Price: Low to High</option>
-              <option value="price_high">Price: High to Low</option>
-              <option value="trust_high">Highest Seller Trust</option>
-              <option value="views_high">Most Popular</option>
-            </select>
+              options={sortByOptions}
+              onChange={(val) => setSortBy(val as any)}
+              size="sm"
+              ariaLabel="Sort listings"
+            />
           </div>
 
           {/* Advanced Filters Button (Price Range) */}

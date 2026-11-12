@@ -290,14 +290,10 @@ export const FlashRequestDetailPage: React.FC<FlashRequestDetailPageProps> = ({
         </div>
       </div>
 
-      {/* Hero Urgency Banner */}
+      {/* Hero Urgency Banner - Strictly UC Blue Scheme */}
       <div
         style={{
-          backgroundColor: isExpired
-            ? '#334155'
-            : isUrgent
-            ? '#991B1B'
-            : '#002B7F',
+          backgroundColor: 'var(--uc-blue, #002B7F)',
           borderRadius: '20px',
           padding: '1.75rem clamp(1.25rem, 3vw, 2.25rem)',
           color: '#FFFFFF',
@@ -697,13 +693,13 @@ export const FlashRequestDetailPage: React.FC<FlashRequestDetailPageProps> = ({
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginTop: '0.5rem' }}>
+            {/* Action Buttons - Optimized proportions and responsive layout */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.65rem', marginTop: '0.5rem', width: '100%' }}>
               {isExpired ? (
                 <button
                   disabled
                   className="btn-secondary"
-                  style={{ width: '100%', padding: '0.85rem', cursor: 'not-allowed', opacity: 0.65, fontWeight: 700 }}
+                  style={{ width: '100%', padding: '0.65rem 1rem', cursor: 'not-allowed', opacity: 0.65, fontWeight: 700, fontSize: '0.84rem', borderRadius: '10px' }}
                 >
                   This Flash Request Has Closed
                 </button>
@@ -711,7 +707,7 @@ export const FlashRequestDetailPage: React.FC<FlashRequestDetailPageProps> = ({
                 <button
                   onClick={() => onNavigate('profile')}
                   className="btn-secondary"
-                  style={{ width: '100%', padding: '0.85rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem' }}
+                  style={{ width: '100%', padding: '0.65rem 1rem', fontWeight: 800, fontSize: '0.84rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem', borderRadius: '10px' }}
                 >
                   <Building2 size={16} /> Manage in Your Profile
                 </button>
@@ -721,37 +717,39 @@ export const FlashRequestDetailPage: React.FC<FlashRequestDetailPageProps> = ({
                     onClick={() => setIsOfferModalOpen(true)}
                     className="btn-gold"
                     style={{
-                      width: '100%',
-                      padding: '0.9rem',
-                      fontSize: '0.92rem',
+                      flex: '1 1 180px',
+                      padding: '0.65rem 1rem',
+                      fontSize: '0.84rem',
                       fontWeight: 800,
-                      display: 'flex',
+                      display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '0.5rem',
-                      boxShadow: '0 4px 14px rgba(255, 199, 44, 0.35)'
+                      gap: '0.45rem',
+                      borderRadius: '10px',
+                      boxShadow: '0 2px 10px rgba(255, 199, 44, 0.25)'
                     }}
                   >
-                    <MessageSquare size={17} />
-                    <span>I Have This Item — Chat & Make Offer</span>
+                    <Zap size={15} style={{ flexShrink: 0 }} />
+                    <span>Offer Item & Chat</span>
                   </button>
 
                   <button
                     onClick={handleConnectChat}
                     className="btn-primary"
                     style={{
-                      width: '100%',
-                      padding: '0.8rem',
-                      fontSize: '0.85rem',
+                      flex: '1 1 150px',
+                      padding: '0.65rem 1rem',
+                      fontSize: '0.84rem',
                       fontWeight: 700,
-                      display: 'flex',
+                      display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '0.45rem'
+                      gap: '0.45rem',
+                      borderRadius: '10px'
                     }}
                   >
-                    <MessageSquare size={15} />
-                    <span>Open Direct Campus Chat</span>
+                    <MessageSquare size={15} style={{ flexShrink: 0 }} />
+                    <span>Direct Chat</span>
                   </button>
                 </>
               )}
@@ -762,20 +760,34 @@ export const FlashRequestDetailPage: React.FC<FlashRequestDetailPageProps> = ({
           <div
             className="clean-card"
             style={{
-              padding: '1.35rem',
+              padding: '1.25rem',
               borderRadius: '16px',
               backgroundColor: '#FFFFFF',
               border: '1px solid var(--border-subtle)',
               display: 'flex',
               flexDirection: 'column',
-              gap: '0.85rem'
+              gap: '0.75rem'
             }}
           >
             <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               Posted By Verified Requester
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+            <div
+              onClick={() => onNavigate('profile', { userId: currentRequest.requesterId })}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.85rem',
+                cursor: 'pointer',
+                padding: '0.35rem 0.45rem',
+                borderRadius: '10px',
+                transition: 'background-color 0.15s ease'
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-subtle, #F8FAFC)')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+              title={`View ${currentRequest.requesterName}'s profile`}
+            >
               <UserAvatar
                 src={currentRequest.requesterAvatar}
                 name={currentRequest.requesterName}
@@ -787,7 +799,7 @@ export const FlashRequestDetailPage: React.FC<FlashRequestDetailPageProps> = ({
                     style={{
                       fontSize: '0.96rem',
                       fontWeight: 800,
-                      color: 'var(--text-primary)',
+                      color: 'var(--uc-blue, #002B7F)',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap'
@@ -797,7 +809,7 @@ export const FlashRequestDetailPage: React.FC<FlashRequestDetailPageProps> = ({
                   </span>
                   <VerifiedBadge size="sm" variant="green" />
                 </div>
-                <div style={{ fontSize: '0.76rem', color: 'var(--uc-blue)', fontWeight: 700, marginTop: '2px' }}>
+                <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', fontWeight: 600, marginTop: '2px' }}>
                   {currentRequest.preferredCampus || currentRequest.requesterCampus}
                 </div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>

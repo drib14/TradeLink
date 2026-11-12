@@ -3,6 +3,7 @@ import { ArrowLeftRight } from 'lucide-react';
 import { Listing } from '../../types';
 import { Modal } from '../common/Modal';
 import { TradeLinkIcon } from '../common/TradeLinkIcon';
+import { CustomSelect, SelectOption } from '../common/CustomSelect';
 import { useAuth } from '../../context/AuthContext';
 import { useMarket } from '../../context/MarketContext';
 import { useChat } from '../../context/ChatContext';
@@ -300,18 +301,25 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
           </label>
 
           {myListings.length > 0 ? (
-            <select
+            <CustomSelect
               value={selectedMyListingId}
-              onChange={(e) => setSelectedMyListingId(e.target.value)}
-              className="clean-input"
-            >
-              {myListings.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.title} (₱{item.price.toLocaleString()})
-                </option>
-              ))}
-              <option value="">+ Offer custom item not yet in your listings</option>
-            </select>
+              onChange={(val) => setSelectedMyListingId(val)}
+              options={[
+                ...myListings.map((item) => ({
+                  value: item.id,
+                  label: item.title,
+                  badge: `₱${item.price.toLocaleString()}`,
+                  badgeBg: '#EFF6FF',
+                  badgeColor: '#1D4ED8'
+                })),
+                {
+                  value: '',
+                  label: '+ Offer custom item not yet in listings',
+                  badge: 'Custom'
+                }
+              ]}
+              placeholder="Select an item to offer..."
+            />
           ) : (
             <input
               type="text"

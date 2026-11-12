@@ -8,6 +8,7 @@ import { ConfirmModal } from '../components/common/ConfirmModal';
 import { PromptModal } from '../components/common/PromptModal';
 import { PaymentMethodBadge } from '../components/common/PaymentLogos';
 import { TradeLinkIcon } from '../components/common/TradeLinkIcon';
+import { CustomSelect, SelectOption } from '../components/common/CustomSelect';
 import { formatRelativeTime } from '../utils/date';
 import {
   FileText,
@@ -235,18 +236,18 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
           </div>
 
           {/* Role Filter (Purchases vs Sales) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <Filter size={14} color="var(--text-muted)" />
-            <select
+          <div style={{ minWidth: '150px' }}>
+            <CustomSelect
               value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value as any)}
-              className="clean-input"
-              style={{ fontSize: '0.78rem', padding: '0.35rem 0.65rem', height: 'auto', borderRadius: '6px' }}
-            >
-              <option value="all">All Roles</option>
-              <option value="buying">Purchases (I'm Buyer)</option>
-              <option value="selling">Sales (I'm Seller)</option>
-            </select>
+              onChange={(val) => setRoleFilter(val as any)}
+              size="sm"
+              options={[
+                { value: 'all', label: 'All Roles', icon: <Filter size={13} /> },
+                { value: 'buying', label: 'Purchases (Buyer)', icon: <ArrowDownLeft size={13} />, badge: 'Buying' },
+                { value: 'selling', label: 'Sales (Seller)', icon: <ArrowUpRight size={13} />, badge: 'Selling' }
+              ]}
+              ariaLabel="Filter orders by role"
+            />
           </div>
         </div>
 

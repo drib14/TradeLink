@@ -9,6 +9,7 @@ import { VerifiedBadge } from '../components/common/VerifiedBadge';
 import { UserAvatar } from '../components/common/UserAvatar';
 import { FlashRequestCardSkeleton } from '../components/common/SkeletonLoader';
 import { Campus, FlashRequest } from '../types';
+import { CampusDropdown } from '../components/common/CampusDropdown';
 import {
   Search,
   Plus,
@@ -234,30 +235,15 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
           </div>
 
           {/* Campus Dropdown Filter */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', flex: '1 1 auto' }}>
-            <div style={{ position: 'relative', minWidth: 'min(100%, 160px)', flex: 1 }}>
-              <Building2 size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-              <select
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', flex: '1 1 auto', minWidth: 'min(100%, 200px)' }}>
+            <div style={{ minWidth: '170px', flex: 1 }}>
+              <CampusDropdown
                 value={selectedCampus}
-                onChange={(e) => handleCampusChange(e.target.value as any)}
-                className="clean-input"
-                style={{
-                  paddingLeft: '2.35rem',
-                  paddingRight: '2rem',
-                  cursor: 'pointer',
-                  fontWeight: 700,
-                  color: 'var(--text-primary)',
-                  height: '42px',
-                  borderRadius: '10px'
-                }}
-                aria-label="Filter by UC Campus"
-              >
-                {campuses.map((c) => (
-                  <option key={c} value={c}>
-                    {c === 'All' ? 'All UC Campuses' : c}
-                  </option>
-                ))}
-              </select>
+                onChange={(c) => handleCampusChange(c as any)}
+                allowAll={true}
+                allLabel="All UC Campuses"
+                size="md"
+              />
             </div>
 
             {selectedCampus !== 'All' && (
@@ -612,14 +598,35 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
                       gap: '0.5rem'
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', overflow: 'hidden', minWidth: 0, flex: 1 }}>
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onNavigate('profile', { userId: req.requesterId });
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        overflow: 'hidden',
+                        minWidth: 0,
+                        flex: 1,
+                        cursor: 'pointer'
+                      }}
+                      title={`View ${req.requesterName}'s student profile`}
+                    >
                       <UserAvatar
                         src={req.requesterAvatar}
                         name={req.requesterName}
                         size={24}
                       />
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.74rem', fontWeight: 700, color: isCardExpired ? '#64748B' : 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={req.requesterName}>{req.requesterName}</span>
+                        <span
+                          style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                          className="hover-underline"
+                          title={req.requesterName}
+                        >
+                          {req.requesterName}
+                        </span>
                         <VerifiedBadge size="xs" variant="green" showTooltip={false} />
                       </div>
                     </div>

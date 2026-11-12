@@ -1,9 +1,19 @@
-require('dotenv').config();
+const path = require('path');
+const dotenv = require('dotenv');
+
+const envMode = (process.env.NODE_ENV || 'development').replace(/^["']|["']$/g, '').trim();
+const isProd = envMode === 'production' || Boolean(process.env.VERCEL) || Boolean(process.env.RENDER);
+
+// Support environment-specific .env files
+if (isProd) {
+  dotenv.config({ path: path.resolve(__dirname, '.env.production') });
+} else {
+  dotenv.config({ path: path.resolve(__dirname, '.env.development') });
+}
+dotenv.config({ path: path.resolve(__dirname, '.env') });
+dotenv.config();
 
 const cleanStr = (val) => (val ? String(val).replace(/^["']|["']$/g, '').trim() : '');
-
-const envMode = cleanStr(process.env.NODE_ENV) || 'development';
-const isProd = envMode === 'production' || Boolean(process.env.VERCEL) || Boolean(process.env.RENDER);
 
 const isRemoteHost = (host) => {
   if (!host) return false;
@@ -17,13 +27,33 @@ const isTidbHost = (host) => {
 };
 
 const buildConnection = (targetEnv = 'development') => {
+  // DEVELOPMENT: Strictly local MySQL. Never use cloud DATABASE_URL or remote hosts.
+  if (targetEnv === 'development' || !isProd) {
+    const devHost = cleanStr(process.env.DEV_DB_HOST) || cleanStr(process.env.DB_HOST) || '127.0.0.1';
+    const safeHost = isRemoteHost(devHost) ? '127.0.0.1' : devHost;
+    return {
+      host: safeHost,
+      port: Number(process.env.DEV_DB_PORT || process.env.DB_PORT) || 3306,
+      user: cleanStr(process.env.DEV_DB_USER) || cleanStr(process.env.DB_USER) || 'root',
+      password: process.env.DEV_DB_PASSWORD !== undefined ? cleanStr(process.env.DEV_DB_PASSWORD) : (cleanStr(process.env.DB_PASSWORD) || ''),
+      database: cleanStr(process.env.DEV_DB_NAME) || cleanStr(process.env.DB_NAME) || 'tradelink_db',
+      ssl: false,
+      charset: 'utf8mb4',
+      timezone: '+00:00',
+      connectTimeout: 20000,
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 10000
+    };
+  }
+
+  // PRODUCTION: Prioritize cloud DATABASE_URL or managed cloud host with TLS
   const isTargetProd = targetEnv === 'production' || isProd;
   const rawDbUrl = cleanStr(process.env.DATABASE_URL);
-  const rawHost = cleanStr(process.env.DB_HOST);
-  const rawPort = Number(process.env.DB_PORT);
-  const rawUser = cleanStr(process.env.DB_USER);
-  const rawPass = cleanStr(process.env.DB_PASSWORD);
-  const rawDbName = cleanStr(process.env.DB_NAME);
+  const rawHost = cleanStr(process.env.PROD_DB_HOST) || cleanStr(process.env.DB_HOST);
+  const rawPort = Number(process.env.PROD_DB_PORT || process.env.DB_PORT);
+  const rawUser = cleanStr(process.env.PROD_DB_USER) || cleanStr(process.env.DB_USER);
+  const rawPass = cleanStr(process.env.PROD_DB_PASSWORD) || cleanStr(process.env.DB_PASSWORD);
+  const rawDbName = cleanStr(process.env.PROD_DB_NAME) || cleanStr(process.env.DB_NAME);
   const rawSsl = cleanStr(process.env.DB_SSL).toLowerCase();
 
   // 1. In production, prioritize cloud DATABASE_URL if provided

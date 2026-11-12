@@ -23,6 +23,7 @@ import {
   Key
 } from 'lucide-react';
 import { api } from '../services/api';
+import { DepartmentDropdown } from '../components/common/DepartmentDropdown';
 
 interface SettingsPageProps {
   onNavigate: (view: string, param?: any) => void;
@@ -33,7 +34,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate, onOpenAu
   const { currentUser, updateProfile, logout } = useAuth();
   const { showToast } = useToast();
 
-  const [activeSection, setActiveSection] = useState<'account' | 'notifications' | 'privacy' | 'data'>('account');
+  const [activeSection, setActiveSection] = useState<'account' | 'security' | 'notifications' | 'privacy' | 'data'>('account');
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   // Account settings
@@ -172,6 +173,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate, onOpenAu
 
   const sections = [
     { id: 'account' as const, label: 'Account Profile', icon: User },
+    { id: 'security' as const, label: 'Password & Security', icon: Lock },
     { id: 'notifications' as const, label: 'Notifications', icon: Bell },
     { id: 'privacy' as const, label: 'Privacy', icon: Shield },
     { id: 'data' as const, label: 'Session & Data', icon: Trash2 }
@@ -417,14 +419,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate, onOpenAu
 
               <div>
                 <label className="form-label" style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.3rem' }}>
-                  Department / College / Strand
+                  Department / College
                 </label>
-                <input
-                  type="text"
+                <DepartmentDropdown
                   value={departmentInput}
-                  onChange={(e) => setDepartmentInput(e.target.value)}
-                  placeholder="e.g. CCS, Engineering, Nursing"
-                  className="clean-input"
+                  onChange={setDepartmentInput}
+                  placeholder="Select your UC College"
                 />
               </div>
 
@@ -448,105 +448,109 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate, onOpenAu
                 <Save size={15} /> Save Changes
               </button>
             </form>
+          </div>
+        )}
 
-            {/* Change Password Card */}
-            <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-subtle, #E2E8F0)' }}>
+        {/* 2. PASSWORD & SECURITY */}
+        {activeSection === 'security' && (
+          <div style={{ maxWidth: '520px' }}>
+            <div style={{ marginBottom: '1.25rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
-                <Lock size={18} color="var(--uc-blue, #002B7F)" />
-                <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary, #0F172A)', margin: 0 }}>
-                  Change Account Password
-                </h4>
+                <Lock size={20} color="var(--uc-blue, #002B7F)" />
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary, #0F172A)', margin: 0 }}>
+                  Password & Security
+                </h3>
               </div>
-              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted, #64748B)', marginBottom: '1rem' }}>
-                Keep your student account secure with a strong password containing letters, numbers, and symbols.
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted, #64748B)', margin: 0 }}>
+                Keep your student account secure. We recommend using a unique password with mixed letters, numbers, and symbols.
               </p>
-
-              <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', maxWidth: '420px' }}>
-                <div>
-                  <label className="form-label" style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.3rem' }}>
-                    Current Password *
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      type={showCurrentPassword ? 'text' : 'password'}
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                      placeholder="Enter current password"
-                      className="clean-input"
-                      style={{ paddingRight: '2.5rem' }}
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                      style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
-                    >
-                      {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="form-label" style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.3rem' }}>
-                    New Password *
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      type={showNewPassword ? 'text' : 'password'}
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="At least 8 characters (mixed case, number, symbol)"
-                      className="clean-input"
-                      style={{ paddingRight: '2.5rem' }}
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowNewPassword(!showNewPassword)}
-                      style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
-                    >
-                      {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="form-label" style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.3rem' }}>
-                    Confirm New Password *
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="Re-enter new password"
-                      className="clean-input"
-                      style={{ paddingRight: '2.5rem' }}
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
-                    >
-                      {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  className="btn-primary"
-                  disabled={isChangingPassword}
-                  style={{ width: 'fit-content', marginTop: '0.25rem', padding: '0.6rem 1.35rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-                >
-                  <Key size={14} />
-                  <span>{isChangingPassword ? 'Updating...' : 'Update Password'}</span>
-                </button>
-              </form>
             </div>
-            </div>
-          )}
+
+            <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label className="form-label" style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.3rem' }}>
+                  Current Password
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showCurrentPassword ? 'text' : 'password'}
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="Enter current password"
+                    className="clean-input"
+                    style={{ paddingRight: '2.5rem' }}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                  >
+                    {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="form-label" style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.3rem' }}>
+                  New Password
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showNewPassword ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="At least 8 characters (mixed case, number, symbol)"
+                    className="clean-input"
+                    style={{ paddingRight: '2.5rem' }}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                  >
+                    {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="form-label" style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.3rem' }}>
+                  Confirm New Password
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Re-enter new password"
+                    className="clean-input"
+                    style={{ paddingRight: '2.5rem' }}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                  >
+                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="btn-primary"
+                disabled={isChangingPassword}
+                style={{ width: 'fit-content', marginTop: '0.25rem', padding: '0.6rem 1.35rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+              >
+                <Key size={14} />
+                <span>{isChangingPassword ? 'Updating...' : 'Update Password'}</span>
+              </button>
+            </form>
+          </div>
+        )}
 
           {/* 2. NOTIFICATIONS */}
           {activeSection === 'notifications' && (

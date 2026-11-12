@@ -82,7 +82,9 @@ const updateProfile = asyncHandler(async (req, res, next) => {
   }
   if (req.body.campus) updates.campus = req.body.campus;
   if (req.body.department || req.body.college) {
-    updates.department = (req.body.department || req.body.college).trim();
+    const deptVal = (req.body.department || req.body.college).trim();
+    updates.department = deptVal;
+    updates.college = deptVal;
   }
 
   await db('users').where({ id: req.user.id }).update(updates);

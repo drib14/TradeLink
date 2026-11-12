@@ -6,6 +6,7 @@ import { useCategories } from '../hooks/useCategories';
 import { ListingCard } from '../components/marketplace/ListingCard';
 import { CampusCarouselBanner } from '../components/home/CampusCarouselBanner';
 import { ListingCardSkeleton } from '../components/common/SkeletonLoader';
+import { CampusDropdown } from '../components/common/CampusDropdown';
 import { Campus, Listing } from '../types';
 import {
   ArrowRight,
@@ -221,31 +222,14 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenChat: _onO
           {/* Controls: Segmented Feed Tab + On-Page Campus Dropdown */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
             {/* Campus Dropdown Filter */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <select
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', minWidth: '160px' }}>
+              <CampusDropdown
                 value={selectedCampus}
-                onChange={(e) => setSelectedCampus(e.target.value as any)}
-                className="clean-input"
-                style={{
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
-                  padding: '0.4rem 2rem 0.4rem 0.75rem',
-                  cursor: 'pointer',
-                  height: '36px',
-                  borderRadius: '10px'
-                }}
-                aria-label="Filter feed by campus"
-              >
-                <option value="All">All Campuses</option>
-                <option value="UC Main">UC Main</option>
-                <option value="UC Banilad">UC Banilad</option>
-                <option value="UC LM">UC LM</option>
-                <option value="UC METC">UC METC</option>
-                <option value="UC Pardo-Talisay">UC Pardo-Talisay</option>
-                <option value="UC South Campus">UC South Campus</option>
-                <option value="UC Medical Center">UC Medical Center</option>
-                <option value="UC PRI">UC PRI</option>
-              </select>
+                onChange={(c) => setSelectedCampus(c as any)}
+                allowAll={true}
+                allLabel="All Campuses"
+                size="sm"
+              />
 
               {selectedCampus !== 'All' && (
                 <button

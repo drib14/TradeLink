@@ -10,6 +10,8 @@ import { CampusBadge } from '../components/common/CampusBadge';
 import { TradeLinkIcon } from '../components/common/TradeLinkIcon';
 import { ListingCard } from '../components/marketplace/ListingCard';
 import { Modal } from '../components/common/Modal';
+import { DepartmentDropdown } from '../components/common/DepartmentDropdown';
+import { CustomSelect, SelectOption } from '../components/common/CustomSelect';
 import { api } from '../services/api';
 import { reviewsService } from '../services/reviews.service';
 import { usersService } from '../services/users.service';
@@ -142,7 +144,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
     setActiveTab(isSelf ? 'analytics' : 'listings');
   }, [targetUser?.id, isSelf]);
 
-  const [listingFilter, setListingFilter] = useState<'all' | 'buy_sell' | 'swap' | 'free_donation'>('all');
+  const [listingFilter, setListingFilter] = useState<'all' | 'buy_sell' | 'swap' | 'free_donation' | 'sold'>('all');
   const [bioInput, setBioInput] = useState(targetUser?.bio || '');
   const [isEditingBio, setIsEditingBio] = useState(false);
 
@@ -167,8 +169,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
     parsePaymentMethods(targetUser?.paymentMethods)
   );
 
-  // Password change state in Profile Modal
-  const [showPasswordSection, setShowPasswordSection] = useState(false);
+  // Separate Password Modal state
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -423,11 +425,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   const swapCount = userActiveListings.filter((l) => l.tradeMode === 'swap').length;
   const freeCount = userActiveListings.filter((l) => l.tradeMode === 'free_donation').length;
 
-  // Filtered active listings based on mode, in-store search, and sort
+  // Filtered listings based on mode/status, in-store search, and sort
   const filteredActiveListings = useMemo(() => {
-    return userActiveListings
+    const sourceList = listingFilter === 'sold' ? userSoldListings : userActiveListings;
+    return sourceList
       .filter((l) => {
-        if (listingFilter !== 'all' && l.tradeMode !== listingFilter) return false;
+        if (listingFilter !== 'all' && listingFilter !== 'sold' && l.tradeMode !== listingFilter) return false;
         if (storeSearch.trim()) {
           const q = storeSearch.toLowerCase();
           const matchesTitle = l.title.toLowerCase().includes(q);
@@ -442,7 +445,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
         if (storeSort === 'price_desc') return (b.price || 0) - (a.price || 0);
         return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
       });
-  }, [userActiveListings, listingFilter, storeSearch, storeSort]);
+  }, [userActiveListings, userSoldListings, listingFilter, storeSearch, storeSort]);
 
   // Reviews filtering
   const filteredReviews = useMemo(() => {
@@ -511,7 +514,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      setShowPasswordSection(false);
+      setIsPasswordModalOpen(false);
     } catch (err: any) {
       const msg = err.response?.data?.message || err.message || 'Incorrect current password. Please try again.';
       showToast('Update Failed', msg, 'error');
@@ -751,6 +754,13 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                     className="btn-secondary"
                   >
                     <Edit3 size={15} /> Edit Profile
+                  </button>
+                  <button
+                    onClick={() => setIsPasswordModalOpen(true)}
+                    className="btn-secondary"
+                    title="Change Account Password"
+                  >
+                    <Key size={15} /> Change Password
                   </button>
                   <button
                     onClick={handleShareProfile}
@@ -1019,13 +1029,13 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           <span>{isSelf ? 'My Listings' : 'Listings'} ({userActiveListings.length})</span>
         </button>
 
-        {isSelf && (
+        {(isSelf || userSoldListings.length > 0) && (
           <button
             onClick={() => setActiveTab('sold')}
             className={`segmented-tab ${activeTab === 'sold' ? 'active' : ''}`}
           >
             <CheckCircle2 size={14} style={{ flexShrink: 0 }} />
-            <span>Fulfilled ({userSoldListings.length})</span>
+            <span>Sold Items ({userSoldListings.length})</span>
           </button>
         )}
 
@@ -1542,10 +1552,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           <div className="profile-store-toolbar">
             <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
               {[
-                { id: 'all', label: `All (${userActiveListings.length})` },
+                { id: 'all', label: `Active (${userActiveListings.length})` },
                 { id: 'buy_sell', label: `For Sale (${saleCount})` },
                 { id: 'swap', label: `Swaps (${swapCount})` },
-                { id: 'free_donation', label: `Free (${freeCount})` }
+                { id: 'free_donation', label: `Free (${freeCount})` },
+                { id: 'sold', label: `Sold Items (${userSoldListings.length})` }
               ].map((f) => (
                 <button
                   key={f.id}
@@ -1580,16 +1591,19 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 )}
               </div>
 
-              <select
-                value={storeSort}
-                onChange={(e: any) => setStoreSort(e.target.value)}
-                className="clean-input profile-sort-field"
-                style={{ height: '34px', fontSize: '0.78rem', padding: '0 0.5rem' }}
-              >
-                <option value="newest">Newest First</option>
-                <option value="price_asc">Price: Low to High</option>
-                <option value="price_desc">Price: High to Low</option>
-              </select>
+              <div style={{ minWidth: '140px', maxWidth: '170px' }}>
+                <CustomSelect
+                  value={storeSort}
+                  onChange={(val) => setStoreSort(val as any)}
+                  size="sm"
+                  options={[
+                    { value: 'newest', label: 'Newest First' },
+                    { value: 'price_asc', label: 'Price: Low to High' },
+                    { value: 'price_desc', label: 'Price: High to Low' }
+                  ]}
+                  ariaLabel="Sort inventory"
+                />
+              </div>
 
               {/* View Toggle on Desktop */}
               <div className="desktop-only" style={{ display: 'inline-flex', border: '1px solid var(--border-subtle, #E2E8F0)', borderRadius: '8px', overflow: 'hidden', height: '34px' }}>
@@ -1787,20 +1801,22 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
         </div>
       )}
 
-      {/* TAB 2: FULFILLED TRADES (for Owner) */}
-      {activeTab === 'sold' && isSelf && (
+      {/* TAB 2: SOLD & COMPLETED ITEMS */}
+      {activeTab === 'sold' && (isSelf || userSoldListings.length > 0) && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0' }}>
             <span style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-              Completed Items ({userSoldListings.length})
+              {isSelf ? 'Your Sold & Completed Items' : `${targetUser.name}'s Completed Items`} ({userSoldListings.length})
             </span>
-            <button
-              onClick={() => onNavigate('create-listing')}
-              className="btn-gold"
-              style={{ padding: '0.45rem 0.95rem', fontSize: '0.8rem', fontWeight: 800 }}
-            >
-              + Post New Item
-            </button>
+            {isSelf && (
+              <button
+                onClick={() => onNavigate('create-listing')}
+                className="btn-gold"
+                style={{ padding: '0.45rem 0.95rem', fontSize: '0.8rem', fontWeight: 800 }}
+              >
+                + Post New Item
+              </button>
+            )}
           </div>
 
           {userSoldListings.length > 0 ? (
@@ -1811,28 +1827,30 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                     listing={item}
                     onClick={() => onNavigate('item-detail', { id: item.id })}
                   />
-                  <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 10 }}>
-                    <button
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        await markAsSold(item.id, false);
-                        showToast('Listing Reactivated', `"${item.title}" is back active!`, 'success');
-                      }}
-                      className="btn-primary"
-                      style={{
-                        padding: '0.35rem 0.75rem',
-                        fontSize: '0.74rem',
-                        fontWeight: 800,
-                        borderRadius: '9999px',
-                        boxShadow: '0 4px 10px rgba(0,0,0,0.25)',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.3rem'
-                      }}
-                    >
-                      <RotateCcw size={12} /> Relist
-                    </button>
-                  </div>
+                  {isSelf && (
+                    <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 10 }}>
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          await markAsSold(item.id, false);
+                          showToast('Listing Reactivated', `"${item.title}" is back active!`, 'success');
+                        }}
+                        className="btn-primary"
+                        style={{
+                          padding: '0.35rem 0.75rem',
+                          fontSize: '0.74rem',
+                          fontWeight: 800,
+                          borderRadius: '9999px',
+                          boxShadow: '0 4px 10px rgba(0,0,0,0.25)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.3rem'
+                        }}
+                      >
+                        <RotateCcw size={12} /> Relist
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -2261,14 +2279,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
 
           <div>
             <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
-              Department / College / Strand
+              Department / College
             </label>
-            <input
-              type="text"
+            <DepartmentDropdown
               value={editDepartment}
-              onChange={(e) => setEditDepartment(e.target.value)}
-              placeholder="e.g. CCS, Engineering, Nursing"
-              className="clean-input"
+              onChange={setEditDepartment}
+              placeholder="Select your UC College"
             />
           </div>
 
@@ -2318,112 +2334,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
             </div>
           </div>
 
-          {/* CHANGE PASSWORD SECTION */}
-          <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Lock size={15} color="var(--uc-blue)" />
-                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--uc-blue)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Account Security
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowPasswordSection(!showPasswordSection)}
-                className="btn-ghost"
-                style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--uc-blue)', padding: '0.2rem 0.5rem' }}
-              >
-                {showPasswordSection ? 'Cancel' : 'Change Password'}
-              </button>
-            </div>
-
-            {showPasswordSection && (
-              <div style={{ padding: '0.85rem', backgroundColor: 'var(--bg-subtle, #F8FAFC)', borderRadius: '10px', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
-                    Current Password *
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      type={showCurrentPassword ? 'text' : 'password'}
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                      placeholder="Current password"
-                      className="clean-input"
-                      style={{ fontSize: '0.82rem', padding: '0.5rem 2.2rem 0.5rem 0.65rem' }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                      style={{ position: 'absolute', right: '0.6rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
-                    >
-                      {showCurrentPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
-                    New Password *
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      type={showNewPassword ? 'text' : 'password'}
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="At least 8 chars (uppercase, lowercase, number, symbol)"
-                      className="clean-input"
-                      style={{ fontSize: '0.82rem', padding: '0.5rem 2.2rem 0.5rem 0.65rem' }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowNewPassword(!showNewPassword)}
-                      style={{ position: 'absolute', right: '0.6rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
-                    >
-                      {showNewPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
-                    Confirm New Password *
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="Re-type new password"
-                      className="clean-input"
-                      style={{ fontSize: '0.82rem', padding: '0.5rem 2.2rem 0.5rem 0.65rem' }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      style={{ position: 'absolute', right: '0.6rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
-                    >
-                      {showConfirmPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                    </button>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-                  <button
-                    type="button"
-                    onClick={handleChangePassword}
-                    disabled={isChangingPassword}
-                    className="btn-primary"
-                    style={{ padding: '0.45rem 1rem', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
-                  >
-                    <Key size={13} />
-                    <span>{isChangingPassword ? 'Updating...' : 'Update Password'}</span>
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
           <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
             <button
               type="button"
@@ -2439,6 +2349,117 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
               style={{ padding: '0.55rem 1.35rem' }}
             >
               <Save size={15} /> Save Changes
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* SEPARATE CHANGE PASSWORD MODAL */}
+      <Modal
+        isOpen={isPasswordModalOpen}
+        onClose={() => {
+          setIsPasswordModalOpen(false);
+          setCurrentPassword('');
+          setNewPassword('');
+          setConfirmPassword('');
+        }}
+        title="Change Account Password"
+      >
+        <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '0.5rem 0' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+              Current Password
+            </label>
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showCurrentPassword ? 'text' : 'password'}
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Enter current password"
+                className="clean-input"
+                style={{ paddingRight: '2.5rem' }}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+              >
+                {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+              New Password
+            </label>
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showNewPassword ? 'text' : 'password'}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="At least 8 chars (uppercase, lowercase, number, symbol)"
+                className="clean-input"
+                style={{ paddingRight: '2.5rem' }}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowNewPassword(!showNewPassword)}
+                style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+              >
+                {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+              Confirm New Password
+            </label>
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Re-type new password"
+                className="clean-input"
+                style={{ paddingRight: '2.5rem' }}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+              >
+                {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+            <button
+              type="button"
+              onClick={() => {
+                setIsPasswordModalOpen(false);
+                setCurrentPassword('');
+                setNewPassword('');
+                setConfirmPassword('');
+              }}
+              className="btn-secondary"
+              style={{ padding: '0.55rem 1.15rem' }}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isChangingPassword}
+              className="btn-primary"
+              style={{ padding: '0.55rem 1.35rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+            >
+              <Key size={14} />
+              <span>{isChangingPassword ? 'Updating...' : 'Update Password'}</span>
             </button>
           </div>
         </form>

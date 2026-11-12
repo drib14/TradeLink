@@ -84,17 +84,17 @@ const getListings = asyncHandler(async (req, res) => {
     category,
     tradeMode,
     condition,
-    status = 'active',
+    status,
     search,
     sortBy = 'recent',
     priceMin = 0,
     priceMax = 100000,
     page = 1,
-    limit = 24
+    limit
   } = req.query;
 
   const parsedPage = Math.max(1, parseInt(page, 10) || 1);
-  const parsedLimit = Math.min(50, Math.max(1, parseInt(limit, 10) || 24));
+  const parsedLimit = limit ? Math.min(1000, Math.max(1, parseInt(limit, 10) || 500)) : 1000;
   const parsedMin = Math.max(0, parseFloat(priceMin) || 0);
   const parsedMax = Math.min(1000000, parseFloat(priceMax) || 100000);
 
@@ -114,11 +114,9 @@ const getListings = asyncHandler(async (req, res) => {
       builder.whereNull('seller.is_banned').orWhere('seller.is_banned', false);
     });
 
-  // Filter: Status (default 'active', or specific status if not 'All')
-  if (status && status !== 'All') {
+  // Filter: Status (only filter if explicitly specified and not 'all' or 'All')
+  if (status && status.toLowerCase() !== 'all') {
     query = query.where('listings.status', status);
-  } else if (!status) {
-    query = query.where('listings.status', 'active');
   }
 
   // Filter: Campus (query on listings.campus to hit composite index, with seller fallback)

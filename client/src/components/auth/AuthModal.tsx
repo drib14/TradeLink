@@ -16,6 +16,8 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { Logo } from '../common/Logo';
+import { DepartmentDropdown } from '../common/DepartmentDropdown';
+import { CampusDropdown } from '../common/CampusDropdown';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -637,7 +639,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-                    Full Legal Name *
+                    Full Legal Name
                   </label>
                   <input
                     type="text"
@@ -672,7 +674,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-                    Personal Email Address *
+                    Personal Email Address
                   </label>
                   <input
                     type="email"
@@ -687,7 +689,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-                    Password *
+                    Password
                   </label>
                   <div style={{ position: 'relative' }}>
                     <input
@@ -726,39 +728,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
 
               {/* Campus and Department */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', position: 'relative', zIndex: 30 }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
-                    UC Campus *
+                    UC Campus
                   </label>
-                  <select
+                  <CampusDropdown
                     value={regCampus}
-                    onChange={(e: any) => setRegCampus(e.target.value)}
-                    className="clean-input"
+                    onChange={(camp: any) => setRegCampus(camp)}
                     disabled={isSubmitting}
-                  >
-                    <option value="UC Main">UC Main</option>
-                    <option value="UC Banilad">UC Banilad</option>
-                    <option value="UC LM">UC LM</option>
-                    <option value="UC METC">UC METC</option>
-                    <option value="UC PRI">UC PRI (JHS & SHS)</option>
-                    <option value="UC Pardo-Talisay">UC Pardo-Talisay</option>
-                    <option value="UC South Campus">UC South Campus</option>
-                    <option value="UC Medical Center">UC Medical Center</option>
-                  </select>
+                  />
                 </div>
 
-                <div>
+                <div style={{ position: 'relative', zIndex: 40 }}>
                   <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
                     Department / College / Strand
                   </label>
-                  <input
-                    type="text"
+                  <DepartmentDropdown
                     value={regDepartment}
-                    onChange={(e) => setRegDepartment(e.target.value)}
-                    placeholder="e.g. CCS, Engineering, Nursing"
-                    className="clean-input"
+                    onChange={setRegDepartment}
                     disabled={isSubmitting}
+                    direction="auto"
+                    placeholder="Select College, JHS, or SHS"
                   />
                 </div>
               </div>

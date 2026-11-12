@@ -54,6 +54,35 @@ async function autoInitDatabase() {
         });
         logger.info('[DB Init] Added token_version and auth hardening columns to users table.');
       }
+
+      // 1a-1. Ensure 'users' table has both college and department columns and year_level is nullable
+      const hasCollege = await db.schema.hasColumn('users', 'college').catch(() => false);
+      const hasDepartment = await db.schema.hasColumn('users', 'department').catch(() => false);
+      const hasYearLevel = await db.schema.hasColumn('users', 'year_level').catch(() => false);
+
+      if (!hasCollege) {
+        await db.schema.alterTable('users', (t) => {
+          t.string('college', 100).nullable().defaultTo(null);
+        }).catch(() => {});
+      } else {
+        await db.raw('ALTER TABLE `users` MODIFY COLUMN `college` VARCHAR(100) NULL DEFAULT NULL;').catch(() => {});
+      }
+
+      if (!hasDepartment) {
+        await db.schema.alterTable('users', (t) => {
+          t.string('department', 100).nullable().defaultTo(null);
+        }).catch(() => {});
+      } else {
+        await db.raw('ALTER TABLE `users` MODIFY COLUMN `department` VARCHAR(100) NULL DEFAULT NULL;').catch(() => {});
+      }
+
+      if (!hasYearLevel) {
+        await db.schema.alterTable('users', (t) => {
+          t.string('year_level', 50).nullable().defaultTo(null);
+        }).catch(() => {});
+      } else {
+        await db.raw('ALTER TABLE `users` MODIFY COLUMN `year_level` VARCHAR(50) NULL DEFAULT NULL;').catch(() => {});
+      }
     }
 
     // 1b. Ensure password_reset_requests table exists
@@ -428,6 +457,8 @@ async function autoInitDatabase() {
         role: 'admin',
         campus: 'UC Main',
         department: 'CCS',
+        college: 'CCS',
+        year_level: '4th Year',
         avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
         is_verified: true,
         id_photo_url: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80',

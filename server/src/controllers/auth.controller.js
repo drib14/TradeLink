@@ -51,6 +51,9 @@ const register = asyncHandler(async (req, res, next) => {
   const isVerified = false;
   const trustScore = 60;
 
+  const deptVal = (department || college || '').trim();
+  const yearVal = (req.body.yearLevel || req.body.year_level || '1st Year').trim();
+
   const newUser = {
     id: userId,
     name: name.trim(),
@@ -59,7 +62,9 @@ const register = asyncHandler(async (req, res, next) => {
     password_hash: passwordHash,
     role: 'student',
     campus,
-    department: (department || college || '').trim(),
+    department: deptVal,
+    college: deptVal,
+    year_level: yearVal,
     avatar_url: avatar || null,
     is_verified: isVerified,
     id_photo_url: idPhotoUrl || null,

@@ -9,6 +9,8 @@ import { PaymentMethodCheckboxGroup, PaymentMethodBadge } from '../components/co
 import { TradeLinkIcon } from '../components/common/TradeLinkIcon';
 import { TradeMode, ConditionGrade } from '../types';
 import { useCategories } from '../hooks/useCategories';
+import { CategoryDropdown } from '../components/common/CategoryDropdown';
+import { CustomSelect } from '../components/common/CustomSelect';
 import {
   Film,
   Tag,
@@ -23,7 +25,8 @@ import {
   Loader2,
   X,
   MapPin,
-  Check
+  Check,
+  Camera
 } from 'lucide-react';
 
 export type PostingFormMode = 'sell' | 'swap';
@@ -615,38 +618,21 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
             <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
               Category *
             </label>
-            <select
+            <CategoryDropdown
               value={isCustomCategory ? 'Other' : category}
-              onChange={(e) => {
-                if (e.target.value === 'Other') {
+              customValue={customCategoryName}
+              onChange={(cat, isCustom) => {
+                if (isCustom || cat === 'Other') {
                   setIsCustomCategory(true);
                   setCategory('Other');
                 } else {
                   setIsCustomCategory(false);
-                  setCategory(e.target.value);
+                  setCategory(cat);
                 }
               }}
-              className="clean-input"
-            >
-              {categories.map((c) => (
-                <option key={c.id || c.name} value={c.name}>
-                  {c.name}
-                </option>
-              ))}
-              <option value="Other">+ Other (Create New Category)</option>
-            </select>
-            {isCustomCategory && (
-              <div style={{ marginTop: '0.45rem' }}>
-                <input
-                  type="text"
-                  value={customCategoryName}
-                  onChange={(e) => setCustomCategoryName(e.target.value)}
-                  placeholder="Type your new custom category name (e.g. Lab Equipment, Architecture Gear)..."
-                  className="clean-input"
-                  required
-                />
-              </div>
-            )}
+              onCustomChange={(val) => setCustomCategoryName(val)}
+              allowCustom={true}
+            />
           </div>
 
           {/* Condition Grade */}
@@ -934,22 +920,21 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
 
                         {/* Matched Image Selector */}
                         <div>
-                          <select
-                            value={v.imageIndex}
-                            onChange={(e) => updateVariation(v.id, { imageIndex: Number(e.target.value) })}
-                            className="clean-input"
-                            style={{ width: '100%', fontSize: '0.78rem', padding: '0.4rem 0.5rem' }}
-                          >
-                            {images.length === 0 ? (
-                              <option value={0}>Photo 1</option>
-                            ) : (
-                              images.map((_, imgIdx) => (
-                                <option key={imgIdx} value={imgIdx}>
-                                  Photo {imgIdx + 1}
-                                </option>
-                              ))
-                            )}
-                          </select>
+                          <CustomSelect
+                            value={String(v.imageIndex ?? 0)}
+                            onChange={(val) => updateVariation(v.id, { imageIndex: Number(val) })}
+                            size="sm"
+                            options={
+                              images.length === 0
+                                ? [{ value: '0', label: 'Photo 1', icon: <Camera size={12} /> }]
+                                : images.map((_, imgIdx) => ({
+                                    value: String(imgIdx),
+                                    label: `Photo ${imgIdx + 1}`,
+                                    icon: <Camera size={12} />
+                                  }))
+                            }
+                            ariaLabel="Match variation to photo"
+                          />
                         </div>
 
                         {/* Price override (if sell form) */}
