@@ -138,7 +138,7 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
               Sign In Required
             </h3>
             <p style={{ fontSize: '0.86rem', color: 'var(--text-secondary, #64748B)', marginTop: '0.45rem', lineHeight: 1.55 }}>
-              Please sign in with your verified University of Cebu student account to place orders and connect with student peers.
+              Please sign in with your University of Cebu student account to place orders and connect with student peers.
             </p>
           </div>
           <div style={{ display: 'flex', gap: '0.75rem', width: '100%', marginTop: '0.25rem' }}>
