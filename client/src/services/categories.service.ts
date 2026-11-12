@@ -13,7 +13,9 @@ export const categoriesService = {
   async getCategories(): Promise<Category[]> {
     try {
       const res = await api.get<{ categories: Category[] }>('/categories');
-      return res.data.categories || [];
+      // The API wraps payloads in { status, data: { categories } }.
+      // Accept the legacy top-level shape too while deployments are rolling forward.
+      return res.data?.data?.categories || res.data?.categories || [];
     } catch (err) {
       console.warn('Could not fetch categories from server, using fallback', err);
       return [];
