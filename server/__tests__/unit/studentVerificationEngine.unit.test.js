@@ -65,7 +65,7 @@ describe('Unit Test: Student Verification Engine', () => {
   });
 
   describe('Automated Approval & Suspicion Routing', () => {
-    it('should automatically approve (>90% accuracy) when all credentials and challenge pass', async () => {
+    it('must not auto-approve from heuristics or client telemetry without trusted server-side liveness', async () => {
       const mockUser = {
         id: `test-user-${Date.now()}`,
         name: 'Carlo Mendoza',
@@ -92,11 +92,10 @@ describe('Unit Test: Student Verification Engine', () => {
 
       jest.restoreAllMocks();
 
-      expect(evaluation.confidenceScore).toBeGreaterThanOrEqual(90);
-      expect(evaluation.isApproved).toBe(true);
-      expect(evaluation.isSuspicious).toBe(false);
-      expect(evaluation.status).toBe('approved');
-      expect(evaluation.suspiciousReasons).toHaveLength(0);
+      expect(evaluation.isApproved).toBe(false);
+      expect(evaluation.status).toBe('pending');
+      expect(evaluation.autoApprovalEligible).toBe(false);
+      expect(evaluation.awsVerification.configured).toBe(false);
     }, 20000);
 
     it('should hold for admin review if session token is missing or bypassed', async () => {
