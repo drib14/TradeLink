@@ -266,14 +266,15 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
     secondaryProofProvided: Boolean(resolvedSecondaryProof)
   };
 
-  // Evaluate through biometric verification engine if telemetry or session is provided
-  if (telemetry && (telemetry.facialMatchScore !== undefined || telemetry.livenessPassed !== undefined || sessionToken)) {
+  // Evaluate on the server when a signed session is supplied. Browser facial
+  // match and liveness telemetry are untrusted and ignored for approval.
+  if (sessionToken) {
     try {
       const evaluation = await studentVerificationEngine.evaluateVerification({
         user: req.user,
         studentId: cleanId,
         idPhotoUrl: rawIdPhoto,
-        selfiePhotoUrl: secondaryProof || rawIdPhoto,
+        selfiePhotoUrl: selfiePhotoUrl || null,
         sessionToken,
         telemetry
       });
@@ -285,9 +286,9 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
         suspiciousReasons = JSON.stringify(evaluation.suspiciousReasons);
       }
       credentialDiagnostics = evaluation.credentialDiagnostics || credentialDiagnostics;
-      verificationMethod = evaluation.isApproved ? 'biometric_automated' : 'biometric_assisted_kyc';
+      verificationMethod = evaluation.awsVerification?.configured ? 'aws_assisted_kyc' : 'admin_kyc';
     } catch (evalErr) {
-      console.warn('[submitIdVerification] Biometric engine evaluation error, routing to manual review:', evalErr.message);
+      console.warn('[submitIdVerification] Server verification evaluation failed; routing to manual review:', evalErr.message);
     }
   }
 
