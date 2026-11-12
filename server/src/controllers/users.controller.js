@@ -286,7 +286,7 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
         suspiciousReasons = JSON.stringify(evaluation.suspiciousReasons);
       }
       credentialDiagnostics = evaluation.credentialDiagnostics || credentialDiagnostics;
-      verificationMethod = evaluation.awsVerification?.configured ? 'aws_assisted_kyc' : 'admin_kyc';
+      verificationMethod = evaluation.documentVerification?.configured ? 'local_ocr_assisted_kyc' : 'admin_kyc';
     } catch (evalErr) {
       console.warn('[submitIdVerification] Server verification evaluation failed; routing to manual review:', evalErr.message);
     }
