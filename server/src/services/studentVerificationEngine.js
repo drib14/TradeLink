@@ -125,80 +125,6 @@ function inspectImageSharpness(dataUrl) {
 }
 
 /**
- * Computes facial and biometric match score between the student ID photo and the live selfie
- * Evaluates structural luminance gradients, skin/tone distribution correlation, and challenge continuity.
- * @param {object} params
- * @param {string} params.idPhotoUrl
- * @param {string} params.selfiePhotoUrl
- * @param {object} [params.telemetry]
- * @param {boolean} params.sessionValid
- * @returns {{ matchScore: number, isMatchOver90: boolean, details: object }}
- */
-function computeFacialMatch({ idPhotoUrl, selfiePhotoUrl, telemetry = {}, sessionValid = false }) {
-  if (!idPhotoUrl || !selfiePhotoUrl) {
-    return { matchScore: 0, isMatchOver90: false, details: { error: 'Missing photos' } };
-  }
-
-  const idInspection = inspectImagePayload(idPhotoUrl);
-  const selfieInspection = inspectImagePayload(selfiePhotoUrl);
-  const idSharpness = inspectImageSharpness(idPhotoUrl);
-  const selfieSharpness = inspectImageSharpness(selfiePhotoUrl);
-
-  if (!idInspection.valid || !selfieInspection.valid || idSharpness.isBlurred) {
-    const score = Math.max(30, Math.min(75, Math.round((idSharpness.sharpnessScore + selfieSharpness.sharpnessScore) / 2)));
-    return {
-      matchScore: score,
-      isMatchOver90: false,
-      details: {
-        reason: 'ID image is blurred or lacks sufficient clarity for high-confidence biometric match',
-        idSharpnessScore: idSharpness.sharpnessScore,
-        selfieSharpnessScore: selfieSharpness.sharpnessScore
-      }
-    };
-  }
-
-  // Base feature similarity from high-entropy image payloads
-  const entropyMatch = 100 - Math.abs(idInspection.entropyScore - selfieInspection.entropyScore);
-  const sharpnessFactor = Math.min(idSharpness.sharpnessScore, selfieSharpness.sharpnessScore);
-
-  // Liveness validation component
-  const livenessVerified = Boolean(
-    sessionValid &&
-    (telemetry.livenessPassed !== false) &&
-    (telemetry.livenessScore === undefined || telemetry.livenessScore >= 70)
-  );
-
-  let matchScore = 0;
-  if (typeof telemetry.facialMatchScore === 'number' && telemetry.facialMatchScore > 0) {
-    // Biometric neural match score from client-side face verification
-    matchScore = Math.min(100, Math.max(0, Math.round(telemetry.facialMatchScore)));
-  } else if (livenessVerified && !idSharpness.isBlurred) {
-    // When clear, sharp ID and live selfie with valid challenge are provided:
-    // Scale into 91% - 97% range for verified matches (>90% instant approval)
-    const variation = (sharpnessFactor % 7);
-    matchScore = 91 + variation;
-  } else {
-    // Falls back to manual review range: 68% - 85%
-    matchScore = Math.min(85, Math.max(60, Math.round((entropyMatch * 0.5) + (sharpnessFactor * 0.3))));
-  }
-
-  const isMatchOver85 = matchScore >= 85;
-
-  return {
-    matchScore,
-    isMatchOver90: matchScore >= 90,
-    isMatchOver85,
-    details: {
-      idSharpnessScore: idSharpness.sharpnessScore,
-      selfieSharpnessScore: selfieSharpness.sharpnessScore,
-      livenessVerified,
-      entropyMatch,
-      neuralBiometricUsed: typeof telemetry.facialMatchScore === 'number'
-    }
-  };
-}
-
-/**
  * Validates UC Student ID formatting syntax
  * University of Cebu Student IDs are typically 7-9 numeric digits (e.g. 20240001, 12345678)
  * or academic year formatted like 2024-12345.
@@ -501,6 +427,5 @@ module.exports = {
   computeImageHash,
   validateStudentIdSyntax,
   inspectImagePayload,
-  inspectImageSharpness,
-  computeFacialMatch
+  inspectImageSharpness
 };
