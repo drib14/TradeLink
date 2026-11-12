@@ -2,7 +2,7 @@ const knex = require('knex');
 const knexfile = require('../../knexfile');
 const env = require('./env');
 
-const environment = env.env === 'production' ? 'production' : (env.env === 'test' ? 'test' : 'development');
+const environment = env.env === 'test' ? 'test' : ((env.isProduction || process.env.VERCEL || process.env.RENDER) ? 'production' : 'development');
 const db = knex(knexfile[environment]);
 
 // Health check and connection test helper
