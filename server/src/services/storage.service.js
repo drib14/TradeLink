@@ -5,6 +5,7 @@ const cloudinary = require('cloudinary').v2;
 const sharp = require('sharp');
 const config = require('../config/env');
 const logger = require('../utils/logger');
+const AppError = require('../utils/AppError');
 
 // Local uploads directory (used as fallback or for local dev)
 const uploadBase = path.resolve(__dirname, '../../uploads');
@@ -271,12 +272,20 @@ async function uploadBuffer(buffer, originalFilename = 'file.jpg', mimeType = 'i
         storage: 'cloudinary'
       };
     } catch (err) {
-      logger.warn(`Cloudinary upload failed, falling back to local storage: ${err.message}`);
+      logger.error(`Cloudinary upload failed for ${safeFolder}: ${err.message}`);
+      if (config.isProduction) {
+        throw new AppError('Image storage is temporarily unavailable. Please try again later.', 503);
+      }
       return saveLocalBuffer(finalBuffer, safeFolder, filename, mediaType);
     }
   }
 
-  // Local fallback
+  // Vercel/serverless filesystems are ephemeral and may be read-only. Never
+  // return a local upload URL in production because it will not be durable.
+  if (config.isProduction) {
+    throw new AppError('Image storage is not configured. Please contact support.', 503);
+  }
+
   return saveLocalBuffer(finalBuffer, safeFolder, filename, mediaType);
 }
 
