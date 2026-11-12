@@ -20,6 +20,7 @@ const getSocketBaseUrl = (): string => {
 class SocketService {
   private socket: Socket | null = null;
   private currentConvId: string | null = null;
+  private warnedServerlessHost = false;
 
   connect(customToken?: string): Socket | null {
     const token = customToken || getAccessToken();
@@ -33,6 +34,26 @@ class SocketService {
     }
 
     const baseUrl = getSocketBaseUrl();
+
+    // Vercel Functions cannot keep Socket.IO's long-lived connections alive.
+    // Avoid retry loops against a serverless deployment; set VITE_SOCKET_URL to
+    // a persistent Node.js host (Render, Railway, or a VPS) to enable realtime.
+    try {
+      const socketHost = new URL(baseUrl).hostname.toLowerCase();
+      if (import.meta.env.PROD && socketHost.endsWith('.vercel.app')) {
+        if (!this.warnedServerlessHost) {
+          console.warn(
+            '[TradeLink] Realtime chat is disabled because the configured Socket.IO host is a Vercel Serverless deployment. Configure VITE_SOCKET_URL with a persistent Node.js backend to enable realtime updates.'
+          );
+          this.warnedServerlessHost = true;
+        }
+        return null;
+      }
+    } catch {
+      console.error('[TradeLink] Invalid Socket.IO URL:', baseUrl);
+      return null;
+    }
+
     this.socket = io(baseUrl, {
       auth: token ? { token } : {},
       transports: ['websocket', 'polling'],
