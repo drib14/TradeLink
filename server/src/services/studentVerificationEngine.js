@@ -353,8 +353,8 @@ async function evaluateVerification({
   };
 
   // -------------------------------------------------------------
-  // 6. Trusted server-side OCR and face comparison. Browser telemetry is never
-  // accepted as identity evidence or used to calculate an approval score.
+  // 6. Local OCR assistance only. OCR is not proof of identity; all cases
+  // remain subject to campus review. Browser telemetry is never trusted.
   const documentVerification = await studentDocumentOcr.verifyStudentDocuments({
     idPhotoUrl, studentId: cleanId, studentName: user.name
   });
@@ -387,16 +387,14 @@ async function evaluateVerification({
            r.includes('session validation failed')
   );
 
-  // CompareFaces and OCR do not prove a live camera capture. Until AWS Face
-  // Liveness is integrated into the capture UI and verified server-side, every
-  // submission remains pending for an authorized campus reviewer.
+  // OCR does not prove identity or liveness. Automated approval is deliberately
+  // disabled in this zero-cost configuration; every submission remains pending.
   const trustedLivenessVerified = false;
   const isApproved = Boolean(documentVerification.passed && trustedLivenessVerified &&
     confidenceScore >= 85 && !idSharpness.isBlurred &&
     !hasCriticalFraud && suspiciousReasons.length === 0);
 
-  // If not auto-approved, mark as suspicious for challenge bypass, duplicate, or severely low match (<50%)
-  // Natural minor face differences (60-84%) are routed as standard pending review for admin
+  // Flag only concrete challenge-bypass and duplicate indicators for administrator review.
   const isSuspicious = hasCriticalFraud;
   const status = isApproved ? 'approved' : 'pending';
   const reviewEstimate = isApproved ? 'immediate' : '1-3 business days';
