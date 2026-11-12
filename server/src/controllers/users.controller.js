@@ -468,6 +468,10 @@ const getUserAnalytics = asyncHandler(async (req, res, next) => {
   const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
   // Fetch all analytics data concurrently in a single batch
+  // Older production databases may use reviews.reviewee_id instead of target_user_id.
+  const hasTargetUserColumn = await db.schema.hasColumn('reviews', 'target_user_id').catch(() => false);
+  const reviewUserColumn = hasTargetUserColumn ? 'target_user_id' : 'reviewee_id';
+
   const [
     completedTxs,
     soldListings,
@@ -514,7 +518,7 @@ const getUserAnalytics = asyncHandler(async (req, res, next) => {
 
     // Reviews summary
     db('reviews')
-      .where({ target_user_id: targetUserId })
+      .where(reviewUserColumn, targetUserId)
       .avg('rating as avgRating')
       .count('id as count')
       .first()
