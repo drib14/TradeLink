@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const db = require('../config/db');
 const verificationSessionService = require('./verificationSession.service');
 const logger = require('../utils/logger');
+const studentDocumentOcr = require('./studentDocumentOcr.service');
 
 /**
  * Computes a SHA-256 hash of an image data string or buffer
@@ -120,80 +121,6 @@ function inspectImageSharpness(dataUrl) {
     isBlurred,
     sharpnessScore,
     reason: isBlurred ? 'ID document image is blurry or out of focus. Please retake with steady hands and clear lighting.' : undefined
-  };
-}
-
-/**
- * Computes facial and biometric match score between the student ID photo and the live selfie
- * Evaluates structural luminance gradients, skin/tone distribution correlation, and challenge continuity.
- * @param {object} params
- * @param {string} params.idPhotoUrl
- * @param {string} params.selfiePhotoUrl
- * @param {object} [params.telemetry]
- * @param {boolean} params.sessionValid
- * @returns {{ matchScore: number, isMatchOver90: boolean, details: object }}
- */
-function computeFacialMatch({ idPhotoUrl, selfiePhotoUrl, telemetry = {}, sessionValid = false }) {
-  if (!idPhotoUrl || !selfiePhotoUrl) {
-    return { matchScore: 0, isMatchOver90: false, details: { error: 'Missing photos' } };
-  }
-
-  const idInspection = inspectImagePayload(idPhotoUrl);
-  const selfieInspection = inspectImagePayload(selfiePhotoUrl);
-  const idSharpness = inspectImageSharpness(idPhotoUrl);
-  const selfieSharpness = inspectImageSharpness(selfiePhotoUrl);
-
-  if (!idInspection.valid || !selfieInspection.valid || idSharpness.isBlurred) {
-    const score = Math.max(30, Math.min(75, Math.round((idSharpness.sharpnessScore + selfieSharpness.sharpnessScore) / 2)));
-    return {
-      matchScore: score,
-      isMatchOver90: false,
-      details: {
-        reason: 'ID image is blurred or lacks sufficient clarity for high-confidence biometric match',
-        idSharpnessScore: idSharpness.sharpnessScore,
-        selfieSharpnessScore: selfieSharpness.sharpnessScore
-      }
-    };
-  }
-
-  // Base feature similarity from high-entropy image payloads
-  const entropyMatch = 100 - Math.abs(idInspection.entropyScore - selfieInspection.entropyScore);
-  const sharpnessFactor = Math.min(idSharpness.sharpnessScore, selfieSharpness.sharpnessScore);
-
-  // Liveness validation component
-  const livenessVerified = Boolean(
-    sessionValid &&
-    (telemetry.livenessPassed !== false) &&
-    (telemetry.livenessScore === undefined || telemetry.livenessScore >= 70)
-  );
-
-  let matchScore = 0;
-  if (typeof telemetry.facialMatchScore === 'number' && telemetry.facialMatchScore > 0) {
-    // Biometric neural match score from client-side face verification
-    matchScore = Math.min(100, Math.max(0, Math.round(telemetry.facialMatchScore)));
-  } else if (livenessVerified && !idSharpness.isBlurred) {
-    // When clear, sharp ID and live selfie with valid challenge are provided:
-    // Scale into 91% - 97% range for verified matches (>90% instant approval)
-    const variation = (sharpnessFactor % 7);
-    matchScore = 91 + variation;
-  } else {
-    // Falls back to manual review range: 68% - 85%
-    matchScore = Math.min(85, Math.max(60, Math.round((entropyMatch * 0.5) + (sharpnessFactor * 0.3))));
-  }
-
-  const isMatchOver85 = matchScore >= 85;
-
-  return {
-    matchScore,
-    isMatchOver90: matchScore >= 90,
-    isMatchOver85,
-    details: {
-      idSharpnessScore: idSharpness.sharpnessScore,
-      selfieSharpnessScore: selfieSharpness.sharpnessScore,
-      livenessVerified,
-      entropyMatch,
-      neuralBiometricUsed: typeof telemetry.facialMatchScore === 'number'
-    }
   };
 }
 
@@ -426,26 +353,24 @@ async function evaluateVerification({
   };
 
   // -------------------------------------------------------------
-  // 6. Facial Matching & Biometric Liveness Engine
-  // -------------------------------------------------------------
-  const facialMatch = computeFacialMatch({
-    idPhotoUrl,
-    selfiePhotoUrl,
-    telemetry,
-    sessionValid: Boolean(sessionToken && diagnostics.sessionChallenge?.passed)
+  // 6. Local OCR assistance only. OCR is not proof of identity; all cases
+  // remain subject to campus review. Browser telemetry is never trusted.
+  const documentVerification = await studentDocumentOcr.verifyStudentDocuments({
+    idPhotoUrl, studentId: cleanId, studentName: user.name
   });
-
-  diagnostics.facialMatch = {
-    score: facialMatch.matchScore,
-    passed: facialMatch.isMatchOver90,
-    details: facialMatch.details
+  diagnostics.documentOcr = {
+    passed: Boolean(documentVerification.studentIdFound && documentVerification.studentNameFound),
+    provider: 'tesseract.js_local',
+    studentIdFound: Boolean(documentVerification.studentIdFound),
+    studentNameFound: Boolean(documentVerification.studentNameFound),
+    details: documentVerification
   };
-
-  if (facialMatch.matchScore < 85) {
-    suspiciousReasons.push(
-      `Automated facial match between ID card and live selfie was ${facialMatch.matchScore}% (below 85% threshold for instant approval). Forwarded for manual admin review.`
-    );
-  }
+  if (!documentVerification.passed) suspiciousReasons.push(documentVerification.reason || 'Local OCR did not confirm the document details.');
+  diagnostics.facialMatch = {
+    passed: false,
+    provider: 'manual_review_required',
+    details: 'No automated face matching or liveness detection is performed by the zero-cost configuration.'
+  };
 
   // -------------------------------------------------------------
   // 7. Final Decision Engine (Automated Approval vs Manual Review)
@@ -462,26 +387,26 @@ async function evaluateVerification({
            r.includes('session validation failed')
   );
 
-  // Automated Instant Approval Conditions:
-  // 1. Confidence Score must be at least 85%
-  // 2. Facial match score must be at least 85%
-  // 3. ID image is clear and not blurred
-  // 4. Zero duplicate or fraud flags
-  const isApproved = confidenceScore >= 85 && facialMatch.matchScore >= 85 && !idSharpness.isBlurred && !hasCriticalFraud && suspiciousReasons.length === 0;
+  // OCR does not prove identity or liveness. Automated approval is deliberately
+  // disabled in this zero-cost configuration; every submission remains pending.
+  const trustedLivenessVerified = false;
+  const isApproved = Boolean(documentVerification.passed && trustedLivenessVerified &&
+    confidenceScore >= 85 && !idSharpness.isBlurred &&
+    !hasCriticalFraud && suspiciousReasons.length === 0);
 
-  // If not auto-approved, mark as suspicious for challenge bypass, duplicate, or severely low match (<50%)
-  // Natural minor face differences (60-84%) are routed as standard pending review for admin
-  const isSuspicious = hasCriticalFraud || (facialMatch.matchScore < 50);
+  // Flag only concrete challenge-bypass and duplicate indicators for administrator review.
+  const isSuspicious = hasCriticalFraud;
   const status = isApproved ? 'approved' : 'pending';
   const reviewEstimate = isApproved ? 'immediate' : '1-3 business days';
 
-  logger.info(`[Student Verification Engine] Evaluated user [${user.id}]: score=${confidenceScore}%, facialMatch=${facialMatch.matchScore}%, status=${status}, isApproved=${isApproved}, suspiciousCount=${suspiciousReasons.length}`);
+  logger.info(`[Student Verification Engine] Evaluated user [${user.id}]: score=${confidenceScore}%, documentOCR=${documentVerification.passed}, status=${status}, isApproved=${isApproved}, suspiciousCount=${suspiciousReasons.length}`);
 
   return {
     isApproved,
     isSuspicious,
-    confidenceScore: isApproved ? Math.max(confidenceScore, facialMatch.matchScore) : confidenceScore,
-    facialMatchScore: facialMatch.matchScore,
+    confidenceScore,
+    documentVerification,
+    autoApprovalEligible: false,
     reviewEstimate,
     status,
     suspiciousReasons,
@@ -497,6 +422,5 @@ module.exports = {
   computeImageHash,
   validateStudentIdSyntax,
   inspectImagePayload,
-  inspectImageSharpness,
-  computeFacialMatch
+  inspectImageSharpness
 };

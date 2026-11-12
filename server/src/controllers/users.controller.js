@@ -158,7 +158,7 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
   } = req.body;
 
   const rawIdPhoto = idPhotoUrl || idCardImageUrl;
-  const secondaryProof = enrollmentProofUrl || selfiePhotoUrl || null;
+  // Prefer the actual selfie for the selfie column; enrollment proof is only a fallback.\n  const secondaryProof = selfiePhotoUrl || enrollmentProofUrl || null;
 
   if (!studentIdNumber || !rawIdPhoto) {
     return next(new AppError('Student ID number and valid ID photo are required.', 400));
@@ -266,28 +266,29 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
     secondaryProofProvided: Boolean(resolvedSecondaryProof)
   };
 
-  // Evaluate through biometric verification engine if telemetry or session is provided
-  if (telemetry && (telemetry.facialMatchScore !== undefined || telemetry.livenessPassed !== undefined || sessionToken)) {
+  // Evaluate on the server when a signed session is supplied. Browser facial
+  // match and liveness telemetry are untrusted and ignored for approval.
+  if (sessionToken) {
     try {
       const evaluation = await studentVerificationEngine.evaluateVerification({
         user: req.user,
         studentId: cleanId,
         idPhotoUrl: rawIdPhoto,
-        selfiePhotoUrl: secondaryProof || rawIdPhoto,
+        selfiePhotoUrl: selfiePhotoUrl || null,
         sessionToken,
         telemetry
       });
 
       status = evaluation.status || (evaluation.isApproved ? 'approved' : 'pending');
-      confidenceScore = evaluation.confidenceScore || 85;
+      confidenceScore = evaluation.confidenceScore ?? 85;
       isSuspicious = evaluation.isSuspicious ? 1 : 0;
       if (evaluation.suspiciousReasons && evaluation.suspiciousReasons.length > 0) {
         suspiciousReasons = JSON.stringify(evaluation.suspiciousReasons);
       }
       credentialDiagnostics = evaluation.credentialDiagnostics || credentialDiagnostics;
-      verificationMethod = evaluation.isApproved ? 'biometric_automated' : 'biometric_assisted_kyc';
+      verificationMethod = evaluation.documentVerification?.configured ? 'local_ocr_assisted_kyc' : 'admin_kyc';
     } catch (evalErr) {
-      console.warn('[submitIdVerification] Biometric engine evaluation error, routing to manual review:', evalErr.message);
+      console.warn('[submitIdVerification] Server verification evaluation failed; routing to manual review:', evalErr.message);
     }
   }
 
