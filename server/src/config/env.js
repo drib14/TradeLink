@@ -11,7 +11,7 @@ if (initialMode === 'production') {
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 dotenv.config();
 
-const envMode = process.env.NODE_ENV || 'development';
+const envMode = process.env.NODE_ENV || ((process.env.VERCEL || process.env.RENDER) ? 'production' : 'development');
 const isDev = envMode === 'development';
 const isProd = envMode === 'production';
 
