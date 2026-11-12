@@ -82,12 +82,18 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({
         </div>
 
         <button
-          onClick={() => onNavigate('create-listing', { mode: 'swap' })}
+          onClick={() => {
+            if (currentUser && !currentUser.isVerified) {
+              onOpenVerification?.();
+              return;
+            }
+            onNavigate('create-listing', { mode: 'swap' });
+          }}
           className="btn-gold"
           style={{ padding: '0.55rem 1.25rem', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
         >
           <Plus size={15} style={{ flexShrink: 0 }} />
-          <span>Post Swap Item</span>
+          <span>{currentUser && !currentUser.isVerified ? 'Verify to Post' : 'Post Swap Item'}</span>
         </button>
       </div>
 
