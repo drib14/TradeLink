@@ -1,21 +1,12 @@
 const { app } = require('../src/index');
-const { autoInitDatabase } = require('../src/config/dbInit');
-const logger = require('../src/utils/logger');
-
-let initPromise = null;
-function ensureDatabaseInitialized() {
-  if (!initPromise) {
-    initPromise = autoInitDatabase().catch((err) => {
-      logger.error(`[Vercel Serverless] DB init warning: ${err.message}`);
-    });
-  }
-  return initPromise;
-}
 
 /**
- * Vercel Serverless Function entrypoint exporting Express application with cold-start DB init
+ * Vercel serverless entry point.
+ *
+ * Do not run autoInitDatabase() here. Vercel may create many independent
+ * function instances, and running schema checks, ALTERs, cleanup queries and
+ * seed operations on every cold start creates unnecessary concurrent database
+ * traffic. Apply schema changes through the documented Knex migrations before
+ * deploying instead. Runtime requests should only execute the query they need.
  */
-module.exports = async (req, res) => {
-  await ensureDatabaseInitialized();
-  return app(req, res);
-};
+module.exports = (req, res) => app(req, res);
