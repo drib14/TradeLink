@@ -215,6 +215,26 @@ async function autoInitDatabase() {
         }).catch(() => {});
         logger.info('[DB Init] Enhanced verification_requests table with automated confidence and fraud detection columns.');
       }
+
+      // Repair partially migrated production schemas one column at a time. The
+      // previous all-or-nothing check skipped missing fields whenever confidence_score existed.
+      const verificationColumns = [
+        ['confidence_score', (t) => t.integer('confidence_score').defaultTo(0)],
+        ['is_suspicious', (t) => t.boolean('is_suspicious').defaultTo(false)],
+        ['suspicious_reasons', (t) => t.text('suspicious_reasons').nullable()],
+        ['credential_diagnostics', (t) => t.text('credential_diagnostics').nullable()],
+        ['id_photo_hash', (t) => t.string('id_photo_hash', 64).nullable()],
+        ['selfie_photo_hash', (t) => t.string('selfie_photo_hash', 64).nullable()],
+        ['verification_method', (t) => t.string('verification_method', 50).defaultTo('admin_kyc')]
+      ];
+      for (const [columnName, addColumn] of verificationColumns) {
+        const exists = await db.schema.hasColumn('verification_requests', columnName).catch(() => false);
+        if (!exists) {
+          await db.schema.alterTable('verification_requests', addColumn).catch((err) => {
+            logger.warn('[DB Init] Could not add verification_requests.' + columnName + ': ' + err.message);
+          });
+        }
+      }
     }
 
     // 1e. Ensure listings.category is VARCHAR(100) to support all university categories
