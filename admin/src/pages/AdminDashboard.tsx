@@ -764,7 +764,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 Completed Trades
               </span>
               <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#059669', fontFamily: 'var(--font-display)', marginTop: '0.15rem' }}>
-                {analytics?.kpi?.completedTrades ?? (transactions.filter((t) => t.status === 'completed').length || listings.filter((l) => l.status === 'sold' || l.isSold).length)}
+                {analytics?.kpi?.completedTrades ?? transactions.filter((t) => t.status === 'completed').length}
               </div>
               <span style={{ fontSize: '0.74rem', color: '#059669', fontWeight: 700 }}>
                 Fulfilled transactions
