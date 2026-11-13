@@ -37,7 +37,7 @@ interface TransactionsPageProps {
 }
 
 export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, onOpenChat, onOpenAuth }) => {
-  const { transactions, confirmHandshake, cancelTransaction, openChatForTransaction } = useChat();
+  const { transactions, confirmHandshake, requestHandshakeCode, cancelTransaction, openChatForTransaction } = useChat();
   const { currentUser, isAuthenticated } = useAuth();
   const { showToast } = useToast();
 
@@ -109,6 +109,18 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
 
     return true;
   });
+
+  const handleRequestHandshakeCode = async (tx: Transaction) => {
+    setActionLoadingId(tx.id);
+    try {
+      await requestHandshakeCode(tx.id);
+      showToast('Code sent', 'A fresh private meetup code was sent to your registered email address.', 'success');
+    } catch (err: unknown) {
+      showToast('Could not send code', err instanceof Error ? err.message : 'Please check your registered email and try again.', 'error');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
 
   const handleComplete = (tx: Transaction) => {
     setHandshakePromptTx(tx);
@@ -544,6 +556,24 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
                         <span style={{ fontSize: '0.72rem', color: '#1E40AF', maxWidth: '260px' }}>Show in person only after inspection and agreement on the exchange. Never send it in chat. Keep this code private.</span>
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {isBuyer && isPending && !tx.verificationCode && !tx.sellerConfirmedAt && (
+                  <div style={{ padding: '0.85rem 1rem', borderRadius: '10px', background: 'var(--bg-subtle)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.8rem', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-primary)' }}>Need your meetup code?</span>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Check your registered email, including spam. You can request a fresh private code here.</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRequestHandshakeCode(tx)}
+                      disabled={actionLoadingId === tx.id}
+                      className="btn-secondary"
+                      style={{ padding: '0.45rem 0.7rem', fontSize: '0.74rem', fontWeight: 800 }}
+                    >
+                      {actionLoadingId === tx.id ? 'Sending…' : 'Resend code by email'}
+                    </button>
                   </div>
                 )}
 
