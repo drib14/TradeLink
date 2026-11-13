@@ -2,6 +2,10 @@
 
 A campus marketplace for University of Cebu students. TradeLink lets students buy, sell, swap, and give away items within the UC community.
 
+## Live Demo
+
+Visit the live TradeLink platform: [uc-tradelink.vercel.app](https://uc-tradelink.vercel.app/)
+
 ## What it includes
 
 - **Student marketplace** for books, uniforms, school supplies, gadgets, and other permitted items
