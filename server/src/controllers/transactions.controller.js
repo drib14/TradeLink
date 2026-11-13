@@ -384,12 +384,12 @@ const confirmHandshake = asyncHandler(async (req, res, next) => {
             ? { failed_handshake_attempts: attempts, handshake_locked_until: new Date(Date.now() + 15 * 60 * 1000) }
             : { failed_handshake_attempts: attempts };
           await trx('transactions').where({ id }).update(lockPatch);
-          throw new AppError(
-            attempts >= 3
+          return {
+            error: attempts >= 3
               ? 'Incorrect code. Verification is locked for 15 minutes after 3 failed attempts.'
               : `Incorrect code. ${3 - attempts} attempt(s) remaining.`,
-            attempts >= 3 ? 429 : 400
-          );
+            errorStatus: attempts >= 3 ? 429 : 400
+          };
         }
       }
       patch.seller_confirmed_at = now;
@@ -398,6 +398,9 @@ const confirmHandshake = asyncHandler(async (req, res, next) => {
     }
 
     if (isBuyer && !tx.buyer_confirmed_at) {
+      if (!tx.seller_confirmed_at) {
+        throw new AppError('The seller must first verify your one-time code at the meetup.', 409);
+      }
       patch.buyer_confirmed_at = now;
     }
 
@@ -426,6 +429,10 @@ const confirmHandshake = asyncHandler(async (req, res, next) => {
       transaction: tx
     };
   });
+
+  if (result.error) {
+    return next(new AppError(result.error, result.errorStatus));
+  }
 
   if (result.completed) {
     const tx = result.transaction;
