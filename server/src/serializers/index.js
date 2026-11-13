@@ -50,7 +50,8 @@ function serializeTransaction(t, listingImage = '') {
     swapOfferId: t.swap_offer_id || t.swapOfferId || null,
     status: t.status || 'pending',
     notes: t.notes || null,
-    buyerConfirmedAt: t.buyer_confirmed_at || t.buyerConfirmedAt || null,\n    sellerConfirmedAt: t.seller_confirmed_at || t.sellerConfirmedAt || null,\n    handshakeCompletedAt: t.handshake_completed_at || t.handshakeCompletedAt || null,\n    completedAt: t.completed_at || t.completedAt || null,
+    buyerConfirmedAt: t.buyer_confirmed_at || t.buyerConfirmedAt || null,\n    sellerConfirmedAt: t.seller_confirmed_at || t.sellerConfirmedAt || null,\n    handshakeCompletedAt: t.handshake_completed_at || t.handshakeCompletedAt || null,
+    completionOverrideBy: t.completion_override_by || t.completionOverrideBy || null,\n    completedAt: t.completed_at || t.completedAt || null,
     cancelledAt: t.cancelled_at || t.cancelledAt || null,
     cancellationReason: t.cancellation_reason || t.cancellationReason || null,
     createdAt: t.created_at || t.createdAt || new Date().toISOString()
