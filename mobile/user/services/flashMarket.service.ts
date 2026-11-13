@@ -52,6 +52,11 @@ export const mobileChatService = {
     return Array.isArray(list) ? list : [];
   },
 
+  async getOrCreateConversation(data: { targetUserId: string; listingId?: string; flashRequestId?: string; initialMessage?: string }) {
+    const res = await mobileApi.post('/chat/conversations', data);
+    return res.data?.conversation;
+  },
+
   async getMessages(conversationId: string) {
     const res = await mobileApi.get(`/chat/conversations/${conversationId}/messages`);
     return res.data?.messages || [];
