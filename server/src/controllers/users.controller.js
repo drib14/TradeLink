@@ -163,6 +163,9 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
   if (!studentIdNumber || !rawIdPhoto) {
     return next(new AppError('Student ID number and live selfie captured from your device camera are required.', 400));
   }
+  if (!sessionToken) {
+    return next(new AppError('A valid live verification session is required. Please restart the selfie verification process.', 400));
+  }
 
   // Check if current user is already verified
   const currentUserRecord = await db('users').where({ id: req.user.id }).first();
@@ -278,6 +281,9 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
         sessionToken,
         telemetry
       });
+      if (!evaluation.credentialDiagnostics?.sessionChallenge?.passed) {
+        return next(new AppError('Your live verification session is invalid or expired. Please restart the selfie verification process.', 400));
+      }
 
       status = evaluation.status || (evaluation.isApproved ? 'approved' : 'pending');
       confidenceScore = evaluation.confidenceScore ?? 85;
@@ -288,7 +294,8 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
       credentialDiagnostics = evaluation.credentialDiagnostics || credentialDiagnostics;
       verificationMethod = evaluation.documentVerification?.configured ? 'local_ocr_assisted_kyc' : 'admin_kyc';
     } catch (evalErr) {
-      console.warn('[submitIdVerification] Server verification evaluation failed; routing to manual review:', evalErr.message);
+      console.warn('[submitIdVerification] Verification session evaluation failed:', evalErr.message);
+      return next(new AppError('Could not validate your live verification session. Please restart and try again.', 503));
     }
   }
 
