@@ -399,7 +399,7 @@ const confirmHandshake = asyncHandler(async (req, res, next) => {
         throw new AppError(`Handshake verification is locked. Try again in ${remainingMins} minute(s).`, 429);
       }
       if (tx.verification_code_hash) {
-        if (!/^\\d{4}$/.test(String(handshakeCode || '').trim())) {
+        if (!/^\d{4}$/.test(String(handshakeCode || '').trim())) {
           throw new AppError('Enter the buyer’s 4-digit handshake code to verify the in-person exchange.', 400);
         }
         const matches = await verifyCode(String(handshakeCode).trim(), tx.verification_code_hash);
