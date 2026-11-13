@@ -117,6 +117,16 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refreshAll();
   }, [refreshAll]);
 
+  // Reset account-scoped state on logout/account switch, including one-time buyer codes.
+  useEffect(() => {
+    setConversations([]);
+    setSwaps([]);
+    setTransactions([]);
+    setMessages([]);
+    setActiveConvId(null);
+    setTypingMap({});
+  }, [isAuthenticated, currentUser?.id]);
+
   // 2. Setup Socket.IO connection & event handlers
   useEffect(() => {
     if (!isAuthenticated || !currentUser) {
