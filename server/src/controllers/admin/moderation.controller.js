@@ -490,8 +490,8 @@ const demoteAdmin = asyncHandler(async (req, res, next) => {
     return next(new AppError('You cannot demote your own administrative account.', 400));
   }
 
-  const rootAdminEmail = process.env.ADMIN_SEED_EMAIL || process.env.ADMIN_EMAIL || 'uc.tradelink@gmail.com';
-  if (target.email === rootAdminEmail || target.id === 'user-admin') {
+  const rootAdminEmail = process.env.ADMIN_SEED_EMAIL || process.env.ADMIN_EMAIL || '';
+  if ((rootAdminEmail && target.email === rootAdminEmail) || target.id === 'user-admin-main' || target.id === 'user-admin') {
     return next(new AppError('The root administrator account cannot be demoted.', 403));
   }
 
