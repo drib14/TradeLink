@@ -260,6 +260,9 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
         buyerName: currentUser?.name || '',
         selectedVariation: act.selectedVariation || null,
         verificationCode: act.verificationCode || undefined,
+        buyerConfirmedAt: act.buyerConfirmedAt || (act as any).buyer_confirmed_at || null,
+        sellerConfirmedAt: act.sellerConfirmedAt || (act as any).seller_confirmed_at || null,
+        handshakeCompletedAt: act.handshakeCompletedAt || (act as any).handshake_completed_at || null,
         tradeMode: (activeConversation.listingTradeMode || 'buy_sell') as any,
         createdAt: new Date().toISOString()
       } as Transaction;
