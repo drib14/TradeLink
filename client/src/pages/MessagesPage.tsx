@@ -260,9 +260,9 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
         buyerName: currentUser?.name || '',
         selectedVariation: act.selectedVariation || null,
         verificationCode: act.verificationCode || undefined,
-        buyerConfirmedAt: act.buyerConfirmedAt || (act as any).buyer_confirmed_at || null,
-        sellerConfirmedAt: act.sellerConfirmedAt || (act as any).seller_confirmed_at || null,
-        handshakeCompletedAt: act.handshakeCompletedAt || (act as any).handshake_completed_at || null,
+        buyerConfirmedAt: act.buyerConfirmedAt || null,
+        sellerConfirmedAt: act.sellerConfirmedAt || null,
+        handshakeCompletedAt: act.handshakeCompletedAt || null,
         tradeMode: (activeConversation.listingTradeMode || 'buy_sell') as any,
         createdAt: new Date().toISOString()
       } as Transaction;
@@ -1496,8 +1496,8 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
                 result.completed ? 'Both parties confirmed the exchange.' : 'Waiting for the buyer to confirm the exchange from chat or Transactions.',
                 'success'
               );
-            } catch (err: any) {
-              showToast('Handshake Verification Failed', err?.message || 'Check the 4-digit code and try again.', 'error');
+            } catch (err: unknown) {
+              showToast('Handshake Verification Failed', err instanceof Error ? err.message : 'Check the 4-digit code and try again.', 'error');
             }
           }}
           onCancel={() => setCompleteTxModal(null)}
@@ -1523,8 +1523,8 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
                 result.completed ? 'Both parties confirmed the exchange.' : 'Your confirmation has been recorded.',
                 'success'
               );
-            } catch (err: any) {
-              showToast('Confirmation Failed', err?.message || 'Could not confirm receipt.', 'error');
+            } catch (err: unknown) {
+              showToast('Confirmation Failed', err instanceof Error ? err.message : 'Could not confirm receipt.', 'error');
             }
           }}
           onCancel={() => setConfirmReceiptTxModal(null)}
