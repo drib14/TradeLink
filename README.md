@@ -42,52 +42,71 @@ git clone https://github.com/drib14/TradeLink.git
 cd TradeLink
 ```
 
-### 2. Set up the backend
+### 2. Install dependencies
 
 ```bash
-cd server
-npm install
+npm install --prefix server
+npm install --prefix client
 ```
 
-Copy `.env.example` to `.env`, then set your local database details and required secrets. Do not commit your real `.env` file.
-
-Create the database and tables using the project's migrations:
+For the optional admin portal, also run:
 
 ```bash
-npm run migrate:latest
+npm install --prefix admin
 ```
 
-Start the API:
+### 3. Configure environment files
+
+Copy the examples to local, untracked environment files:
+
+- `server/.env.example` → `server/.env`
+- `client/.env.example` → `client/.env`
+- `admin/.env.example` → `admin/.env` (optional)
+
+Set your local MySQL credentials and strong development secrets in `server/.env`. Set `PORT=3001` there unless you need another port.
+
+The client and admin apps should use `VITE_API_BASE_URL=/api`. Their Vite proxy reads the backend `HOST` and `PORT` from `server/.env`; set `VITE_API_PROXY_TARGET` in the relevant frontend `.env` only if you need to override that target.
+
+**Never put database credentials, JWT secrets, email passwords, Cloudinary secrets, or provider API keys in client/admin `.env` files or in any variable prefixed with `VITE_`.** Vite exposes `VITE_` values to the browser. Keep all secrets in `server/.env`.
+
+### 4. Create the database
+
+Make sure your local MySQL service is running and the configured database exists. Then run:
+
+```bash
+npm run migrate:latest --prefix server
+```
+
+### 5. Start backend and student frontend together
+
+From the repository root:
 
 ```bash
 npm run dev
 ```
 
-The local API runs at `http://localhost:3001` (unless you configure a different port).
+The launcher starts the Express backend first, waits until its root health endpoint responds, and then starts the student Vite app. Open [http://localhost:5173](http://localhost:5173).
 
-### 3. Start the student web app
+If the backend does not become healthy, check the backend terminal output and verify `server/.env` has the intended `PORT`. Database-backed routes also require MySQL to be running and configured correctly.
 
-Open a second terminal:
-
-```bash
-cd client
-npm install
-npm run dev
-```
-
-Vite prints the local web address in the terminal, usually `http://localhost:5173`.
-
-### 4. Start the admin dashboard (optional)
-
-Open another terminal:
+To start either process separately, use:
 
 ```bash
-cd admin
-npm install
-npm run dev
+npm run dev:server
+npm run dev:client
 ```
 
-### 5. Start the mobile app (optional)
+### 6. Start the admin dashboard (optional)
+
+In another terminal:
+
+```bash
+npm run dev:admin
+```
+
+Open [http://localhost:5174](http://localhost:5174).
+
+### 7. Start the mobile app (optional)
 
 ```bash
 cd mobile/user
@@ -99,26 +118,26 @@ Use Expo Go or an available simulator to open the app.
 
 ## Useful commands
 
-Run these from the relevant project folder.
+Run these from the repository root unless noted.
 
-| Project | Command | Purpose |
-|---|---|---|
-| Server | `npm run dev` | Start backend in development |
-| Server | `npm start` | Start backend |
-| Server | `npm test` | Run backend tests |
-| Server | `npm run migrate:latest` | Apply database migrations |
-| Client | `npm run dev` | Start student web app |
-| Client | `npm run build` | Build student web app |
-| Admin | `npm run dev` | Start admin dashboard |
-| Admin | `npm run build` | Build admin dashboard |
-| Mobile | `npm start` | Start Expo |
+| Command | Purpose |
+|---|---|
+| `npm run dev` | Start backend and student frontend together |
+| `npm run dev:server` | Start backend only |
+| `npm run dev:client` | Start student frontend only |
+| `npm run dev:admin` | Start admin dashboard |
+| `npm run check:secrets` | Scan tracked files for exposed secrets |
+| `npm run migrate:latest --prefix server` | Apply database migrations |
+| `npm test --prefix server` | Run backend tests |
+| `npm run build --prefix client` | Build student web app |
+| `npm run build --prefix admin` | Build admin dashboard |
 
 ## Configuration notes
 
 - Backend environment variables are documented in `server/.env.example`.
-- Configure the frontend API URL using the client environment settings expected by the app.
+- Frontend environment examples contain only public, non-secret settings.
+- Local `.env` files and runtime uploads are excluded from Git.
 - Use a managed database for deployed environments; local MySQL settings are for development only.
-- Keep database credentials, JWT secrets, email credentials, and third-party API keys out of Git.
 - Never use production credentials or real student data in local development or tests.
 
 ## Repository layout
@@ -129,7 +148,7 @@ TradeLink/
 ├── client/         # Student web application
 ├── mobile/user/    # Student mobile application
 ├── server/         # Express API and Socket.IO server
-└── DB/             # SQL schema and database documentation
+└── DB/             # MySQL schema and database documentation
 ```
 
 ## Contributing
@@ -137,8 +156,8 @@ TradeLink/
 1. Create a branch for your change.
 2. Keep changes focused and follow the existing project structure.
 3. Run the relevant tests or build before opening a pull request.
-4. Never commit secrets, private keys, database dumps, or real student documents.
+4. Never commit secrets, private keys, database dumps, runtime uploads, or real student documents.
 
 ## License
 
-This repository is intended for the TradeLink project and University of Cebu community. See the repository owner for usage and distribution permissions.
+This repository is intended for the TradeLink project and University of Cebu community. See the repository owner for usage and permissions.
