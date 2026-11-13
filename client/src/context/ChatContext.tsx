@@ -51,7 +51,8 @@ interface ChatContextType {
     quantity?: number;
     amount?: number;
   }) => Promise<Transaction>;
-  completeTransaction: (transactionId: string) => Promise<void>;
+  confirmHandshake: (transactionId: string, handshakeCode?: string) => Promise<{ status: string; completed: boolean }>;
+  completeTransaction: (transactionId: string, handshakeCode?: string) => Promise<void>;
   cancelTransaction: (transactionId: string, reason?: string) => Promise<void>;
   submitTradeReview: (params: {
     transactionId: string;
@@ -592,12 +593,22 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return created;
   };
 
-  const completeTransaction = async (transactionId: string) => {
-    await chatService.completeTransaction(transactionId);
-    setTransactions((prev) =>
-      prev.map((t) => (t.id === transactionId ? { ...t, status: 'completed' } : t))
-    );
-    refreshAll();
+  const confirmHandshake = async (transactionId: string, handshakeCode?: string) => {
+    const result = await chatService.confirmHandshake(transactionId, handshakeCode);
+    setTransactions((prev) => prev.map((t) => t.id === transactionId ? {
+      ...t,
+      status: result.status as Transaction['status'],
+      buyerConfirmedAt: result.buyerConfirmedAt ?? t.buyerConfirmedAt ?? null,
+      sellerConfirmedAt: result.sellerConfirmedAt ?? t.sellerConfirmedAt ?? null,
+      handshakeCompletedAt: result.completed ? new Date().toISOString() : t.handshakeCompletedAt
+    } : t));
+    await refreshAll();
+    return { status: result.status, completed: result.completed };
+  };
+
+  // Legacy callers now submit a confirmation, never unilaterally complete a deal.
+  const completeTransaction = async (transactionId: string, handshakeCode?: string) => {
+    await confirmHandshake(transactionId, handshakeCode);
   };
 
   const cancelTransaction = async (transactionId: string, reason?: string) => {
@@ -654,14 +665,20 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         proposeSwap,
         respondToSwap,
         createDirectOrder,
+        confirmHandshake,
         completeTransaction,
         cancelTransaction,
         submitTradeReview,
         // Legacy stubs
         scheduleMeetup: async (p: any) => createDirectOrder({ listing: p.listing, notes: p.notes }),
-        completeMeetupWithCode: async (id: string) => {
-          await completeTransaction(id);
-          return { success: true, message: 'Transaction completed!' };
+        completeMeetupWithCode: async (id: string, code: string) => {
+          const result = await confirmHandshake(id, code);
+          return {
+            success: result.completed,
+            message: result.completed
+              ? 'Both parties confirmed. Transaction completed.'
+              : 'Seller confirmation saved. Waiting for buyer confirmation.'
+          };
         },
         updateMeetupStatus: async (id: string, s: any) => {
           if (s === 'completed') await completeTransaction(id);
