@@ -6,7 +6,7 @@ const transactionsController = require('../controllers/transactions.controller')
 
 const validate = require('../middleware/validate');
 const validateUUID = require('../middleware/validateUUID');
-const { createTransactionSchema } = require('../validations/transaction.validation');
+const { createTransactionSchema, confirmHandshakeSchema } = require('../validations/transaction.validation');
 
 // All transaction routes require authentication
 router.use(authenticate);
@@ -21,7 +21,7 @@ router.post('/', requireStudent, validate(createTransactionSchema), transactions
 router.get('/:id', validateUUID('id'), transactionsController.getTransactionById);
 
 // Mark transaction completed (both roles can mediate)
-router.patch('/:id/complete', validateUUID('id'), transactionsController.completeTransaction);
+router.patch('/:id/handshake/confirm', validateUUID('id'), validate(confirmHandshakeSchema), transactionsController.confirmHandshake);\nrouter.patch('/:id/complete', validateUUID('id'), validate(confirmHandshakeSchema), transactionsController.completeTransaction);
 
 // Cancel transaction (both roles can mediate)
 router.patch('/:id/cancel', validateUUID('id'), transactionsController.cancelTransaction);
