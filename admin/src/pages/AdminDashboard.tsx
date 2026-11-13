@@ -2731,7 +2731,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 style={{ padding: '0.55rem', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 800, backgroundColor: '#059669', color: '#FFFFFF', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
               >
                 <Check size={13} />
-                <span>Remedy / Refund</span>
+                <span>Record Settlement</span>
               </button>
               <button
                 onClick={() => handleConfirmDisputeVerdict('warning')}
