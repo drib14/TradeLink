@@ -276,6 +276,7 @@ const createTransaction = asyncHandler(async (req, res, next) => {
     payment_status: paymentMethod === 'free' ? 'paid' : 'unpaid',
     status: 'pending',
     verification_code_hash: handshakeCodeHash,
+    handshake_code_sent_at: new Date(),
     failed_handshake_attempts: 0,
     selected_variation: selectedVariation ? String(selectedVariation).trim() : null,
     variation_id: variationId || null,
@@ -318,7 +319,7 @@ const createTransaction = asyncHandler(async (req, res, next) => {
     ]);
     if (buyerUser && sellerUser) {
       await Promise.allSettled([
-        emailService.sendOrderPlacedBuyerEmail(buyerUser, sellerUser, newTx, listing, req),
+        emailService.sendOrderPlacedBuyerEmail(buyerUser, sellerUser, newTx, listing, req, handshakeCode),
         emailService.sendNewOrderSellerEmail(sellerUser, buyerUser, newTx, listing, req)
       ]);
     }
@@ -344,106 +345,269 @@ const createTransaction = asyncHandler(async (req, res, next) => {
 /**
  * Mark transaction as completed (by buyer, seller, or admin)
  */
-const completeTransaction = asyncHandler(async (req, res, next) => {
+/**
+ * Record one participant's independent confirmation of the physical exchange.
+ * The seller must validate the buyer's one-time handshake code. The buyer
+ * independently confirms receipt. Completion is atomic and requires both.
+ */
+const confirmHandshake = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
+  const { handshakeCode } = req.body || {};
+  const now = new Date();
 
-  const tx = await db('transactions').where({ id }).first();
-  if (!tx) {
-    return next(new AppError('Transaction not found.', 404));
-  }
+  const result = await db.transaction(async (trx) => {
+    const tx = await trx('transactions').where({ id }).forUpdate().first();
+    if (!tx) throw new AppError('Transaction not found.', 404);
 
-  // Only the seller or an administrator can mark the transaction as completed
-  if (req.user.id !== tx.seller_id && req.user.role !== 'admin') {
-    return next(new AppError('Only the seller can mark this transaction as completed.', 403));
-  }
-
-  if (tx.status === 'completed') {
-    return next(new AppError('Transaction is already completed.', 400));
-  }
-
-  // Check if handshake verification is currently locked due to brute force attempts
-  if (tx.handshake_locked_until && new Date() < new Date(tx.handshake_locked_until)) {
-    const remainingMins = Math.ceil((new Date(tx.handshake_locked_until).getTime() - Date.now()) / 60000);
-    return next(new AppError(`Handshake verification is temporarily locked. Please try again in ${remainingMins} minute(s).`, 429));
-  }
-
-  // Enforce Handshake Code verification for student completions (administrators can bypass in disputes)
-  if (req.user.role !== 'admin' && tx.verification_code_hash) {
-    const { handshakeCode } = req.body;
-    if (!handshakeCode) {
-      return next(new AppError('Buyer handshake verification code is required to finalize this trade.', 400));
+    const isBuyer = req.user.id === tx.buyer_id;
+    const isSeller = req.user.id === tx.seller_id;
+    const isAdmin = req.user.role === 'admin';
+    if (!isBuyer && !isSeller && !isAdmin) {
+      throw new AppError('Only the buyer and seller can confirm this handshake.', 403);
     }
 
-    const isMatch = await verifyCode(String(handshakeCode).trim(), tx.verification_code_hash);
-    if (!isMatch) {
-      const attempts = (tx.failed_handshake_attempts || 0) + 1;
-      if (attempts >= 3) {
-        await db('transactions').where({ id }).update({
-          failed_handshake_attempts: attempts,
-          handshake_locked_until: new Date(Date.now() + 15 * 60 * 1000)
-        });
-        return next(new AppError('Invalid handshake code. Maximum attempts exceeded (3/3). Handshake verification is locked for 15 minutes.', 429));
+    // Admins retain the existing dispute-resolution override for pending or
+    // disputed orders. This is audited separately; it never impersonates a student.
+    if (isAdmin) {
+      if (!['pending', 'disputed'].includes(tx.status)) {
+        throw new AppError(`This transaction cannot be overridden because it is ${tx.status}.`, 400);
       }
-      await db('transactions').where({ id }).update({
-        failed_handshake_attempts: attempts
+      const completedAt = new Date();
+      await trx('transactions').where({ id }).update({
+        status: 'completed',
+        completed_at: completedAt,
+        handshake_completed_at: completedAt,
+        completion_override_by: req.user.id
       });
-      return next(new AppError(`Invalid handshake code. You have ${3 - attempts} attempt(s) remaining.`, 400));
+      await trx('listings').where({ id: tx.listing_id }).update({ status: 'sold' });
+      return {
+        completed: true,
+        adminOverride: true,
+        buyerConfirmedAt: tx.buyer_confirmed_at || null,
+        sellerConfirmedAt: tx.seller_confirmed_at || null,
+        status: 'completed',
+        transaction: tx
+      };
     }
+
+    if (tx.status !== 'pending') {
+      throw new AppError(`This transaction cannot be confirmed because it is ${tx.status}.`, 400);
+    }
+
+    const patch = {};
+    if (isSeller && !tx.seller_confirmed_at) {
+      if (tx.handshake_locked_until && new Date() < new Date(tx.handshake_locked_until)) {
+        const remainingMins = Math.ceil((new Date(tx.handshake_locked_until).getTime() - Date.now()) / 60000);
+        throw new AppError(`Handshake verification is locked. Try again in ${remainingMins} minute(s).`, 429);
+      }
+      if (!tx.verification_code_hash) {
+        throw new AppError('This order does not have a valid handshake code. Contact TradeLink Help & Safety for assistance.', 409);
+      }
+      {
+        if (!/^\d{4}$/.test(String(handshakeCode || '').trim())) {
+          throw new AppError('Enter the buyer’s 4-digit handshake code to verify the in-person exchange.', 400);
+        }
+        const matches = await verifyCode(String(handshakeCode).trim(), tx.verification_code_hash);
+        if (!matches) {
+          const attempts = Number(tx.failed_handshake_attempts || 0) + 1;
+          const lockPatch = attempts >= 3
+            ? { failed_handshake_attempts: attempts, handshake_locked_until: new Date(Date.now() + 15 * 60 * 1000) }
+            : { failed_handshake_attempts: attempts };
+          await trx('transactions').where({ id }).update(lockPatch);
+          return {
+            error: attempts >= 3
+              ? 'Incorrect code. Verification is locked for 15 minutes after 3 failed attempts.'
+              : `Incorrect code. ${3 - attempts} attempt(s) remaining.`,
+            errorStatus: attempts >= 3 ? 429 : 400
+          };
+        }
+      }
+      patch.seller_confirmed_at = now;
+      patch.failed_handshake_attempts = 0;
+      patch.handshake_locked_until = null;
+    }
+
+    if (isBuyer && !tx.buyer_confirmed_at) {
+      if (!tx.seller_confirmed_at) {
+        throw new AppError('The seller must first verify your one-time code at the meetup.', 409);
+      }
+      patch.buyer_confirmed_at = now;
+    }
+
+    const buyerConfirmedAt = tx.buyer_confirmed_at || patch.buyer_confirmed_at || null;
+    const sellerConfirmedAt = tx.seller_confirmed_at || patch.seller_confirmed_at || null;
+    const completed = Boolean(buyerConfirmedAt && sellerConfirmedAt);
+
+    if (completed) {
+      patch.status = 'completed';
+      patch.completed_at = now;
+      patch.handshake_completed_at = now;
+      // Mark monetary methods settled only after both students confirm. Barter
+      // and free-donation orders are not cash payments.
+      if (!['barter', 'free'].includes(String(tx.payment_method || '').toLowerCase())) {
+        patch.payment_status = 'paid';
+      }
+    }
+
+    if (Object.keys(patch).length) {
+      await trx('transactions').where({ id }).update(patch);
+    }
+    if (completed) {
+      await trx('listings').where({ id: tx.listing_id }).update({ status: 'sold' });
+    }
+
+    return {
+      completed,
+      buyerConfirmedAt,
+      sellerConfirmedAt,
+      status: completed ? 'completed' : 'pending',
+      transaction: tx
+    };
+  });
+
+  if (result.error) {
+    return next(new AppError(result.error, result.errorStatus));
   }
 
-  await db.transaction(async (trx) => {
-    await trx('transactions').where({ id }).update({
-      status: 'completed',
-      payment_status: 'paid',
-      failed_handshake_attempts: 0,
-      handshake_locked_until: null,
-      completed_at: new Date()
+  if (result.completed) {
+    const tx = result.transaction;
+    const io = req.app.get('io');
+    await syncTransactionToChat({
+      listingId: tx.listing_id,
+      buyerId: tx.buyer_id,
+      sellerId: tx.seller_id,
+      transactionId: tx.id,
+      referenceNo: tx.reference_no,
+      content: result.adminOverride
+        ? `[Admin Resolution] An administrator completed order #${tx.reference_no} (${listing?.title || 'Campus item'}) after review. This is an administrative resolution, not a record of either student's personal confirmation.`
+        : `[Handshake Completed] Both students confirmed the physical exchange for order #${tx.reference_no} (${listing?.title || 'Campus item'}). The transaction is now complete. Thank you for trading safely on campus!`,
+      isSystem: true,
+      io
     });
 
-    // Mark listing as sold
-    await trx('listings').where({ id: tx.listing_id }).update({ status: 'sold' });
-  });
-
-  // Sync completion system event to chat
-  const io = req.app.get('io');
-  const completedListing = await db('listings').where({ id: tx.listing_id }).first();
-  const completedTitle = completedListing?.title || 'Item';
-  await syncTransactionToChat({
-    listingId: tx.listing_id,
-    buyerId: tx.buyer_id,
-    sellerId: tx.seller_id,
-    transactionId: tx.id,
-    referenceNo: tx.reference_no,
-    content: `[Deal Completed] Order #${tx.reference_no} for "${completedTitle}" is officially COMPLETED! Thank you for trading safely on campus. The buyer can now submit a product review for this item.`,
-    isSystem: true,
-    io
-  });
-
-  // Dispatch completion emails (awaited for serverless resilience)
-  try {
-    const [buyerUser, sellerUser, listing] = await Promise.all([
-      db('users').where({ id: tx.buyer_id }).first(),
-      db('users').where({ id: tx.seller_id }).first(),
-      db('listings').where({ id: tx.listing_id }).first()
-    ]);
-    if (buyerUser && sellerUser && listing) {
-      await Promise.allSettled([
-        emailService.sendOrderStatusUpdateEmail(buyerUser, sellerUser, tx, listing, 'completed', '', req),
-        emailService.sendOrderStatusUpdateEmail(sellerUser, buyerUser, tx, listing, 'completed', '', req)
+    try {
+      const [buyerUser, sellerUser] = await Promise.all([
+        db('users').where({ id: tx.buyer_id }).first(),
+        db('users').where({ id: tx.seller_id }).first()
       ]);
+      if (buyerUser && sellerUser && listing) {
+        await Promise.allSettled([
+          emailService.sendOrderStatusUpdateEmail(buyerUser, sellerUser, tx, listing, 'completed', '', req),
+          emailService.sendOrderStatusUpdateEmail(sellerUser, buyerUser, tx, listing, 'completed', '', req)
+        ]);
+      }
+    } catch (emailErr) {
+      console.error('[TRANSACTION EMAIL] Error dispatching completion emails:', emailErr.message);
     }
-  } catch (emailErr) {
-    console.error('[TRANSACTION EMAIL] Error dispatching completion emails:', emailErr.message);
+  } else {
+    const tx = result.transaction;
+    const io = req.app.get('io');
+    await syncTransactionToChat({
+      listingId: tx.listing_id,
+      buyerId: tx.buyer_id,
+      sellerId: tx.seller_id,
+      transactionId: tx.id,
+      referenceNo: tx.reference_no,
+      content: req.user.id === tx.seller_id
+        ? `[Handshake Update] Seller verification completed for order #${tx.reference_no}. Waiting for the buyer’s independent confirmation.`
+        : `[Handshake Update] Buyer confirmation recorded for order #${tx.reference_no}. Waiting for seller verification.`,
+      isSystem: true,
+      io
+    });
   }
 
   res.status(200).json({
     status: 'success',
-    message: 'Transaction marked as completed! Thank you for trading safely on TradeLink.',
+    message: result.adminOverride
+      ? 'The transaction was completed by an administrator after review.'
+      : result.completed
+        ? 'Both parties confirmed. The transaction is complete!'
+        : 'Your confirmation has been recorded. The transaction will complete after the other party confirms.',
     data: {
-      status: 'completed'
+      status: result.status,
+      completed: result.completed,
+      buyerConfirmedAt: result.buyerConfirmedAt,
+      sellerConfirmedAt: result.sellerConfirmedAt,
+      adminOverride: Boolean(result.adminOverride),
+      completionOverrideBy: result.adminOverride ? req.user.id : null
     }
   });
 });
+
+// Backward-compatible endpoint: completion now follows the same two-party handshake.
+/**
+ * Re-issue the buyer's private meetup code to their registered email.
+ * The code is never returned by this endpoint or exposed to the seller.
+ */
+const requestHandshakeCode = asyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+  const prepared = await db.transaction(async (trx) => {
+    const tx = await trx('transactions').where({ id }).forUpdate().first();
+    if (!tx) throw new AppError('Transaction not found.', 404);
+    if (req.user.id !== tx.buyer_id) {
+      throw new AppError('Only the buyer can request their private handshake code.', 403);
+    }
+    if (tx.status !== 'pending' || tx.seller_confirmed_at) {
+      throw new AppError('A new code can only be issued before the seller verifies the handover.', 409);
+    }
+
+    const now = new Date();
+    if (tx.handshake_locked_until && now < new Date(tx.handshake_locked_until)) {
+      throw new AppError('Handshake verification is temporarily locked. Please contact TradeLink Help & Safety.', 429);
+    }
+    if (tx.handshake_code_sent_at) {
+      const elapsedMs = now.getTime() - new Date(tx.handshake_code_sent_at).getTime();
+      if (elapsedMs < 60 * 1000) {
+        const waitSeconds = Math.ceil((60 * 1000 - elapsedMs) / 1000);
+        throw new AppError(`Please wait ${waitSeconds} second(s) before requesting another email.`, 429);
+      }
+    }
+
+    const [buyer, seller, listing] = await Promise.all([
+      trx('users').where({ id: tx.buyer_id }).first(),
+      trx('users').where({ id: tx.seller_id }).first(),
+      trx('listings').where({ id: tx.listing_id }).first()
+    ]);
+    if (!buyer?.email) {
+      throw new AppError('Your account does not have a registered email address. Contact TradeLink Help & Safety.', 409);
+    }
+
+    const handshakeCode = generate4DigitCode().slice(0, 4);
+    const verificationCodeHash = await hashCode(handshakeCode);
+    await trx('transactions').where({ id }).update({
+      verification_code_hash: verificationCodeHash,
+      failed_handshake_attempts: 0,
+      handshake_locked_until: null,
+      handshake_code_sent_at: now
+    });
+
+    return { tx, buyer, seller, listing, handshakeCode };
+  });
+
+  try {
+    const delivery = await emailService.sendOrderPlacedBuyerEmail(
+      prepared.buyer,
+      prepared.seller,
+      prepared.tx,
+      prepared.listing,
+      req,
+      prepared.handshakeCode
+    );
+    if (delivery && delivery.ok === false) {
+      return next(new AppError('The code email could not be sent. Please try again in one minute or contact TradeLink Help & Safety.', 503));
+    }
+  } catch (emailErr) {
+    console.error('[HANDSHAKE EMAIL] Failed to re-send buyer meetup code:', emailErr.message);
+    return next(new AppError('The code email could not be sent. Please try again in one minute or contact TradeLink Help & Safety.', 503));
+  }
+
+  res.status(200).json({
+    status: 'success',
+    message: 'A new private handshake code has been sent to your registered email address.'
+  });
+});
+
+const completeTransaction = confirmHandshake;
 
 /**
  * Cancel a transaction
@@ -459,6 +623,17 @@ const cancelTransaction = asyncHandler(async (req, res, next) => {
 
   if (req.user.id !== tx.seller_id && req.user.id !== tx.buyer_id && req.user.role !== 'admin') {
     return next(new AppError('Unauthorized to cancel this transaction.', 403));
+  }
+
+  const canCancelStatus = req.user.role === 'admin'
+    ? ['pending', 'disputed'].includes(tx.status)
+    : tx.status === 'pending';
+  if (!canCancelStatus) {
+    return next(new AppError('Only pending transactions can be cancelled. Administrators may also resolve disputed transactions.', 409));
+  }
+
+  if (req.user.role !== 'admin' && (tx.seller_confirmed_at || tx.buyer_confirmed_at)) {
+    return next(new AppError('This exchange has entered the handover stage and can no longer be cancelled. Contact TradeLink Help & Safety for assistance.', 409));
   }
 
   await db.transaction(async (trx) => {
@@ -558,6 +733,8 @@ module.exports = {
   getTransactionById,
   createTransaction,
   completeTransaction,
+  confirmHandshake,
+  requestHandshakeCode,
   cancelTransaction,
   updateTransactionStatus
 };

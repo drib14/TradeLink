@@ -23,6 +23,8 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   Check,
+  Copy,
+  ShieldCheck,
   Ban,
   Filter,
   X
@@ -35,7 +37,7 @@ interface TransactionsPageProps {
 }
 
 export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, onOpenChat, onOpenAuth }) => {
-  const { transactions, completeTransaction, cancelTransaction, openChatWithSeller, openChatForTransaction } = useChat();
+  const { transactions, confirmHandshake, requestHandshakeCode, cancelTransaction, openChatForTransaction } = useChat();
   const { currentUser, isAuthenticated } = useAuth();
   const { showToast } = useToast();
 
@@ -45,6 +47,7 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
   const [selectedReceiptTx, setSelectedReceiptTx] = useState<Transaction | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [confirmCompleteTx, setConfirmCompleteTx] = useState<Transaction | null>(null);
+  const [handshakePromptTx, setHandshakePromptTx] = useState<Transaction | null>(null);
   const [cancelPromptTx, setCancelPromptTx] = useState<Transaction | null>(null);
 
   if (!isAuthenticated || !currentUser) {
@@ -107,8 +110,39 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
     return true;
   });
 
+  const handleRequestHandshakeCode = async (tx: Transaction) => {
+    setActionLoadingId(tx.id);
+    try {
+      await requestHandshakeCode(tx.id);
+      showToast('Code sent', 'A fresh private meetup code was sent to your registered email address.', 'success');
+    } catch (err: unknown) {
+      showToast('Could not send code', err instanceof Error ? err.message : 'Please check your registered email and try again.', 'error');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
   const handleComplete = (tx: Transaction) => {
-    setConfirmCompleteTx(tx);
+    setHandshakePromptTx(tx);
+  };
+
+  const handleSellerHandshake = async (code: string) => {
+    if (!handshakePromptTx) return;
+    const tx = handshakePromptTx;
+    setActionLoadingId(tx.id);
+    try {
+      const result = await confirmHandshake(tx.id, code);
+      showToast(
+        result.completed ? 'Trade Completed' : 'Seller Verification Saved',
+        result.completed ? 'Both parties confirmed the exchange.' : 'The buyer must now confirm receipt.',
+        'success'
+      );
+      setHandshakePromptTx(null);
+    } catch (err: unknown) {
+      showToast('Handshake Verification Failed', err instanceof Error ? err.message : 'Check the 4-digit code and try again.', 'error');
+    } finally {
+      setActionLoadingId(null);
+    }
   };
 
   const handleConfirmComplete = async () => {
@@ -116,11 +150,15 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
     const tx = confirmCompleteTx;
     setActionLoadingId(tx.id);
     try {
-      await completeTransaction(tx.id);
-      showToast('Transaction Completed!', `Order ${tx.referenceNo} marked as complete.`, 'success');
+      const result = await confirmHandshake(tx.id);
+      showToast(
+        result.completed ? 'Trade Completed' : 'Receipt Confirmed',
+        result.completed ? 'Both parties confirmed the exchange.' : 'Your receipt confirmation was saved.',
+        'success'
+      );
       setConfirmCompleteTx(null);
-    } catch (err: any) {
-      showToast('Failed to Complete', err?.message || 'Unable to update transaction.', 'error');
+    } catch (err: unknown) {
+      showToast('Confirmation Failed', err instanceof Error ? err.message : 'Unable to confirm receipt.', 'error');
     } finally {
       setActionLoadingId(null);
     }
@@ -421,13 +459,13 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
                 {/* Campus Order Lifecycle Timeline */}
                 <div style={{ display: 'flex', alignItems: 'center', width: '100%', padding: '0.6rem 0.5rem', backgroundColor: 'var(--bg-subtle, #F8FAFC)', borderRadius: '8px', border: '1px solid var(--border-subtle, #F1F5F9)' }}>
                   {[
-                    { num: 1, label: 'Order Placed' },
-                    { num: 2, label: 'Chat Agreed' },
-                    { num: 3, label: 'Meetup Handover' },
-                    { num: 4, label: isCancelled ? 'Cancelled' : 'Settled' }
+                    { num: 1, label: 'Order Placed', done: true },
+                    { num: 2, label: 'Seller Verified', done: Boolean(tx.sellerConfirmedAt) },
+                    { num: 3, label: 'Buyer Confirmed', done: Boolean(tx.buyerConfirmedAt) },
+                    { num: 4, label: isCancelled ? 'Cancelled' : 'Completed', done: isCompleted }
                   ].map((step, idx) => {
-                    const isDone = isCompleted || (isPending && idx < 2);
-                    const isCurrent = (isPending && idx === 2) || (isCancelled && idx === 3);
+                    const isDone = Boolean(step.done) || (idx === 0);
+                    const isCurrent = (isPending && idx === (tx.sellerConfirmedAt ? 2 : 1)) || (isCancelled && idx === 3);
                     const isStepCancelled = isCancelled && idx === 3;
 
                     return (
@@ -491,6 +529,75 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
                   })}
                 </div>
 
+                {/* Buyer-only one-time handshake code: never shown to the seller or re-fetched from the API. */}
+                {isBuyer && isPending && tx.verificationCode && !tx.sellerConfirmedAt && (
+                  <div style={{ padding: '0.85rem 1rem', borderRadius: '10px', background: '#EFF6FF', border: '1px solid #BFDBFE' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#1D4ED8', fontWeight: 800, fontSize: '0.78rem' }}>
+                      <ShieldCheck size={15} /> Your private meetup code
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginTop: '0.35rem', flexWrap: 'wrap' }}>
+                      <span style={{ fontFamily: 'monospace', letterSpacing: '0.24em', fontSize: '1.55rem', fontWeight: 900, color: '#1E3A8A' }}>{tx.verificationCode}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(tx.verificationCode || '');
+                              showToast('Code copied', 'Keep it private and show it to the seller in person only.', 'success');
+                            } catch {
+                              showToast('Copy unavailable', 'Please write down your 4-digit code and keep it private.', 'info');
+                            }
+                          }}
+                          className="btn-secondary"
+                          style={{ padding: '0.35rem 0.6rem', fontSize: '0.72rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                        >
+                          <Copy size={12} /> Copy code
+                        </button>
+                        <span style={{ fontSize: '0.72rem', color: '#1E40AF', maxWidth: '260px' }}>Show in person only after inspection and agreement on the exchange. Never send it in chat. Keep this code private.</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {isBuyer && isPending && !tx.verificationCode && !tx.sellerConfirmedAt && (
+                  <div style={{ padding: '0.85rem 1rem', borderRadius: '10px', background: 'var(--bg-subtle)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.8rem', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-primary)' }}>Need your meetup code?</span>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Check your registered email, including spam. You can request a fresh private code here.</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRequestHandshakeCode(tx)}
+                      disabled={actionLoadingId === tx.id}
+                      className="btn-secondary"
+                      style={{ padding: '0.45rem 0.7rem', fontSize: '0.74rem', fontWeight: 800 }}
+                    >
+                      {actionLoadingId === tx.id ? 'Sending…' : 'Resend code by email'}
+                    </button>
+                  </div>
+                )}
+
+                {isPending && tx.sellerConfirmedAt && !tx.buyerConfirmedAt && isBuyer && (
+                  <div style={{ padding: '0.85rem 1rem', borderRadius: '10px', background: '#F0FDF4', border: '1px solid #BBF7D0', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div style={{ color: '#166534', fontSize: '0.8rem', fontWeight: 700 }}>The seller verified your code. Confirm only after you have received and inspected the item.</div>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmCompleteTx(tx)}
+                      disabled={actionLoadingId === tx.id}
+                      className="btn-primary"
+                      style={{ alignSelf: 'flex-start', padding: '0.55rem 0.9rem', fontSize: '0.78rem', fontWeight: 800 }}
+                    >
+                      <Check size={14} /> Confirm completed exchange
+                    </button>
+                  </div>
+                )}
+
+                {isPending && tx.sellerConfirmedAt && !tx.buyerConfirmedAt && !isBuyer && (
+                  <div style={{ padding: '0.7rem 0.9rem', borderRadius: '9px', background: 'var(--bg-subtle)', color: 'var(--text-secondary)', fontSize: '0.78rem' }}>
+                    Your verification is saved. Waiting for the buyer to confirm receipt.
+                  </div>
+                )}
+
                 {/* Card Bottom: Action Buttons */}
                 <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', paddingTop: '0.5rem', borderTop: '1px solid var(--border-subtle, #F1F5F9)' }}>
                   {/* Digital Receipt View */}
@@ -516,32 +623,44 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
                   {/* Pending Order Actions */}
                   {isPending && (
                     <>
-                      <button
-                        onClick={() => handleCancel(tx)}
-                        disabled={actionLoadingId === tx.id}
-                        className="btn-ghost"
-                        style={{ padding: '0.4rem 0.65rem', fontSize: '0.76rem', fontWeight: 700, color: '#DC2626', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
-                      >
-                        <Ban size={13} />
-                        <span>Cancel</span>
-                      </button>
+                      {!tx.sellerConfirmedAt ? (
+                        <button
+                          onClick={() => handleCancel(tx)}
+                          disabled={actionLoadingId === tx.id}
+                          className="btn-ghost"
+                          style={{ padding: '0.4rem 0.65rem', fontSize: '0.76rem', fontWeight: 700, color: '#DC2626', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                        >
+                          <Ban size={13} />
+                          <span>Cancel</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => onNavigate('help-safety')}
+                          className="btn-ghost"
+                          style={{ padding: '0.4rem 0.65rem', fontSize: '0.76rem', fontWeight: 700, color: 'var(--uc-blue)', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                        >
+                          <ShieldCheck size={13} />
+                          <span>Need help?</span>
+                        </button>
+                      )}
 
-                      {!isBuyer ? (
+                      {!isBuyer && !tx.sellerConfirmedAt ? (
                         <button
                           onClick={() => handleComplete(tx)}
                           disabled={actionLoadingId === tx.id}
                           className="btn-primary"
                           style={{ padding: '0.4rem 0.95rem', fontSize: '0.76rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
                         >
-                          <Check size={13} />
-                          <span>Mark Completed</span>
+                          <ShieldCheck size={13} />
+                          <span>Verify Handshake</span>
                         </button>
-                      ) : (
+                      ) : isBuyer && !tx.sellerConfirmedAt ? (
                         <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', backgroundColor: 'var(--bg-subtle)', padding: '0.35rem 0.65rem', borderRadius: '6px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
                           <Clock size={12} />
-                          <span>Awaiting Seller Completion</span>
+                          <span>Waiting for seller verification</span>
                         </span>
-                      )}
+                      ) : null}
                     </>
                   )}
                 </div>
@@ -560,17 +679,32 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
         />
       )}
 
-      {/* Settlement Confirmation Modal */}
+      {/* Buyer independently confirms receipt after seller code verification. */}
       <ConfirmModal
         isOpen={Boolean(confirmCompleteTx)}
-        title="Confirm Order Settlement"
-        message={`Confirm order settlement for "${confirmCompleteTx?.listingTitle}"? This will complete the transaction and release funds.`}
-        confirmText="Complete Settlement"
-        cancelText="Keep Open"
-        variant="primary"
+        title="Confirm completed exchange"
+        message={`Have you received and inspected "${confirmCompleteTx?.listingTitle}" and completed the agreed payment or exchange terms? Confirm only when the transaction is fully settled.`}
+        confirmText="Yes, I received it"
+        cancelText="Not yet"
+        variant="success"
         isLoading={actionLoadingId === confirmCompleteTx?.id}
         onConfirm={handleConfirmComplete}
         onCancel={() => setConfirmCompleteTx(null)}
+      />
+
+      {/* Seller verifies the buyer's private 4-digit code at the physical meetup. */}
+      <PromptModal
+        isOpen={Boolean(handshakePromptTx)}
+        title="Verify the meetup handshake"
+        message={`Confirm the item has been handed over and the agreed payment or swap terms are settled. Then ask the buyer to show their private 4-digit code in person for order ${handshakePromptTx?.referenceNo}.`}
+        placeholder="Enter 4-digit buyer code"
+        inputType="number"
+        required
+        confirmText="Verify code"
+        cancelText="Cancel"
+        isLoading={actionLoadingId === handshakePromptTx?.id}
+        onSubmit={handleSellerHandshake}
+        onCancel={() => setHandshakePromptTx(null)}
       />
 
       {/* Cancellation Prompt Modal */}

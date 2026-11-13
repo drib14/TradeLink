@@ -4,8 +4,8 @@ import { useChat } from '../context/ChatContext';
 import { useMarket } from '../context/MarketContext';
 import { VerifiedBadge } from '../components/common/VerifiedBadge';
 import { UserAvatar } from '../components/common/UserAvatar';
-import { ConfirmModal } from '../components/common/ConfirmModal';
 import { PromptModal } from '../components/common/PromptModal';
+import { ConfirmModal } from '../components/common/ConfirmModal';
 import { TradeLinkIcon } from '../components/common/TradeLinkIcon';
 import { useToast } from '../components/common/Toast';
 import { formatRelativeTime } from '../utils/date';
@@ -80,7 +80,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
     sendTypingStatus,
     typingUsers,
     transactions,
-    completeTransaction,
+    confirmHandshake,
     cancelTransaction
   } = useChat();
 
@@ -98,6 +98,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
 
   // Modals state
   const [completeTxModal, setCompleteTxModal] = useState<{ id: string; refNo: string; title?: string } | null>(null);
+  const [confirmReceiptTxModal, setConfirmReceiptTxModal] = useState<{ id: string; refNo: string; title?: string } | null>(null);
   const [cancelTxModal, setCancelTxModal] = useState<{ id: string; refNo: string; title?: string } | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -259,6 +260,9 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
         buyerName: currentUser?.name || '',
         selectedVariation: act.selectedVariation || null,
         verificationCode: act.verificationCode || undefined,
+        buyerConfirmedAt: act.buyerConfirmedAt || null,
+        sellerConfirmedAt: act.sellerConfirmedAt || null,
+        handshakeCompletedAt: act.handshakeCompletedAt || null,
         tradeMode: (activeConversation.listingTradeMode || 'buy_sell') as any,
         createdAt: new Date().toISOString()
       } as Transaction;
@@ -1089,7 +1093,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
 
                       {/* Status / Actions */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                        {activeDealTx.status === 'pending' && isSellerInDeal && (
+                                        {activeDealTx.status === 'pending' && isSellerInDeal && !activeDealTx.sellerConfirmedAt && (
                           <>
                             <button
                               type="button"
@@ -1097,7 +1101,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
                               className="btn-primary"
                               style={{ fontSize: '0.72rem', padding: '0.3rem 0.65rem', borderRadius: '6px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
                             >
-                              <CheckCircle2 size={13} /> Complete Deal
+                              <CheckCircle2 size={13} /> Verify buyer code
                             </button>
                             <button
                               type="button"
@@ -1110,10 +1114,25 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
                           </>
                         )}
 
-                        {activeDealTx.status === 'pending' && isBuyerInDeal && (
+                        {activeDealTx.status === 'pending' && isSellerInDeal && activeDealTx.sellerConfirmedAt && !activeDealTx.buyerConfirmedAt && (
+                          <span style={{ fontSize: '0.72rem', color: '#047857', fontWeight: 700 }}>Code verified · Waiting for buyer confirmation</span>
+                        )}
+
+                        {activeDealTx.status === 'pending' && isBuyerInDeal && !activeDealTx.sellerConfirmedAt && (
                           <div style={{ fontSize: '0.72rem', color: '#92400E', fontWeight: 700 }}>
-                            Inspect item before releasing payment!
+                            Inspect the item. The seller must verify your private code first.
                           </div>
+                        )}
+
+                        {activeDealTx.status === 'pending' && isBuyerInDeal && activeDealTx.sellerConfirmedAt && !activeDealTx.buyerConfirmedAt && (
+                          <button
+                            type="button"
+                            onClick={() => setConfirmReceiptTxModal({ id: activeDealTx.id, refNo: activeDealTx.referenceNo, title: activeDealTx.listingTitle })}
+                            className="btn-primary"
+                            style={{ fontSize: '0.72rem', padding: '0.3rem 0.65rem', borderRadius: '6px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                          >
+                            <CheckCircle2 size={13} /> Confirm item received
+                          </button>
                         )}
                       </div>
                     </div>
@@ -1134,6 +1153,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
                           <span style={{ fontFamily: 'monospace', fontWeight: 900, backgroundColor: '#FEF3C7', padding: '0.1rem 0.45rem', borderRadius: '4px', border: '1px solid #FCD34D', color: '#B45309' }}>
                             {activeDealTx.verificationCode}
                           </span>
+                          <span style={{ color: '#92400E', fontSize: '0.68rem' }}>Show in person only. Never send this code in chat.</span>
                         </div>
                       )}
                     </div>
@@ -1455,26 +1475,59 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
         )}
       </div>
 
-      {/* Complete Transaction Modal */}
+      {/* Seller verifies the buyer's one-time code at the physical meetup. */}
       {completeTxModal && (
-        <ConfirmModal
+        <PromptModal
           isOpen={Boolean(completeTxModal)}
-          title="Complete Campus Order"
-          message={`Are you sure you want to mark Order #${completeTxModal.refNo}${completeTxModal.title ? ` for "${completeTxModal.title}"` : ''} as completed? Please ensure you have met in person and verified item condition & payment.`}
-          confirmText="Yes, Complete Order"
-          cancelText="Not Yet"
-          variant="primary"
-          onConfirm={async () => {
+          title="Verify meetup handshake"
+          message={`Ask the buyer to show their private 4-digit code in person for order #${completeTxModal.refNo}. Submit only after the item has been handed over and any agreed payment or swap terms have been settled.`}
+          placeholder="Enter 4-digit buyer code"
+          inputType="number"
+          required
+          confirmText="Verify code"
+          cancelText="Not yet"
+          onSubmit={async (code) => {
             const txId = completeTxModal.id;
-            setCompleteTxModal(null);
             try {
-              await completeTransaction(txId);
-              showToast('Transaction Completed', 'Order marked as complete. Thank you for trading safely!', 'success');
-            } catch (err: any) {
-              showToast('Action Failed', err?.message || 'Could not complete transaction.', 'error');
+              const result = await confirmHandshake(txId, code);
+              setCompleteTxModal(null);
+              showToast(
+                result.completed ? 'Trade Completed' : 'Seller Verification Saved',
+                result.completed ? 'Both parties confirmed the exchange.' : 'Waiting for the buyer to confirm the exchange from chat or Transactions.',
+                'success'
+              );
+            } catch (err: unknown) {
+              showToast('Handshake Verification Failed', err instanceof Error ? err.message : 'Check the 4-digit code and try again.', 'error');
             }
           }}
           onCancel={() => setCompleteTxModal(null)}
+        />
+      )}
+
+      {/* Buyer independently confirms receipt after inspecting the exchanged item. */}
+      {confirmReceiptTxModal && (
+        <ConfirmModal
+          isOpen={Boolean(confirmReceiptTxModal)}
+          title="Confirm completed exchange"
+          message={`Have you received and inspected "${confirmReceiptTxModal.title || 'the item'}" and completed the agreed payment or exchange terms for order #${confirmReceiptTxModal.refNo}? Confirm only when everything is settled.`}
+          confirmText="Yes, I received it"
+          cancelText="Not yet"
+          variant="success"
+          onConfirm={async () => {
+            const txId = confirmReceiptTxModal.id;
+            try {
+              const result = await confirmHandshake(txId);
+              setConfirmReceiptTxModal(null);
+              showToast(
+                result.completed ? 'Trade Completed' : 'Receipt Confirmation Saved',
+                result.completed ? 'Both parties confirmed the exchange.' : 'Your confirmation has been recorded.',
+                'success'
+              );
+            } catch (err: unknown) {
+              showToast('Confirmation Failed', err instanceof Error ? err.message : 'Could not confirm receipt.', 'error');
+            }
+          }}
+          onCancel={() => setConfirmReceiptTxModal(null)}
         />
       )}
 

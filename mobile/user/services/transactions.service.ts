@@ -34,11 +34,21 @@ export const mobileTransactionsService = {
     return res.data;
   },
 
-  async completeTransaction(id: string, handshakeCode: string) {
-    const res = await mobileApi.patch(`/transactions/${id}/complete`, {
-      handshakeCode: handshakeCode.trim(),
+  async requestHandshakeCode(id: string) {
+    const res = await mobileApi.post(`/transactions/${id}/handshake/request-code`);
+    return res.data;
+  },
+
+  async confirmHandshake(id: string, handshakeCode?: string) {
+    const res = await mobileApi.patch(`/transactions/${id}/handshake/confirm`, {
+      ...(handshakeCode ? { handshakeCode: handshakeCode.trim() } : {}),
     });
     return res.data;
+  },
+
+  // Backward-compatible helper for older mobile code paths.
+  completeTransaction(id: string, handshakeCode: string) {
+    return this.confirmHandshake(id, handshakeCode);
   },
 
   async cancelTransaction(id: string, reason: string = 'Cancelled by mutual student agreement') {

@@ -218,6 +218,10 @@ export interface Transaction {
   selectedVariation?: string | null;
   variationId?: string | null;
   completedAt?: string;
+  buyerConfirmedAt?: string | null;
+  sellerConfirmedAt?: string | null;
+  handshakeCompletedAt?: string | null;
+  completionOverrideBy?: string | null;
   cancelledAt?: string;
   cancellationReason?: string;
   createdAt: string;
@@ -285,6 +289,9 @@ export interface Conversation {
     buyerId?: string;
     sellerId?: string;
     notes?: string | null;
+    buyerConfirmedAt?: string | null;
+    sellerConfirmedAt?: string | null;
+    handshakeCompletedAt?: string | null;
     isBuyer?: boolean;
   } | null;
   activeSwap?: {

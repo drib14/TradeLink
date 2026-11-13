@@ -219,6 +219,10 @@ export const chatService = {
         selectedVariation: t.selectedVariation || t.selected_variation || null,
         variationId: t.variationId || t.variation_id || null,
         completedAt: t.completedAt || t.completed_at,
+        buyerConfirmedAt: t.buyerConfirmedAt || t.buyer_confirmed_at || null,
+        sellerConfirmedAt: t.sellerConfirmedAt || t.seller_confirmed_at || null,
+        handshakeCompletedAt: t.handshakeCompletedAt || t.handshake_completed_at || null,
+        completionOverrideBy: t.completionOverrideBy || t.completion_override_by || null,
         cancelledAt: t.cancelledAt || t.cancelled_at,
         cancellationReason: t.cancellationReason || t.cancellation_reason,
         createdAt: t.createdAt || t.created_at || new Date().toISOString()
@@ -237,12 +241,36 @@ export const chatService = {
     selectedVariation?: string;
     variationId?: string;
   }): Promise<Transaction> {
-    const res = await api.post<{ transaction: any }>('/transactions', data);
-    return res.data?.transaction || res.data;
+    const res = await api.post<{ transaction: Transaction; handshakeCode?: string }>('/transactions', data);
+    const transaction = res.data?.transaction;
+    if (!transaction) {
+      throw new Error('The transaction could not be created. Please try again.');
+    }
+    // The raw code is returned once to the buyer at creation and is never reloaded from the API.
+    if (res.data?.handshakeCode) {
+      transaction.verificationCode = String(res.data.handshakeCode);
+    }
+    return transaction;
   },
 
-  async completeTransaction(id: string): Promise<void> {
-    await api.patch(`/transactions/${id}/complete`);
+  async confirmHandshake(id: string, handshakeCode?: string): Promise<{
+    status: string;
+    completed: boolean;
+    buyerConfirmedAt?: string | null;
+    sellerConfirmedAt?: string | null;
+  }> {
+    const res = await api.patch(`/transactions/${id}/handshake/confirm`, {
+      ...(handshakeCode ? { handshakeCode: handshakeCode.trim() } : {})
+    });
+    return res.data || res;
+  },
+
+  async requestHandshakeCode(id: string): Promise<void> {
+    await api.post(`/transactions/${id}/handshake/request-code`);
+  },
+
+  async completeTransaction(id: string, handshakeCode?: string): Promise<void> {
+    await this.confirmHandshake(id, handshakeCode);
   },
 
   async cancelTransaction(id: string, reason?: string): Promise<void> {
