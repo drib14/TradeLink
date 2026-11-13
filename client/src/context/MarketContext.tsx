@@ -155,8 +155,9 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const deleteListing = async (id: string) => {
-    setListings((prev) => prev.filter((item) => item.id !== id));
+    // Only remove the card after the backend confirms deletion or archival.
     await listingsService.deleteListing(id);
+    setListings((prev) => prev.filter((item) => item.id !== id));
   };
 
   const toggleFavorite = async (id: string) => {
