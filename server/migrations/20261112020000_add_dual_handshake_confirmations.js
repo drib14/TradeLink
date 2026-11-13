@@ -7,7 +7,8 @@ exports.up = async function(knex) {
   const additions = [
     ['buyer_confirmed_at', (t) => t.timestamp('buyer_confirmed_at').nullable()],
     ['seller_confirmed_at', (t) => t.timestamp('seller_confirmed_at').nullable()],
-    ['handshake_completed_at', (t) => t.timestamp('handshake_completed_at').nullable()]
+    ['handshake_completed_at', (t) => t.timestamp('handshake_completed_at').nullable()],
+    ['completion_override_by', (t) => t.string('completion_override_by', 36).nullable()]
   ];
 
   for (const [column, addColumn] of additions) {
@@ -22,7 +23,7 @@ exports.up = async function(knex) {
  */
 exports.down = async function(knex) {
   const table = 'transactions';
-  const columns = ['handshake_completed_at', 'seller_confirmed_at', 'buyer_confirmed_at'];
+  const columns = ['completion_override_by', 'handshake_completed_at', 'seller_confirmed_at', 'buyer_confirmed_at'];
   for (const column of columns) {
     if (await knex.schema.hasColumn(table, column)) {
       await knex.schema.alterTable(table, (t) => t.dropColumn(column));
