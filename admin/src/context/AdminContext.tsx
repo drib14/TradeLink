@@ -202,16 +202,19 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const removeListingByAdmin = async (flagId: string, listingId: string, reason?: string) => {
-    if (listingId) {
-      setListings((prev) => prev.filter((l) => l.id !== listingId));
+    if (!listingId) {
+      throw new Error('A listing ID is required to remove a listing.');
     }
+
+    // Persist the action before changing local state so a failed API request
+    // never makes a listing disappear only in the dashboard.
     if (flagId && flagId !== 'direct' && flagId !== 'scanner') {
-      setFlaggedListings((prev) => prev.filter((f) => f.id !== flagId));
       await adminService.removeListing(flagId, reason);
-    } else if (listingId) {
+    } else {
       await adminService.deleteListing(listingId);
     }
-    fetchAdminData();
+
+    await fetchAdminData();
   };
 
   const createListingByAdmin = async (data: any) => {
@@ -231,9 +234,8 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const deleteListingByAdmin = async (id: string) => {
-    setListings((prev) => prev.filter((l) => l.id !== id));
     await adminService.deleteListing(id);
-    fetchAdminData();
+    await fetchAdminData();
   };
 
   const deleteFlashRequest = async (requestId: string, reason?: string) => {
