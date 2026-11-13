@@ -12,39 +12,71 @@ import {
   StatusBar,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useMarket } from '../../context/MarketContext';
+import { useAuth } from '../../context/AuthContext';
+import { mobileChatService } from '../../services/flashMarket.service';
 import { Conversation } from '../../types';
 import { VerifiedBadge } from '../../components/VerifiedBadge';
 
 export default function MessagesScreen() {
   const { conversations, addMessageToConversation } = useMarket();
+  const { currentUser } = useAuth();
   const [selectedConv, setSelectedConv] = useState<Conversation | null>(null);
-  const [chatMessages, setChatMessages] = useState<{ id: string; sender: 'me' | 'other'; text: string; time: string }[]>([
-    { id: '1', sender: 'other', text: 'Hi! Is this still available for meetup?', time: '10:45 AM' },
-    { id: '2', sender: 'me', text: 'Yes, it is in like-new condition! What time works for you?', time: '10:48 AM' },
-  ]);
+  const [chatMessages, setChatMessages] = useState<{ id: string; sender: 'me' | 'other'; text: string; time: string }[]>([]);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [inputMsg, setInputMsg] = useState('');
 
-  const handleOpenChat = (conv: Conversation) => {
+  const handleOpenChat = async (conv: Conversation) => {
     setSelectedConv(conv);
-    setChatMessages([
-      { id: '1', sender: 'other', text: conv.lastMessage, time: conv.lastMessageTimestamp || conv.lastMessageAt || 'Today' },
-    ]);
+    setChatMessages([]);
+    setIsLoadingMessages(true);
+    try {
+      const messages = await mobileChatService.getMessages(conv.id);
+      setChatMessages((Array.isArray(messages) ? messages : []).map((message: any) => ({
+        id: String(message.id),
+        sender: message.senderId === currentUser?.id ? 'me' : 'other',
+        text: message.content || '',
+        time: message.timestamp ? new Date(message.timestamp).toLocaleString([], { hour: 'numeric', minute: '2-digit' }) : '',
+      })));
+    } catch (error) {
+      console.warn('Failed to load conversation messages:', error);
+      Alert.alert('Unable to load messages', 'Please check your connection and try again.');
+    } finally {
+      setIsLoadingMessages(false);
+    }
   };
 
-  const handleSendMessage = () => {
-    if (!inputMsg.trim() || !selectedConv) return;
-    const newMsg = {
-      id: String(Date.now()),
-      sender: 'me' as const,
-      text: inputMsg.trim(),
-      time: 'Just now',
-    };
-    setChatMessages((prev) => [...prev, newMsg]);
-    addMessageToConversation(selectedConv.id, inputMsg.trim());
-    setInputMsg('');
+  const handleSendMessage = async () => {
+    if (!inputMsg.trim() || !selectedConv || !currentUser) return;
+    const receiverId = selectedConv.otherParticipant?.id ||
+      selectedConv.participantId ||
+      selectedConv.participantIds?.find((id) => id !== currentUser.id);
+    if (!receiverId) {
+      Alert.alert('Unable to send', 'The recipient for this conversation could not be identified.');
+      return;
+    }
+    const content = inputMsg.trim();
+    try {
+      const saved = await mobileChatService.sendMessage({
+        conversationId: selectedConv.id,
+        receiverId,
+        content,
+      });
+      setChatMessages((prev) => [...prev, {
+        id: String(saved?.id || Date.now()),
+        sender: 'me',
+        text: saved?.content || content,
+        time: saved?.timestamp ? new Date(saved.timestamp).toLocaleString([], { hour: 'numeric', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+      }]);
+      addMessageToConversation(selectedConv.id, content);
+      setInputMsg('');
+    } catch (error) {
+      console.warn('Failed to send conversation message:', error);
+      Alert.alert('Message not sent', 'Please try again when your connection is stable.');
+    }
   };
 
   return (
@@ -160,6 +192,7 @@ export default function MessagesScreen() {
             <FlatList
               data={chatMessages}
               keyExtractor={(item) => item.id}
+              ListEmptyComponent={isLoadingMessages ? <Text style={{ textAlign: 'center', color: '#64748B', padding: 20 }}>Loading messages…</Text> : <Text style={{ textAlign: 'center', color: '#64748B', padding: 20 }}>No messages yet. Start the conversation.</Text>}
               contentContainerStyle={styles.messagesList}
               renderItem={({ item }) => {
                 const isMe = item.sender === 'me';
