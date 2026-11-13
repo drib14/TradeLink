@@ -18,6 +18,15 @@ node_modules/
 
 # =========================
 
+# RUNTIME USER UPLOADS
+
+# =========================
+
+server/uploads/
+!server/uploads/.gitkeep
+
+# =========================
+
 # LOGS
 
 # =========================
