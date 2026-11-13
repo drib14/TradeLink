@@ -4,7 +4,6 @@ import { useChat } from '../context/ChatContext';
 import { useMarket } from '../context/MarketContext';
 import { VerifiedBadge } from '../components/common/VerifiedBadge';
 import { UserAvatar } from '../components/common/UserAvatar';
-import { ConfirmModal } from '../components/common/ConfirmModal';
 import { PromptModal } from '../components/common/PromptModal';
 import { TradeLinkIcon } from '../components/common/TradeLinkIcon';
 import { useToast } from '../components/common/Toast';
