@@ -299,6 +299,7 @@ const respondToSwap = asyncHandler(async (req, res, next) => {
       payment_status: 'paid',
       status: 'pending',
       verification_code_hash: handshakeCodeHash,
+      handshake_code_sent_at: new Date(),
       failed_handshake_attempts: 0,
       handshake_locked_until: null,
       selected_variation: swap.selected_variation || null,
