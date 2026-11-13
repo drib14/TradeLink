@@ -277,6 +277,7 @@ CREATE TABLE `transactions` (
   `verification_code_hash` VARCHAR(255) DEFAULT NULL,
   `failed_handshake_attempts` INT UNSIGNED NOT NULL DEFAULT 0,
   `handshake_locked_until` DATETIME DEFAULT NULL,
+  `handshake_code_sent_at` DATETIME DEFAULT NULL,
   `buyer_confirmed_at` DATETIME DEFAULT NULL,
   `seller_confirmed_at` DATETIME DEFAULT NULL,
   `handshake_completed_at` DATETIME DEFAULT NULL,
