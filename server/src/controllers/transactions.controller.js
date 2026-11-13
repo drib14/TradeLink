@@ -586,7 +586,7 @@ const requestHandshakeCode = asyncHandler(async (req, res, next) => {
   });
 
   try {
-    await emailService.sendOrderPlacedBuyerEmail(
+    const delivery = await emailService.sendOrderPlacedBuyerEmail(
       prepared.buyer,
       prepared.seller,
       prepared.tx,
@@ -594,6 +594,9 @@ const requestHandshakeCode = asyncHandler(async (req, res, next) => {
       req,
       prepared.handshakeCode
     );
+    if (delivery && delivery.ok === false) {
+      return next(new AppError('The code email could not be sent. Please try again in one minute or contact TradeLink Help & Safety.', 503));
+    }
   } catch (emailErr) {
     console.error('[HANDSHAKE EMAIL] Failed to re-send buyer meetup code:', emailErr.message);
     return next(new AppError('The code email could not be sent. Please try again in one minute or contact TradeLink Help & Safety.', 503));
