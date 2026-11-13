@@ -2,7 +2,6 @@ const crypto = require('crypto');
 const db = require('../config/db');
 const verificationSessionService = require('./verificationSession.service');
 const logger = require('../utils/logger');
-const studentDocumentOcr = require('./studentDocumentOcr.service');
 
 /**
  * Computes a SHA-256 hash of an image data string or buffer
@@ -391,7 +390,6 @@ async function evaluateVerification({
 
   // OCR does not prove identity or liveness. Automated approval is deliberately
   // disabled in this zero-cost configuration; every submission remains pending.
-  const trustedLivenessVerified = false;
   const isApproved = false;
 
   // Flag only concrete challenge-bypass and duplicate indicators for administrator review.
