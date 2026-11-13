@@ -221,6 +221,7 @@ export interface Transaction {
   buyerConfirmedAt?: string | null;
   sellerConfirmedAt?: string | null;
   handshakeCompletedAt?: string | null;
+  completionOverrideBy?: string | null;
   cancelledAt?: string;
   cancellationReason?: string;
   createdAt: string;
