@@ -111,7 +111,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, currentUser?.id]);
 
   useEffect(() => {
     refreshAll();
