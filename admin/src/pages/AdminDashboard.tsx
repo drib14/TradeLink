@@ -1248,9 +1248,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     </div>
                   )}
 
-                  {/* Side-by-Side ID & Enrollment Proof Preview */}
-                  <div style={{ display: 'grid', gridTemplateColumns: req.selfiePhotoUrl ? '1fr 1fr' : '1fr', gap: '0.5rem' }}>
-                    {req.idCardImageUrl && (
+                  {/* Live selfie preview for document-free verification */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.5rem' }}>
+                    {req.idCardImageUrl && req.idCardImageUrl !== req.selfiePhotoUrl && (
                       <div
                         onClick={() => setInspectedImage(req.idCardImageUrl)}
                         style={{
@@ -1276,7 +1276,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                             fontWeight: 700
                           }}
                         >
-                          Student ID Card
+                          Additional Verification Image
                         </div>
                       </div>
                     )}
@@ -1293,7 +1293,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                           cursor: 'pointer'
                         }}
                       >
-                        <img src={req.selfiePhotoUrl} alt="Enrollment Proof / COR" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <img src={req.selfiePhotoUrl} alt="Student live selfie" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         <div
                           style={{
                             position: 'absolute',
@@ -1307,7 +1307,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                             fontWeight: 700
                           }}
                         >
-                          Enrollment Proof (COR)
+                          Live Selfie
                         </div>
                       </div>
                     )}
