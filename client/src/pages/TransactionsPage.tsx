@@ -126,8 +126,8 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
         'success'
       );
       setHandshakePromptTx(null);
-    } catch (err: any) {
-      showToast('Handshake Verification Failed', err?.message || 'Check the 4-digit code and try again.', 'error');
+    } catch (err: unknown) {
+      showToast('Handshake Verification Failed', err instanceof Error ? err.message : 'Check the 4-digit code and try again.', 'error');
     } finally {
       setActionLoadingId(null);
     }
@@ -145,8 +145,8 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
         'success'
       );
       setConfirmCompleteTx(null);
-    } catch (err: any) {
-      showToast('Confirmation Failed', err?.message || 'Unable to confirm receipt.', 'error');
+    } catch (err: unknown) {
+      showToast('Confirmation Failed', err instanceof Error ? err.message : 'Unable to confirm receipt.', 'error');
     } finally {
       setActionLoadingId(null);
     }
