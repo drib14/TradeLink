@@ -23,6 +23,7 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   Check,
+  ShieldCheck,
   Ban,
   Filter,
   X
@@ -445,13 +446,13 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
                 {/* Campus Order Lifecycle Timeline */}
                 <div style={{ display: 'flex', alignItems: 'center', width: '100%', padding: '0.6rem 0.5rem', backgroundColor: 'var(--bg-subtle, #F8FAFC)', borderRadius: '8px', border: '1px solid var(--border-subtle, #F1F5F9)' }}>
                   {[
-                    { num: 1, label: 'Order Placed' },
+                    { num: 1, label: 'Order Placed', done: true },
                     { num: 2, label: 'Seller Verified', done: Boolean(tx.sellerConfirmedAt) },
                     { num: 3, label: 'Buyer Confirmed', done: Boolean(tx.buyerConfirmedAt) },
                     { num: 4, label: isCancelled ? 'Cancelled' : 'Completed', done: isCompleted }
                   ].map((step, idx) => {
                     const isDone = Boolean(step.done) || (idx === 0);
-                    const isCurrent = (isPending && idx === 2) || (isCancelled && idx === 3);
+                    const isCurrent = (isPending && idx === (tx.sellerConfirmedAt ? 2 : 1)) || (isCancelled && idx === 3);
                     const isStepCancelled = isCancelled && idx === 3;
 
                     return (
