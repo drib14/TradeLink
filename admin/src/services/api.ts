@@ -2,7 +2,7 @@
 const getApiBaseUrl = () => {
   const envUrl = import.meta.env.VITE_API_BASE_URL;
   if (envUrl && envUrl.trim() !== '') {
-    return envUrl.trim().replace(/\\/+$/, '');
+    return envUrl.trim().replace(/\/+$/, '');
   }
   // Use the same-origin API path by default. Production deployments must
   // configure VITE_API_BASE_URL in their build environment when API hosting
