@@ -353,23 +353,25 @@ async function evaluateVerification({
   };
 
   // -------------------------------------------------------------
-  // 6. Local OCR assistance only. OCR is not proof of identity; all cases
-  // remain subject to campus review. Browser telemetry is never trusted.
-  const documentVerification = await studentDocumentOcr.verifyStudentDocuments({
-    idPhotoUrl, studentId: cleanId, studentName: user.name
-  });
-  diagnostics.documentOcr = {
-    passed: Boolean(documentVerification.studentIdFound && documentVerification.studentNameFound),
-    provider: 'tesseract.js_local',
-    studentIdFound: Boolean(documentVerification.studentIdFound),
-    studentNameFound: Boolean(documentVerification.studentNameFound),
-    details: documentVerification
+  // 6. Document-free review policy
+  // -------------------------------------------------------------
+  // Student verification is based on a live camera selfie and student number.
+  // No COE/COR/student-card document is collected or OCR-scanned.
+  const documentVerification = {
+    configured: false,
+    passed: null,
+    provider: 'not_used',
+    details: 'Document uploads are disabled. An authorized campus administrator must review the submitted live selfie.'
   };
-  if (!documentVerification.passed) suspiciousReasons.push(documentVerification.reason || 'Local OCR did not confirm the document details.');
+  diagnostics.documentOcr = {
+    passed: null,
+    provider: 'not_used',
+    details: 'No enrollment documents are collected in the live-selfie verification flow.'
+  };
   diagnostics.facialMatch = {
     passed: false,
     provider: 'manual_review_required',
-    details: 'No automated face matching or liveness detection is performed by the zero-cost configuration.'
+    details: 'The live camera selfie is queued for authorized campus administrator review.'
   };
 
   // -------------------------------------------------------------
@@ -390,16 +392,14 @@ async function evaluateVerification({
   // OCR does not prove identity or liveness. Automated approval is deliberately
   // disabled in this zero-cost configuration; every submission remains pending.
   const trustedLivenessVerified = false;
-  const isApproved = Boolean(documentVerification.passed && trustedLivenessVerified &&
-    confidenceScore >= 85 && !idSharpness.isBlurred &&
-    !hasCriticalFraud && suspiciousReasons.length === 0);
+  const isApproved = false;
 
   // Flag only concrete challenge-bypass and duplicate indicators for administrator review.
   const isSuspicious = hasCriticalFraud;
   const status = isApproved ? 'approved' : 'pending';
   const reviewEstimate = isApproved ? 'immediate' : '1-3 business days';
 
-  logger.info(`[Student Verification Engine] Evaluated user [${user.id}]: score=${confidenceScore}%, documentOCR=${documentVerification.passed}, status=${status}, isApproved=${isApproved}, suspiciousCount=${suspiciousReasons.length}`);
+  logger.info(`[Student Verification Engine] Evaluated user [${user.id}]: score=${confidenceScore}%, documentReview=manual, status=${status}, isApproved=${isApproved}, suspiciousCount=${suspiciousReasons.length}`);
 
   return {
     isApproved,
