@@ -1493,7 +1493,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
               setCompleteTxModal(null);
               showToast(
                 result.completed ? 'Trade Completed' : 'Seller Verification Saved',
-                result.completed ? 'Both parties confirmed the exchange.' : 'Waiting for the buyer to confirm receipt in Transactions.',
+                result.completed ? 'Both parties confirmed the exchange.' : 'Waiting for the buyer to confirm the exchange from chat or Transactions.',
                 'success'
               );
             } catch (err: any) {
