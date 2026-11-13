@@ -170,8 +170,8 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const updateListing = async (id: string, updates: Partial<Listing>) => {
-    setListings((prev) => prev.map((item) => (item.id === id ? { ...item, ...updates } : item)));
     await listingsService.updateListing(id, updates);
+    setListings((prev) => prev.map((item) => (item.id === id ? { ...item, ...updates } : item)));
   };
 
   const deleteListing = async (id: string) => {
@@ -207,6 +207,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const updateListingQuantity = async (id: string, quantity: number) => {
+    await listingsService.updateListingQuantity(id, quantity);
     setListings((prev) =>
       prev.map((item) =>
         item.id === id
@@ -214,7 +215,6 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           : item
       )
     );
-    await listingsService.updateListingQuantity(id, quantity);
   };
 
   const incrementViews = (id: string) => {
