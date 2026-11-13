@@ -170,9 +170,9 @@ export default function MessagesScreen() {
                 </View>
               )}
 
-              <TouchableOpacity style={styles.actionIcon}>
+              <View style={styles.actionIcon} accessibilityLabel="Protected campus chat">
                 <Ionicons name="shield-checkmark" size={20} color="#059669" />
-              </TouchableOpacity>
+              </View>
             </View>
 
             {/* Listing Context Banner */}
