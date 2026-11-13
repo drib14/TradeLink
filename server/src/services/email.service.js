@@ -458,7 +458,7 @@ async function sendAdminPasswordResetEmail(toEmail, code, req = null) {
 /**
  * Sends order confirmation receipt to the buyer
  */
-async function sendOrderPlacedBuyerEmail(buyer, seller, transaction, listing, req = null) {
+async function sendOrderPlacedBuyerEmail(buyer, seller, transaction, listing, req = null, handshakeCode = null) {
   if (!buyer || !buyer.email) return;
   const appUrl = getAppBaseUrl(req);
   const refNo = transaction.reference_no || transaction.id;
@@ -470,7 +470,17 @@ async function sendOrderPlacedBuyerEmail(buyer, seller, transaction, listing, re
     : `₱${parseFloat(transaction.amount || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
 
   const subject = `[TradeLink] Order Confirmation #${refNo} — ${listing.title}`;
-  const text = `Hello ${buyer.name},\n\nYour order #${refNo} for "${listing.title}" has been created!\nSeller: ${seller.name} (${listing.campus})\nTotal: ${formattedAmount}\nPayment Method: ${formatPaymentMethodLabel(transaction.payment_method)}\n\nView deal details and coordinate safe handover:\n${ctaUrl}\n\nTrade safely on campus,\nTradeLink Marketplace Team`;
+  const handshakeText = handshakeCode
+    ? `\nYour private 4-digit meetup code: ${handshakeCode}\nShow this code to the seller in person after inspecting the item. Never send it in chat.\n`
+    : '';
+  const handshakeHtml = handshakeCode ? `
+    <div style="background-color: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 12px; padding: 18px; margin: 0 0 20px 0; text-align: center;">
+      <p style="margin: 0 0 8px; color: #1D4ED8; font-size: 12px; font-weight: 800; text-transform: uppercase;">Your private meetup code</p>
+      <p style="margin: 0; color: #1E3A8A; font-family: monospace; font-size: 30px; font-weight: 900; letter-spacing: 8px;">${handshakeCode}</p>
+      <p style="margin: 10px 0 0; color: #1E40AF; font-size: 12px; line-height: 1.5;">Show this code to the seller in person after inspecting the item. Never send it in chat.</p>
+    </div>
+  ` : '';
+  const text = `Hello ${buyer.name},\n\nYour order #${refNo} for "${listing.title}" has been created!\nSeller: ${seller.name} (${listing.campus})\nTotal: ${formattedAmount}\nPayment Method: ${formatPaymentMethodLabel(transaction.payment_method)}${handshakeText}\nView deal details and coordinate safe handover:\n${ctaUrl}\n\nTrade safely on campus,\nTradeLink Marketplace Team`;
 
   const bodyContent = `
     <div style="text-align: center; margin-bottom: 16px;">
@@ -506,6 +516,7 @@ async function sendOrderPlacedBuyerEmail(buyer, seller, transaction, listing, re
         </tr>
       </table>
     </div>
+    ${handshakeHtml}
     <div style="text-align: center; margin: 24px 0 20px 0;">
       <a href="${ctaUrl}" target="_blank" style="display: inline-block; background-color: #002B7F; color: #FFFFFF; font-size: 14px; font-weight: bold; text-decoration: none; padding: 12px 28px; border-radius: 10px;">
         View Deal &amp; Coordinate Handover
