@@ -16,12 +16,11 @@ async function main() {
     throw new Error('DB_HOST, DB_NAME, ADMIN_SEED_EMAIL, and an ADMIN_SEED_PASSWORD of at least 16 characters are required.');
   }
   console.log('=== Connecting to Live Database ===');
-  console.log('Host:', process.env.DB_HOST);
-  console.log('Port:', process.env.DB_PORT);
-  console.log('User:', process.env.DB_USER);
-  console.log('Database:', process.env.DB_NAME);
+  console.log('Connecting to configured database.');
 
-  const sslConfig = process.env.DB_SSL === 'true' ? { minVersion: 'TLSv1.2', rejectUnauthorized: true } : false;
+  const sslConfig = (process.env.NODE_ENV === 'production' || process.env.DB_SSL === 'true')
+    ? { minVersion: 'TLSv1.2', rejectUnauthorized: true }
+    : false;
 
   let connection;
   try {
