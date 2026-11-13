@@ -92,7 +92,7 @@ function inspectImageSharpness(dataUrl) {
 
   const len = buffer.length;
   if (len < 12 * 1024) {
-    return { isBlurred: true, sharpnessScore: 10, reason: 'Image resolution too low (<12KB) to read student ID details.' };
+    return { isBlurred: true, sharpnessScore: 10, reason: 'Live selfie image resolution is too low. Please recapture with better lighting.' };
   }
 
   // Calculate discrete edge differences across sample byte pairs
@@ -119,7 +119,7 @@ function inspectImageSharpness(dataUrl) {
   return {
     isBlurred,
     sharpnessScore,
-    reason: isBlurred ? 'ID document image is blurry or out of focus. Please retake with steady hands and clear lighting.' : undefined
+    reason: isBlurred ? 'Live selfie is blurry or out of focus. Please retake with steady hands and clear lighting.' : undefined
   };
 }
 
@@ -247,7 +247,7 @@ async function evaluateVerification({
   }
 
   // -------------------------------------------------------------
-  // 3. Image Forensics & Quality Check (Weight: 20% ID Card, 15% Selfie)
+  // 3. Image Forensics & Quality Check (the live selfie is stored in both legacy image fields)
   // -------------------------------------------------------------
   const idPhotoInspection = inspectImagePayload(idPhotoUrl);
   const idSharpness = inspectImageSharpness(idPhotoUrl);
@@ -256,7 +256,7 @@ async function evaluateVerification({
     suspiciousReasons.push(`ID Card image rejected: ${idPhotoInspection.reason}`);
     diagnostics.idImageQuality = { score: 0, passed: false, details: idPhotoInspection.reason };
   } else if (idSharpness.isBlurred) {
-    suspiciousReasons.push(idSharpness.reason || 'Uploaded ID document is blurry or unreadable.');
+    suspiciousReasons.push(idSharpness.reason || 'Submitted live selfie is blurry or unreadable.');
     diagnostics.idImageQuality = { score: 5, passed: false, isBlurred: true, sharpnessScore: idSharpness.sharpnessScore, details: idSharpness.reason };
   } else {
     // Quality scoring based on entropy and resolution
@@ -306,7 +306,7 @@ async function evaluateVerification({
       .catch(() => null);
 
     if (duplicateId) {
-      suspiciousReasons.push(`Duplicate ID photo detected: exact image fingerprint was previously submitted by user ID [${duplicateId.user_id}].`);
+      suspiciousReasons.push(`Duplicate live selfie detected: exact image fingerprint was previously submitted by user ID [${duplicateId.user_id}].`);
       diagnostics.antiDuplicateCheck.passed = false;
     }
   }
@@ -388,8 +388,7 @@ async function evaluateVerification({
            r.includes('session validation failed')
   );
 
-  // OCR does not prove identity or liveness. Automated approval is deliberately
-  // disabled in this zero-cost configuration; every submission remains pending.
+  // A selfie alone does not establish enrollment. Require an authorized campus administrator to review every submission.
   const isApproved = false;
 
   // Flag only concrete challenge-bypass and duplicate indicators for administrator review.
