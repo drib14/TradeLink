@@ -626,8 +626,11 @@ const cancelTransaction = asyncHandler(async (req, res, next) => {
     return next(new AppError('Unauthorized to cancel this transaction.', 403));
   }
 
-  if (tx.status !== 'pending') {
-    return next(new AppError('Only pending transactions can be cancelled.', 409));
+  const canCancelStatus = req.user.role === 'admin'
+    ? ['pending', 'disputed'].includes(tx.status)
+    : tx.status === 'pending';
+  if (!canCancelStatus) {
+    return next(new AppError('Only pending transactions can be cancelled. Administrators may also resolve disputed transactions.', 409));
   }
 
   if (req.user.role !== 'admin' && (tx.seller_confirmed_at || tx.buyer_confirmed_at)) {
