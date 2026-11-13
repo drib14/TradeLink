@@ -394,75 +394,125 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     );
   }
 
+  // Route all administrator mutations through one awaited error boundary.
+  const runAdminAction = async (
+    action: () => Promise<unknown>,
+    successTitle: string,
+    successMessage: string,
+    successVariant: 'success' | 'info' | 'warning' | 'error' = 'success'
+  ) => {
+    try {
+      await action();
+      showToast(successTitle, successMessage, successVariant);
+      return true;
+    } catch (err: any) {
+      showToast('Action Failed', err?.message || 'The server could not complete this action. Please try again.', 'error');
+      return false;
+    }
+  };
+
   // User Actions
   const handleOpenBanModal = (user: User) => {
     setBanModalUser(user);
     setBanReasonInput('Violation of TradeLink Safety & Campus Community Guidelines');
   };
 
-  const handleConfirmBan = () => {
+  const handleConfirmBan = async () => {
     if (!banModalUser) return;
-    banUserByAdmin(banModalUser.id, banReasonInput.trim() || 'Safety violation');
-    showToast('User Suspended', `${banModalUser.name} has been banned from the platform.`, 'error');
-    setBanModalUser(null);
+    const user = banModalUser;
+    const succeeded = await runAdminAction(
+      () => banUserByAdmin(user.id, banReasonInput.trim() || 'Safety violation'),
+      'User Suspended',
+      `${user.name} has been banned from the platform.`,
+      'error'
+    );
+    if (succeeded) setBanModalUser(null);
   };
 
-  const handleUnban = (user: User) => {
-    unbanUserByAdmin(user.id);
-    showToast('Access Restored', `${user.name}'s account has been unbanned.`, 'success');
+  const handleUnban = async (user: User) => {
+    await runAdminAction(
+      () => unbanUserByAdmin(user.id),
+      'Access Restored',
+      `${user.name}'s account has been unbanned.`
+    );
   };
 
-  const handleWarnUser = (user: User) => {
-    warnUserByAdmin(user.id, 'Official warning: inappropriate conduct or listing violations.');
-    showToast('Warning Sent', `Official warning recorded for ${user.name}. Trust score deducted.`, 'warning');
+  const handleWarnUser = async (user: User) => {
+    await runAdminAction(
+      () => warnUserByAdmin(user.id, 'Official warning: inappropriate conduct or listing violations.'),
+      'Warning Sent',
+      `Official warning recorded for ${user.name}. Trust score deducted.`,
+      'warning'
+    );
   };
 
-  const handleToggleVerify = (user: User) => {
-    toggleVerifyByAdmin(user.id);
-    showToast('Verification Updated', `Toggled verification badge for ${user.name}.`, 'info');
+  const handleToggleVerify = async (user: User) => {
+    await runAdminAction(
+      () => toggleVerifyByAdmin(user.id),
+      'Verification Updated',
+      `Toggled verification badge for ${user.name}.`,
+      'info'
+    );
   };
 
   const handleDeleteUser = (user: User) => {
     setUserToDelete(user);
   };
 
-  const handleConfirmDeleteUser = () => {
-    if (userToDelete) {
-      deleteUserByAdmin(userToDelete.id);
-      showToast('Account Deleted', `${userToDelete.name} was removed from the database.`, 'info');
-      setUserToDelete(null);
-    }
+  const handleConfirmDeleteUser = async () => {
+    if (!userToDelete) return;
+    const user = userToDelete;
+    const succeeded = await runAdminAction(
+      () => deleteUserByAdmin(user.id),
+      'Account Deleted',
+      `${user.name} was removed from the database.`,
+      'info'
+    );
+    if (succeeded) setUserToDelete(null);
   };
 
-  const handleConfirmDeleteRequest = () => {
-    if (requestToDelete) {
-      if (deleteFlashRequest) {
-        deleteFlashRequest(requestToDelete.id, 'Moderator removed request');
-      } else {
-        removeWantedByAdmin(requestToDelete.id, 'Moderator removed request');
-      }
-      showToast('Flash Request Removed', `Removed "${requestToDelete.itemTitle}" from Flash Market.`, 'info');
-      setRequestToDelete(null);
-    }
+  const handleConfirmDeleteRequest = async () => {
+    if (!requestToDelete) return;
+    const request = requestToDelete;
+    const succeeded = await runAdminAction(
+      () => deleteFlashRequest
+        ? deleteFlashRequest(request.id, 'Moderator removed request')
+        : removeWantedByAdmin(request.id, 'Moderator removed request'),
+      'Flash Request Removed',
+      `Removed "${request.itemTitle}" from Flash Market.`,
+      'info'
+    );
+    if (succeeded) setRequestToDelete(null);
   };
 
   // Verification Actions
-  const handleApproveVerification = (req: VerificationRequest) => {
-    approveVerification(req.id);
-    showToast('Verified Student', `${req.userName} has been verified with official badge.`, 'success');
+  const handleApproveVerification = async (req: VerificationRequest) => {
+    await runAdminAction(
+      () => approveVerification(req.id),
+      'Verified Student',
+      `${req.userName} has been verified with official badge.`
+    );
   };
 
-  const handleConfirmRejectVerification = () => {
+  const handleConfirmRejectVerification = async () => {
     if (!rejectReqModal) return;
-    rejectVerification(rejectReqModal.id, rejectReasonInput.trim() || 'Incomplete or unreadable photo');
-    showToast('Request Declined', `Declined verification for ${rejectReqModal.userName}.`, 'info');
-    setRejectReqModal(null);
+    const request = rejectReqModal;
+    const succeeded = await runAdminAction(
+      () => rejectVerification(request.id, rejectReasonInput.trim() || 'Incomplete or unreadable photo'),
+      'Request Declined',
+      `Declined verification for ${request.userName}.`,
+      'info'
+    );
+    if (succeeded) setRejectReqModal(null);
   };
 
   // Listing Actions
-  const handleResolveFlag = (flagId: string) => {
-    resolveFlag(flagId);
-    showToast('Flag Resolved', 'Listing marked as safe and compliant.', 'success');
+  const handleResolveFlag = async (flagId: string) => {
+    await runAdminAction(
+      () => resolveFlag(flagId),
+      'Flag Resolved',
+      'Listing marked as safe and compliant.'
+    );
   };
 
   const handleRemoveListing = (flagId: string, listingId: string, title: string) => {
@@ -470,19 +520,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   };
 
   // Scanner Tool Actions
-  const handleAddKeyword = (e: React.FormEvent) => {
+  const handleAddKeyword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newKeywordInput.trim()) return;
-    addProhibitedKeyword(newKeywordInput.trim());
-    showToast('Keyword Filter Added', `Added "${newKeywordInput.trim()}" to blacklist.`, 'success');
-    setNewKeywordInput('');
+    const keyword = newKeywordInput.trim();
+    if (!keyword) return;
+    const succeeded = await runAdminAction(
+      () => addProhibitedKeyword(keyword),
+      'Keyword Filter Added',
+      `Added "${keyword}" to blacklist.`
+    );
+    if (succeeded) setNewKeywordInput('');
   };
 
   const handleTriggerScanner = () => {
     setIsScanning(true);
     setTimeout(() => {
       setIsScanning(false);
-      showToast('Scan Completed', `Analyzed ${listings.length} active listings across 8 campuses.`, 'info');
+      const activeCount = listings.filter((listing) => listing.status === 'active').length;
+      showToast('Scan Completed', `Checked ${activeCount} active listings and found ${scannedViolations.length} potential matches.`, 'info');
     }, 600);
   };
 
@@ -500,60 +555,73 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     .filter((res) => res.matchedKeywords.length > 0);
 
   // Dispute Actions
-  const handleConfirmDisputeVerdict = (action: 'refund' | 'warning' | 'dismissed' | 'ban') => {
+  const handleConfirmDisputeVerdict = async (action: 'refund' | 'warning' | 'dismissed' | 'ban') => {
     if (!selectedDispute) return;
-    resolveDispute(selectedDispute.id, action, disputeVerdictNote.trim() || `Verdict rendered: ${action}`);
-    showToast('Dispute Resolved', `Applied verdict: ${action.toUpperCase()}`, 'success');
-    setSelectedDispute(null);
-    setDisputeVerdictNote('');
+    const dispute = selectedDispute;
+    const succeeded = await runAdminAction(
+      () => resolveDispute(dispute.id, action, disputeVerdictNote.trim() || `Verdict rendered: ${action}`),
+      'Dispute Resolved',
+      `Applied verdict: ${action.toUpperCase()}`
+    );
+    if (succeeded) {
+      setSelectedDispute(null);
+      setDisputeVerdictNote('');
+    }
   };
 
   // Reputation Adjustment Action
-  const handleApplyTrustAdjustment = (e: React.FormEvent) => {
+  const handleApplyTrustAdjustment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!repTargetUserId) {
       showToast('Select User', 'Please choose a student to adjust.', 'warning');
       return;
     }
-    adjustUserTrustScore(repTargetUserId, repDelta, repReason.trim() || 'Moderator trust adjustment');
-    showToast('Trust Score Updated', `Score adjusted by ${repDelta >= 0 ? '+' : ''}${repDelta} points.`, 'success');
+    await runAdminAction(
+      () => adjustUserTrustScore(repTargetUserId, repDelta, repReason.trim() || 'Moderator trust adjustment'),
+      'Trust Score Updated',
+      `Score adjusted by ${repDelta >= 0 ? '+' : ''}${repDelta} points.`
+    );
   };
 
   // Announcement Actions
-  const handleCreateAnnouncementSubmit = (e: React.FormEvent) => {
+  const handleCreateAnnouncementSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newAnnTitle.trim() || !newAnnMessage.trim()) {
+    const title = newAnnTitle.trim();
+    const message = newAnnMessage.trim();
+    if (!title || !message) {
       showToast('Missing Fields', 'Please enter a title and message.', 'warning');
       return;
     }
-    createAnnouncement(newAnnTitle, newAnnMessage, newAnnCampus, newAnnType);
-    showToast('Broadcast Published', 'Campus-wide announcement is now live.', 'success');
-    setNewAnnTitle('');
-    setNewAnnMessage('');
-    setIsNewAnnModalOpen(false);
+    const succeeded = await runAdminAction(
+      () => createAnnouncement(title, message, newAnnCampus, newAnnType),
+      'Broadcast Published',
+      'Campus-wide announcement is now live.'
+    );
+    if (succeeded) {
+      setNewAnnTitle('');
+      setNewAnnMessage('');
+      setIsNewAnnModalOpen(false);
+    }
   };
 
   // Export Audit Trail to CSV
   const handleExportAuditCSV = () => {
     const headers = ['ID', 'Admin Name', 'Action', 'Target Type', 'Target ID', 'Details', 'Timestamp'];
+    const escapeCsv = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`;
     const rows = auditLogs.map((log) => [
-      log.id,
-      `"${log.adminName}"`,
-      `"${log.action}"`,
-      `"${log.targetType}"`,
-      `"${log.targetId}"`,
-      `"${log.details.replace(/"/g, '""')}"`,
-      `"${log.timestamp}"`
-    ]);
+      log.id, log.adminName, log.action, log.targetType, log.targetId, log.details, log.timestamp
+    ].map(escapeCsv));
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
+    const csvContent = '\uFEFF' + [headers.map(escapeCsv).join(','), ...rows.map((row) => row.join(','))].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const objectUrl = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `UC_TradeLink_Audit_Log_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.href = objectUrl;
+    link.download = `UC_TradeLink_Audit_Log_${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(objectUrl);
 
     showToast('Export Successful', 'Downloaded audit compliance report as CSV.', 'success');
   };
@@ -863,7 +931,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                           <td style={{ padding: '0.75rem', textAlign: 'right' }}>
                             <div style={{ display: 'inline-flex', gap: '0.35rem' }}>
                               <button
-                                onClick={() => approveVerification(req.id)}
+                                onClick={() => { void handleApproveVerification(req); }}
                                 style={{ backgroundColor: '#059669', color: '#FFFFFF', border: 'none', borderRadius: '6px', padding: '0.3rem 0.65rem', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer' }}
                               >
                                 Approve
@@ -901,7 +969,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                           </td>
                           <td style={{ padding: '0.75rem', textAlign: 'right' }}>
                             <button
-                              onClick={() => resolveFlag(flag.id)}
+                              onClick={() => { void handleResolveFlag(flag.id); }}
                               style={{ backgroundColor: '#002B7F', color: '#FFFFFF', border: 'none', borderRadius: '6px', padding: '0.3rem 0.65rem', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer' }}
                             >
                               Resolve
@@ -1891,7 +1959,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                   >
                     <span>{kw}</span>
                     <button
-                      onClick={() => removeProhibitedKeyword(kw)}
+                      onClick={() => { void runAdminAction(() => removeProhibitedKeyword(kw), 'Keyword Filter Removed', `Removed "${kw}" from blacklist.`); }}
                       style={{ color: '#DC2626', cursor: 'pointer', display: 'flex' }}
                       title="Remove keyword"
                     >
@@ -2383,19 +2451,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                           {txStatus === 'pending' && (
                             <div style={{ display: 'inline-flex', gap: '0.35rem' }}>
                               <button
-                                onClick={() => {
-                                  completeTransactionByAdmin(tx.id);
-                                  showToast('Completed', 'Transaction marked as completed.', 'success');
-                                }}
+                                onClick={() => { void runAdminAction(() => completeTransactionByAdmin(tx.id), 'Completed', 'Transaction marked as completed.'); }}
                                 style={{ padding: '0.35rem 0.65rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 800, backgroundColor: '#059669', color: '#FFFFFF', border: 'none', cursor: 'pointer' }}
                               >
                                 Complete
                               </button>
                               <button
-                                onClick={() => {
-                                  cancelTransactionByAdmin(tx.id, 'Cancelled by admin moderation desk');
-                                  showToast('Cancelled', 'Transaction cancelled.', 'info');
-                                }}
+                                onClick={() => { void runAdminAction(() => cancelTransactionByAdmin(tx.id, 'Cancelled by admin moderation desk'), 'Cancelled', 'Transaction cancelled.', 'info'); }}
                                 style={{ padding: '0.35rem 0.65rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 800, backgroundColor: '#DC2626', color: '#FFFFFF', border: 'none', cursor: 'pointer' }}
                               >
                                 Cancel
@@ -2451,7 +2513,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                   </div>
 
                   <button
-                    onClick={() => deleteAnnouncement(ann.id)}
+                    onClick={() => { void runAdminAction(() => deleteAnnouncement(ann.id), 'Announcement Deleted', 'The announcement has been removed.', 'info'); }}
                     style={{ color: '#DC2626', padding: '0.2rem' }}
                     title="Delete Announcement"
                   >
@@ -2465,7 +2527,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 <div style={{ marginTop: 'auto', paddingTop: '0.5rem', borderTop: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748B' }}>
                   <span>By: {ann.authorName}</span>
                   <button
-                    onClick={() => toggleAnnouncement(ann.id)}
+                    onClick={() => { void runAdminAction(() => toggleAnnouncement(ann.id), 'Announcement Updated', 'Announcement visibility has been updated.'); }}
                     style={{
                       padding: '0.2rem 0.5rem',
                       borderRadius: '4px',
@@ -2669,7 +2731,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 style={{ padding: '0.55rem', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 800, backgroundColor: '#059669', color: '#FFFFFF', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
               >
                 <Check size={13} />
-                <span>Remedy / Refund</span>
+                <span>Record Settlement</span>
               </button>
               <button
                 onClick={() => handleConfirmDisputeVerdict('warning')}
@@ -2921,9 +2983,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
               <button
                 type="button"
                 onClick={() => {
-                  removeListingByAdmin(listingDeleteModal.listingId, listingDeleteModal.flagId);
-                  showToast('Listing Removed', `"${listingDeleteModal.title}" has been taken down.`, 'info');
-                  setListingDeleteModal(null);
+                  const modal = listingDeleteModal;
+                  if (!modal) return;
+                  void runAdminAction(
+                    () => removeListingByAdmin(modal.flagId || 'direct', modal.listingId),
+                    'Listing Removed',
+                    `"${modal.title}" has been taken down.`,
+                    'info'
+                  ).then((succeeded) => {
+                    if (succeeded) setListingDeleteModal(null);
+                  });
                 }}
                 style={{ padding: '0.6rem 1.25rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 800, backgroundColor: '#DC2626', color: '#FFFFFF', border: 'none', cursor: 'pointer' }}
               >

@@ -141,6 +141,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setListings((prev) => prev.filter((l) => l.id !== id));
     } catch (err) {
       console.warn('Failed to delete listing:', err);
+      throw err;
     }
   };
 
@@ -182,6 +183,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             : l
         )
       );
+      throw err;
     }
   };
 

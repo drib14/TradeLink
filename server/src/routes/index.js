@@ -14,6 +14,7 @@ const { checkUploadQuota } = require('../middleware/uploadQuota');
 const authRoutes = require('./auth.routes');
 const usersRoutes = require('./users.routes');
 const listingsRoutes = require('./listings.routes');
+const favoritesRoutes = require('./favorites.routes');
 const swapsRoutes = require('./swaps.routes');
 const transactionsRoutes = require('./transactions.routes');
 const chatRoutes = require('./chat.routes');
@@ -83,6 +84,7 @@ router.post('/upload', authenticate, checkUploadQuota, uploadLimiter, upload.arr
 router.use('/auth', authRoutes);
 router.use('/users', usersRoutes);
 router.use('/listings', listingsRoutes);
+router.use('/favorites', favoritesRoutes);
 router.use('/swaps', swapsRoutes);
 router.use('/transactions', transactionsRoutes);
 router.use('/chat', chatRoutes);

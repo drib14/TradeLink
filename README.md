@@ -138,6 +138,7 @@ Run these from the repository root unless noted.
 - Frontend environment examples contain only public, non-secret settings.
 - Local `.env` files and new runtime uploads are excluded from Git. Files already tracked by Git remain tracked until explicitly removed.
 - Use a managed database for deployed environments; local MySQL settings are for development only.
+- The database uses MySQL 8.0 and does not have native RLS; row ownership is enforced by backend authentication and authorization checks. See docs/DATABASE_SECURITY.md.
 - Never use production credentials or real student data in local development or tests.
 
 ## Repository layout

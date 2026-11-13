@@ -6,6 +6,7 @@ import {
   Image,
   TouchableOpacity,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -37,12 +38,16 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
       ? Math.round(((listing.originalPrice - listing.price) / listing.originalPrice) * 100)
       : null;
 
-  const handleFavoritePress = (e: any) => {
+  const handleFavoritePress = async (e: any) => {
     e.stopPropagation?.();
     if (!currentUser) {
       openAuthModal();
-    } else {
-      toggleFavorite(listing.id);
+      return;
+    }
+    try {
+      await toggleFavorite(listing.id);
+    } catch (error: any) {
+      Alert.alert('Could Not Save Item', error?.message || 'Unable to update your saved listings. Please try again.');
     }
   };
 

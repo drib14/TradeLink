@@ -187,12 +187,12 @@ export const adminService = {
   },
 
   async getFlashRequests(page = 1, limit = 100) {
-    const res = await api.get('/flash-market', { page, limit });
+    const res = await api.get('/admin/flash-market', { page, limit });
     return res.data?.requests || res.data || [];
   },
 
   async deleteFlashRequest(id: string, _reason?: string) {
-    const res = await api.delete(`/flash-market/${id}`);
+    const res = await api.delete(`/admin/flash-market/${id}`);
     return res;
   },
 
@@ -206,12 +206,12 @@ export const adminService = {
   },
 
   async getTransactions(page = 1, limit = 100) {
-    const res = await api.get('/transactions', { page, limit });
+    const res = await api.get('/admin/transactions', { page, limit });
     return res.data?.transactions || res.data || [];
   },
 
   async updateTransactionStatus(id: string, status: string, notes?: string) {
-    const res = await api.patch(`/transactions/${id}/status`, { status, notes });
+    const res = await api.patch(`/admin/transactions/${id}/status`, { status, reason: notes });
     return res;
   },
 

@@ -35,6 +35,28 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick, onNa
      (listing.sellerEmail && currentUser.email === listing.sellerEmail))
   );
 
+  const handleFavoriteClick = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    if (!isAuthenticated) {
+      showToast('Log In Required', 'Please log in to save items to your favorites.', 'info');
+      return;
+    }
+
+    const wasFavorited = favorites?.includes(listing.id) || false;
+    try {
+      await toggleFavorite(listing.id);
+      showToast(
+        wasFavorited ? 'Removed from Saved' : 'Saved to Wishlist',
+        wasFavorited ? `Removed "${listing.title}" from saved items.` : `Saved "${listing.title}" to your items.`,
+        'info'
+      );
+    } catch (err: any) {
+      showToast('Could Not Save Item', err?.message || 'Unable to update your saved listings. Please try again.', 'error');
+    }
+  };
+
+
+
   const hasVideo = Boolean(
     listing.hasVideo ||
     listing.media?.some((m) => m.mediaType === 'video') ||
@@ -233,17 +255,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick, onNa
           {!isOwner && (
             <button
               type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleFavorite(listing.id);
-                showToast(
-                  favorites?.includes(listing.id) ? 'Removed from Saved' : 'Saved to Wishlist',
-                  favorites?.includes(listing.id)
-                    ? `Removed "${listing.title}" from saved items.`
-                    : `Saved "${listing.title}" to your items.`,
-                  favorites?.includes(listing.id) ? 'info' : 'success'
-                );
-              }}
+              onClick={handleFavoriteClick}
               className={`card-wishlist-btn ${favorites?.includes(listing.id) ? 'active' : ''}`}
               title={favorites?.includes(listing.id) ? 'Remove from saved' : 'Save item'}
               aria-label={favorites?.includes(listing.id) ? 'Remove from saved' : 'Save item'}

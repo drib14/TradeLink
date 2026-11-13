@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useRouter } from 'expo-router';
 import {
   View,
   Text,
@@ -17,11 +18,13 @@ import { useMarket } from '../../context/MarketContext';
 import { useAuth } from '../../context/AuthContext';
 import { WantedRequest, Campus } from '../../types';
 import { CATEGORIES, CAMPUSES } from '../../constants';
+import { mobileChatService, mobileFlashMarketService } from '../../services/flashMarket.service';
 
 export default function FlashMarketScreen() {
-  const { flashRequests, wantedRequests, addFlashRequest, addWantedRequest } = useMarket();
+  const { flashRequests, wantedRequests, addFlashRequest, addWantedRequest, refreshListings } = useMarket();
   const requests = flashRequests && flashRequests.length > 0 ? flashRequests : wantedRequests;
   const { currentUser, openAuthModal } = useAuth();
+  const router = useRouter();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [itemTitle, setItemTitle] = useState('');
@@ -31,7 +34,7 @@ export default function FlashMarketScreen() {
   const [description, setDescription] = useState('');
   const [preferredCampus, setPreferredCampus] = useState<Campus>(currentUser?.campus || 'UC Main');
 
-  const handleCreateRequest = () => {
+  const handleCreateRequest = async () => {
     if (!currentUser) {
       Alert.alert('Sign In Required', 'Please log in with your verified student account to post a flash request.');
       openAuthModal();
@@ -48,28 +51,59 @@ export default function FlashMarketScreen() {
     }
 
     const postFn = addFlashRequest || addWantedRequest;
-    postFn({
-      requesterId: currentUser.id,
-      requesterName: currentUser.name,
-      requesterAvatar: currentUser.avatar || undefined,
-      requesterCampus: preferredCampus,
-      requesterCollege: currentUser.college || 'UC Campus',
-      title: itemTitle.trim(),
-      itemTitle: itemTitle.trim(),
-      category,
-      targetBudget: Number(targetBudget),
-      budgetMax: Number(targetBudget),
-      budgetMin: Number(targetBudget) * 0.8,
-      tradeMode: 'BUY',
-      urgency: urgency as any,
-      description: description.trim() || 'Posted on UC Flash Market.',
-    });
+    try {
+      const created = await postFn({
+        requesterId: currentUser.id,
+        requesterName: currentUser.name,
+        requesterAvatar: currentUser.avatar || undefined,
+        requesterCampus: preferredCampus,
+        requesterCollege: currentUser.college || 'UC Campus',
+        title: itemTitle.trim(),
+        itemTitle: itemTitle.trim(),
+        category,
+        targetBudget: Number(targetBudget),
+        budgetMax: Number(targetBudget),
+        budgetMin: Number(targetBudget) * 0.8,
+        tradeMode: 'BUY',
+        urgency: urgency as any,
+        description: description.trim() || 'Posted on UC Flash Market.',
+      });
 
-    setIsModalOpen(false);
-    setItemTitle('');
-    setTargetBudget('');
-    setDescription('');
-    Alert.alert('Request Posted', 'Your urgent flash request is now live for campus peers!');
+      if (!created) throw new Error('The server did not create the request. Please try again.');
+      setIsModalOpen(false);
+      setItemTitle('');
+      setTargetBudget('');
+      setDescription('');
+      Alert.alert('Request Posted', 'Your urgent flash request is now live for campus peers!');
+    } catch (error: any) {
+      Alert.alert('Request Not Posted', error?.message || 'Unable to publish your request. Please try again.');
+    }
+  };
+
+  const openRequestChat = async (item: WantedRequest) => {
+    if (!currentUser) {
+      Alert.alert('Sign In Required', 'Please log in to contact the requester.');
+      openAuthModal();
+      return;
+    }
+    if (!item.requesterId || item.requesterId === currentUser.id) {
+      Alert.alert('Unavailable', 'You cannot start an offer conversation with your own request.');
+      return;
+    }
+
+    try {
+      const conversation = await mobileChatService.getOrCreateConversation({
+        targetUserId: item.requesterId,
+        flashRequestId: item.id,
+        initialMessage: `Hi ${item.requesterName || 'there'}! I can help with your request for "${item.itemTitle || item.title}". Let's coordinate a safe campus meetup.`
+      });
+      if (!conversation?.id) throw new Error('The conversation could not be created.');
+      await mobileFlashMarketService.respondToFlashRequest(item.id);
+      await refreshListings();
+      router.push({ pathname: '/(tabs)/messages', params: { conversationId: conversation.id } });
+    } catch (error: any) {
+      Alert.alert('Unable to Open Chat', error?.message || 'Please try again in a moment.');
+    }
   };
 
   return (
@@ -142,13 +176,10 @@ export default function FlashMarketScreen() {
                   onPress={() =>
                     Alert.alert(
                       'Offer Item',
-                      `Send offer or message ${item.requesterName} for "${title}"?`,
+                      `Start a conversation with ${item.requesterName} about "${title}"?`,
                       [
                         { text: 'Cancel', style: 'cancel' },
-                        {
-                          text: 'Open Chat',
-                          onPress: () => Alert.alert('Chat initiated', `Conversation opened with ${item.requesterName}`),
-                        },
+                        { text: 'Open Chat', onPress: () => { void openRequestChat(item); } },
                       ]
                     )
                   }

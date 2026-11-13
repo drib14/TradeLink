@@ -128,6 +128,18 @@ export default function ItemDetailScreen() {
   }
 
   const isFavorite = favorites.includes(listing.id);
+
+  const handleFavoritePress = async () => {
+    if (!currentUser) {
+      openAuthModal();
+      return;
+    }
+    try {
+      await toggleFavorite(listing.id);
+    } catch (error: any) {
+      Alert.alert('Could Not Save Item', error?.message || 'Unable to update your saved listings. Please try again.');
+    }
+  };
   const isSold = listing.isSold || listing.status === 'sold';
   const savingsPct =
     listing.originalSrp && listing.price < listing.originalSrp
@@ -367,7 +379,7 @@ export default function ItemDetailScreen() {
 
               <TouchableOpacity
                 style={[styles.navCircleBtn, isFavorite && { backgroundColor: '#FFFFFF' }]}
-                onPress={() => toggleFavorite(listing.id)}
+                onPress={() => { void handleFavoritePress(); }}
                 activeOpacity={0.8}
               >
                 <Ionicons

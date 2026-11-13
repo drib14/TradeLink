@@ -4,15 +4,10 @@ const getApiBaseUrl = () => {
   if (envUrl && envUrl.trim() !== '') {
     return envUrl.trim().replace(/\/+$/, '');
   }
-  if (typeof window !== 'undefined' && window.location.hostname) {
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      // Use the Vite dev-server proxy so browser requests stay same-origin.
-      return '/api';
-    }
-    // In live production: target the live TradeLink backend
-    return 'https://tradelink-backend.vercel.app/api';
-  }
-  return 'http://localhost:3001/api';
+  // Use the same-origin API path by default. Production deployments must
+  // configure VITE_API_BASE_URL in their build environment when API hosting
+  // is on a separate domain; API URLs are public, credentials are not.
+  return '/api';
 };
 
 const API_BASE_URL = getApiBaseUrl();

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams } from 'expo-router';
 import { useMarket } from '../../context/MarketContext';
 import { useAuth } from '../../context/AuthContext';
 import { mobileChatService } from '../../services/flashMarket.service';
@@ -24,12 +25,13 @@ import { VerifiedBadge } from '../../components/VerifiedBadge';
 export default function MessagesScreen() {
   const { conversations, addMessageToConversation } = useMarket();
   const { currentUser } = useAuth();
+  const { conversationId } = useLocalSearchParams<{ conversationId?: string }>();
   const [selectedConv, setSelectedConv] = useState<Conversation | null>(null);
   const [chatMessages, setChatMessages] = useState<{ id: string; sender: 'me' | 'other'; text: string; time: string }[]>([]);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [inputMsg, setInputMsg] = useState('');
 
-  const handleOpenChat = async (conv: Conversation) => {
+  const handleOpenChat = useCallback(async (conv: Conversation) => {
     setSelectedConv(conv);
     setChatMessages([]);
     setIsLoadingMessages(true);
@@ -47,7 +49,16 @@ export default function MessagesScreen() {
     } finally {
       setIsLoadingMessages(false);
     }
-  };
+  }, [currentUser?.id]);
+
+  useEffect(() => {
+    const requestedId = Array.isArray(conversationId) ? conversationId[0] : conversationId;
+    if (!requestedId) return;
+    const conversation = conversations.find((item) => item.id === requestedId);
+    if (conversation && selectedConv?.id !== conversation.id) {
+      void handleOpenChat(conversation);
+    }
+  }, [conversationId, conversations, handleOpenChat]);
 
   const handleSendMessage = async () => {
     if (!inputMsg.trim() || !selectedConv || !currentUser) return;
@@ -170,9 +181,9 @@ export default function MessagesScreen() {
                 </View>
               )}
 
-              <TouchableOpacity style={styles.actionIcon}>
+              <View style={styles.actionIcon} accessibilityLabel="Protected campus chat">
                 <Ionicons name="shield-checkmark" size={20} color="#059669" />
-              </TouchableOpacity>
+              </View>
             </View>
 
             {/* Listing Context Banner */}

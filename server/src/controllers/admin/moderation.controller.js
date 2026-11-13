@@ -109,8 +109,8 @@ const removeListingByAdmin = asyncHandler(async (req, res, next) => {
 
   // Check if foreign key references exist in transactions or swaps
   const hasTransactions = await db('transactions').where({ listing_id: listingId }).first();
-  const hasSwaps = await db('swaps').where(builder => {
-    builder.where({ proposer_listing_id: listingId }).orWhere({ receiver_listing_id: listingId });
+  const hasSwaps = await db('swap_offers').where(builder => {
+    builder.where({ listing_id: listingId }).orWhere({ offered_listing_id: listingId });
   }).first();
 
   if (hasTransactions || hasSwaps) {
@@ -294,8 +294,8 @@ const banUser = asyncHandler(async (req, res, next) => {
     return next(new AppError('You cannot ban your own administrative account.', 400));
   }
 
-  const rootAdminEmail = process.env.ADMIN_SEED_EMAIL || process.env.ADMIN_EMAIL || 'uc.tradelink@gmail.com';
-  if (target.email === rootAdminEmail || target.id === 'user-admin') {
+  const rootAdminEmail = process.env.ADMIN_SEED_EMAIL || process.env.ADMIN_EMAIL || '';
+  if ((rootAdminEmail && target.email === rootAdminEmail) || target.id === 'user-admin-main' || target.id === 'user-admin') {
     return next(new AppError('The root administrator account cannot be banned.', 403));
   }
 
@@ -405,9 +405,23 @@ const deleteUser = asyncHandler(async (req, res, next) => {
     return next(new AppError('You cannot delete your own administrative account.', 400));
   }
 
-  const rootAdminEmail = process.env.ADMIN_SEED_EMAIL || process.env.ADMIN_EMAIL || 'uc.tradelink@gmail.com';
-  if (target.email === rootAdminEmail || target.id === 'user-admin') {
+  const rootAdminEmail = process.env.ADMIN_SEED_EMAIL || process.env.ADMIN_EMAIL || '';
+  if ((rootAdminEmail && target.email === rootAdminEmail) ||
+      target.id === 'user-admin-main' || target.id === 'user-admin') {
     return next(new AppError('The root administrator account cannot be deleted.', 403));
+  }
+
+  // Preserve transaction history and referential integrity. Accounts with
+  // completed or pending trades must be suspended rather than hard-deleted.
+  const relatedTransaction = await db('transactions')
+    .where((builder) => builder.where({ buyer_id: id }).orWhere({ seller_id: id }))
+    .first();
+
+  if (relatedTransaction) {
+    return next(new AppError(
+      'This account has transaction history and cannot be permanently deleted. Suspend the account instead to preserve transaction and audit records.',
+      409
+    ));
   }
 
   // Clean up user's listing media from Cloudinary storage
@@ -476,8 +490,8 @@ const demoteAdmin = asyncHandler(async (req, res, next) => {
     return next(new AppError('You cannot demote your own administrative account.', 400));
   }
 
-  const rootAdminEmail = process.env.ADMIN_SEED_EMAIL || process.env.ADMIN_EMAIL || 'uc.tradelink@gmail.com';
-  if (target.email === rootAdminEmail || target.id === 'user-admin') {
+  const rootAdminEmail = process.env.ADMIN_SEED_EMAIL || process.env.ADMIN_EMAIL || '';
+  if ((rootAdminEmail && target.email === rootAdminEmail) || target.id === 'user-admin-main' || target.id === 'user-admin') {
     return next(new AppError('The root administrator account cannot be demoted.', 403));
   }
 

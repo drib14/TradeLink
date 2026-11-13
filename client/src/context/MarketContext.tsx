@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { Listing, Campus, TradeMode, ConditionGrade } from '../types';
 import { listingsService } from '../services/listings.service';
-import { getAccessToken } from '../services/api';
+import { useAuth } from './AuthContext';
 
 interface MarketContextType {
   listings: Listing[];
@@ -26,7 +26,7 @@ interface MarketContextType {
   addListing: (listingData: any) => Promise<Listing>;
   updateListing: (id: string, updates: Partial<Listing>) => Promise<void>;
   deleteListing: (id: string) => Promise<void>;
-  toggleFavorite: (id: string) => void;
+  toggleFavorite: (id: string) => Promise<void>;
   markAsSold: (id: string, isSold: boolean) => Promise<void>;
   updateListingQuantity: (id: string, quantity: number) => Promise<void>;
   incrementViews: (id: string) => void;
@@ -37,6 +37,7 @@ interface MarketContextType {
 const MarketContext = createContext<MarketContextType | undefined>(undefined);
 
 export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { currentUser } = useAuth();
   const [listings, setListings] = useState<Listing[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -70,6 +71,25 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   useEffect(() => {
     refreshListings();
   }, [refreshListings]);
+
+  useEffect(() => {
+    let active = true;
+    if (!currentUser) {
+      setFavorites([]);
+      return () => { active = false; };
+    }
+
+    listingsService.getFavorites()
+      .then((ids) => {
+        if (active) setFavorites(Array.isArray(ids) ? ids : []);
+      })
+      .catch((error) => {
+        console.warn('Failed to load saved listings:', error);
+        if (active) setFavorites([]);
+      });
+
+    return () => { active = false; };
+  }, [currentUser?.id]);
 
   const clearFilters = () => {
     setSelectedCampus('All');
@@ -150,21 +170,27 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const updateListing = async (id: string, updates: Partial<Listing>) => {
-    setListings((prev) => prev.map((item) => (item.id === id ? { ...item, ...updates } : item)));
     await listingsService.updateListing(id, updates);
+    setListings((prev) => prev.map((item) => (item.id === id ? { ...item, ...updates } : item)));
   };
 
   const deleteListing = async (id: string) => {
-    setListings((prev) => prev.filter((item) => item.id !== id));
+    // Only remove the card after the backend confirms deletion or archival.
     await listingsService.deleteListing(id);
+    setListings((prev) => prev.filter((item) => item.id !== id));
   };
 
   const toggleFavorite = async (id: string) => {
-    let wasFavorited = false;
+    if (!currentUser) {
+      throw new Error('Please log in to save listings.');
+    }
 
+    const result = await listingsService.toggleFavorite(id);
     setFavorites((prev) => {
-      wasFavorited = prev.includes(id);
-      return wasFavorited ? prev.filter((favId) => favId !== id) : [...prev, id];
+      if (result.isFavorited) {
+        return prev.includes(id) ? prev : [...prev, id];
+      }
+      return prev.filter((favoriteId) => favoriteId !== id);
     });
   };
 
@@ -181,6 +207,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const updateListingQuantity = async (id: string, quantity: number) => {
+    await listingsService.updateListingQuantity(id, quantity);
     setListings((prev) =>
       prev.map((item) =>
         item.id === id
@@ -188,7 +215,6 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           : item
       )
     );
-    await listingsService.updateListingQuantity(id, quantity);
   };
 
   const incrementViews = (id: string) => {

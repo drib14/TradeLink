@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/admin.controller');
+const flashMarketController = require('../controllers/flashMarket.controller');
+const transactionsController = require('../controllers/transactions.controller');
 const { authenticateAdmin } = require('../middleware/auth');
 const decodeParams = require('../middleware/decodeParams');
 const validate = require('../middleware/validate');
@@ -30,6 +32,13 @@ router.use(authenticateAdmin);
 router.get('/stats', adminController.getStats);
 router.get('/metrics', adminController.getStats);
 router.get('/analytics', adminController.getAnalytics);
+
+// Administrator-only marketplace moderation and transaction management.
+// These endpoints use the dedicated admin JWT, not the student auth middleware.
+router.get('/flash-market', flashMarketController.getFlashRequests);
+router.delete('/flash-market/:id', validateUUID('id'), flashMarketController.deleteFlashRequest);
+router.get('/transactions', transactionsController.getTransactions);
+router.patch('/transactions/:id/status', validateUUID('id'), transactionsController.updateTransactionStatus);
 
 // Listings Full Admin CRUD
 router.get('/listings', adminController.getAllListingsAdmin);
