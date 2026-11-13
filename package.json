@@ -2,6 +2,10 @@
   "name": "tradelink",
   "private": true,
   "scripts": {
+    "dev": "node scripts/dev.js",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "dev:admin": "npm --prefix admin run dev",
     "check:secrets": "node scripts/check-secrets.js --all",
     "precommit": "node scripts/check-secrets.js"
   },
