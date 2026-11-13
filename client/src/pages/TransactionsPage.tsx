@@ -541,7 +541,7 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
                         >
                           <Copy size={12} /> Copy code
                         </button>
-                        <span style={{ fontSize: '0.72rem', color: '#1E40AF', maxWidth: '260px' }}>Show in person only after inspection. Never send it in chat. Keep this code private.</span>
+                        <span style={{ fontSize: '0.72rem', color: '#1E40AF', maxWidth: '260px' }}>Show in person only after inspection and agreement on the exchange. Never send it in chat. Keep this code private.</span>
                       </div>
                     </div>
                   </div>
@@ -557,7 +557,7 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
                       className="btn-primary"
                       style={{ alignSelf: 'flex-start', padding: '0.55rem 0.9rem', fontSize: '0.78rem', fontWeight: 800 }}
                     >
-                      <Check size={14} /> I received the item
+                      <Check size={14} /> Confirm completed exchange
                     </button>
                   </div>
                 )}
@@ -652,8 +652,8 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
       {/* Buyer independently confirms receipt after seller code verification. */}
       <ConfirmModal
         isOpen={Boolean(confirmCompleteTx)}
-        title="Confirm item received"
-        message={`Have you personally received and inspected "${confirmCompleteTx?.listingTitle}" and agreed that the exchange is complete? This cannot be undone.`}
+        title="Confirm completed exchange"
+        message={`Have you received and inspected "${confirmCompleteTx?.listingTitle}" and completed the agreed payment or exchange terms? Confirm only when the transaction is fully settled.`}
         confirmText="Yes, I received it"
         cancelText="Not yet"
         variant="success"
@@ -666,7 +666,7 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
       <PromptModal
         isOpen={Boolean(handshakePromptTx)}
         title="Verify the meetup handshake"
-        message={`Ask the buyer to show their private 4-digit code in person. Verify the item handover before submitting for order ${handshakePromptTx?.referenceNo}.`}
+        message={`Confirm the item has been handed over and the agreed payment or swap terms are settled. Then ask the buyer to show their private 4-digit code in person for order ${handshakePromptTx?.referenceNo}.`}
         placeholder="Enter 4-digit buyer code"
         inputType="number"
         required
