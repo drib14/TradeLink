@@ -293,14 +293,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
       color: getCategoryColor(name)
     }));
 
-    if (entries.length === 0) {
-      return [
-        { name: 'Textbooks & Reviewers', count: 0, value: 0, percentage: 0, color: '#002B7F' },
-        { name: 'Uniforms & Scrubs', count: 0, value: 0, percentage: 0, color: '#D97706' },
-        { name: 'Electronics & Gadgets', count: 0, value: 0, percentage: 0, color: '#2563EB' }
-      ];
-    }
-
     return entries.sort((a, b) => b.count - a.count);
   }, [userActiveListings, userSoldListings]);
 
@@ -324,14 +316,16 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   const ratingDistribution = useMemo(() => {
     const dist = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
     userReviews.forEach((r) => {
-      const star = Math.min(5, Math.max(1, Math.round(r.rating || 5))) as 1 | 2 | 3 | 4 | 5;
+      const normalizedRating = Number(r.rating);
+      if (!Number.isFinite(normalizedRating) || normalizedRating < 1 || normalizedRating > 5) return;
+      const star = Math.round(normalizedRating) as 1 | 2 | 3 | 4 | 5;
       dist[star] += 1;
     });
     const total = userReviews.length || 1;
     return [5, 4, 3, 2, 1].map((star) => ({
       star,
       count: dist[star as 1 | 2 | 3 | 4 | 5],
-      pct: userReviews.length > 0 ? Math.round((dist[star as 1 | 2 | 3 | 4 | 5] / total) * 100) : (star === 5 && rating >= 4.5 ? 100 : 0)
+      pct: userReviews.length > 0 ? Math.round((dist[star as 1 | 2 | 3 | 4 | 5] / total) * 100) : 0
     }));
   }, [userReviews, rating]);
 
@@ -691,7 +685,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 <div className="profile-reputation-chip">
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', color: rating > 0 ? '#D97706' : 'var(--text-muted)', fontWeight: 800 }}>
                     <Star size={13} fill={rating > 0 ? '#D97706' : 'transparent'} color={rating > 0 ? '#D97706' : 'var(--text-muted)'} />
-                    {rating > 0 ? rating.toFixed(1) : '0.0'}
+                    {rating > 0 ? rating.toFixed(1) : '—'}
                   </span>
                   <span>&bull;</span>
                   <span>{totalReviewsCount} {totalReviewsCount === 1 ? 'Review' : 'Reviews'}</span>
@@ -880,7 +874,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
               <div className="profile-metric-item">
                 <span className="profile-metric-label">Peer Rating</span>
                 <span className="profile-metric-value" style={{ color: rating > 0 ? '#D97706' : 'var(--text-muted)' }}>
-                  {rating > 0 ? rating.toFixed(1) : '5.0'} <Star size={13} fill={rating > 0 ? '#D97706' : 'transparent'} color={rating > 0 ? '#D97706' : 'var(--text-muted)'} />
+                  {rating > 0 ? rating.toFixed(1) : '—'} <Star size={13} fill={rating > 0 ? '#D97706' : 'transparent'} color={rating > 0 ? '#D97706' : 'var(--text-muted)'} />
                 </span>
                 <span className="profile-metric-sub">
                   {totalReviewsCount} {totalReviewsCount === 1 ? 'review' : 'reviews'}
@@ -1497,7 +1491,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                   </div>
                   <div style={{ display: 'flex', gap: '2px', color: '#F59E0B', justifyContent: 'center', marginTop: '0.35rem' }}>
                     {Array.from({ length: 5 }).map((_, i) => (
-                      <Star key={i} size={14} fill="#F59E0B" color="#F59E0B" />
+                      <Star key={i} size={14} fill={rating > 0 && i < Math.round(rating) ? "#F59E0B" : "transparent"} color={rating > 0 ? "#F59E0B" : "var(--text-muted)"} />
                     ))}
                   </div>
                   <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
