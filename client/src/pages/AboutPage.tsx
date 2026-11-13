@@ -75,6 +75,23 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
         <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', marginTop: '0.5rem', lineHeight: 1.65 }}>
           We give students an independent, direct platform to buy, sell, swap, and donate academic gear safely. Zero platform commissions, genuine student verification, and complete freedom for buyers and sellers to decide where and how they want to meet.
         </p>
+
+        <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+          <a
+            href="https://uc-tradelink.vercel.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-primary"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', padding: '0.7rem 1.1rem', textDecoration: 'none' }}
+          >
+            Visit TradeLink <ArrowRight size={16} />
+          </a>
+          <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+            <a href="https://uc-tradelink.vercel.app/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--uc-blue)', fontWeight: 700 }}>
+              uc-tradelink.vercel.app
+            </a>
+          </span>
+        </div>
       </div>
 
       {/* Value Pillars Counter */}
