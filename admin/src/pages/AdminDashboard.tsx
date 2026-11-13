@@ -730,9 +730,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
               <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#002B7F', fontFamily: 'var(--font-display)', marginTop: '0.15rem' }}>
                 {analytics?.kpi?.totalUsers ?? allUsers.length}
               </div>
-              <span style={{ fontSize: '0.74rem', color: '#059669', fontWeight: 700 }}>
-                100% active access (Open MVP)
-              </span>
             </div>
 
             <div style={{ borderLeft: '1px solid #F1F5F9', paddingLeft: '1rem' }}>
