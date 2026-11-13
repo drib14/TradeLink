@@ -9,7 +9,24 @@ paths = [
   '''^\.env\.example$''',
   '''^server/\.env\.example$''',
   '''^client/\.env\.example$''',
-  '''^admin/\.env\.example$''',
+  '''^admin/\.env\.example
+  '''^scripts/check-secrets\.js$'''
+]
+
+regexes = [
+  '''your_groq_api_key_here''',
+  '''insert_strong_random_secret_here'''
+]
+'',
+  '''^mobile/user/\.env\.example
+  '''^scripts/check-secrets\.js$'''
+]
+
+regexes = [
+  '''your_groq_api_key_here''',
+  '''insert_strong_random_secret_here'''
+]
+'',
   '''^scripts/check-secrets\.js$'''
 ]
 
