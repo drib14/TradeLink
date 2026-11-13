@@ -47,7 +47,7 @@ export const mobileTransactionsService = {
   },
 
   // Backward-compatible helper for older mobile code paths.
-  async completeTransaction(id: string, handshakeCode: string) {
+  completeTransaction(id: string, handshakeCode: string) {
     return this.confirmHandshake(id, handshakeCode);
   },
 
