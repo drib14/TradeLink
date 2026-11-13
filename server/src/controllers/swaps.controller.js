@@ -317,6 +317,7 @@ const respondToSwap = asyncHandler(async (req, res, next) => {
     });
 
     // Send the private code only to the proposer/buyer. It is never added to chat.
+    let handshakeEmailSent = false;
     try {
       const [buyerUser, sellerUser, targetListing] = await Promise.all([
         db('users').where({ id: swap.proposer_id }).first(),
@@ -324,9 +325,10 @@ const respondToSwap = asyncHandler(async (req, res, next) => {
         db('listings').where({ id: swap.listing_id }).first()
       ]);
       if (buyerUser && sellerUser && targetListing) {
-        await emailService.sendOrderPlacedBuyerEmail(
+        const delivery = await emailService.sendOrderPlacedBuyerEmail(
           buyerUser, sellerUser, swapTransaction, targetListing, req, handshakeCode
         );
+        handshakeEmailSent = Boolean(delivery && delivery.ok);
       }
     } catch (emailErr) {
       console.error('[SWAP HANDSHAKE EMAIL] Failed to send buyer meetup code:', emailErr.message);
@@ -337,7 +339,9 @@ const respondToSwap = asyncHandler(async (req, res, next) => {
       proposerId: swap.target_seller_id, // sender of message is seller
       sellerId: swap.proposer_id,
       swapOfferId: swap.id,
-      content: `[Swap Accepted] Swap Offer ACCEPTED! Order deal created. The buyer's private meetup code has been sent to their registered email. Let's arrange a convenient campus meetup spot to swap items!`,
+      content: handshakeEmailSent
+        ? `[Swap Accepted] Swap Offer ACCEPTED! Order deal created. The buyer's private meetup code was sent to their registered email. Let's arrange a convenient campus meetup spot to swap items!`
+        : `[Swap Accepted] Swap Offer ACCEPTED! Order deal created. The buyer should open Transactions and request a fresh private meetup code by email before the handover. Let's arrange a convenient campus meetup spot to swap items!`,
       isSystem: true,
       io
     });
