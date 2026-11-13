@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -27,6 +27,25 @@ export default function ProfileScreen() {
     ? listings.filter((l) => (l.seller?.id || l.sellerId) === currentUser.id && l.isSold)
     : [];
   const myFavoriteListings = listings.filter((l) => favorites.includes(l.id));
+  const trustRating = Number(currentUser?.trustRating ?? currentUser?.rating ?? (currentUser?.trustScore != null ? currentUser.trustScore / 20 : 0));
+  const reviewCount = Number(currentUser?.totalReviews ?? currentUser?.reviewCount ?? 0);
+  const myListingHistory = currentUser
+    ? listings.filter((l) => (l.seller?.id || l.sellerId) === currentUser.id)
+    : [];
+  const listingActivity = useMemo(() => {
+    const now = new Date();
+    return Array.from({ length: 6 }, (_, index) => {
+      const date = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
+      const count = myListingHistory.filter((listing) => {
+        const createdAt = new Date(listing.createdAt);
+        return !Number.isNaN(createdAt.getTime()) &&
+          createdAt.getFullYear() === date.getFullYear() &&
+          createdAt.getMonth() === date.getMonth();
+      }).length;
+      return { label: date.toLocaleString('en', { month: 'short' }), count };
+    });
+  }, [myListingHistory]);
+  const maxListingActivity = Math.max(1, ...listingActivity.map((item) => item.count));
 
   const handleLogout = () => {
     Alert.alert('Log Out', 'Are you sure you want to log out of your TradeLink account?', [
@@ -129,17 +148,38 @@ export default function ProfileScreen() {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
               <Ionicons name="star" size={14} color="#FFC72C" />
               <Text style={styles.statNumber}>
-                {(currentUser.trustRating || (currentUser.trustScore ? currentUser.trustScore / 20 : 5.0)).toFixed(1)}
+                {reviewCount > 0 && trustRating > 0 ? trustRating.toFixed(1) : '—'}
               </Text>
             </View>
             <Text style={styles.statLabel}>Trust Score</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statBox}>
-            <Text style={styles.statNumber}>{currentUser.successfulTrades}</Text>
+            <Text style={styles.statNumber}>{Number(currentUser.successfulTrades ?? currentUser.completedTrades ?? 0)}</Text>
             <Text style={styles.statLabel}>Trades</Text>
           </View>
         </View>
+      </View>
+
+      {/* Live six-month listing activity; values come from this account's API listings. */}
+      <View style={{ marginHorizontal: 16, marginTop: 14, padding: 16, backgroundColor: '#FFFFFF', borderRadius: 16, borderWidth: 1, borderColor: '#E2E8F0' }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <Text style={{ fontSize: 14, fontWeight: '800', color: '#0F172A' }}>Listing activity</Text>
+          <Text style={{ fontSize: 11, color: '#64748B' }}>Last 6 months</Text>
+        </View>
+        {myListingHistory.length === 0 ? (
+          <Text style={{ color: '#64748B', fontSize: 12 }}>Your listing activity will appear here when you publish an item.</Text>
+        ) : (
+          <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', height: 104, gap: 8 }}>
+            {listingActivity.map((item) => (
+              <View key={item.label} style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
+                <Text style={{ fontSize: 10, color: '#475569', marginBottom: 5 }}>{item.count}</Text>
+                <View style={{ width: '72%', height: Math.max(4, (item.count / maxListingActivity) * 68), backgroundColor: '#2563EB', borderRadius: 5 }} />
+                <Text style={{ fontSize: 10, color: '#64748B', marginTop: 6 }}>{item.label}</Text>
+              </View>
+            ))}
+          </View>
+        )}
       </View>
 
       {/* 2. Tabs: Active / Fulfilled / Saved */}
