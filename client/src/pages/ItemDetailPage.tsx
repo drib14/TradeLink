@@ -258,18 +258,23 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
     .filter((l: Listing) => l.id !== listing.id && (l.category === listing.category || l.sellerCampus === listing.sellerCampus))
     .slice(0, 4);
 
-  const handleFavoriteClick = () => {
+  const handleFavoriteClick = async () => {
     if (!isAuthenticated) {
       showToast('Log In Required', 'Please log in to save items to your favorites.', 'info');
       if (onOpenAuth) onOpenAuth();
       return;
     }
-    toggleFavorite(listing.id);
-    showToast(
-      isFavorite ? 'Removed' : 'Saved',
-      isFavorite ? `"${listing.title}" removed from saved items.` : `"${listing.title}" added to saved items.`,
-      'info'
-    );
+
+    try {
+      await toggleFavorite(listing.id);
+      showToast(
+        isFavorite ? 'Removed' : 'Saved',
+        isFavorite ? `"${listing.title}" removed from saved items.` : `"${listing.title}" added to saved items.`,
+        'info'
+      );
+    } catch (err: any) {
+      showToast('Could Not Save Item', err?.message || 'Unable to update your saved listings. Please try again.', 'error');
+    }
   };
 
   const handleBuyClick = () => {
