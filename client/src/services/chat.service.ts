@@ -222,6 +222,7 @@ export const chatService = {
         buyerConfirmedAt: t.buyerConfirmedAt || t.buyer_confirmed_at || null,
         sellerConfirmedAt: t.sellerConfirmedAt || t.seller_confirmed_at || null,
         handshakeCompletedAt: t.handshakeCompletedAt || t.handshake_completed_at || null,
+        completionOverrideBy: t.completionOverrideBy || t.completion_override_by || null,
         cancelledAt: t.cancelledAt || t.cancelled_at,
         cancellationReason: t.cancellationReason || t.cancellation_reason,
         createdAt: t.createdAt || t.created_at || new Date().toISOString()
