@@ -158,7 +158,8 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
   } = req.body;
 
   const rawIdPhoto = idPhotoUrl || idCardImageUrl;
-  // Prefer the actual selfie for the selfie column; enrollment proof is only a fallback.\n  const secondaryProof = selfiePhotoUrl || enrollmentProofUrl || null;
+  // No enrollment proof is collected; the same live selfie is stored in both legacy image fields.
+  const secondaryProof = selfiePhotoUrl || null;
 
   if (!studentIdNumber || !rawIdPhoto) {
     return next(new AppError('Student ID number and live selfie captured from your device camera are required.', 400));
