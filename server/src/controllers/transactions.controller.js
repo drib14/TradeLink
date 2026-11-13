@@ -468,7 +468,9 @@ const confirmHandshake = asyncHandler(async (req, res, next) => {
       sellerId: tx.seller_id,
       transactionId: tx.id,
       referenceNo: tx.reference_no,
-      content: `[Handshake Completed] Both students confirmed the physical exchange for order #${tx.reference_no} (${listing?.title || 'Campus item'}). The transaction is now complete. Thank you for trading safely on campus!`,
+      content: result.adminOverride
+        ? `[Admin Resolution] An administrator completed order #${tx.reference_no} (${listing?.title || 'Campus item'}) after review. This is an administrative resolution, not a record of either student's personal confirmation.`
+        : `[Handshake Completed] Both students confirmed the physical exchange for order #${tx.reference_no} (${listing?.title || 'Campus item'}). The transaction is now complete. Thank you for trading safely on campus!`,
       isSystem: true,
       io
     });
