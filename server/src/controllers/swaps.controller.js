@@ -2,7 +2,9 @@ const { v4: uuidv4 } = require('uuid');
 const db = require('../config/db');
 const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
-const { serializeSwap, serializeTransaction } = require('../serializers');
+const { serializeSwap } = require('../serializers');
+const emailService = require('../services/email.service');
+const { generate4DigitCode, hashCode } = require('../utils/generateCode');
 
 /**
  * Generates reference code for auto-created swap transactions
@@ -274,40 +276,67 @@ const respondToSwap = asyncHandler(async (req, res, next) => {
   const mappedStatus = status === 'declined' ? 'rejected' : status;
   const io = req.app.get('io');
 
+  if (swap.status !== 'pending') {
+    return next(new AppError('This swap proposal has already been responded to.', 409));
+  }
+
   if (mappedStatus === 'accepted') {
+    // Generate a buyer-only code for the accepted barter transaction.
+    const handshakeCode = generate4DigitCode().slice(0, 4);
+    const handshakeCodeHash = await hashCode(handshakeCode);
+    const txId = uuidv4();
+    const refNo = generateReferenceNo();
+    const swapTransaction = {
+      id: txId,
+      reference_no: refNo,
+      listing_id: swap.listing_id,
+      seller_id: swap.target_seller_id,
+      buyer_id: swap.proposer_id,
+      swap_offer_id: swap.id,
+      trade_mode: 'swap',
+      amount: parseFloat(swap.cash_adjustment || 0),
+      payment_method: 'barter',
+      payment_status: 'paid',
+      status: 'pending',
+      verification_code_hash: handshakeCodeHash,
+      failed_handshake_attempts: 0,
+      handshake_locked_until: null,
+      selected_variation: swap.selected_variation || null,
+      notes: `Barter trade: ${swap.offered_item_title} for ${swap.target_title}${swap.selected_variation ? ` [Option: ${swap.selected_variation}]` : ''}`
+    };
+
     await db.transaction(async (trx) => {
-      // 1. Update swap status
+      const pendingSwap = await trx('swap_offers').where({ id, status: 'pending' }).forUpdate().first();
+      if (!pendingSwap) {
+        throw new AppError('This swap proposal has already been responded to.', 409);
+      }
       await trx('swap_offers').where({ id }).update({ status: 'accepted' });
-
-      // 2. Mark listing as reserved
       await trx('listings').where({ id: swap.listing_id }).update({ status: 'reserved' });
-
-      // 3. Auto-generate transaction for this barter deal
-      const txId = uuidv4();
-      const refNo = generateReferenceNo();
-      await trx('transactions').insert({
-        id: txId,
-        reference_no: refNo,
-        listing_id: swap.listing_id,
-        seller_id: swap.target_seller_id,
-        buyer_id: swap.proposer_id,
-        swap_offer_id: swap.id,
-        trade_mode: 'swap',
-        amount: parseFloat(swap.cash_adjustment || 0),
-        payment_method: 'barter',
-        payment_status: 'paid',
-        status: 'pending',
-        selected_variation: swap.selected_variation || null,
-        notes: `Barter trade: ${swap.offered_item_title} for ${swap.target_title}${swap.selected_variation ? ` [Option: ${swap.selected_variation}]` : ''}`
-      });
+      await trx('transactions').insert(swapTransaction);
     });
+
+    // Send the private code only to the proposer/buyer. It is never added to chat.
+    try {
+      const [buyerUser, sellerUser, targetListing] = await Promise.all([
+        db('users').where({ id: swap.proposer_id }).first(),
+        db('users').where({ id: swap.target_seller_id }).first(),
+        db('listings').where({ id: swap.listing_id }).first()
+      ]);
+      if (buyerUser && sellerUser && targetListing) {
+        await emailService.sendOrderPlacedBuyerEmail(
+          buyerUser, sellerUser, swapTransaction, targetListing, req, handshakeCode
+        );
+      }
+    } catch (emailErr) {
+      console.error('[SWAP HANDSHAKE EMAIL] Failed to send buyer meetup code:', emailErr.message);
+    }
 
     await syncSwapToChat({
       listingId: swap.listing_id,
       proposerId: swap.target_seller_id, // sender of message is seller
       sellerId: swap.proposer_id,
       swapOfferId: swap.id,
-      content: `[Swap Accepted] Swap Offer ACCEPTED! Order deal created. Let's arrange a convenient campus meetup spot to swap items!`,
+      content: `[Swap Accepted] Swap Offer ACCEPTED! Order deal created. The buyer's private meetup code has been sent to their registered email. Let's arrange a convenient campus meetup spot to swap items!`,
       isSystem: true,
       io
     });
