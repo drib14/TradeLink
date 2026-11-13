@@ -241,10 +241,13 @@ export const chatService = {
     selectedVariation?: string;
     variationId?: string;
   }): Promise<Transaction> {
-    const res = await api.post<{ transaction: any; handshakeCode?: string }>('/transactions', data);
-    const transaction = res.data?.transaction || res.data;
+    const res = await api.post<{ transaction: Transaction; handshakeCode?: string }>('/transactions', data);
+    const transaction = res.data?.transaction;
+    if (!transaction) {
+      throw new Error('The transaction could not be created. Please try again.');
+    }
     // The raw code is returned once to the buyer at creation and is never reloaded from the API.
-    if (res.data?.handshakeCode && transaction) {
+    if (res.data?.handshakeCode) {
       transaction.verificationCode = String(res.data.handshakeCode);
     }
     return transaction;
