@@ -1480,7 +1480,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
         <PromptModal
           isOpen={Boolean(completeTxModal)}
           title="Verify meetup handshake"
-          message={`Ask the buyer to show their private 4-digit code in person for order #${completeTxModal.refNo}. Submit only after the item has been handed over.`}
+          message={`Ask the buyer to show their private 4-digit code in person for order #${completeTxModal.refNo}. Submit only after the item has been handed over and any agreed payment or swap terms have been settled.`}
           placeholder="Enter 4-digit buyer code"
           inputType="number"
           required
@@ -1508,8 +1508,8 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
       {confirmReceiptTxModal && (
         <ConfirmModal
           isOpen={Boolean(confirmReceiptTxModal)}
-          title="Confirm item received"
-          message={`Have you personally received and inspected "${confirmReceiptTxModal.title || 'the item'}" for order #${confirmReceiptTxModal.refNo}? Confirm only when the exchange is complete.`}
+          title="Confirm completed exchange"
+          message={`Have you received and inspected "${confirmReceiptTxModal.title || 'the item'}" and completed the agreed payment or exchange terms for order #${confirmReceiptTxModal.refNo}? Confirm only when everything is settled.`}
           confirmText="Yes, I received it"
           cancelText="Not yet"
           variant="success"
