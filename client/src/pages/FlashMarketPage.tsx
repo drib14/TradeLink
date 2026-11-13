@@ -145,19 +145,23 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
       showToast('Request Expired', 'This flash request has reached its expiration window and is no longer accepting offers.', 'warning');
       return;
     }
-    await openChatForFlash({
-      id: req.id,
-      requesterId: req.requesterId,
-      itemName: req.itemTitle,
-      targetBudget: req.targetBudget
-    });
-    respondToRequest(req.id);
-    showToast(
-      'Flash Chat Connected!',
-      `Connected with ${req.requesterName} to fulfill their flash request for "${req.itemTitle}".`,
-      'success'
-    );
-    onOpenChat();
+    try {
+      await openChatForFlash({
+        id: req.id,
+        requesterId: req.requesterId,
+        itemName: req.itemTitle,
+        targetBudget: req.targetBudget
+      });
+      await respondToRequest(req.id);
+      showToast(
+        'Flash Chat Connected!',
+        `Connected with ${req.requesterName} to fulfill their flash request for "${req.itemTitle}".`,
+        'success'
+      );
+      onOpenChat();
+    } catch (err: any) {
+      showToast('Could Not Respond', err?.message || 'Unable to respond to this request. Please try again.', 'error');
+    }
   };
 
   return (
