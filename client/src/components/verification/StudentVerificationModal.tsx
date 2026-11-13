@@ -119,6 +119,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
     setSelfiePhotoUrl(canvas.toDataURL('image/jpeg', 0.88));
     stopCamera();
+    setStep('review');
     showToast('Live Selfie Captured', 'Review your live camera selfie before submitting it for campus review.', 'success');
   };
 
