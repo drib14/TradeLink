@@ -513,9 +513,11 @@ const confirmHandshake = asyncHandler(async (req, res, next) => {
 
   res.status(200).json({
     status: 'success',
-    message: result.completed
-      ? 'Both parties confirmed. The transaction is complete!'
-      : 'Your confirmation has been recorded. The transaction will complete after the other party confirms.',
+    message: result.adminOverride
+      ? 'The transaction was completed by an administrator after review.'
+      : result.completed
+        ? 'Both parties confirmed. The transaction is complete!'
+        : 'Your confirmation has been recorded. The transaction will complete after the other party confirms.',
     data: {
       status: result.status,
       completed: result.completed,
