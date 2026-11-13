@@ -367,6 +367,30 @@ const confirmHandshake = asyncHandler(async (req, res, next) => {
       throw new AppError(`This transaction cannot be confirmed because it is ${tx.status}.`, 400);
     }
 
+    // Admins retain the existing dispute-resolution override. This is explicitly
+    // recorded separately and does not impersonate either student's confirmation.
+    if (req.user.role === 'admin') {
+      if (tx.status !== 'pending') {
+        throw new AppError(`This transaction cannot be overridden because it is ${tx.status}.`, 400);
+      }
+      const completedAt = new Date();
+      await trx('transactions').where({ id }).update({
+        status: 'completed',
+        completed_at: completedAt,
+        handshake_completed_at: completedAt,
+        completion_override_by: req.user.id
+      });
+      await trx('listings').where({ id: tx.listing_id }).update({ status: 'sold' });
+      return {
+        completed: true,
+        adminOverride: true,
+        buyerConfirmedAt: tx.buyer_confirmed_at || null,
+        sellerConfirmedAt: tx.seller_confirmed_at || null,
+        status: 'completed',
+        transaction: tx
+      };
+    }
+
     const patch = {};
     if (isSeller && !tx.seller_confirmed_at) {
       if (tx.handshake_locked_until && new Date() < new Date(tx.handshake_locked_until)) {
