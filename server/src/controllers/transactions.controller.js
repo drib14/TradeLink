@@ -364,14 +364,11 @@ const confirmHandshake = asyncHandler(async (req, res, next) => {
     if (!isBuyer && !isSeller && !isAdmin) {
       throw new AppError('Only the buyer and seller can confirm this handshake.', 403);
     }
-    if (tx.status !== 'pending') {
-      throw new AppError(`This transaction cannot be confirmed because it is ${tx.status}.`, 400);
-    }
 
-    // Admins retain the existing dispute-resolution override. This is explicitly
-    // recorded separately and does not impersonate either student's confirmation.
-    if (req.user.role === 'admin') {
-      if (tx.status !== 'pending') {
+    // Admins retain the existing dispute-resolution override for pending or
+    // disputed orders. This is audited separately; it never impersonates a student.
+    if (isAdmin) {
+      if (!['pending', 'disputed'].includes(tx.status)) {
         throw new AppError(`This transaction cannot be overridden because it is ${tx.status}.`, 400);
       }
       const completedAt = new Date();
@@ -392,13 +389,20 @@ const confirmHandshake = asyncHandler(async (req, res, next) => {
       };
     }
 
+    if (tx.status !== 'pending') {
+      throw new AppError(`This transaction cannot be confirmed because it is ${tx.status}.`, 400);
+    }
+
     const patch = {};
     if (isSeller && !tx.seller_confirmed_at) {
       if (tx.handshake_locked_until && new Date() < new Date(tx.handshake_locked_until)) {
         const remainingMins = Math.ceil((new Date(tx.handshake_locked_until).getTime() - Date.now()) / 60000);
         throw new AppError(`Handshake verification is locked. Try again in ${remainingMins} minute(s).`, 429);
       }
-      if (tx.verification_code_hash) {
+      if (!tx.verification_code_hash) {
+        throw new AppError('This order does not have a valid handshake code. Contact TradeLink Help & Safety for assistance.', 409);
+      }
+      {
         if (!/^\d{4}$/.test(String(handshakeCode || '').trim())) {
           throw new AppError('Enter the buyer’s 4-digit handshake code to verify the in-person exchange.', 400);
         }
@@ -437,9 +441,11 @@ const confirmHandshake = asyncHandler(async (req, res, next) => {
       patch.status = 'completed';
       patch.completed_at = now;
       patch.handshake_completed_at = now;
-      // Seller code verification attests the agreed payment/exchange terms;
-      // the buyer's independent confirmation completes that settlement.
-      patch.payment_status = 'paid';
+      // Mark monetary methods settled only after both students confirm. Barter
+      // and free-donation orders are not cash payments.
+      if (!['barter', 'free'].includes(String(tx.payment_method || '').toLowerCase())) {
+        patch.payment_status = 'paid';
+      }
     }
 
     if (Object.keys(patch).length) {
