@@ -318,7 +318,7 @@ const createTransaction = asyncHandler(async (req, res, next) => {
     ]);
     if (buyerUser && sellerUser) {
       await Promise.allSettled([
-        emailService.sendOrderPlacedBuyerEmail(buyerUser, sellerUser, newTx, listing, req),
+        emailService.sendOrderPlacedBuyerEmail(buyerUser, sellerUser, newTx, listing, req, handshakeCode),
         emailService.sendNewOrderSellerEmail(sellerUser, buyerUser, newTx, listing, req)
       ]);
     }
