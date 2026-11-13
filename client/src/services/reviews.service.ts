@@ -15,7 +15,7 @@ export const reviewsService = {
         reviewerAvatar: r.reviewerAvatar || r.reviewer_avatar || '',
         reviewerCampus: r.reviewerCampus || r.reviewer_campus || 'UC Main',
         targetUserId: r.targetUserId || r.target_user_id || userId,
-        rating: parseFloat(r.rating) || 5.0,
+        rating: Number.isFinite(Number(r.rating)) ? Number(r.rating) : 0,
         comment: r.comment || '',
         itemTitle: r.itemTitle || r.item_title || '',
         tradeType: r.tradeType || r.trade_type || 'Buy / Sell',
