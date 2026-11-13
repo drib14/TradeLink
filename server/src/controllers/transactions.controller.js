@@ -540,6 +540,14 @@ const cancelTransaction = asyncHandler(async (req, res, next) => {
     return next(new AppError('Unauthorized to cancel this transaction.', 403));
   }
 
+  if (tx.status !== 'pending') {
+    return next(new AppError('Only pending transactions can be cancelled.', 409));
+  }
+
+  if (req.user.role !== 'admin' && (tx.seller_confirmed_at || tx.buyer_confirmed_at)) {
+    return next(new AppError('This exchange has entered the handover stage and can no longer be cancelled. Contact TradeLink Help & Safety for assistance.', 409));
+  }
+
   await db.transaction(async (trx) => {
     await trx('transactions').where({ id }).update({
       status: 'cancelled',
