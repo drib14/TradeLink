@@ -136,7 +136,7 @@ Run these from the repository root unless noted.
 
 - Backend environment variables are documented in `server/.env.example`.
 - Frontend environment examples contain only public, non-secret settings.
-- Local `.env` files and runtime uploads are excluded from Git.
+- Local `.env` files and new runtime uploads are excluded from Git. Files already tracked by Git remain tracked until explicitly removed.
 - Use a managed database for deployed environments; local MySQL settings are for development only.
 - Never use production credentials or real student data in local development or tests.
 
