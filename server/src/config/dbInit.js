@@ -475,35 +475,34 @@ async function autoInitDatabase() {
 
 
 
-    // 2. Ensure Sole Administrator Account Exists using environment variables
-    const adminEmail = process.env.ADMIN_SEED_EMAIL || process.env.ADMIN_EMAIL || 'uc.tradelink@gmail.com';
-    const adminPassword = process.env.ADMIN_SEED_PASSWORD || process.env.ADMIN_PASSWORD;
-    if (!adminPassword && env.isProduction) {
-      throw new Error('[DB Init] ADMIN_SEED_PASSWORD is required in production environment.');
-    }
-    const finalAdminPassword = adminPassword || 'TradeLink@2026';
+    // 2. Ensure the administrator account exists without resetting an existing
+    // password on every server boot. A password sync is opt-in and explicit.
+    const configuredAdminEmail = process.env.ADMIN_SEED_EMAIL || process.env.ADMIN_EMAIL || '';
+    const adminPassword = process.env.ADMIN_SEED_PASSWORD || process.env.ADMIN_PASSWORD || '';
     const adminName = process.env.ADMIN_SEED_NAME || 'TradeLink Admin';
-    const adminPasswordHash = await bcrypt.hash(finalAdminPassword, 10);
+    const existingAdmin = configuredAdminEmail
+      ? await db('users').where({ email: configuredAdminEmail }).first()
+      : await db('users').where({ role: 'admin' }).first();
 
-    // Remove legacy or alternative admin accounts
-    await db('users').where({ email: 'admin@uc.edu.ph' }).del().catch(() => {});
-    await db('users').where({ id: 'user-admin' }).whereNot({ email: adminEmail }).del().catch(() => {});
-
-    const existingAdmin = await db('users').where({ email: adminEmail }).first();
     if (existingAdmin) {
-      await db('users').where({ id: existingAdmin.id }).update({
+      const adminUpdates = {
         name: adminName,
-        password_hash: adminPasswordHash,
         role: 'admin',
-        is_banned: false,
         is_verified: true
-      });
-      logger.info(`[DB Init] Synchronized credentials for admin account [${existingAdmin.email}]`);
-    } else {
+      };
+
+      if (adminPassword && process.env.SYNC_ADMIN_SEED_PASSWORD === 'true') {
+        adminUpdates.password_hash = await bcrypt.hash(adminPassword, 12);
+      }
+
+      await db('users').where({ id: existingAdmin.id }).update(adminUpdates);
+      logger.info('[DB Init] Administrator account metadata verified.');
+    } else if (configuredAdminEmail && adminPassword && adminPassword.length >= 16) {
+      const adminPasswordHash = await bcrypt.hash(adminPassword, 12);
       await db('users').insert({
         id: 'user-admin-main',
         name: adminName,
-        email: adminEmail,
+        email: configuredAdminEmail,
         student_id: '10000001',
         password_hash: adminPasswordHash,
         role: 'admin',
@@ -513,7 +512,7 @@ async function autoInitDatabase() {
         year_level: '4th Year',
         avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
         is_verified: true,
-        id_photo_url: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80',
+        id_photo_url: null,
         trust_score: 100,
         rating: 0.0,
         total_reviews: 0,
@@ -522,7 +521,9 @@ async function autoInitDatabase() {
         bio: 'Official TradeLink Administration & Moderation Desk.',
         is_banned: false
       });
-      logger.info(`[DB Init] Created administrator: ${adminEmail}`);
+      logger.info('[DB Init] Created administrator account from server environment configuration.');
+    } else {
+      logger.warn('[DB Init] No administrator account exists. Set ADMIN_SEED_EMAIL and an ADMIN_SEED_PASSWORD of at least 16 characters in server/.env before enabling admin access.');
     }
 
     // 3. Ensure Default System Configuration Exists

@@ -5,6 +5,15 @@ const bcrypt = require('bcryptjs');
  * @returns { Promise<void> }
  */
 exports.seed = async function(knex) {
+  if (process.env.ALLOW_DESTRUCTIVE_SEED !== 'true') {
+    throw new Error('Refusing to run destructive seed. Set ALLOW_DESTRUCTIVE_SEED=true only for a disposable database.');
+  }
+
+  const adminEmail = process.env.ADMIN_SEED_EMAIL;
+  const adminPassword = process.env.ADMIN_SEED_PASSWORD;
+  if (!adminEmail || !adminPassword || adminPassword.length < 16) {
+    throw new Error('ADMIN_SEED_EMAIL and an ADMIN_SEED_PASSWORD of at least 16 characters are required.');
+  }
   // Truncate tables in reverse dependency order
   const tables = [
     'review_badges', 'reviews', 'messages', 'conversations',
@@ -25,8 +34,6 @@ exports.seed = async function(knex) {
   await knex.raw('SET FOREIGN_KEY_CHECKS = 1');
 
   // Hash admin password using 12 salt rounds for enhanced brute-force resistance
-  const adminEmail = process.env.ADMIN_SEED_EMAIL || 'admin@tradelink.ph';
-  const adminPassword = process.env.ADMIN_SEED_PASSWORD || 'TradeLink@2026';
   const adminName = process.env.ADMIN_SEED_NAME || 'TradeLink Admin';
   const adminHash = await bcrypt.hash(adminPassword, 12);
 

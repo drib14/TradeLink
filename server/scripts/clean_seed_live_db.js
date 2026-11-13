@@ -5,13 +5,22 @@ const fs = require('fs');
 const path = require('path');
 
 async function main() {
+  if (process.env.CONFIRM_DESTRUCTIVE_SEED !== 'YES') {
+    throw new Error('Refusing to delete database records. Set CONFIRM_DESTRUCTIVE_SEED=YES only after verifying the target database.');
+  }
+  if (process.env.NODE_ENV === 'production' && process.env.CONFIRM_PRODUCTION_SEED_RESET !== 'YES') {
+    throw new Error('Production database reset requires CONFIRM_PRODUCTION_SEED_RESET=YES as a second explicit confirmation.');
+  }
+  if (!process.env.DB_HOST || !process.env.DB_NAME || !process.env.ADMIN_SEED_EMAIL ||
+      !process.env.ADMIN_SEED_PASSWORD || process.env.ADMIN_SEED_PASSWORD.length < 16) {
+    throw new Error('DB_HOST, DB_NAME, ADMIN_SEED_EMAIL, and an ADMIN_SEED_PASSWORD of at least 16 characters are required.');
+  }
   console.log('=== Connecting to Live Database ===');
-  console.log('Host:', process.env.DB_HOST);
-  console.log('Port:', process.env.DB_PORT);
-  console.log('User:', process.env.DB_USER);
-  console.log('Database:', process.env.DB_NAME);
+  console.log('Connecting to configured database.');
 
-  const sslConfig = process.env.DB_SSL === 'true' ? { minVersion: 'TLSv1.2', rejectUnauthorized: true } : false;
+  const sslConfig = (process.env.NODE_ENV === 'production' || process.env.DB_SSL === 'true')
+    ? { minVersion: 'TLSv1.2', rejectUnauthorized: true }
+    : false;
 
   let connection;
   try {
@@ -92,8 +101,8 @@ async function main() {
     }
 
     console.log('\n--- Seeding Administrator Account ONLY ---');
-    const adminEmail = process.env.ADMIN_SEED_EMAIL || 'uc.tradelink@gmail.com';
-    const adminPassword = process.env.ADMIN_SEED_PASSWORD || 'TradeLink@2026';
+    const adminEmail = process.env.ADMIN_SEED_EMAIL;
+    const adminPassword = process.env.ADMIN_SEED_PASSWORD;
     const adminName = process.env.ADMIN_SEED_NAME || 'TradeLink Moderation Team';
 
     // Bcrypt 12 salt rounds
