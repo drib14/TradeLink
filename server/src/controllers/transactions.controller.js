@@ -344,106 +344,152 @@ const createTransaction = asyncHandler(async (req, res, next) => {
 /**
  * Mark transaction as completed (by buyer, seller, or admin)
  */
-const completeTransaction = asyncHandler(async (req, res, next) => {
+/**
+ * Record one participant's independent confirmation of the physical exchange.
+ * The seller must validate the buyer's one-time handshake code. The buyer
+ * independently confirms receipt. Completion is atomic and requires both.
+ */
+const confirmHandshake = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
+  const { handshakeCode } = req.body || {};
+  const now = new Date();
 
-  const tx = await db('transactions').where({ id }).first();
-  if (!tx) {
-    return next(new AppError('Transaction not found.', 404));
-  }
+  const result = await db.transaction(async (trx) => {
+    const tx = await trx('transactions').where({ id }).forUpdate().first();
+    if (!tx) throw new AppError('Transaction not found.', 404);
 
-  // Only the seller or an administrator can mark the transaction as completed
-  if (req.user.id !== tx.seller_id && req.user.role !== 'admin') {
-    return next(new AppError('Only the seller can mark this transaction as completed.', 403));
-  }
-
-  if (tx.status === 'completed') {
-    return next(new AppError('Transaction is already completed.', 400));
-  }
-
-  // Check if handshake verification is currently locked due to brute force attempts
-  if (tx.handshake_locked_until && new Date() < new Date(tx.handshake_locked_until)) {
-    const remainingMins = Math.ceil((new Date(tx.handshake_locked_until).getTime() - Date.now()) / 60000);
-    return next(new AppError(`Handshake verification is temporarily locked. Please try again in ${remainingMins} minute(s).`, 429));
-  }
-
-  // Enforce Handshake Code verification for student completions (administrators can bypass in disputes)
-  if (req.user.role !== 'admin' && tx.verification_code_hash) {
-    const { handshakeCode } = req.body;
-    if (!handshakeCode) {
-      return next(new AppError('Buyer handshake verification code is required to finalize this trade.', 400));
+    const isBuyer = req.user.id === tx.buyer_id;
+    const isSeller = req.user.id === tx.seller_id;
+    if (!isBuyer && !isSeller) {
+      throw new AppError('Only the buyer and seller can confirm this handshake.', 403);
+    }
+    if (tx.status !== 'pending') {
+      throw new AppError(`This transaction cannot be confirmed because it is ${tx.status}.`, 400);
     }
 
-    const isMatch = await verifyCode(String(handshakeCode).trim(), tx.verification_code_hash);
-    if (!isMatch) {
-      const attempts = (tx.failed_handshake_attempts || 0) + 1;
-      if (attempts >= 3) {
-        await db('transactions').where({ id }).update({
-          failed_handshake_attempts: attempts,
-          handshake_locked_until: new Date(Date.now() + 15 * 60 * 1000)
-        });
-        return next(new AppError('Invalid handshake code. Maximum attempts exceeded (3/3). Handshake verification is locked for 15 minutes.', 429));
+    const patch = {};
+    if (isSeller && !tx.seller_confirmed_at) {
+      if (tx.handshake_locked_until && new Date() < new Date(tx.handshake_locked_until)) {
+        const remainingMins = Math.ceil((new Date(tx.handshake_locked_until).getTime() - Date.now()) / 60000);
+        throw new AppError(`Handshake verification is locked. Try again in ${remainingMins} minute(s).`, 429);
       }
-      await db('transactions').where({ id }).update({
-        failed_handshake_attempts: attempts
-      });
-      return next(new AppError(`Invalid handshake code. You have ${3 - attempts} attempt(s) remaining.`, 400));
+      if (tx.verification_code_hash) {
+        if (!/^\\d{4}$/.test(String(handshakeCode || '').trim())) {
+          throw new AppError('Enter the buyer’s 4-digit handshake code to verify the in-person exchange.', 400);
+        }
+        const matches = await verifyCode(String(handshakeCode).trim(), tx.verification_code_hash);
+        if (!matches) {
+          const attempts = Number(tx.failed_handshake_attempts || 0) + 1;
+          const lockPatch = attempts >= 3
+            ? { failed_handshake_attempts: attempts, handshake_locked_until: new Date(Date.now() + 15 * 60 * 1000) }
+            : { failed_handshake_attempts: attempts };
+          await trx('transactions').where({ id }).update(lockPatch);
+          throw new AppError(
+            attempts >= 3
+              ? 'Incorrect code. Verification is locked for 15 minutes after 3 failed attempts.'
+              : `Incorrect code. ${3 - attempts} attempt(s) remaining.`,
+            attempts >= 3 ? 429 : 400
+          );
+        }
+      }
+      patch.seller_confirmed_at = now;
+      patch.failed_handshake_attempts = 0;
+      patch.handshake_locked_until = null;
     }
-  }
 
-  await db.transaction(async (trx) => {
-    await trx('transactions').where({ id }).update({
-      status: 'completed',
-      payment_status: 'paid',
-      failed_handshake_attempts: 0,
-      handshake_locked_until: null,
-      completed_at: new Date()
+    if (isBuyer && !tx.buyer_confirmed_at) {
+      patch.buyer_confirmed_at = now;
+    }
+
+    const buyerConfirmedAt = tx.buyer_confirmed_at || patch.buyer_confirmed_at || null;
+    const sellerConfirmedAt = tx.seller_confirmed_at || patch.seller_confirmed_at || null;
+    const completed = Boolean(buyerConfirmedAt && sellerConfirmedAt);
+
+    if (completed) {
+      patch.status = 'completed';
+      patch.completed_at = now;
+      patch.handshake_completed_at = now;
+    }
+
+    if (Object.keys(patch).length) {
+      await trx('transactions').where({ id }).update(patch);
+    }
+    if (completed) {
+      await trx('listings').where({ id: tx.listing_id }).update({ status: 'sold' });
+    }
+
+    return {
+      completed,
+      buyerConfirmedAt,
+      sellerConfirmedAt,
+      status: completed ? 'completed' : 'pending',
+      transaction: tx
+    };
+  });
+
+  if (result.completed) {
+    const tx = result.transaction;
+    const io = req.app.get('io');
+    const listing = await db('listings').where({ id: tx.listing_id }).first();
+    await syncTransactionToChat({
+      listingId: tx.listing_id,
+      buyerId: tx.buyer_id,
+      sellerId: tx.seller_id,
+      transactionId: tx.id,
+      referenceNo: tx.reference_no,
+      content: `[Handshake Completed] Both students confirmed the physical exchange for order #${tx.reference_no} (${listing?.title || 'Campus item'}). The transaction is now complete. Thank you for trading safely on campus!`,
+      isSystem: true,
+      io
     });
 
-    // Mark listing as sold
-    await trx('listings').where({ id: tx.listing_id }).update({ status: 'sold' });
-  });
-
-  // Sync completion system event to chat
-  const io = req.app.get('io');
-  const completedListing = await db('listings').where({ id: tx.listing_id }).first();
-  const completedTitle = completedListing?.title || 'Item';
-  await syncTransactionToChat({
-    listingId: tx.listing_id,
-    buyerId: tx.buyer_id,
-    sellerId: tx.seller_id,
-    transactionId: tx.id,
-    referenceNo: tx.reference_no,
-    content: `[Deal Completed] Order #${tx.reference_no} for "${completedTitle}" is officially COMPLETED! Thank you for trading safely on campus. The buyer can now submit a product review for this item.`,
-    isSystem: true,
-    io
-  });
-
-  // Dispatch completion emails (awaited for serverless resilience)
-  try {
-    const [buyerUser, sellerUser, listing] = await Promise.all([
-      db('users').where({ id: tx.buyer_id }).first(),
-      db('users').where({ id: tx.seller_id }).first(),
-      db('listings').where({ id: tx.listing_id }).first()
-    ]);
-    if (buyerUser && sellerUser && listing) {
-      await Promise.allSettled([
-        emailService.sendOrderStatusUpdateEmail(buyerUser, sellerUser, tx, listing, 'completed', '', req),
-        emailService.sendOrderStatusUpdateEmail(sellerUser, buyerUser, tx, listing, 'completed', '', req)
+    try {
+      const [buyerUser, sellerUser] = await Promise.all([
+        db('users').where({ id: tx.buyer_id }).first(),
+        db('users').where({ id: tx.seller_id }).first()
       ]);
+      if (buyerUser && sellerUser && listing) {
+        await Promise.allSettled([
+          emailService.sendOrderStatusUpdateEmail(buyerUser, sellerUser, tx, listing, 'completed', '', req),
+          emailService.sendOrderStatusUpdateEmail(sellerUser, buyerUser, tx, listing, 'completed', '', req)
+        ]);
+      }
+    } catch (emailErr) {
+      console.error('[TRANSACTION EMAIL] Error dispatching completion emails:', emailErr.message);
     }
-  } catch (emailErr) {
-    console.error('[TRANSACTION EMAIL] Error dispatching completion emails:', emailErr.message);
+  } else {
+    const tx = result.transaction;
+    const io = req.app.get('io');
+    const listing = await db('listings').where({ id: tx.listing_id }).first();
+    await syncTransactionToChat({
+      listingId: tx.listing_id,
+      buyerId: tx.buyer_id,
+      sellerId: tx.seller_id,
+      transactionId: tx.id,
+      referenceNo: tx.reference_no,
+      content: req.user.id === tx.seller_id
+        ? `[Handshake Update] Seller verification completed for order #${tx.reference_no}. Waiting for the buyer’s independent confirmation.`
+        : `[Handshake Update] Buyer confirmation recorded for order #${tx.reference_no}. Waiting for seller verification.`,
+      isSystem: true,
+      io
+    });
   }
 
   res.status(200).json({
     status: 'success',
-    message: 'Transaction marked as completed! Thank you for trading safely on TradeLink.',
+    message: result.completed
+      ? 'Both parties confirmed. The transaction is complete!'
+      : 'Your confirmation has been recorded. The transaction will complete after the other party confirms.',
     data: {
-      status: 'completed'
+      status: result.status,
+      completed: result.completed,
+      buyerConfirmedAt: result.buyerConfirmedAt,
+      sellerConfirmedAt: result.sellerConfirmedAt
     }
   });
 });
+
+// Backward-compatible endpoint: completion now follows the same two-party handshake.
+const completeTransaction = confirmHandshake;
 
 /**
  * Cancel a transaction
@@ -558,6 +604,7 @@ module.exports = {
   getTransactionById,
   createTransaction,
   completeTransaction,
+  confirmHandshake,
   cancelTransaction,
   updateTransactionStatus
 };
