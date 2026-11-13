@@ -52,6 +52,7 @@ interface ChatContextType {
     amount?: number;
   }) => Promise<Transaction>;
   confirmHandshake: (transactionId: string, handshakeCode?: string) => Promise<{ status: string; completed: boolean }>;
+  requestHandshakeCode: (transactionId: string) => Promise<void>;
   completeTransaction: (transactionId: string, handshakeCode?: string) => Promise<void>;
   cancelTransaction: (transactionId: string, reason?: string) => Promise<void>;
   submitTradeReview: (params: {
@@ -616,6 +617,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { status: result.status, completed: result.completed };
   };
 
+  const requestHandshakeCode = async (transactionId: string) => {
+    await chatService.requestHandshakeCode(transactionId);
+  };
+
   // Legacy callers now submit a confirmation, never unilaterally complete a deal.
   const completeTransaction = async (transactionId: string, handshakeCode?: string) => {
     await confirmHandshake(transactionId, handshakeCode);
@@ -676,6 +681,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         respondToSwap,
         createDirectOrder,
         confirmHandshake,
+        requestHandshakeCode,
         completeTransaction,
         cancelTransaction,
         submitTradeReview,
