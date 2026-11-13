@@ -23,6 +23,7 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   Check,
+  Copy,
   ShieldCheck,
   Ban,
   Filter,
@@ -524,7 +525,24 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginTop: '0.35rem', flexWrap: 'wrap' }}>
                       <span style={{ fontFamily: 'monospace', letterSpacing: '0.24em', fontSize: '1.55rem', fontWeight: 900, color: '#1E3A8A' }}>{tx.verificationCode}</span>
-                      <span style={{ fontSize: '0.72rem', color: '#1E40AF', maxWidth: '260px' }}>Show this code to the seller in person only after you have inspected the item. Do not send it in chat.</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(tx.verificationCode || '');
+                              showToast('Code copied', 'Keep it private and show it to the seller in person only.', 'success');
+                            } catch {
+                              showToast('Copy unavailable', 'Please write down your 4-digit code and keep it private.', 'info');
+                            }
+                          }}
+                          className="btn-secondary"
+                          style={{ padding: '0.35rem 0.6rem', fontSize: '0.72rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                        >
+                          <Copy size={12} /> Copy code
+                        </button>
+                        <span style={{ fontSize: '0.72rem', color: '#1E40AF', maxWidth: '260px' }}>Show in person only after inspection. Never send it in chat. Keep this code private.</span>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -575,15 +593,27 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onNavigate, 
                   {/* Pending Order Actions */}
                   {isPending && (
                     <>
-                      <button
-                        onClick={() => handleCancel(tx)}
-                        disabled={actionLoadingId === tx.id}
-                        className="btn-ghost"
-                        style={{ padding: '0.4rem 0.65rem', fontSize: '0.76rem', fontWeight: 700, color: '#DC2626', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
-                      >
-                        <Ban size={13} />
-                        <span>Cancel</span>
-                      </button>
+                      {!tx.sellerConfirmedAt ? (
+                        <button
+                          onClick={() => handleCancel(tx)}
+                          disabled={actionLoadingId === tx.id}
+                          className="btn-ghost"
+                          style={{ padding: '0.4rem 0.65rem', fontSize: '0.76rem', fontWeight: 700, color: '#DC2626', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                        >
+                          <Ban size={13} />
+                          <span>Cancel</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => onNavigate('help-safety')}
+                          className="btn-ghost"
+                          style={{ padding: '0.4rem 0.65rem', fontSize: '0.76rem', fontWeight: 700, color: 'var(--uc-blue)', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                        >
+                          <ShieldCheck size={13} />
+                          <span>Need help?</span>
+                        </button>
+                      )}
 
                       {!isBuyer && !tx.sellerConfirmedAt ? (
                         <button
