@@ -80,7 +80,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
     sendTypingStatus,
     typingUsers,
     transactions,
-    completeTransaction,
+    confirmHandshake,
     cancelTransaction
   } = useChat();
 
@@ -1097,7 +1097,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
                               className="btn-primary"
                               style={{ fontSize: '0.72rem', padding: '0.3rem 0.65rem', borderRadius: '6px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
                             >
-                              <CheckCircle2 size={13} /> Complete Deal
+                              <CheckCircle2 size={13} /> Verify buyer code
                             </button>
                             <button
                               type="button"
@@ -1112,7 +1112,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
 
                         {activeDealTx.status === 'pending' && isBuyerInDeal && (
                           <div style={{ fontSize: '0.72rem', color: '#92400E', fontWeight: 700 }}>
-                            Inspect item before releasing payment!
+                            Inspect the item. Confirm receipt from Transactions after the seller verifies your code.
                           </div>
                         )}
                       </div>
@@ -1134,6 +1134,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
                           <span style={{ fontFamily: 'monospace', fontWeight: 900, backgroundColor: '#FEF3C7', padding: '0.1rem 0.45rem', borderRadius: '4px', border: '1px solid #FCD34D', color: '#B45309' }}>
                             {activeDealTx.verificationCode}
                           </span>
+                          <span style={{ color: '#92400E', fontSize: '0.68rem' }}>Show in person only. Never send this code in chat.</span>
                         </div>
                       )}
                     </div>
@@ -1455,23 +1456,29 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
         )}
       </div>
 
-      {/* Complete Transaction Modal */}
+      {/* Seller verifies the buyer's one-time code at the physical meetup. */}
       {completeTxModal && (
-        <ConfirmModal
+        <PromptModal
           isOpen={Boolean(completeTxModal)}
-          title="Complete Campus Order"
-          message={`Are you sure you want to mark Order #${completeTxModal.refNo}${completeTxModal.title ? ` for "${completeTxModal.title}"` : ''} as completed? Please ensure you have met in person and verified item condition & payment.`}
-          confirmText="Yes, Complete Order"
-          cancelText="Not Yet"
-          variant="primary"
-          onConfirm={async () => {
+          title="Verify meetup handshake"
+          message={`Ask the buyer to show their private 4-digit code in person for order #${completeTxModal.refNo}. Submit only after the item has been handed over.`}
+          placeholder="Enter 4-digit buyer code"
+          inputType="number"
+          required
+          confirmText="Verify code"
+          cancelText="Not yet"
+          onSubmit={async (code) => {
             const txId = completeTxModal.id;
-            setCompleteTxModal(null);
             try {
-              await completeTransaction(txId);
-              showToast('Transaction Completed', 'Order marked as complete. Thank you for trading safely!', 'success');
+              const result = await confirmHandshake(txId, code);
+              setCompleteTxModal(null);
+              showToast(
+                result.completed ? 'Trade Completed' : 'Seller Verification Saved',
+                result.completed ? 'Both parties confirmed the exchange.' : 'Waiting for the buyer to confirm receipt in Transactions.',
+                'success'
+              );
             } catch (err: any) {
-              showToast('Action Failed', err?.message || 'Could not complete transaction.', 'error');
+              showToast('Handshake Verification Failed', err?.message || 'Check the 4-digit code and try again.', 'error');
             }
           }}
           onCancel={() => setCompleteTxModal(null)}
