@@ -14,6 +14,11 @@ const createTransactionSchema = Joi.object({
   variationId: Joi.string().max(100).allow(null, '')
 });
 
+const confirmHandshakeSchema = Joi.object({
+  handshakeCode: Joi.string().pattern(/^\d{4}$/).allow(null, '').optional()
+});
+
 module.exports = {
-  createTransactionSchema
+  createTransactionSchema,
+  confirmHandshakeSchema
 };
