@@ -226,7 +226,7 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
   };
 
   const idPhotoHash = computeHash(rawIdPhoto);
-  const secondaryHash = secondaryProof ? computeHash(secondaryProof) : null;
+  const secondaryHash = computeHash(secondaryProof || rawIdPhoto);
 
   if (idPhotoHash) {
     const duplicatePhoto = await db('verification_requests')
@@ -274,7 +274,7 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
         user: req.user,
         studentId: cleanId,
         idPhotoUrl: rawIdPhoto,
-        selfiePhotoUrl: selfiePhotoUrl || null,
+        selfiePhotoUrl: selfiePhotoUrl || rawIdPhoto,
         sessionToken,
         telemetry
       });
