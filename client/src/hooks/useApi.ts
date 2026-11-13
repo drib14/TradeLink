@@ -63,11 +63,12 @@ export function useApi<T>(
 // Standalone offline check
 export async function isBackendReachable(): Promise<boolean> {
   try {
-    const baseUrl = import.meta.env.VITE_API_BASE_URL
-      ? import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, '')
-      : (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-        ? 'http://localhost:3001/api'
-        : '/api');
+    // Match the centralized API client: use the same-origin /api route so
+    // local requests pass through Vite's proxy instead of bypassing it.
+    const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+    const baseUrl = configuredBaseUrl
+      ? configuredBaseUrl.replace(/\/+$/, '')
+      : '/api';
     const res = await fetch(`${baseUrl}/health`, { method: 'GET' });
     return res.ok;
   } catch {
