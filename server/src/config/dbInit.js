@@ -488,7 +488,6 @@ async function autoInitDatabase() {
       const adminUpdates = {
         name: adminName,
         role: 'admin',
-        is_banned: false,
         is_verified: true
       };
 
@@ -498,7 +497,7 @@ async function autoInitDatabase() {
 
       await db('users').where({ id: existingAdmin.id }).update(adminUpdates);
       logger.info('[DB Init] Administrator account metadata verified.');
-    } else if (configuredAdminEmail && adminPassword) {
+    } else if (configuredAdminEmail && adminPassword && adminPassword.length >= 16) {
       const adminPasswordHash = await bcrypt.hash(adminPassword, 12);
       await db('users').insert({
         id: 'user-admin-main',
@@ -524,7 +523,7 @@ async function autoInitDatabase() {
       });
       logger.info('[DB Init] Created administrator account from server environment configuration.');
     } else {
-      logger.warn('[DB Init] No administrator account exists. Set ADMIN_SEED_EMAIL and ADMIN_SEED_PASSWORD in server/.env before enabling admin access.');
+      logger.warn('[DB Init] No administrator account exists. Set ADMIN_SEED_EMAIL and an ADMIN_SEED_PASSWORD of at least 16 characters in server/.env before enabling admin access.');
     }
 
     // 3. Ensure Default System Configuration Exists
