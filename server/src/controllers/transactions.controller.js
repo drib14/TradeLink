@@ -276,6 +276,7 @@ const createTransaction = asyncHandler(async (req, res, next) => {
     payment_status: paymentMethod === 'free' ? 'paid' : 'unpaid',
     status: 'pending',
     verification_code_hash: handshakeCodeHash,
+    handshake_code_sent_at: new Date(),
     failed_handshake_attempts: 0,
     selected_variation: selectedVariation ? String(selectedVariation).trim() : null,
     variation_id: variationId || null,
@@ -535,6 +536,75 @@ const confirmHandshake = asyncHandler(async (req, res, next) => {
 });
 
 // Backward-compatible endpoint: completion now follows the same two-party handshake.
+/**
+ * Re-issue the buyer's private meetup code to their registered email.
+ * The code is never returned by this endpoint or exposed to the seller.
+ */
+const requestHandshakeCode = asyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+  const prepared = await db.transaction(async (trx) => {
+    const tx = await trx('transactions').where({ id }).forUpdate().first();
+    if (!tx) throw new AppError('Transaction not found.', 404);
+    if (req.user.id !== tx.buyer_id) {
+      throw new AppError('Only the buyer can request their private handshake code.', 403);
+    }
+    if (tx.status !== 'pending' || tx.seller_confirmed_at) {
+      throw new AppError('A new code can only be issued before the seller verifies the handover.', 409);
+    }
+
+    const now = new Date();
+    if (tx.handshake_locked_until && now < new Date(tx.handshake_locked_until)) {
+      throw new AppError('Handshake verification is temporarily locked. Please contact TradeLink Help & Safety.', 429);
+    }
+    if (tx.handshake_code_sent_at) {
+      const elapsedMs = now.getTime() - new Date(tx.handshake_code_sent_at).getTime();
+      if (elapsedMs < 60 * 1000) {
+        const waitSeconds = Math.ceil((60 * 1000 - elapsedMs) / 1000);
+        throw new AppError(`Please wait ${waitSeconds} second(s) before requesting another email.`, 429);
+      }
+    }
+
+    const [buyer, seller, listing] = await Promise.all([
+      trx('users').where({ id: tx.buyer_id }).first(),
+      trx('users').where({ id: tx.seller_id }).first(),
+      trx('listings').where({ id: tx.listing_id }).first()
+    ]);
+    if (!buyer?.email) {
+      throw new AppError('Your account does not have a registered email address. Contact TradeLink Help & Safety.', 409);
+    }
+
+    const handshakeCode = generate4DigitCode().slice(0, 4);
+    const verificationCodeHash = await hashCode(handshakeCode);
+    await trx('transactions').where({ id }).update({
+      verification_code_hash: verificationCodeHash,
+      failed_handshake_attempts: 0,
+      handshake_locked_until: null,
+      handshake_code_sent_at: now
+    });
+
+    return { tx, buyer, seller, listing, handshakeCode };
+  });
+
+  try {
+    await emailService.sendOrderPlacedBuyerEmail(
+      prepared.buyer,
+      prepared.seller,
+      prepared.tx,
+      prepared.listing,
+      req,
+      prepared.handshakeCode
+    );
+  } catch (emailErr) {
+    console.error('[HANDSHAKE EMAIL] Failed to re-send buyer meetup code:', emailErr.message);
+    return next(new AppError('The code email could not be sent. Please try again in one minute or contact TradeLink Help & Safety.', 503));
+  }
+
+  res.status(200).json({
+    status: 'success',
+    message: 'A new private handshake code has been sent to your registered email address.'
+  });
+});
+
 const completeTransaction = confirmHandshake;
 
 /**
@@ -659,6 +729,7 @@ module.exports = {
   createTransaction,
   completeTransaction,
   confirmHandshake,
+  requestHandshakeCode,
   cancelTransaction,
   updateTransactionStatus
 };
