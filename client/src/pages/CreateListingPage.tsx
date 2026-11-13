@@ -334,7 +334,7 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
       const msg = err?.message || 'Failed to post item listing.';
       if (msg.toLowerCase().includes('verif')) {
         showToast('Verification Required', 'Please complete your student ID verification before posting.', 'warning');
-        setIsVerificationModalOpen(true);
+        onOpenVerification?.();
       } else {
         showToast('Posting Failed', msg, 'error');
       }
