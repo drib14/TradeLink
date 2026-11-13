@@ -28,7 +28,7 @@ export default defineConfig(({ mode }) => {
   const backendPort = Number(serverEnv.PORT) || 3001;
   const backendTarget = (
     clientEnv.VITE_API_PROXY_TARGET || `http://${backendHost}:${backendPort}`
-  ).replace(/\\/+$/, '');
+  ).replace(/\/+$/, '');
 
   return {
     root: appDir,
