@@ -265,6 +265,10 @@ export const chatService = {
     return res.data || res;
   },
 
+  async requestHandshakeCode(id: string): Promise<void> {
+    await api.post(`/transactions/${id}/handshake/request-code`);
+  },
+
   async completeTransaction(id: string, handshakeCode?: string): Promise<void> {
     await this.confirmHandshake(id, handshakeCode);
   },
