@@ -502,7 +502,6 @@ const confirmHandshake = asyncHandler(async (req, res, next) => {
   } else {
     const tx = result.transaction;
     const io = req.app.get('io');
-    const listing = await db('listings').where({ id: tx.listing_id }).first();
     await syncTransactionToChat({
       listingId: tx.listing_id,
       buyerId: tx.buyer_id,
