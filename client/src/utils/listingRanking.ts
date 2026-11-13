@@ -230,7 +230,7 @@ export function calculateCompositeScore(
 
   // 4. Verification & Product Rating weight
   if (item.kind === 'listing') {
-    const productRating = item.data.rating ?? 5.0;
+    const productRating = Math.min(5, Math.max(0, Number(item.data.rating) || 0));
     score += (productRating / 5.0) * 8.0;
     if (item.data.sellerIsVerified) score += 5.0;
     if (item.data.isBoosted) score += 12.0;
@@ -365,7 +365,7 @@ export function rankAndFilterFeed(
         break;
       }
       case 'trust': {
-        const t = item.kind === 'listing' ? (item.data.rating ?? 5.0) : 5.0;
+        const t = item.kind === 'listing' ? (Number(item.data.rating) || 0) : 0;
         priority = t;
         break;
       }
