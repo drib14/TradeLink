@@ -161,7 +161,7 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
   // Prefer the actual selfie for the selfie column; enrollment proof is only a fallback.\n  const secondaryProof = selfiePhotoUrl || enrollmentProofUrl || null;
 
   if (!studentIdNumber || !rawIdPhoto) {
-    return next(new AppError('Student ID number and valid ID photo are required.', 400));
+    return next(new AppError('Student ID number and live selfie captured from your device camera are required.', 400));
   }
 
   // Check if current user is already verified
@@ -173,7 +173,7 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
   // Basic image data sanity check
   const isDataUrl = (str) => typeof str === 'string' && (str.startsWith('data:image/') || str.startsWith('http'));
   if (!isDataUrl(rawIdPhoto)) {
-    return next(new AppError('Invalid ID photo format. Images must be valid JPEG, PNG, or WebP files.', 400));
+    return next(new AppError('Invalid live selfie format. Please capture your selfie again using your device camera.', 400));
   }
   if (secondaryProof && !isDataUrl(secondaryProof)) {
     return next(new AppError('Invalid secondary proof format. Files must be valid JPEG, PNG, or WebP images.', 400));
@@ -218,7 +218,7 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
     return next(new AppError('A verification request with this Student ID is already active on another account.', 409));
   }
 
-  // Compute cryptographic SHA-256 hash of documents for duplicate detection & forensic audit
+  // Compute cryptographic SHA-256 hash of the submitted live selfie for duplicate detection and audit.
   const computeHash = (dataUrl) => {
     if (!dataUrl || typeof dataUrl !== 'string') return '';
     const pure = dataUrl.includes('base64,') ? dataUrl.split('base64,')[1] : dataUrl;
@@ -236,7 +236,7 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
       .first();
 
     if (duplicatePhoto) {
-      return next(new AppError('This ID document has already been submitted by another account. Please provide an authentic document.', 409));
+      return next(new AppError('This live selfie image has already been submitted by another account. Contact campus administration if you believe this is an error.', 409));
     }
   }
 
