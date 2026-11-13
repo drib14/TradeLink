@@ -187,7 +187,7 @@ export const adminService = {
   },
 
   async getFlashRequests(page = 1, limit = 100) {
-    const res = await api.get('/flash-market', { page, limit });
+    const res = await api.get('/admin/flash-market', { page, limit });
     return res.data?.requests || res.data || [];
   },
 
