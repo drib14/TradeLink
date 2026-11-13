@@ -73,7 +73,7 @@ function serializeReview(r, traitBadges = []) {
     reviewerCampus: r.reviewer_campus || r.reviewerCampus || '',
     reviewerDepartment: r.reviewer_department || r.reviewerDepartment || r.reviewer_college || r.reviewerCollege || '',
     targetUserId: r.target_user_id || r.targetUserId,
-    rating: Number(r.rating || 5),
+    rating: Number.isFinite(Number(r.rating)) ? Number(r.rating) : 0,
     comment: r.comment || '',
     wasPunctual: Boolean(r.was_punctual ?? r.wasPunctual ?? true),
     traitBadges,
