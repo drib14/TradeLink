@@ -6,7 +6,8 @@ const getApiBaseUrl = () => {
   }
   if (typeof window !== 'undefined' && window.location.hostname) {
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      return `${window.location.protocol}//${window.location.hostname}:3001/api`;
+      // Use the Vite dev-server proxy so browser requests stay same-origin.
+      return '/api';
     }
     // In live production: target the live TradeLink backend
     return 'https://tradelink-backend.vercel.app/api';
