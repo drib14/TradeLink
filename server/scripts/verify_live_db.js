@@ -2,7 +2,7 @@ require('dotenv').config();
 const mysql = require('mysql2/promise');
 
 async function verify() {
-  console.log('Connecting to', process.env.DB_HOST, 'on port', process.env.DB_PORT, '...');
+  console.log('Connecting to configured database...');
   try {
     const conn = await mysql.createConnection({
       host: process.env.DB_HOST,
@@ -26,7 +26,6 @@ async function verify() {
     const [[announcements]] = await conn.query('SELECT COUNT(*) as count FROM announcements');
 
     console.log('\n--- Live DB Table Counts ---');
-    console.log(`Total Users:        ${users.count}`);
     console.log(`Total Listings:     ${listings.count}`);
     console.log(`Total Transactions: ${transactions.count}`);
     console.log(`Total Flash Reqs:   ${flash.count}`);
