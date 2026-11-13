@@ -1,49 +1,61 @@
 # TradeLink Database (MySQL 8.0)
 
-This folder contains the complete SQL scripts and database documentation for the **TradeLink** University of Cebu student marketplace.
+TradeLink uses MySQL 8.0 with Knex migrations. The schema contains relational
+foreign keys and indexes, but **MySQL 8.0 does not provide native row-level
+security (RLS) policies** like PostgreSQL. Access isolation is therefore
+implemented by authenticated API routes and ownership checks in backend
+controllers. See [Database security](../docs/DATABASE_SECURITY.md).
 
----
+## Files
 
-## 📁 Files
+- `schema.sql` — MySQL DDL for the application tables. Review the destructive
+  DROP statements before using it; never run it against a database containing
+  production data.
+- `seed.sql` — Retired. It intentionally contains no executable SQL because
+  the previous version included a known default administrator password and
+  real student personal data.
+- `../server/migrations/` — Versioned Knex migrations (preferred for setup).
+- `../server/seeds/` — Optional destructive Knex seed, protected by an
+  explicit environment confirmation.
 
-- `schema.sql` — Complete Data Definition Language (DDL) creating all 22 relational tables, strict foreign key constraints, composite unique indexes, check constraints, and fulltext search indexes.
-- `seed.sql` — Initial University of Cebu seed data configuring the official Admin account, announcements, prohibited keywords, and system configuration.
+## Local setup
 
----
+1. Start a local MySQL 8.0 service.
+2. Copy `server/.env.example` to `server/.env`.
+3. Configure `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, and
+   `DB_NAME` for a disposable local database.
+4. Set `ADMIN_SEED_EMAIL` and a unique `ADMIN_SEED_PASSWORD` (at least
+   16 characters) in `server/.env`.
+5. From the repository root, install dependencies and run:
 
-## 🚀 Quick Setup Instructions
-
-### Option 1: Using MySQL CLI
 ```bash
-# Log in to your MySQL server
-mysql -u root -p
-
-# Create and populate database
-source c:/Users/jhond/Documents/TradeLink/DB/schema.sql;
-source c:/Users/jhond/Documents/TradeLink/DB/seed.sql;
+npm install --prefix server
+npm run migrate:latest --prefix server
+npm run dev:server
 ```
 
-### Option 2: Using XAMPP / phpMyAdmin / MySQL Workbench
-1. Open MySQL Workbench or phpMyAdmin (`http://localhost/phpmyadmin`).
-2. Create a new database named `tradelink_db_test` with collation `utf8mb4_unicode_ci` (or execute `schema.sql` which creates it automatically).
-3. Open `schema.sql` and execute the script.
-4. Open `seed.sql` and execute the script.
+The backend initializes a first administrator only when both administrator
+environment values are configured. It does not reset an existing admin
+password on every boot. To intentionally sync a password from the environment,
+set `SYNC_ADMIN_SEED_PASSWORD=true` for that deployment.
 
-### Option 3: Automated via Knex Migrations (Node.js Backend)
-Inside the `server/` directory:
-```bash
-cd server
-npm install
-npx knex migrate:latest
-npx knex seed:run
-```
+## Destructive seed warning
 
----
+The Knex seed truncates user and marketplace tables. It refuses to run unless
+`ALLOW_DESTRUCTIVE_SEED=true` is explicitly set. Never run it against
+production or a database containing real student records.
 
-## 👥 Default Seeded Account
+The separate `server/scripts/clean_seed_live_db.js` script requires explicit
+destructive confirmation and a second confirmation for production. Avoid
+running it unless you have verified the database host and name and have a
+restorable backup.
 
-| Role | ID Number | Email | Password | Campus | Notes |
-|---|---|---|---|---|---|
-| **Admin** | `ADMIN001` | `uc.tradelink@gmail.com` | `TradeLink@2026` | UC Main | Official campus moderation & safety administration desk |
+## Privacy and credentials
 
-*Note: Clean seed contains ONLY this administrator. Real students register and verify their accounts through the onboarding and eKYC verification flows.*
+- Never commit `.env` files, API keys, passwords, private keys, database
+  dumps, student ID numbers, or ID/selfie images.
+- Keep Cloudinary, SMTP, JWT, database, and AI provider credentials in
+  `server/.env` or the hosting provider's server-side environment settings.
+- Never prefix a secret with `VITE_` or `EXPO_PUBLIC_`; those values are
+  compiled into browser/mobile application bundles.
+- Do not seed real student identities or real ID documents into source control.
