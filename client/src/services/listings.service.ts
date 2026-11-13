@@ -197,13 +197,14 @@ export const listingsService = {
     return res.data;
   },
 
-  // Legacy stubs (favorites schema dropped)
   async getFavorites(): Promise<string[]> {
-    return [];
+    const res = await api.get('/favorites');
+    return res.data?.favorites || [];
   },
 
-  async toggleFavorite(listingId: string): Promise<{ isFavorited: boolean; listingId: string }> {
-    return { isFavorited: false, listingId };
+  async toggleFavorite(listingId: string): Promise<{ isFavorited: boolean; listingId: string; favoritesCount: number }> {
+    const res = await api.post(`/favorites/${listingId}/toggle`);
+    return res.data;
   }
 };
 
