@@ -109,8 +109,8 @@ const removeListingByAdmin = asyncHandler(async (req, res, next) => {
 
   // Check if foreign key references exist in transactions or swaps
   const hasTransactions = await db('transactions').where({ listing_id: listingId }).first();
-  const hasSwaps = await db('swaps').where(builder => {
-    builder.where({ proposer_listing_id: listingId }).orWhere({ receiver_listing_id: listingId });
+  const hasSwaps = await db('swap_offers').where(builder => {
+    builder.where({ listing_id: listingId }).orWhere({ offered_listing_id: listingId });
   }).first();
 
   if (hasTransactions || hasSwaps) {
