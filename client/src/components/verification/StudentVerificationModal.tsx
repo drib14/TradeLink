@@ -20,6 +20,8 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
   const [studentIdInput, setStudentIdInput] = useState(currentUser?.studentId || '');
   const [selfiePhotoUrl, setSelfiePhotoUrl] = useState('');
   const [sessionToken, setSessionToken] = useState('');
+  const [challengeInstruction, setChallengeInstruction] = useState('Look directly at the camera');
+  const [challengeColor, setChallengeColor] = useState('#FFC72C');
   const [serverStatus, setServerStatus] = useState<'unverified' | 'pending' | 'approved' | 'rejected'>('unverified');
   const [rejectionReason, setRejectionReason] = useState<string | null>(null);
   const [isLoadingStatus, setIsLoadingStatus] = useState(false);
@@ -84,21 +86,25 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
       .catch(() => setStep('student_id'))
       .finally(() => setIsLoadingStatus(false));
 
-    getVerificationSession()
-      .then((session) => setSessionToken(session?.sessionToken || ''))
-      .catch(() => setSessionToken(''));
-
     return () => stopCamera();
   }, [isOpen, currentUser?.studentId, getVerificationStatus, getVerificationSession, stopCamera]);
 
   useEffect(() => {
     if (isOpen && step === 'live_selfie' && !selfiePhotoUrl) {
+      setSessionToken('');
+      getVerificationSession()
+        .then((session) => {
+          setSessionToken(session?.sessionToken || '');
+          setChallengeInstruction(session?.challengeAction?.instruction || 'Look directly at the camera');
+          setChallengeColor(session?.flashColor || '#FFC72C');
+        })
+        .catch(() => setSessionToken(''));
       startCamera();
     } else {
       stopCamera();
     }
     return () => stopCamera();
-  }, [isOpen, step, selfiePhotoUrl, startCamera, stopCamera]);
+  }, [isOpen, step, selfiePhotoUrl, startCamera, stopCamera, getVerificationSession]);
 
   const handleCaptureSelfie = () => {
     const video = videoRef.current;
@@ -126,6 +132,12 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
   const handleSubmitVerification = async () => {
     if (!selfiePhotoUrl) {
       showToast('Live Selfie Required', 'Capture a live selfie using your device camera before submitting.', 'warning');
+      return;
+    }
+    if (!sessionToken) {
+      showToast('Verification Session Unavailable', 'Restart the live selfie step to create a secure verification session.', 'warning');
+      setSelfiePhotoUrl('');
+      setStep('live_selfie');
       return;
     }
     setIsSubmitting(true);
@@ -206,6 +218,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
           {step === 'live_selfie' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
               <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}><strong style={{ color: 'var(--uc-blue, #002B7F)' }}>Step 2 of 2</strong> · Capture a live selfie</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.75rem', borderRadius: '10px', background: challengeColor, color: challengeColor === '#002B7F' ? '#FFFFFF' : '#14213D', fontSize: '0.82rem', fontWeight: 800 }}><Info size={17} /> {challengeInstruction}</div>
               {cameraError ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1rem', borderRadius: '12px', border: '1px solid #FCA5A5', background: '#FEF2F2', color: '#991B1B' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><AlertCircle size={18} /><strong>Camera Access Required</strong></div>
