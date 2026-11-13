@@ -437,6 +437,9 @@ const confirmHandshake = asyncHandler(async (req, res, next) => {
       patch.status = 'completed';
       patch.completed_at = now;
       patch.handshake_completed_at = now;
+      // Seller code verification attests the agreed payment/exchange terms;
+      // the buyer's independent confirmation completes that settlement.
+      patch.payment_status = 'paid';
     }
 
     if (Object.keys(patch).length) {
