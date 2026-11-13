@@ -1487,7 +1487,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-subtle)' }}>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1, fontFamily: 'var(--font-display)' }}>
-                    {rating > 0 ? rating.toFixed(1) : '5.0'}
+                    {rating > 0 ? rating.toFixed(1) : '—'}
                   </div>
                   <div style={{ display: 'flex', gap: '2px', color: '#F59E0B', justifyContent: 'center', marginTop: '0.35rem' }}>
                     {Array.from({ length: 5 }).map((_, i) => (
@@ -1517,19 +1517,21 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 </div>
               </div>
 
-              {/* Student Trust Metrics Badges */}
+              {/* Trust metrics backed by this account's stored records */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', textAlign: 'center' }}>
                 <div style={{ padding: '0.5rem', backgroundColor: 'var(--bg-subtle)', borderRadius: '10px' }}>
-                  <div style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--accent-green)' }}>99%</div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--accent-green)' }}>
+                    {targetUser.punctualityRate != null ? `${targetUser.punctualityRate}%` : '—'}
+                  </div>
                   <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '2px' }}>Meetup Punctuality</div>
                 </div>
                 <div style={{ padding: '0.5rem', backgroundColor: 'var(--bg-subtle)', borderRadius: '10px' }}>
-                  <div style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--uc-blue)' }}>&lt; 15 min</div>
-                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '2px' }}>Avg. Response</div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--uc-blue)' }}>{completedTradesCount}</div>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '2px' }}>Completed Trades</div>
                 </div>
                 <div style={{ padding: '0.5rem', backgroundColor: 'var(--bg-subtle)', borderRadius: '10px' }}>
-                  <div style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--accent-green)' }}>Clean</div>
-                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '2px' }}>Honor Code</div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--accent-green)' }}>{totalReviewsCount}</div>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '2px' }}>Peer Reviews</div>
                 </div>
               </div>
             </div>
