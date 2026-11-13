@@ -536,7 +536,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     setIsScanning(true);
     setTimeout(() => {
       setIsScanning(false);
-      showToast('Scan Completed', `Analyzed ${listings.length} active listings across 8 campuses.`, 'info');
+      const activeCount = listings.filter((listing) => listing.status === 'active').length;
+      showToast('Scan Completed', `Checked ${activeCount} active listings and found ${scannedViolations.length} potential matches.`, 'info');
     }, 600);
   };
 
@@ -554,60 +555,73 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     .filter((res) => res.matchedKeywords.length > 0);
 
   // Dispute Actions
-  const handleConfirmDisputeVerdict = (action: 'refund' | 'warning' | 'dismissed' | 'ban') => {
+  const handleConfirmDisputeVerdict = async (action: 'refund' | 'warning' | 'dismissed' | 'ban') => {
     if (!selectedDispute) return;
-    resolveDispute(selectedDispute.id, action, disputeVerdictNote.trim() || `Verdict rendered: ${action}`);
-    showToast('Dispute Resolved', `Applied verdict: ${action.toUpperCase()}`, 'success');
-    setSelectedDispute(null);
-    setDisputeVerdictNote('');
+    const dispute = selectedDispute;
+    const succeeded = await runAdminAction(
+      () => resolveDispute(dispute.id, action, disputeVerdictNote.trim() || `Verdict rendered: ${action}`),
+      'Dispute Resolved',
+      `Applied verdict: ${action.toUpperCase()}`
+    );
+    if (succeeded) {
+      setSelectedDispute(null);
+      setDisputeVerdictNote('');
+    }
   };
 
   // Reputation Adjustment Action
-  const handleApplyTrustAdjustment = (e: React.FormEvent) => {
+  const handleApplyTrustAdjustment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!repTargetUserId) {
       showToast('Select User', 'Please choose a student to adjust.', 'warning');
       return;
     }
-    adjustUserTrustScore(repTargetUserId, repDelta, repReason.trim() || 'Moderator trust adjustment');
-    showToast('Trust Score Updated', `Score adjusted by ${repDelta >= 0 ? '+' : ''}${repDelta} points.`, 'success');
+    await runAdminAction(
+      () => adjustUserTrustScore(repTargetUserId, repDelta, repReason.trim() || 'Moderator trust adjustment'),
+      'Trust Score Updated',
+      `Score adjusted by ${repDelta >= 0 ? '+' : ''}${repDelta} points.`
+    );
   };
 
   // Announcement Actions
-  const handleCreateAnnouncementSubmit = (e: React.FormEvent) => {
+  const handleCreateAnnouncementSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newAnnTitle.trim() || !newAnnMessage.trim()) {
+    const title = newAnnTitle.trim();
+    const message = newAnnMessage.trim();
+    if (!title || !message) {
       showToast('Missing Fields', 'Please enter a title and message.', 'warning');
       return;
     }
-    createAnnouncement(newAnnTitle, newAnnMessage, newAnnCampus, newAnnType);
-    showToast('Broadcast Published', 'Campus-wide announcement is now live.', 'success');
-    setNewAnnTitle('');
-    setNewAnnMessage('');
-    setIsNewAnnModalOpen(false);
+    const succeeded = await runAdminAction(
+      () => createAnnouncement(title, message, newAnnCampus, newAnnType),
+      'Broadcast Published',
+      'Campus-wide announcement is now live.'
+    );
+    if (succeeded) {
+      setNewAnnTitle('');
+      setNewAnnMessage('');
+      setIsNewAnnModalOpen(false);
+    }
   };
 
   // Export Audit Trail to CSV
   const handleExportAuditCSV = () => {
     const headers = ['ID', 'Admin Name', 'Action', 'Target Type', 'Target ID', 'Details', 'Timestamp'];
+    const escapeCsv = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`;
     const rows = auditLogs.map((log) => [
-      log.id,
-      `"${log.adminName}"`,
-      `"${log.action}"`,
-      `"${log.targetType}"`,
-      `"${log.targetId}"`,
-      `"${log.details.replace(/"/g, '""')}"`,
-      `"${log.timestamp}"`
-    ]);
+      log.id, log.adminName, log.action, log.targetType, log.targetId, log.details, log.timestamp
+    ].map(escapeCsv));
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
+    const csvContent = '\uFEFF' + [headers.map(escapeCsv).join(','), ...rows.map((row) => row.join(','))].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const objectUrl = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `UC_TradeLink_Audit_Log_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.href = objectUrl;
+    link.download = `UC_TradeLink_Audit_Log_${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(objectUrl);
 
     showToast('Export Successful', 'Downloaded audit compliance report as CSV.', 'success');
   };
