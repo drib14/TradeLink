@@ -58,7 +58,7 @@ export default function MessagesScreen() {
     if (conversation && selectedConv?.id !== conversation.id) {
       void handleOpenChat(conversation);
     }
-  }, [conversationId, conversations, selectedConv?.id, handleOpenChat]);
+  }, [conversationId, conversations, handleOpenChat]);
 
   const handleSendMessage = async () => {
     if (!inputMsg.trim() || !selectedConv || !currentUser) return;
