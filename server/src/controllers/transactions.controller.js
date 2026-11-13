@@ -360,7 +360,8 @@ const confirmHandshake = asyncHandler(async (req, res, next) => {
 
     const isBuyer = req.user.id === tx.buyer_id;
     const isSeller = req.user.id === tx.seller_id;
-    if (!isBuyer && !isSeller) {
+    const isAdmin = req.user.role === 'admin';
+    if (!isBuyer && !isSeller && !isAdmin) {
       throw new AppError('Only the buyer and seller can confirm this handshake.', 403);
     }
     if (tx.status !== 'pending') {
@@ -516,7 +517,9 @@ const confirmHandshake = asyncHandler(async (req, res, next) => {
       status: result.status,
       completed: result.completed,
       buyerConfirmedAt: result.buyerConfirmedAt,
-      sellerConfirmedAt: result.sellerConfirmedAt
+      sellerConfirmedAt: result.sellerConfirmedAt,
+      adminOverride: Boolean(result.adminOverride),
+      completionOverrideBy: result.adminOverride ? req.user.id : null
     }
   });
 });
