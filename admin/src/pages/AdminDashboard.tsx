@@ -668,7 +668,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
       >
         {[
           { id: 'overview', label: 'Overview', icon: <TrendingUp size={14} /> },
-          { id: 'verifications', label: 'ID Verifications', icon: <BadgeCheck size={14} /> },
+          { id: 'verifications', label: 'Student Verifications', icon: <BadgeCheck size={14} /> },
           { id: 'users', label: `Users & Moderation (${allUsers.length})`, icon: <UserCheck size={14} /> },
           { id: 'listings', label: `Listings & Flags (${pendingFlagsCount})`, icon: <ShieldAlert size={14} /> },
           { id: 'scanner', label: `Prohibited Scanner (${scannedViolations.length})`, icon: <Shield size={14} /> },
@@ -802,7 +802,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                   <Shield size={18} color="#002B7F" /> Moderation Queue
                 </h3>
                 <p style={{ fontSize: '0.78rem', color: '#64748B', margin: '0.2rem 0 0 0' }}>
-                  Student verifications and reported listings requiring review
+                  Live selfie submissions and reported listings requiring review
                 </p>
               </div>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -838,7 +838,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     <tr>
                       <td colSpan={6} style={{ padding: '2rem 1rem', textAlign: 'center', color: '#059669', fontWeight: 700 }}>
                         <Check size={18} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: '6px' }} />
-                        All moderation queues are clean! No pending ID verifications or flagged listings.
+                        All moderation queues are clean! No pending student verifications or flagged listings.
                       </td>
                     </tr>
                   ) : (
