@@ -218,6 +218,9 @@ export interface Transaction {
   selectedVariation?: string | null;
   variationId?: string | null;
   completedAt?: string;
+  buyerConfirmedAt?: string | null;
+  sellerConfirmedAt?: string | null;
+  handshakeCompletedAt?: string | null;
   cancelledAt?: string;
   cancellationReason?: string;
   createdAt: string;
