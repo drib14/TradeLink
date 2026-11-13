@@ -157,6 +157,9 @@ const getOrCreateConversation = asyncHandler(async (req, res, next) => {
       buyerId: matchingTx.buyer_id,
       sellerId: matchingTx.seller_id,
       notes: matchingTx.notes || null,
+      buyerConfirmedAt: matchingTx.buyer_confirmed_at || null,
+      sellerConfirmedAt: matchingTx.seller_confirmed_at || null,
+      handshakeCompletedAt: matchingTx.handshake_completed_at || null,
       isBuyer: matchingTx.buyer_id === currentUserId
     } : null,
     lastMessage: decryptMessageContent(conv.last_message) || '',
@@ -245,7 +248,7 @@ const getConversations = asyncHandler(async (req, res) => {
     ? await db('transactions')
         .whereIn('listing_id', listingIds)
         .where('status', 'pending')
-        .select('id', 'reference_no', 'listing_id', 'amount', 'buyer_id', 'seller_id', 'status', 'payment_method', 'selected_variation', 'notes')
+        .select('id', 'reference_no', 'listing_id', 'amount', 'buyer_id', 'seller_id', 'status', 'payment_method', 'selected_variation', 'notes', 'buyer_confirmed_at', 'seller_confirmed_at', 'handshake_completed_at')
     : [];
 
   // Bulk fetch active swap offers
@@ -335,6 +338,9 @@ const getConversations = asyncHandler(async (req, res) => {
         buyerId: matchingTx.buyer_id,
         sellerId: matchingTx.seller_id,
         notes: matchingTx.notes || null,
+        buyerConfirmedAt: matchingTx.buyer_confirmed_at || null,
+        sellerConfirmedAt: matchingTx.seller_confirmed_at || null,
+        handshakeCompletedAt: matchingTx.handshake_completed_at || null,
         isBuyer: matchingTx.buyer_id === userId
       } : null,
       activeSwap: matchingSwap ? {
