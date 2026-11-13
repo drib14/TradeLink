@@ -21,7 +21,7 @@ exports.up = async function(knex) {
     table.boolean('is_verified').notNullable().defaultTo(false);
     table.string('id_photo_url', 500).nullable();
     table.tinyint('trust_score').unsigned().notNullable().defaultTo(60);
-    table.decimal('rating', 2, 1).notNullable().defaultTo(5.0);
+    table.decimal('rating', 2, 1).notNullable().defaultTo(0.0);
     table.integer('total_reviews').unsigned().notNullable().defaultTo(0);
     table.integer('completed_trades').unsigned().notNullable().defaultTo(0);
     table.tinyint('punctuality_rate').unsigned().notNullable().defaultTo(100);
