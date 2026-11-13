@@ -183,6 +183,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             : l
         )
       );
+      throw err;
     }
   };
 
