@@ -458,7 +458,7 @@ async function sendAdminPasswordResetEmail(toEmail, code, req = null) {
 /**
  * Sends order confirmation receipt to the buyer
  */
-async function sendOrderPlacedBuyerEmail(buyer, seller, transaction, listing, req = null, handshakeCode = null) {
+function sendOrderPlacedBuyerEmail(buyer, seller, transaction, listing, req = null, handshakeCode = null) {
   if (!buyer || !buyer.email) return;
   const appUrl = getAppBaseUrl(req);
   const refNo = transaction.reference_no || transaction.id;
