@@ -18,7 +18,7 @@ import { useMarket } from '../../context/MarketContext';
 import { useAuth } from '../../context/AuthContext';
 import { WantedRequest, Campus } from '../../types';
 import { CATEGORIES, CAMPUSES } from '../../constants';
-import { mobileChatService } from '../../services/flashMarket.service';
+import { mobileChatService, mobileFlashMarketService } from '../../services/flashMarket.service';
 
 export default function FlashMarketScreen() {
   const { flashRequests, wantedRequests, addFlashRequest, addWantedRequest, refreshListings } = useMarket();
@@ -98,6 +98,7 @@ export default function FlashMarketScreen() {
         initialMessage: `Hi ${item.requesterName || 'there'}! I can help with your request for "${item.itemTitle || item.title}". Let's coordinate a safe campus meetup.`
       });
       if (!conversation?.id) throw new Error('The conversation could not be created.');
+      await mobileFlashMarketService.respondToFlashRequest(item.id);
       await refreshListings();
       router.push({ pathname: '/(tabs)/messages', params: { conversationId: conversation.id } });
     } catch (error: any) {
