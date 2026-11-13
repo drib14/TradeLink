@@ -21,6 +21,7 @@ router.post('/', requireStudent, validate(createTransactionSchema), transactions
 router.get('/:id', validateUUID('id'), transactionsController.getTransactionById);
 
 // Mark transaction completed (both roles can mediate)
+router.post('/:id/handshake/request-code', validateUUID('id'), transactionsController.requestHandshakeCode);
 router.patch('/:id/handshake/confirm', validateUUID('id'), validate(confirmHandshakeSchema), transactionsController.confirmHandshake);
 router.patch('/:id/complete', validateUUID('id'), validate(confirmHandshakeSchema), transactionsController.completeTransaction);
 
