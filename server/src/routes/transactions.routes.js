@@ -20,12 +20,12 @@ router.post('/', requireStudent, validate(createTransactionSchema), transactions
 // Get transaction by ID
 router.get('/:id', validateUUID('id'), transactionsController.getTransactionById);
 
-// Mark transaction completed (both roles can mediate)
+// Buyer/seller handshake confirmation and buyer-only code re-issue
 router.post('/:id/handshake/request-code', validateUUID('id'), transactionsController.requestHandshakeCode);
 router.patch('/:id/handshake/confirm', validateUUID('id'), validate(confirmHandshakeSchema), transactionsController.confirmHandshake);
 router.patch('/:id/complete', validateUUID('id'), validate(confirmHandshakeSchema), transactionsController.completeTransaction);
 
-// Cancel transaction (both roles can mediate)
+// Cancel before physical handover (admin may resolve disputes)
 router.patch('/:id/cancel', validateUUID('id'), transactionsController.cancelTransaction);
 
 // Update status (compatibility endpoint)
