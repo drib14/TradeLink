@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -31,7 +31,7 @@ export default function MessagesScreen() {
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [inputMsg, setInputMsg] = useState('');
 
-  const handleOpenChat = async (conv: Conversation) => {
+  const handleOpenChat = useCallback(async (conv: Conversation) => {
     setSelectedConv(conv);
     setChatMessages([]);
     setIsLoadingMessages(true);
@@ -49,7 +49,7 @@ export default function MessagesScreen() {
     } finally {
       setIsLoadingMessages(false);
     }
-  };
+  }, [currentUser?.id]);
 
   useEffect(() => {
     const requestedId = Array.isArray(conversationId) ? conversationId[0] : conversationId;
@@ -58,7 +58,7 @@ export default function MessagesScreen() {
     if (conversation && selectedConv?.id !== conversation.id) {
       void handleOpenChat(conversation);
     }
-  }, [conversationId, conversations]);
+  }, [conversationId, conversations, selectedConv?.id, handleOpenChat]);
 
   const handleSendMessage = async () => {
     if (!inputMsg.trim() || !selectedConv || !currentUser) return;
