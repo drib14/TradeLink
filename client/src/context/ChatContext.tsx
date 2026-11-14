@@ -596,7 +596,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       paymentMethod: params.paymentMethod || 'cash',
       notes: params.notes,
       selectedVariation: params.selectedVariation,
-      variationId: params.variationId
+      variationId: params.variationId,
+      quantity: params.quantity || 1
     });
 
     setTransactions((prev) => [created, ...prev]);

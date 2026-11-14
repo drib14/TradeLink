@@ -22,9 +22,11 @@ const getUserProfile = asyncHandler(async (req, res, next) => {
     return next(new AppError('User profile not found or account is deactivated.', 404));
   }
 
-  // Get user's active listings
+  // Get user's active listings (exclude soft-deleted)
   const listings = await db('listings')
     .where({ seller_id: id })
+    .whereNull('deleted_at')
+    .whereNot('status', 'deleted')
     .orderBy('created_at', 'desc')
     .limit(12);
 

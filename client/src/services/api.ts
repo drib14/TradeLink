@@ -363,8 +363,8 @@ export const api = {
   patch: <T = any>(endpoint: string, body?: any, options?: { skipAuth?: boolean; headers?: Record<string, string> }) =>
     request<T>('PATCH', endpoint, body, options),
 
-  delete: <T = any>(endpoint: string, options?: { skipAuth?: boolean; headers?: Record<string, string> }) =>
-    request<T>('DELETE', endpoint, undefined, options),
+  delete: <T = any>(endpoint: string, body?: any, options?: { skipAuth?: boolean; headers?: Record<string, string> }) =>
+    request<T>('DELETE', endpoint, body, options),
 };
 
 // Upload helper (multipart/form-data, streamed to Cloudinary / storage service)

@@ -118,12 +118,13 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
   useEffect(() => {
     if (listing?.variations && listing.variations.length > 0) {
       setSelectedVariationId((prev) => {
-        if (prev && listing.variations?.some((v) => v.id === prev)) return prev;
-        const firstVar = listing.variations![0];
-        if (firstVar.imageIndex !== null && firstVar.imageIndex !== undefined) {
-          setActiveImageIdx(firstVar.imageIndex);
+        if (prev && listing.variations?.some((v) => v.id === prev && v.isAvailable !== false)) return prev;
+        const firstAvail = listing.variations!.find((v) => v.isAvailable !== false);
+        const targetVar = firstAvail || listing.variations![0];
+        if (targetVar.imageIndex !== null && targetVar.imageIndex !== undefined) {
+          setActiveImageIdx(targetVar.imageIndex);
         }
-        return firstVar.id;
+        return targetVar.id;
       });
     }
   }, [listing]);
@@ -253,7 +254,17 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
   }
 
   const isOwner = !!currentUser && currentUser.id === listing.sellerId;
-  const isSoldOut = Boolean(listing.isSold || (listing.quantity !== undefined && listing.quantity <= 0));
+  const isDeleted = Boolean(listing.isDeleted || listing.status === 'deleted' || listing.deletedAt);
+  const allVariationsSold = Boolean(
+    listing.variations &&
+    listing.variations.length > 0 &&
+    listing.variations.every((v) => v.isAvailable === false)
+  );
+  const isSoldOut = Boolean(
+    listing.isSold ||
+    allVariationsSold ||
+    (listing.quantity !== undefined && listing.quantity <= 0)
+  );
   const similarItems = listings
     .filter((l: Listing) => l.id !== listing.id && (l.category === listing.category || l.sellerCampus === listing.sellerCampus))
     .slice(0, 4);
@@ -364,6 +375,40 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
           </span>
         </div>
       </div>
+
+      {/* Soft Deletion Notice Banner */}
+      {isDeleted && (
+        <div
+          style={{
+            backgroundColor: '#FFFBEB',
+            border: '1.5px solid #FCD34D',
+            borderRadius: '12px',
+            padding: '1.1rem 1.35rem',
+            display: 'flex',
+            gap: '0.85rem',
+            alignItems: 'flex-start',
+            boxShadow: '0 2px 8px rgba(217, 119, 6, 0.08)'
+          }}
+        >
+          <AlertTriangle size={24} color="#D97706" style={{ flexShrink: 0, marginTop: '2px' }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '0.96rem', fontWeight: 800, color: '#92400E' }}>
+              Notice: This Listing Was Removed by the Seller
+            </div>
+            <div style={{ fontSize: '0.86rem', color: '#B45309', marginTop: '0.35rem', lineHeight: 1.5 }}>
+              <strong>Seller Reason:</strong> "{listing.deletionReason || 'Removed by seller'}"
+              {listing.deletedAt && (
+                <span style={{ fontSize: '0.78rem', color: '#92400E', marginLeft: '0.5rem', fontWeight: 600 }}>
+                  • {new Date(listing.deletedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </span>
+              )}
+            </div>
+            <div style={{ fontSize: '0.78rem', color: '#78350F', marginTop: '0.25rem', lineHeight: 1.5 }}>
+              This record is preserved for students who completed transactions, proposed swaps, or favorited this item. Purchasing, swapping, and new chat inquiries for this listing have been closed.
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Grid: Gallery Left + Details Right */}
       <div className="product-detail-grid">
@@ -600,32 +645,6 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
               })}
             </div>
           )}
-
-          {/* Campus Meetup Safety Guarantee Card */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.6rem',
-              padding: '0.75rem 1rem',
-              backgroundColor: '#FFFFFF',
-              borderRadius: '12px',
-              border: '1px solid #E2E8F0',
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)'
-            }}
-          >
-            <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <ShieldCheck size={18} color="var(--uc-blue, #002B7F)" />
-            </div>
-            <div>
-              <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                University of Cebu Safe Trade
-              </div>
-              <div style={{ fontSize: '0.73rem', color: 'var(--text-muted)' }}>
-                Physical inspection & handover directly at campus landmark spots
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Right Column: Listing Details & Seller Card */}
@@ -760,26 +779,46 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                 {listing.variations.map((v) => {
                   const isSelected = selectedVariationId === v.id;
+                  const isVarAvail = v.isAvailable !== false;
                   const vImg = v.imageUrl || (v.imageIndex !== null && v.imageIndex !== undefined && listing.images ? listing.images[v.imageIndex] : null);
                   return (
                     <button
                       type="button"
                       key={v.id}
-                      onClick={() => handleSelectVariation(v)}
+                      onClick={() => {
+                        if (!isVarAvail) {
+                          showToast('Option Sold Out', `"${v.title}" is sold out. Please choose an available option.`, 'info');
+                          return;
+                        }
+                        handleSelectVariation(v);
+                      }}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
                         gap: '0.5rem',
                         padding: '0.55rem 0.85rem',
                         borderRadius: '9px',
-                        border: isSelected ? '2px solid var(--uc-blue)' : '1px solid var(--border-subtle)',
-                        backgroundColor: isSelected ? 'var(--uc-blue-subtle, #EBF1FC)' : 'var(--bg-subtle, #F8FAFC)',
-                        color: isSelected ? 'var(--uc-blue)' : 'var(--text-primary)',
-                        cursor: 'pointer',
+                        border: isSelected
+                          ? '2px solid var(--uc-blue)'
+                          : isVarAvail
+                          ? '1px solid var(--border-subtle)'
+                          : '1px dashed #CBD5E1',
+                        backgroundColor: isSelected
+                          ? 'var(--uc-blue-subtle, #EBF1FC)'
+                          : isVarAvail
+                          ? 'var(--bg-subtle, #F8FAFC)'
+                          : '#F1F5F9',
+                        color: isSelected
+                          ? 'var(--uc-blue)'
+                          : isVarAvail
+                          ? 'var(--text-primary)'
+                          : '#94A3B8',
+                        cursor: isVarAvail ? 'pointer' : 'not-allowed',
                         fontWeight: isSelected ? 800 : 600,
                         fontSize: '0.82rem',
                         transition: 'all 0.15s ease',
-                        boxShadow: isSelected ? '0 2px 6px rgba(0, 43, 127, 0.12)' : 'none'
+                        boxShadow: isSelected ? '0 2px 6px rgba(0, 43, 127, 0.12)' : 'none',
+                        opacity: isVarAvail ? 1 : 0.65
                       }}
                     >
                       {vImg && (
@@ -791,15 +830,32 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
                             height: '26px',
                             borderRadius: '5px',
                             objectFit: 'cover',
-                            border: isSelected ? '1px solid var(--uc-blue)' : '1px solid #CBD5E1'
+                            border: isSelected ? '1px solid var(--uc-blue)' : '1px solid #CBD5E1',
+                            filter: isVarAvail ? 'none' : 'grayscale(100%)'
                           }}
                         />
                       )}
-                      <span>{v.title}</span>
-                      {v.price !== null && v.price !== undefined && (
-                        <span style={{ fontSize: '0.74rem', opacity: 0.85, fontWeight: 700 }}>
-                          ₱{v.price.toLocaleString()}
+                      <span style={{ textDecoration: isVarAvail ? 'none' : 'line-through' }}>{v.title}</span>
+                      {!isVarAvail ? (
+                        <span
+                          style={{
+                            fontSize: '0.68rem',
+                            fontWeight: 800,
+                            padding: '0.1rem 0.35rem',
+                            borderRadius: '4px',
+                            backgroundColor: '#FEE2E2',
+                            color: '#991B1B',
+                            border: '1px solid #FCA5A5'
+                          }}
+                        >
+                          Sold Out
                         </span>
+                      ) : (
+                        v.price !== null && v.price !== undefined && (
+                          <span style={{ fontSize: '0.74rem', opacity: 0.85, fontWeight: 700 }}>
+                            ₱{v.price.toLocaleString()}
+                          </span>
+                        )
                       )}
                     </button>
                   );
@@ -917,7 +973,7 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
               <div className="product-spec-row">
                 <span className="product-spec-label">Available Quantity</span>
                 <span className="product-spec-value">
-                  {listing.quantity !== undefined ? `${listing.quantity} available` : '1 available'}
+                  {listing.quantity !== undefined ? `${listing.quantity} ${listing.quantity === 1 ? 'unit' : 'units'} available` : '1 unit available'}
                 </span>
               </div>
               <div className="product-spec-row">
@@ -978,7 +1034,26 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
           <div className="product-actions-group">
             {!isOwner ? (
               <>
-                {isSoldOut ? (
+                {isDeleted ? (
+                  <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                    <div style={{ padding: '0.85rem 1rem', borderRadius: '10px', backgroundColor: '#FEF3C7', border: '1.5px solid #FCD34D', color: '#92400E', fontSize: '0.86rem' }}>
+                      <div style={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <AlertTriangle size={16} color="#D97706" />
+                        <span>Item Removed by Seller</span>
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: '#B45309', marginTop: '0.25rem' }}>
+                        <strong>Reason:</strong> "{listing.deletionReason || 'Removed by seller'}"
+                      </div>
+                    </div>
+                    <button
+                      disabled
+                      className="btn-secondary"
+                      style={{ width: '100%', padding: '0.75rem', cursor: 'not-allowed', opacity: 0.65, fontWeight: 700 }}
+                    >
+                      Item Removed from Active Marketplace
+                    </button>
+                  </div>
+                ) : isSoldOut ? (
                   <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                     <div style={{ padding: '0.75rem', borderRadius: '8px', backgroundColor: '#FEE2E2', border: '1px solid #FCA5A5', color: '#991B1B', textAlign: 'center', fontSize: '0.86rem', fontWeight: 700 }}>
                       This item is currently out of stock or marked as sold.
@@ -1675,7 +1750,7 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
             </div>
 
             <span style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: '0.6rem' }}>
-              Tip: Use ← → arrow keys to navigate, Esc to close
+              Press Esc or arrow keys to navigate
             </span>
           </div>
         </div>
@@ -1700,6 +1775,14 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
             >
               <Sliders size={15} />
               <span>Manage</span>
+            </button>
+          ) : isDeleted ? (
+            <button
+              disabled
+              className="btn-secondary"
+              style={{ padding: '0.55rem 1rem', fontSize: '0.8rem', fontWeight: 700, opacity: 0.6 }}
+            >
+              Listing Removed
             </button>
           ) : isSoldOut ? (
             <button

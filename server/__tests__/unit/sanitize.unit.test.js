@@ -64,4 +64,26 @@ describe('Unit Test: Serializers & Data Sanitization', () => {
     expect(serialized.images.length).toBe(2);
     expect(serialized.preferredMeetupSpots).toEqual(['Main Library 3rd Floor', 'Gate 1']);
   });
+
+  it('should correctly preserve and serialize custom listing quantity', () => {
+    const rawListing = {
+      id: 'list_qty_5',
+      title: 'Engineering Review Notes',
+      quantity: 5,
+      is_sold: 0
+    };
+    const serialized = serializeListing(rawListing);
+    expect(serialized.quantity).toBe(5);
+    expect(serialized.isSold).toBe(false);
+
+    const zeroQtyListing = {
+      id: 'list_qty_0',
+      title: 'Sold Out Item',
+      quantity: 0,
+      is_sold: 0
+    };
+    const zeroSerialized = serializeListing(zeroQtyListing);
+    expect(zeroSerialized.quantity).toBe(0);
+    expect(zeroSerialized.isSold).toBe(true);
+  });
 });

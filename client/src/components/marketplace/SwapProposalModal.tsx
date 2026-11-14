@@ -35,15 +35,17 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
   const myListings = currentUser ? listings.filter((l) => l.sellerId === currentUser.id && !l.isSold) : [];
 
   const [selectedMyListingId, setSelectedMyListingId] = useState<string>(myListings[0]?.id || '');
+  const firstAvailableVar = targetListing.variations?.find((v) => v.isAvailable !== false);
   const [selectedVariation, setSelectedVariation] = useState<string | null>(
-    initialVariation || (targetListing.variations && targetListing.variations.length > 0 ? targetListing.variations[0].title : null)
+    initialVariation || (firstAvailableVar ? firstAvailableVar.title : (targetListing.variations && targetListing.variations.length > 0 ? targetListing.variations[0].title : null))
   );
 
   React.useEffect(() => {
     if (initialVariation) {
       setSelectedVariation(initialVariation);
     } else if (targetListing.variations && targetListing.variations.length > 0 && !selectedVariation) {
-      setSelectedVariation(targetListing.variations[0].title);
+      const avail = targetListing.variations.find((v) => v.isAvailable !== false);
+      setSelectedVariation(avail ? avail.title : targetListing.variations[0].title);
     }
   }, [initialVariation, targetListing]);
 
@@ -262,31 +264,63 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem' }}>
               {targetListing.variations.map((v) => {
                 const isSelected = selectedVariation === v.title;
+                const isVarAvail = v.isAvailable !== false;
                 const vImg = v.imageUrl || (v.imageIndex !== null && v.imageIndex !== undefined && targetListing.images ? targetListing.images[v.imageIndex] : null);
                 return (
                   <button
                     type="button"
                     key={v.id}
-                    onClick={() => setSelectedVariation(v.title)}
+                    disabled={!isVarAvail}
+                    onClick={() => {
+                      if (isVarAvail) setSelectedVariation(v.title);
+                    }}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: '0.45rem',
                       padding: '0.45rem 0.75rem',
                       borderRadius: '8px',
-                      border: isSelected ? '2px solid var(--uc-blue)' : '1px solid var(--border-subtle)',
-                      backgroundColor: isSelected ? 'var(--uc-blue-subtle, #EBF1FC)' : '#FFFFFF',
-                      color: isSelected ? 'var(--uc-blue)' : 'var(--text-primary)',
+                      border: isSelected
+                        ? '2px solid var(--uc-blue)'
+                        : isVarAvail
+                        ? '1px solid var(--border-subtle)'
+                        : '1px dashed #CBD5E1',
+                      backgroundColor: isSelected
+                        ? 'var(--uc-blue-subtle, #EBF1FC)'
+                        : isVarAvail
+                        ? '#FFFFFF'
+                        : '#F1F5F9',
+                      color: isSelected
+                        ? 'var(--uc-blue)'
+                        : isVarAvail
+                        ? 'var(--text-primary)'
+                        : '#94A3B8',
                       fontWeight: isSelected ? 800 : 600,
                       fontSize: '0.8rem',
-                      cursor: 'pointer',
+                      cursor: isVarAvail ? 'pointer' : 'not-allowed',
+                      opacity: isVarAvail ? 1 : 0.6,
                       transition: 'all 0.15s ease'
                     }}
                   >
                     {vImg && (
-                      <img src={vImg} alt="" style={{ width: '22px', height: '22px', borderRadius: '4px', objectFit: 'cover' }} />
+                      <img
+                        src={vImg}
+                        alt=""
+                        style={{
+                          width: '22px',
+                          height: '22px',
+                          borderRadius: '4px',
+                          objectFit: 'cover',
+                          filter: isVarAvail ? 'none' : 'grayscale(100%)'
+                        }}
+                      />
                     )}
-                    <span>{v.title}</span>
+                    <span style={{ textDecoration: isVarAvail ? 'none' : 'line-through' }}>{v.title}</span>
+                    {!isVarAvail && (
+                      <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#DC2626' }}>
+                        (Sold Out)
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -410,13 +444,6 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
                 Clear
               </button>
             )}
-          </div>
-        </div>
-
-        {/* Section 3: Campus Chat Coordination Note */}
-        <div style={{ backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)', border: '1px solid rgba(0, 43, 127, 0.15)', borderRadius: '8px', padding: '0.75rem 0.95rem' }}>
-          <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
-            <strong style={{ color: 'var(--uc-blue)' }}>Direct Chat Coordination:</strong> Once the seller reviews and accepts your swap proposal, you can agree on the exact meeting spot and time on campus directly in Campus Chat.
           </div>
         </div>
 

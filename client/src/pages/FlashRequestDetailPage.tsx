@@ -25,8 +25,11 @@ import {
   CheckCircle2,
   DollarSign,
   Maximize2,
-  X
+  X,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
+import { DeleteWithReasonModal } from '../components/common/DeleteWithReasonModal';
 import { FlashRequest } from '../types';
 
 interface FlashRequestDetailPageProps {
@@ -58,7 +61,7 @@ export const FlashRequestDetailPage: React.FC<FlashRequestDetailPageProps> = ({
   onOpenChat,
   onOpenAuth
 }) => {
-  const { requests, respondToRequest } = useFlashMarket();
+  const { requests, respondToRequest, deleteRequest } = useFlashMarket();
   const { currentUser, isAuthenticated } = useAuth();
   const { openChatForFlash, openChatWithUser } = useChat();
   const { showToast } = useToast();
@@ -67,6 +70,8 @@ export const FlashRequestDetailPage: React.FC<FlashRequestDetailPageProps> = ({
   const [offerMessage, setOfferMessage] = useState('');
   const [isSubmittingOffer, setIsSubmittingOffer] = useState(false);
   const [isImageZoomed, setIsImageZoomed] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Resolve raw request ID if passed as hashed slug
   const resolvedId = useMemo(() => {
@@ -81,6 +86,12 @@ export const FlashRequestDetailPage: React.FC<FlashRequestDetailPageProps> = ({
 
   const isOwner = Boolean(
     currentUser && currentRequest && currentRequest.requesterId === currentUser.id
+  );
+
+  const isDeleted = Boolean(
+    currentRequest?.isDeleted ||
+      currentRequest?.status === 'deleted' ||
+      currentRequest?.deletedAt
   );
 
   const timeLeft = getTimeRemaining(currentRequest?.expiresAt);
@@ -101,6 +112,25 @@ export const FlashRequestDetailPage: React.FC<FlashRequestDetailPageProps> = ({
       showToast('Link Copied!', 'Flash request link copied to clipboard.', 'info');
     } else {
       showToast('Share Link', shareUrl, 'info');
+    }
+  };
+
+  const handleConfirmDelete = async (reason: string) => {
+    if (!currentRequest) return;
+    setIsDeleting(true);
+    try {
+      await deleteRequest(currentRequest.id, reason);
+      showToast(
+        'Flash Request Cancelled',
+        `"${currentRequest.itemTitle}" removed. Reason: "${reason}".`,
+        'info'
+      );
+      setIsDeleteModalOpen(false);
+      onNavigate('flash-market');
+    } catch (err: any) {
+      showToast('Action Failed', err?.message || 'Failed to cancel flash request.', 'error');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -289,6 +319,40 @@ export const FlashRequestDetailPage: React.FC<FlashRequestDetailPageProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Soft Deletion Notice Banner */}
+      {isDeleted && (
+        <div
+          style={{
+            backgroundColor: '#FFFBEB',
+            border: '1.5px solid #FCD34D',
+            borderRadius: '12px',
+            padding: '1rem 1.25rem',
+            display: 'flex',
+            gap: '0.85rem',
+            alignItems: 'flex-start',
+            boxShadow: '0 2px 8px rgba(217, 119, 6, 0.08)'
+          }}
+        >
+          <AlertTriangle size={24} color="#D97706" style={{ flexShrink: 0, marginTop: '2px' }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '0.94rem', fontWeight: 800, color: '#92400E' }}>
+              Notice: This Flash Request Was Cancelled by the Requester
+            </div>
+            <div style={{ fontSize: '0.84rem', color: '#B45309', marginTop: '0.3rem', lineHeight: 1.5 }}>
+              <strong>Reason:</strong> "{currentRequest.deletionReason || 'Cancelled by requester'}"
+              {currentRequest.deletedAt && (
+                <span style={{ fontSize: '0.78rem', color: '#92400E', marginLeft: '0.5rem', fontWeight: 600 }}>
+                  • {new Date(currentRequest.deletedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </span>
+              )}
+            </div>
+            <div style={{ fontSize: '0.78rem', color: '#78350F', marginTop: '0.2rem', lineHeight: 1.5 }}>
+              New peer offers and chats for this request have been closed.
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Hero Urgency Banner - Strictly UC Blue Scheme */}
       <div
@@ -602,31 +666,6 @@ export const FlashRequestDetailPage: React.FC<FlashRequestDetailPageProps> = ({
               </div>
             </div>
           </div>
-
-          {/* Safe Campus Handover Protocol Card */}
-          <div
-            style={{
-              padding: '1.25rem',
-              borderRadius: '16px',
-              backgroundColor: '#F0FDF4',
-              border: '1.5px solid #BBF7D0',
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: '0.85rem'
-            }}
-          >
-            <div style={{ width: '38px', height: '38px', borderRadius: '50%', backgroundColor: '#DCFCE7', color: '#16A34A', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <ShieldCheck size={22} />
-            </div>
-            <div>
-              <h4 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#166534', margin: '0 0 0.25rem 0' }}>
-                University of Cebu Safe Handover Guidelines
-              </h4>
-              <p style={{ fontSize: '0.8rem', color: '#15803D', lineHeight: 1.5, margin: 0 }}>
-                Always coordinate handovers in public, designated campus locations such as the main security gate, library entrance, or university canteen during standard class hours. Never share external bank credentials or off-campus meetups without mutual agreement.
-              </p>
-            </div>
-          </div>
         </div>
 
         {/* Right Column: Pricing Modes, Accepted Payments, Requester Card, CTAs */}
@@ -709,7 +748,15 @@ export const FlashRequestDetailPage: React.FC<FlashRequestDetailPageProps> = ({
 
             {/* Action Buttons - Optimized proportions and responsive layout */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.65rem', marginTop: '0.5rem', width: '100%' }}>
-              {isExpired ? (
+              {isDeleted ? (
+                <button
+                  disabled
+                  className="btn-secondary"
+                  style={{ width: '100%', padding: '0.65rem 1rem', cursor: 'not-allowed', opacity: 0.65, fontWeight: 700, fontSize: '0.84rem', borderRadius: '10px' }}
+                >
+                  This Flash Request Was Cancelled by Requester
+                </button>
+              ) : isExpired ? (
                 <button
                   disabled
                   className="btn-secondary"
@@ -718,13 +765,34 @@ export const FlashRequestDetailPage: React.FC<FlashRequestDetailPageProps> = ({
                   This Flash Request Has Closed
                 </button>
               ) : isOwner ? (
-                <button
-                  onClick={() => onNavigate('profile')}
-                  className="btn-secondary"
-                  style={{ width: '100%', padding: '0.65rem 1rem', fontWeight: 800, fontSize: '0.84rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem', borderRadius: '10px' }}
-                >
-                  <Building2 size={16} /> Manage in Your Profile
-                </button>
+                <div style={{ display: 'flex', gap: '0.65rem', width: '100%' }}>
+                  <button
+                    onClick={() => onNavigate('profile')}
+                    className="btn-secondary"
+                    style={{ flex: 1, padding: '0.65rem 1rem', fontWeight: 800, fontSize: '0.84rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem', borderRadius: '10px' }}
+                  >
+                    <Building2 size={16} /> Manage in Profile
+                  </button>
+                  <button
+                    onClick={() => setIsDeleteModalOpen(true)}
+                    style={{
+                      padding: '0.65rem 1rem',
+                      fontWeight: 800,
+                      fontSize: '0.84rem',
+                      color: '#DC2626',
+                      backgroundColor: '#FEF2F2',
+                      border: '1px solid #FCA5A5',
+                      borderRadius: '10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.45rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <Trash2 size={16} /> Cancel Request
+                  </button>
+                </div>
               ) : (
                 <>
                   <button
@@ -965,6 +1033,18 @@ export const FlashRequestDetailPage: React.FC<FlashRequestDetailPageProps> = ({
             </button>
           </div>
         </div>
+      )}
+      {/* Soft Delete Confirmation Modal with Reason */}
+      {currentRequest && (
+        <DeleteWithReasonModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          onConfirm={handleConfirmDelete}
+          title="Cancel Flash Request"
+          entityName={currentRequest.itemTitle}
+          entityType="flash_request"
+          isLoading={isDeleting}
+        />
       )}
     </div>
   );

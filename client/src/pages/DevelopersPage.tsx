@@ -156,7 +156,7 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
       initials: 'JS',
       fallbackColor: '#059669',
       bio: 'Brings the website pages to life, building the interactive item search filters, instant chat screens, and smooth notifications that make using the platform quick and pleasant.',
-      skills: ['Interactive Web Pages', 'Instant Campus Chat', 'Smart Search Filters', 'Smooth Transitions', 'Speed & Responsiveness'],
+      skills: ['Interactive Web Pages', 'Instant Campus Chat', 'Search & Category Filters', 'Smooth Transitions', 'Speed & Responsiveness'],
       githubUrl: 'https://github.com/FlyingSteps04',
       facebookUrl: 'https://www.facebook.com/johnkithsanchez04'
     },
@@ -871,10 +871,6 @@ export const DevelopersPage: React.FC<DevelopersPageProps> = ({ onNavigate }) =>
             >
               <ChevronRight size={22} />
             </button>
-          </div>
-
-          <div style={{ fontSize: '0.78rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <span>Tip: Use left & right keyboard arrows to rotate developer cards</span>
           </div>
         </div>
       )}

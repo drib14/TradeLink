@@ -407,6 +407,27 @@ async function autoInitDatabase() {
       logger.info('[DB Init] Added selected_variation and variation_id to transactions table.');
     }
 
+    // 1m. Ensure soft delete columns in listings and flash_requests
+    const hasListingDeletedAt = await db.schema.hasColumn('listings', 'deleted_at').catch(() => false);
+    if (!hasListingDeletedAt) {
+      await db.schema.alterTable('listings', (t) => {
+        t.datetime('deleted_at').nullable().defaultTo(null);
+        t.string('deletion_reason', 255).nullable().defaultTo(null);
+        t.string('deleted_by', 36).nullable().defaultTo(null);
+      }).catch(() => {});
+      logger.info('[DB Init] Added soft delete columns to listings table.');
+    }
+
+    const hasFlashDeletedAt = await db.schema.hasColumn('flash_requests', 'deleted_at').catch(() => false);
+    if (!hasFlashDeletedAt) {
+      await db.schema.alterTable('flash_requests', (t) => {
+        t.datetime('deleted_at').nullable().defaultTo(null);
+        t.string('deletion_reason', 255).nullable().defaultTo(null);
+        t.string('deleted_by', 36).nullable().defaultTo(null);
+      }).catch(() => {});
+      logger.info('[DB Init] Added soft delete columns to flash_requests table.');
+    }
+
     // 1n. Ensure security_events audit table exists
     const hasSecEvents = await db.schema.hasTable('security_events').catch(() => false);
     if (!hasSecEvents) {

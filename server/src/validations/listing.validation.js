@@ -10,6 +10,20 @@ const mediaItemSchema = Joi.alternatives().try(
   })
 );
 
+const variationItemSchema = Joi.object({
+  id: Joi.string().optional(),
+  title: Joi.string().trim().max(150).allow('').optional(),
+  name: Joi.string().trim().max(150).allow('').optional(),
+  price: Joi.number().min(0).max(100000).allow(null).optional(),
+  imageUrl: Joi.string().allow('', null).optional(),
+  image_url: Joi.string().allow('', null).optional(),
+  imageIndex: Joi.number().integer().min(0).max(10).allow(null).optional(),
+  image_index: Joi.number().integer().min(0).max(10).allow(null).optional(),
+  quantity: Joi.number().integer().min(0).max(999).optional(),
+  isAvailable: Joi.boolean().optional(),
+  is_available: Joi.boolean().optional()
+});
+
 const createListingSchema = Joi.object({
   title: Joi.string().trim().min(5).max(200).required()
     .pattern(/^[^<>]*$/, 'no HTML tags')
@@ -34,6 +48,10 @@ const createListingSchema = Joi.object({
   tags: Joi.array().items(Joi.string().trim().max(50)).max(10).default([]),
   media: Joi.array().items(mediaItemSchema).min(1).max(5).optional(),
   images: Joi.array().items(Joi.string()).min(1).max(5).optional(),
+  variations: Joi.alternatives().try(
+    Joi.array().items(variationItemSchema),
+    Joi.string()
+  ).optional(),
   preferredMeetupSpots: Joi.array().items(Joi.string().trim().max(200)).default([]),
   customMeetupSpot: Joi.string().trim().max(200).allow('', null),
   campus: Joi.string().valid(...CAMPUSES).allow('', null),
@@ -57,6 +75,10 @@ const updateListingSchema = Joi.object({
   tags: Joi.array().items(Joi.string().trim().max(50)).max(10),
   media: Joi.array().items(mediaItemSchema).max(5),
   images: Joi.array().items(Joi.string()).max(5),
+  variations: Joi.alternatives().try(
+    Joi.array().items(variationItemSchema),
+    Joi.string()
+  ).optional(),
   preferredMeetupSpots: Joi.array().items(Joi.string().trim().max(200)),
   customMeetupSpot: Joi.string().trim().max(200).allow('', null),
   campus: Joi.string().valid(...CAMPUSES).allow('', null),

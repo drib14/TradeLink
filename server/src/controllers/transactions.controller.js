@@ -136,6 +136,9 @@ const getTransactions = asyncHandler(async (req, res) => {
     .select(
       'transactions.*',
       'listings.title as listing_title',
+      'listings.status as listing_status',
+      'listings.deleted_at as listing_deleted_at',
+      'listings.deletion_reason as listing_deletion_reason',
       'seller.name as seller_name',
       'seller.avatar_url as seller_avatar',
       'buyer.name as buyer_name',
@@ -176,6 +179,9 @@ const getTransactionById = asyncHandler(async (req, res, next) => {
     .select(
       'transactions.*',
       'listings.title as listing_title',
+      'listings.status as listing_status',
+      'listings.deleted_at as listing_deleted_at',
+      'listings.deletion_reason as listing_deletion_reason',
       'seller.name as seller_name',
       'seller.avatar_url as seller_avatar',
       'buyer.name as buyer_name',
@@ -289,10 +295,15 @@ const createTransaction = asyncHandler(async (req, res, next) => {
     delete txInsertData.selected_variation;
   }
 
+  const orderQuantity = Math.max(1, parseInt(req.body.quantity, 10) || (notes?.match(/Qty:\s*(\d+)/i) ? parseInt(notes.match(/Qty:\s*(\d+)/i)[1], 10) : 1));
+
   await db.transaction(async (trx) => {
     await trx('transactions').insert(txInsertData);
-    // Mark listing as reserved
-    await trx('listings').where({ id: targetListingId }).update({ status: 'reserved' });
+    // Only mark listing as reserved if this order claims all remaining units
+    const currentQty = Math.max(1, listing.quantity || 1);
+    if (orderQuantity >= currentQty) {
+      await trx('listings').where({ id: targetListingId }).update({ status: 'reserved' });
+    }
   });
 
   // Sync to chat conversation
@@ -379,7 +390,18 @@ const confirmHandshake = asyncHandler(async (req, res, next) => {
         handshake_completed_at: completedAt,
         completion_override_by: req.user.id
       });
-      await trx('listings').where({ id: tx.listing_id }).update({ status: 'sold' });
+      const targetListing = await trx('listings').where({ id: tx.listing_id }).first();
+      if (targetListing) {
+        const orderQty = Math.max(1, (tx.notes?.match(/Qty:\s*(\d+)/i) ? parseInt(tx.notes.match(/Qty:\s*(\d+)/i)[1], 10) : 1));
+        const newQty = Math.max(0, (targetListing.quantity !== undefined ? targetListing.quantity : 1) - orderQty);
+        const updates = { quantity: newQty };
+        if (newQty === 0) {
+          updates.status = 'sold';
+        } else {
+          updates.status = 'active';
+        }
+        await trx('listings').where({ id: tx.listing_id }).update(updates);
+      }
       return {
         completed: true,
         adminOverride: true,
@@ -453,7 +475,18 @@ const confirmHandshake = asyncHandler(async (req, res, next) => {
       await trx('transactions').where({ id }).update(patch);
     }
     if (completed) {
-      await trx('listings').where({ id: tx.listing_id }).update({ status: 'sold' });
+      const targetListing = await trx('listings').where({ id: tx.listing_id }).first();
+      if (targetListing) {
+        const orderQty = Math.max(1, (tx.notes?.match(/Qty:\s*(\d+)/i) ? parseInt(tx.notes.match(/Qty:\s*(\d+)/i)[1], 10) : 1));
+        const newQty = Math.max(0, (targetListing.quantity !== undefined ? targetListing.quantity : 1) - orderQty);
+        const updates = { quantity: newQty };
+        if (newQty === 0) {
+          updates.status = 'sold';
+        } else {
+          updates.status = 'active';
+        }
+        await trx('listings').where({ id: tx.listing_id }).update(updates);
+      }
     }
 
     return {

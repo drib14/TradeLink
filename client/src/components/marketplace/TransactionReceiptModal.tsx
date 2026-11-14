@@ -1,7 +1,7 @@
 import React from 'react';
 import { Transaction } from '../../types';
 import { Modal } from '../common/Modal';
-import { CheckCircle2, Clock, XCircle, Copy, Printer, ShoppingBag, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, Clock, XCircle, Copy, Printer, ShoppingBag, ShieldCheck, Info } from 'lucide-react';
 import { useToast } from '../common/Toast';
 
 interface TransactionReceiptModalProps {
@@ -145,6 +145,30 @@ export const TransactionReceiptModal: React.FC<TransactionReceiptModalProps> = (
             </div>
           </div>
 
+          {/* Seller Deletion Reminder Notice */}
+          {transaction.listingIsDeleted && (
+            <div
+              style={{
+                backgroundColor: '#FFFBEB',
+                border: '1.5px solid #FCD34D',
+                borderRadius: '8px',
+                padding: '0.65rem 0.85rem',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '0.55rem',
+                fontSize: '0.78rem',
+                color: '#92400E',
+                lineHeight: 1.45
+              }}
+            >
+              <Info size={16} color="#D97706" style={{ flexShrink: 0, marginTop: '2px' }} />
+              <div>
+                <strong>Notice for Past Buyer/Trader: </strong>
+                The seller has removed this listing from the active catalog (Reason: "{transaction.listingDeletionReason || 'Removed by seller'}"). Your transaction receipt and trade records remain permanently preserved and valid.
+              </div>
+            </div>
+          )}
+
           {/* Item Details */}
           <div style={{ display: 'flex', gap: '0.85rem', alignItems: 'center', padding: '0.95rem 0', borderBottom: '1px solid var(--border-subtle, #E2E8F0)' }}>
             {transaction.listingImage ? (
@@ -218,14 +242,6 @@ export const TransactionReceiptModal: React.FC<TransactionReceiptModalProps> = (
                 {transaction.tradeMode === 'free_donation' ? 'FREE' : `₱${(transaction.amount || 0).toLocaleString()}`}
               </span>
             </div>
-          </div>
-        </div>
-
-        {/* Campus Verification Tip */}
-        <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'flex-start', backgroundColor: 'var(--uc-blue-subtle)', borderRadius: '8px', padding: '0.75rem 0.95rem', fontSize: '0.76rem', color: 'var(--uc-blue)' }}>
-          <ShieldCheck size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
-          <div>
-            <strong>Campus Verification & Safety:</strong> Coordinate directly via Campus Chat to settle trades safely within official UC campus premises during daytime school hours.
           </div>
         </div>
 

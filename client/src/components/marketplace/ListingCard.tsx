@@ -294,9 +294,25 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick, onNa
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '58%' }}>
               {listing.category}
             </span>
-            <span style={{ fontWeight: 600, color: 'var(--text-secondary, #475569)', flexShrink: 0, maxWidth: '42%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={listing.sellerCampus}>
-              {listing.sellerCampus}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', flexShrink: 0 }}>
+              {listing.quantity !== undefined && listing.quantity > 1 && !isSoldOut && (
+                <span
+                  style={{
+                    fontWeight: 700,
+                    color: 'var(--uc-blue, #002B7F)',
+                    fontSize: '0.66rem',
+                    backgroundColor: 'var(--uc-blue-subtle, #EBF1FC)',
+                    padding: '1px 5px',
+                    borderRadius: '4px'
+                  }}
+                >
+                  {listing.quantity} left
+                </span>
+              )}
+              <span style={{ fontWeight: 600, color: 'var(--text-secondary, #475569)', maxWidth: '90px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={listing.sellerCampus}>
+                {listing.sellerCampus}
+              </span>
+            </div>
           </div>
 
           {/* Item Title */}

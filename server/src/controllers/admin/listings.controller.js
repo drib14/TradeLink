@@ -334,39 +334,27 @@ const deleteListingAdmin = asyncHandler(async (req, res, next) => {
     return next(new AppError('Listing not found.', 404));
   }
 
-  // Check if foreign key references exist in transactions or swaps
-  const hasTransactions = await db('transactions').where({ listing_id: id }).first();
-  const hasSwaps = await db('swap_offers').where(builder => {
-    builder.where({ listing_id: id }).orWhere({ offered_listing_id: id });
-  }).first();
+  const reason = (req.body?.reason || req.body?.deletionReason || req.query?.reason || 'Removed by TradeLink Campus Safety Admin').trim();
 
-  if (hasTransactions || hasSwaps) {
-    // Preserve financial & audit history without foreign key failure
-    await db('listings').where({ id }).update({ status: 'archived', updated_at: new Date() });
-    await logAdminAction(req.user, 'Archived Listing', 'listing', id, `Admin archived transacted listing "${listing.title}"`, req);
-    return res.status(200).json({
-      status: 'success',
-      message: 'Listing archived (historical transaction records preserved).'
-    });
-  }
-
-  // Delete attached files from Cloudinary storage
-  const listingMedia = await db('listing_media').where({ listing_id: id });
-  for (const m of listingMedia) {
-    await storageService.deleteFile(m.media_url);
-  }
-
-  await db.transaction(async (trx) => {
-    await trx('listing_media').where({ listing_id: id }).delete();
-    await trx('flagged_listings').where({ listing_id: id }).delete();
-    await trx('listings').where({ id }).delete();
+  // Soft delete listing to preserve transaction and dispute audit history
+  await db('listings').where({ id }).update({
+    status: 'deleted',
+    deleted_at: new Date(),
+    deletion_reason: reason,
+    deleted_by: req.user.id,
+    updated_at: new Date()
   });
 
-  await logAdminAction(req.user, 'Deleted Listing', 'listing', id, `Admin removed listing "${listing.title}"`, req);
+  await logAdminAction(req.user, 'Deleted Listing', 'listing', id, `Admin removed listing "${listing.title}" (Reason: ${reason})`, req);
 
   res.status(200).json({
     status: 'success',
-    message: 'Listing removed successfully by admin.'
+    message: 'Listing removed successfully by admin.',
+    data: {
+      id,
+      isDeleted: true,
+      deletionReason: reason
+    }
   });
 });
 

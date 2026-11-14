@@ -115,9 +115,18 @@ const getListings = asyncHandler(async (req, res) => {
       builder.whereNull('seller.is_banned').orWhere('seller.is_banned', false);
     });
 
-  // Filter: Status (only filter if explicitly specified and not 'all' or 'All')
-  if (status && status.toLowerCase() !== 'all') {
-    query = query.where('listings.status', status);
+  // Filter: Status with soft-delete exclusion
+  if (status && status.toLowerCase() === 'deleted') {
+    query = query.where((builder) => {
+      builder.where('listings.status', 'deleted').orWhereNotNull('listings.deleted_at');
+    });
+  } else if (status && status.toLowerCase() !== 'all') {
+    query = query.where('listings.status', status).whereNull('listings.deleted_at');
+  } else {
+    // Default browse / 'all': exclude soft-deleted listings
+    query = query.where((builder) => {
+      builder.whereNull('listings.deleted_at').andWhereNot('listings.status', 'deleted');
+    });
   }
 
   // Filter: Campus (query on listings.campus to hit composite index, with seller fallback)
@@ -331,6 +340,7 @@ const createListing = asyncHandler(async (req, res, next) => {
   }
 
   const listingId = uuidv4();
+  const parsedQuantity = Math.max(1, parseInt(quantity, 10) || 1);
   const newListing = {
     id: listingId,
     seller_id: req.user.id,
@@ -342,6 +352,7 @@ const createListing = asyncHandler(async (req, res, next) => {
     swap_preference: cleanSwap,
     category,
     condition: condition || 'Gently Used',
+    quantity: parsedQuantity,
     campus: campus || req.user.campus || 'UC Main',
     department: department || req.user.department || req.user.college || null,
     accepted_payment_methods: paymentMethodsStr,
@@ -415,6 +426,9 @@ const createListing = asyncHandler(async (req, res, next) => {
         display_order: index
       });
     });
+
+    const varSum = resolvedVariations.reduce((sum, v) => sum + (v.quantity || 1), 0);
+    newListing.quantity = Math.max(parsedQuantity, varSum);
   }
 
   await db.transaction(async (trx) => {
@@ -590,20 +604,36 @@ const updateListing = asyncHandler(async (req, res, next) => {
           if (!matchedUrl && curMedia.length > 0) {
             matchedUrl = curMedia[imgIdx]?.media_url || curMedia[0]?.media_url || null;
           }
+          const isAvail = v.isAvailable !== undefined
+            ? Boolean(v.isAvailable)
+            : (v.is_available !== undefined ? Boolean(v.is_available) : true);
+          const rawQty = v.quantity !== undefined && v.quantity !== null ? parseInt(v.quantity, 10) : 1;
+          const qty = isNaN(rawQty) ? 1 : Math.max(0, rawQty);
+
           return {
-            id: uuidv4(),
+            id: v.id || uuidv4(),
             listing_id: id,
             title: vTitle,
             price: (v.price !== undefined && v.price !== null && !isNaN(Number(v.price))) ? parseFloat(v.price) : null,
             image_url: matchedUrl,
             image_index: imgIdx,
-            quantity: Math.max(1, parseInt(v.quantity, 10) || 1),
-            is_available: v.isAvailable !== undefined ? Boolean(v.isAvailable) : true,
+            quantity: qty,
+            is_available: isAvail && qty > 0,
             display_order: index
           };
         }).filter(v => v.title);
+
         if (updatedVariations.length > 0) {
           await trx('listing_variations').insert(updatedVariations);
+
+          // If all variations are marked as sold/unavailable, automatically reflect listing status as sold
+          const anyAvailable = updatedVariations.some(v => v.is_available);
+          const totalVarQty = updatedVariations.reduce((sum, v) => sum + (v.is_available ? v.quantity : 0), 0);
+          if (!anyAvailable) {
+            await trx('listings').where({ id }).update({ status: 'sold', updated_at: new Date() });
+          } else if (listing.status === 'sold' && anyAvailable) {
+            await trx('listings').where({ id }).update({ status: 'active', quantity: Math.max(1, totalVarQty), updated_at: new Date() });
+          }
         }
       }
     }
@@ -616,7 +646,62 @@ const updateListing = asyncHandler(async (req, res, next) => {
 });
 
 /**
- * Delete a listing (with foreign key safe soft-delete / archiving if transacted)
+ * Toggle a specific variation's sold/available status directly
+ */
+const toggleVariationSold = asyncHandler(async (req, res, next) => {
+  const { id, variationId } = req.params;
+  const listing = await db('listings').where({ id }).first();
+
+  if (!listing) {
+    return next(new AppError('Listing not found.', 404));
+  }
+
+  if (listing.seller_id !== req.user.id && req.user.role !== 'admin') {
+    return next(new AppError('Unauthorized.', 403));
+  }
+
+  const variation = await db('listing_variations')
+    .where({ id: variationId, listing_id: id })
+    .first();
+
+  if (!variation) {
+    return next(new AppError('Variation not found for this listing.', 404));
+  }
+
+  const nextAvailable = req.body.isAvailable !== undefined
+    ? Boolean(req.body.isAvailable)
+    : !Boolean(variation.is_available);
+
+  await db('listing_variations')
+    .where({ id: variationId, listing_id: id })
+    .update({
+      is_available: nextAvailable,
+      quantity: nextAvailable ? Math.max(1, variation.quantity) : 0
+    });
+
+  // Check all variations to update overall listing status if all are sold
+  const allVars = await db('listing_variations').where({ listing_id: id });
+  const anyAvailable = allVars.some(v => v.id === variationId ? nextAvailable : v.is_available);
+
+  if (!anyAvailable) {
+    await db('listings').where({ id }).update({ status: 'sold', updated_at: new Date() });
+  } else if (listing.status === 'sold' && anyAvailable) {
+    await db('listings').where({ id }).update({ status: 'active', updated_at: new Date() });
+  }
+
+  res.status(200).json({
+    status: 'success',
+    message: nextAvailable ? `Variant "${variation.title}" marked as available.` : `Variant "${variation.title}" marked as sold.`,
+    data: {
+      variationId,
+      isAvailable: nextAvailable,
+      isAllSold: !anyAvailable
+    }
+  });
+});
+
+/**
+ * Soft delete a listing with seller explanation reason
  */
 const deleteListing = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
@@ -630,38 +715,30 @@ const deleteListing = asyncHandler(async (req, res, next) => {
     return next(new AppError('You are not authorized to delete this listing.', 403));
   }
 
-  // Check if foreign key references exist in transactions or swaps to prevent DB foreign key constraint errors
-  const hasTransactions = await db('transactions').where({ listing_id: id }).first();
-  const hasSwaps = await db('swap_offers').where(builder => {
-    builder.where({ listing_id: id }).orWhere({ offered_listing_id: id });
-  }).first();
+  // Retrieve deletion reason from body or query
+  const rawReason = req.body?.reason || req.body?.deletionReason || req.query?.reason;
+  const deletionReason = rawReason && String(rawReason).trim()
+    ? String(rawReason).trim()
+    : 'Item removed by seller';
 
-  if (hasTransactions || hasSwaps) {
-    // Soft-delete / archive to preserve history without foreign key failure
-    await db('listings').where({ id }).update({ status: 'archived', updated_at: new Date() });
-    return res.status(200).json({
-      status: 'success',
-      message: 'Listing archived (historical transaction records preserved).'
-    });
-  }
-
-  // Clean up listing media from storage
-  const listingMedia = await db('listing_media').where({ listing_id: id });
-  for (const m of listingMedia) {
-    await storageService.deleteFile(m.media_url);
-  }
-
-  // Clean up dependent child rows in a single transaction to prevent orphans
-  await db.transaction(async (trx) => {
-    await trx('listing_media').where({ listing_id: id }).delete();
-    await trx('listing_variations').where({ listing_id: id }).delete().catch(() => {});
-    await trx('flagged_listings').where({ listing_id: id }).delete();
-    await trx('listings').where({ id }).delete();
+  // Perform soft delete: update status, deleted_at, deletion_reason, deleted_by
+  await db('listings').where({ id }).update({
+    status: 'deleted',
+    deleted_at: new Date(),
+    deletion_reason: deletionReason,
+    deleted_by: req.user.id,
+    updated_at: new Date()
   });
 
+  // Soft-deletion preserves all financial transactions, swap offers, media, and dispute audit history!
   res.status(200).json({
     status: 'success',
-    message: 'Listing deleted.'
+    message: 'Listing removed from the marketplace. Historical records preserved.',
+    data: {
+      id,
+      isDeleted: true,
+      deletionReason
+    }
   });
 });
 
@@ -764,6 +841,7 @@ module.exports = {
   getListingById,
   createListing,
   updateListing,
+  toggleVariationSold,
   deleteListing,
   markAsSold,
   reportListing,

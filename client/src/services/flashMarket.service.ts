@@ -26,6 +26,10 @@ export function mapFlashRequestFromApi(raw: any): FlashRequest {
     expiresAt: raw.expiresAt || raw.expires_at || null,
     isExpired: Boolean(raw.isExpired || raw.is_expired || (raw.expires_at && new Date(raw.expires_at) < new Date())),
     imageUrl: raw.imageUrl || raw.image_url || null,
+    isDeleted: Boolean(raw.isDeleted || raw.is_deleted || raw.deleted_at || raw.status === 'deleted'),
+    deletedAt: raw.deletedAt || raw.deleted_at || null,
+    deletionReason: raw.deletionReason || raw.deletion_reason || null,
+    deletedBy: raw.deletedBy || raw.deleted_by || null,
     createdAt: raw.createdAt || raw.created_at || new Date().toISOString(),
   };
 }
@@ -53,7 +57,7 @@ export const flashMarketService = {
     await api.patch(`/flash-market/${id}/fulfill`);
   },
 
-  async deleteRequest(id: string): Promise<void> {
-    await api.delete(`/flash-market/${id}`);
+  async deleteRequest(id: string, reason?: string): Promise<void> {
+    await api.delete(`/flash-market/${id}`, { reason: reason || 'Cancelled by requester' });
   },
 };

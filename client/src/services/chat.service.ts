@@ -240,6 +240,7 @@ export const chatService = {
     swapOfferId?: string;
     selectedVariation?: string;
     variationId?: string;
+    quantity?: number;
   }): Promise<Transaction> {
     const res = await api.post<{ transaction: Transaction; handshakeCode?: string }>('/transactions', data);
     const transaction = res.data?.transaction;

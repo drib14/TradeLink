@@ -41,6 +41,9 @@ const getFlashRequests = asyncHandler(async (req, res) => {
     query = query.whereIn(`${table}.status`, ['open', 'expired', 'fulfilled']);
   }
 
+  // Soft delete filter: exclude deleted requests
+  query = query.whereNull(`${table}.deleted_at`).andWhereNot(`${table}.status`, 'deleted');
+
   if (campus && campus !== 'All') {
     query = query.where(`${table}.target_campus`, campus);
   }
@@ -94,6 +97,10 @@ const getFlashRequests = asyncHandler(async (req, res) => {
       imageUrl: r.image_url || null,
       image_url: r.image_url || null,
       status: effectiveStatus,
+      isDeleted: Boolean(r.deleted_at || r.status === 'deleted'),
+      deletedAt: r.deleted_at || null,
+      deletionReason: r.deletion_reason || null,
+      deletedBy: r.deleted_by || null,
       offersCount: r.offers_count || 0,
       createdAt: r.created_at
     };
@@ -339,7 +346,7 @@ const fulfillFlashRequest = asyncHandler(async (req, res, next) => {
 });
 
 /**
- * Delete flash market request
+ * Soft delete flash market request with requester explanation reason
  */
 const deleteFlashRequest = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
@@ -354,11 +361,25 @@ const deleteFlashRequest = asyncHandler(async (req, res, next) => {
     return next(new AppError('Unauthorized.', 403));
   }
 
-  await db(table).where({ id }).del();
+  const rawReason = req.body?.reason || req.body?.deletionReason || req.query?.reason;
+  const deletionReason = rawReason && String(rawReason).trim() ? String(rawReason).trim() : 'Cancelled by requester';
+
+  await db(table).where({ id }).update({
+    status: 'deleted',
+    deleted_at: new Date(),
+    deletion_reason: deletionReason,
+    deleted_by: req.user.id,
+    updated_at: new Date()
+  });
 
   res.status(200).json({
     status: 'success',
-    message: 'Flash Market request removed.'
+    message: 'Flash Market request cancelled and removed from active feed.',
+    data: {
+      id,
+      isDeleted: true,
+      deletionReason
+    }
   });
 });
 

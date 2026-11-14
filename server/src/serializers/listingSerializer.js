@@ -59,6 +59,9 @@ function serializeListing(row, mediaItems = [], variations = []) {
 
   const isSoldExplicit = row.is_sold !== undefined ? Boolean(row.is_sold) : (row.status === 'sold' || row.status === 'swapped' || row.status === 'donated');
   const isOutOfStock = row.quantity !== undefined && row.quantity !== null && Number(row.quantity) <= 0;
+  const isDeleted = Boolean(row.deleted_at || row.status === 'deleted');
+  const deletionReason = row.deletion_reason || null;
+  const deletedAt = row.deleted_at || null;
 
   return {
     id: row.id,
@@ -86,6 +89,9 @@ function serializeListing(row, mediaItems = [], variations = []) {
     totalReviews: Number(row.total_reviews ?? row.totalReviews ?? row.seller_total_reviews ?? 0),
     isSold: isSoldExplicit || isOutOfStock,
     status: row.status || (isSoldExplicit ? 'sold' : 'active'),
+    isDeleted,
+    deletedAt,
+    deletionReason,
     preferredMeetupSpots: (() => {
       try {
         if (!row.preferred_meetup_spots) return [];

@@ -43,15 +43,17 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
   const { createDirectOrder, openChatWithSeller } = useChat();
   const { showToast } = useToast();
 
+  const firstAvailableVar = listing.variations?.find((v) => v.isAvailable !== false);
   const [selectedVariation, setSelectedVariation] = useState<string | null>(
-    initialVariation || (listing.variations && listing.variations.length > 0 ? listing.variations[0].title : null)
+    initialVariation || (firstAvailableVar ? firstAvailableVar.title : (listing.variations && listing.variations.length > 0 ? listing.variations[0].title : null))
   );
 
   useEffect(() => {
     if (initialVariation) {
       setSelectedVariation(initialVariation);
     } else if (listing.variations && listing.variations.length > 0 && !selectedVariation) {
-      setSelectedVariation(listing.variations[0].title);
+      const avail = listing.variations.find((v) => v.isAvailable !== false);
+      setSelectedVariation(avail ? avail.title : listing.variations[0].title);
     }
   }, [initialVariation, listing]);
 
@@ -477,35 +479,68 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem' }}>
                   {listing.variations.map((v) => {
                     const isSelected = selectedVariation === v.title;
+                    const isVarAvail = v.isAvailable !== false;
                     const vImg = v.imageUrl || (v.imageIndex !== null && v.imageIndex !== undefined && listing.images ? listing.images[v.imageIndex] : null);
                     return (
                       <button
                         type="button"
                         key={v.id}
-                        onClick={() => setSelectedVariation(v.title)}
+                        disabled={!isVarAvail}
+                        onClick={() => {
+                          if (isVarAvail) setSelectedVariation(v.title);
+                        }}
                         style={{
                           display: 'flex',
                           alignItems: 'center',
                           gap: '0.45rem',
                           padding: '0.45rem 0.75rem',
                           borderRadius: '8px',
-                          border: isSelected ? '2px solid var(--uc-blue)' : '1px solid var(--border-subtle)',
-                          backgroundColor: isSelected ? 'var(--uc-blue-subtle, #EBF1FC)' : '#FFFFFF',
-                          color: isSelected ? 'var(--uc-blue)' : 'var(--text-primary)',
+                          border: isSelected
+                            ? '2px solid var(--uc-blue)'
+                            : isVarAvail
+                            ? '1px solid var(--border-subtle)'
+                            : '1px dashed #CBD5E1',
+                          backgroundColor: isSelected
+                            ? 'var(--uc-blue-subtle, #EBF1FC)'
+                            : isVarAvail
+                            ? '#FFFFFF'
+                            : '#F1F5F9',
+                          color: isSelected
+                            ? 'var(--uc-blue)'
+                            : isVarAvail
+                            ? 'var(--text-primary)'
+                            : '#94A3B8',
                           fontWeight: isSelected ? 800 : 600,
                           fontSize: '0.8rem',
-                          cursor: 'pointer',
+                          cursor: isVarAvail ? 'pointer' : 'not-allowed',
+                          opacity: isVarAvail ? 1 : 0.6,
                           transition: 'all 0.15s ease'
                         }}
                       >
                         {vImg && (
-                          <img src={vImg} alt="" style={{ width: '22px', height: '22px', borderRadius: '4px', objectFit: 'cover' }} />
+                          <img
+                            src={vImg}
+                            alt=""
+                            style={{
+                              width: '22px',
+                              height: '22px',
+                              borderRadius: '4px',
+                              objectFit: 'cover',
+                              filter: isVarAvail ? 'none' : 'grayscale(100%)'
+                            }}
+                          />
                         )}
-                        <span>{v.title}</span>
-                        {v.price !== null && v.price !== undefined && (
-                          <span style={{ fontSize: '0.72rem', opacity: 0.85, fontWeight: 700 }}>
-                            ₱{v.price.toLocaleString()}
+                        <span style={{ textDecoration: isVarAvail ? 'none' : 'line-through' }}>{v.title}</span>
+                        {!isVarAvail ? (
+                          <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#DC2626' }}>
+                            (Sold Out)
                           </span>
+                        ) : (
+                          v.price !== null && v.price !== undefined && (
+                            <span style={{ fontSize: '0.72rem', opacity: 0.85, fontWeight: 700 }}>
+                              ₱{v.price.toLocaleString()}
+                            </span>
+                          )
                         )}
                       </button>
                     );
@@ -613,12 +648,6 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
                 className="clean-input"
                 style={{ width: '100%', fontSize: '0.82rem', padding: '0.55rem 0.75rem' }}
               />
-            </div>
-
-            {/* Security notice */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.72rem', color: '#15803D', backgroundColor: '#F0FDF4', padding: '0.6rem 0.85rem', borderRadius: '8px', border: '1px solid #BBF7D0' }}>
-              <Lock size={14} />
-              <span>Campus Safety: You and the seller will coordinate directly in chat where and when to complete the trade.</span>
             </div>
 
             {/* Actions */}

@@ -115,13 +115,13 @@ export const HelpSafetyPage: React.FC<HelpSafetyPageProps> = ({ onNavigate }) =>
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-          <Sparkles size={24} color="#FFC72C" />
+          <ShieldCheck size={24} color="#FFC72C" />
           <div>
             <h3 style={{ fontSize: '1.3rem', fontWeight: 900, color: '#FFFFFF', fontFamily: 'var(--font-display)', margin: 0 }}>
-              Smart Student Trading Guidelines
+              Student Meetup & Safety Guidelines
             </h3>
             <p style={{ fontSize: '0.82rem', color: '#CBD5E1', marginTop: '2px', marginBottom: 0 }}>
-              Follow these recommended practices for smooth and dependable peer exchanges
+              Recommended practices for safe peer exchanges on University of Cebu campuses
             </p>
           </div>
         </div>

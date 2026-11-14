@@ -46,6 +46,7 @@ router.patch(
 );
 router.delete('/:id', validateUUID('id'), authenticate, requireStudent, requireVerified, listingsController.deleteListing);
 router.patch('/:id/sold', validateUUID('id'), authenticate, requireStudent, requireVerified, listingsController.markAsSold);
+router.patch('/:id/variations/:variationId/sold', validateUUID('id'), authenticate, requireStudent, requireVerified, listingsController.toggleVariationSold);
 router.post('/:id/view', validateUUID('id'), viewListingLimiter, optionalAuth, listingsController.viewListing);
 router.post(
   '/:id/report',

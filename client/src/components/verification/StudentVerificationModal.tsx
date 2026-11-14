@@ -783,8 +783,8 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
               {/* Automated Security Assessment Panel */}
               <div style={{ padding: '0.85rem', borderRadius: '12px', background: '#F0F9FF', border: '1px solid #BAE6FD', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem', fontWeight: 800, color: '#0369A1' }}>
-                  <Sparkles size={16} />
-                  <span>Automated AI & Document Inspection</span>
+                  <ShieldCheck size={16} />
+                  <span>Student ID & Document Assessment</span>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.78rem', color: '#0C4A6E' }}>
@@ -828,7 +828,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
 
               {/* Administrative Policy Notice */}
               <div style={{ padding: '0.75rem', borderRadius: '10px', background: 'var(--bg-subtle, #F8FAFC)', border: '1px solid var(--border-subtle, #E2E8F0)', fontSize: '0.76rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                <strong style={{ color: 'var(--text-primary)' }}>University Verification Policy:</strong> Automated analysis validates document clarity and biometric consistency. To protect campus integrity, an authorized campus administrator conducts the final credential approval (typically 1-2 business days).
+                <strong style={{ color: 'var(--text-primary)' }}>University Verification Policy:</strong> Your submission is verified by authorized campus staff to protect student safety (typically 1-2 business days).
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.6rem' }}>

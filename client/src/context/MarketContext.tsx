@@ -25,7 +25,8 @@ interface MarketContextType {
   filteredListings: Listing[];
   addListing: (listingData: any) => Promise<Listing>;
   updateListing: (id: string, updates: Partial<Listing>) => Promise<void>;
-  deleteListing: (id: string) => Promise<void>;
+  deleteListing: (id: string, reason?: string) => Promise<void>;
+  toggleVariationSold: (listingId: string, variationId: string, isAvailable?: boolean) => Promise<void>;
   toggleFavorite: (id: string) => Promise<void>;
   markAsSold: (id: string, isSold: boolean) => Promise<void>;
   updateListingQuantity: (id: string, quantity: number) => Promise<void>;
@@ -174,10 +175,28 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setListings((prev) => prev.map((item) => (item.id === id ? { ...item, ...updates } : item)));
   };
 
-  const deleteListing = async (id: string) => {
+  const deleteListing = async (id: string, reason?: string) => {
     // Only remove the card after the backend confirms deletion or archival.
-    await listingsService.deleteListing(id);
+    await listingsService.deleteListing(id, reason);
     setListings((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const toggleVariationSold = async (listingId: string, variationId: string, isAvailable?: boolean) => {
+    const res = await listingsService.toggleVariationSold(listingId, variationId, isAvailable);
+    setListings((prev) =>
+      prev.map((item) => {
+        if (item.id !== listingId) return item;
+        const updatedVariations = (item.variations || []).map((v) =>
+          v.id === variationId ? { ...v, isAvailable: res.isAvailable, quantity: res.isAvailable ? Math.max(1, v.quantity || 1) : 0 } : v
+        );
+        return {
+          ...item,
+          variations: updatedVariations,
+          isSold: res.isAllSold ? true : item.isSold,
+          status: res.isAllSold ? 'sold' : (item.status === 'sold' && !res.isAllSold ? 'active' : item.status)
+        };
+      })
+    );
   };
 
   const toggleFavorite = async (id: string) => {
@@ -247,6 +266,7 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         addListing,
         updateListing,
         deleteListing,
+        toggleVariationSold,
         toggleFavorite,
         markAsSold,
         updateListingQuantity,

@@ -18,7 +18,7 @@ interface FlashMarketContextType {
   }) => Promise<FlashRequest>;
   respondToRequest: (requestId: string, offerMessage?: string) => Promise<void>;
   fulfillRequest: (requestId: string) => Promise<void>;
-  deleteRequest: (requestId: string) => Promise<void>;
+  deleteRequest: (requestId: string, reason?: string) => Promise<void>;
   refreshRequests: () => Promise<void>;
 }
 
@@ -91,8 +91,8 @@ export const FlashMarketProvider: React.FC<{ children: React.ReactNode }> = ({ c
     );
   };
 
-  const deleteRequest = async (requestId: string) => {
-    await flashMarketService.deleteRequest(requestId);
+  const deleteRequest = async (requestId: string, reason?: string) => {
+    await flashMarketService.deleteRequest(requestId, reason);
     setRequests((prev) => prev.filter((r) => r.id !== requestId));
   };
 

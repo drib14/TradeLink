@@ -107,38 +107,25 @@ const removeListingByAdmin = asyncHandler(async (req, res, next) => {
     });
   }
 
-  // Check if foreign key references exist in transactions or swaps
-  const hasTransactions = await db('transactions').where({ listing_id: listingId }).first();
-  const hasSwaps = await db('swap_offers').where(builder => {
-    builder.where({ listing_id: listingId }).orWhere({ offered_listing_id: listingId });
-  }).first();
-
-  if (hasTransactions || hasSwaps) {
-    await db('listings').where({ id: listingId }).update({ status: 'archived', updated_at: new Date() });
-    await logAdminAction(req.user, 'Archived Listing', 'listing', listingId, `Reason: ${reason}`, req);
-    return res.status(200).json({
-      status: 'success',
-      message: 'Listing archived (historical transaction records preserved).'
-    });
-  }
-
-  // Clean up listing media files from Cloudinary storage
-  const listingMedia = await db('listing_media').where({ listing_id: listingId });
-  for (const m of listingMedia) {
-    await storageService.deleteFile(m.media_url);
-  }
-
-  await db.transaction(async (trx) => {
-    await trx('listing_media').where({ listing_id: listingId }).delete();
-    await trx('flagged_listings').where({ listing_id: listingId }).delete();
-    await trx('listings').where({ id: listingId }).delete();
+  // Soft delete listing to preserve transaction and dispute audit history
+  await db('listings').where({ id: listingId }).update({
+    status: 'deleted',
+    deleted_at: new Date(),
+    deletion_reason: reason || 'Removed by TradeLink Campus Safety Admin',
+    deleted_by: req.user.id,
+    updated_at: new Date()
   });
 
   await logAdminAction(req.user, 'Deleted Listing', 'listing', listingId, `Reason: ${reason}`, req);
 
   res.status(200).json({
     status: 'success',
-    message: 'Listing removed by administrator.'
+    message: 'Listing removed by administrator.',
+    data: {
+      listingId,
+      isDeleted: true,
+      deletionReason: reason
+    }
   });
 });
 

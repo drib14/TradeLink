@@ -165,6 +165,10 @@ export interface Listing {
   isSold: boolean;
   quantity: number;
   status?: string;
+  isDeleted?: boolean;
+  deletedAt?: string | null;
+  deletionReason?: string | null;
+  deletedBy?: string | null;
   createdAt: string;
   updatedAt?: string;
   views: number;
@@ -205,6 +209,9 @@ export interface Transaction {
   listingId: string;
   listingTitle: string;
   listingImage?: string;
+  listingIsDeleted?: boolean;
+  listingDeletedAt?: string | null;
+  listingDeletionReason?: string | null;
   sellerId: string;
   sellerName: string;
   buyerId: string;
@@ -372,11 +379,15 @@ export interface FlashRequest {
   notes?: string;
   preferredCampus: Campus;
   targetCampus?: Campus;
-  status: 'open' | 'fulfilled' | 'cancelled' | 'expired';
+  status: 'open' | 'fulfilled' | 'cancelled' | 'expired' | 'deleted';
   offersCount: number;
   durationHours?: number;
   expiresAt?: string;
   isExpired?: boolean;
+  isDeleted?: boolean;
+  deletedAt?: string | null;
+  deletionReason?: string | null;
+  deletedBy?: string | null;
   imageUrl?: string;
   createdAt: string;
 }

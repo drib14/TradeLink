@@ -100,6 +100,10 @@ function mapListingFromApi(raw: any): Listing {
     campus: raw.campus || raw.sellerCampus || raw.seller_campus || 'UC Main',
     createdAt: raw.createdAt || raw.created_at || new Date().toISOString(),
     views: Number(raw.views ?? 0),
+    isDeleted: Boolean(raw.isDeleted ?? raw.is_deleted ?? raw.deleted_at ?? (raw.status === 'deleted')),
+    deletedAt: raw.deletedAt || raw.deleted_at || null,
+    deletionReason: raw.deletionReason || raw.deletion_reason || null,
+    deletedBy: raw.deletedBy || raw.deleted_by || null,
     variations: Array.isArray(raw.variations) ? raw.variations.map((v: any, idx: number) => ({
       id: v.id || `var-${idx}`,
       listingId: v.listingId || v.listing_id,
@@ -163,8 +167,13 @@ export const listingsService = {
     return mapListingFromApi(res.data?.listing || res.data);
   },
 
-  async deleteListing(id: string): Promise<void> {
-    await api.delete(`/listings/${id}`);
+  async deleteListing(id: string, reason?: string): Promise<void> {
+    await api.delete(`/listings/${id}`, { reason: reason || 'Removed by seller' });
+  },
+
+  async toggleVariationSold(listingId: string, variationId: string, isAvailable?: boolean): Promise<{ isAvailable: boolean; isAllSold: boolean }> {
+    const res = await api.patch(`/listings/${listingId}/variations/${variationId}/sold`, { isAvailable });
+    return res.data;
   },
 
   async markAsSold(id: string, isSold: boolean): Promise<void> {
