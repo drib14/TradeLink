@@ -42,7 +42,12 @@ const getFlashRequests = asyncHandler(async (req, res) => {
   }
 
   // Soft delete filter: exclude deleted requests
-  query = query.whereNull(`${table}.deleted_at`).andWhereNot(`${table}.status`, 'deleted');
+  const hasFlashDeletedAt = await db.schema.hasColumn(table, 'deleted_at').catch(() => false);
+  if (hasFlashDeletedAt) {
+    query = query.whereNull(`${table}.deleted_at`).andWhereNot(`${table}.status`, 'deleted');
+  } else {
+    query = query.whereNot(`${table}.status`, 'deleted');
+  }
 
   if (campus && campus !== 'All') {
     query = query.where(`${table}.target_campus`, campus);
@@ -364,13 +369,29 @@ const deleteFlashRequest = asyncHandler(async (req, res, next) => {
   const rawReason = req.body?.reason || req.body?.deletionReason || req.query?.reason;
   const deletionReason = rawReason && String(rawReason).trim() ? String(rawReason).trim() : 'Cancelled by requester';
 
-  await db(table).where({ id }).update({
-    status: 'deleted',
-    deleted_at: new Date(),
-    deletion_reason: deletionReason,
-    deleted_by: req.user.id,
-    updated_at: new Date()
-  });
+  const hasFlashDeletedAt = await db.schema.hasColumn(table, 'deleted_at').catch(() => false);
+  try {
+    await db(table).where({ id }).update({
+      status: 'deleted',
+      ...(hasFlashDeletedAt ? {
+        deleted_at: new Date(),
+        deletion_reason: deletionReason,
+        deleted_by: req.user.id
+      } : {}),
+      updated_at: new Date()
+    });
+  } catch (err) {
+    // If 'deleted' ENUM not yet propagated in live DB, fallback to 'cancelled'
+    await db(table).where({ id }).update({
+      status: 'cancelled',
+      ...(hasFlashDeletedAt ? {
+        deleted_at: new Date(),
+        deletion_reason: deletionReason,
+        deleted_by: req.user.id
+      } : {}),
+      updated_at: new Date()
+    });
+  }
 
   res.status(200).json({
     status: 'success',

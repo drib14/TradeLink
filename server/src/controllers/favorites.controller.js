@@ -7,6 +7,14 @@ const asyncHandler = require('../utils/asyncHandler');
  * Return the authenticated student's saved listing IDs.
  */
 const getFavorites = asyncHandler(async (req, res) => {
+  const hasFavoritesTable = await db.schema.hasTable('user_favorites').catch(() => false);
+  if (!hasFavoritesTable) {
+    return res.status(200).json({
+      status: 'success',
+      data: { favorites: [] }
+    });
+  }
+
   const rows = await db('user_favorites')
     .where({ user_id: req.user.id })
     .orderBy('created_at', 'desc')
@@ -24,6 +32,21 @@ const getFavorites = asyncHandler(async (req, res) => {
  */
 const toggleFavorite = asyncHandler(async (req, res, next) => {
   const { id: listingId } = req.params;
+
+  // Defensively ensure user_favorites table exists before toggling
+  const hasFavoritesTable = await db.schema.hasTable('user_favorites').catch(() => false);
+  if (!hasFavoritesTable) {
+    await db.schema.createTable('user_favorites', (table) => {
+      table.string('id', 36).primary();
+      table.string('user_id', 36).notNullable();
+      table.string('listing_id', 36).notNullable();
+      table.dateTime('created_at').notNullable().defaultTo(db.fn.now());
+      table.foreign('user_id').references('id').inTable('users').onDelete('CASCADE');
+      table.foreign('listing_id').references('id').inTable('listings').onDelete('CASCADE');
+      table.unique(['user_id', 'listing_id'], 'uk_user_listing_favorite');
+      table.index(['listing_id'], 'idx_favorites_listing');
+    }).catch(() => {});
+  }
 
   const result = await db.transaction(async (trx) => {
     const listing = await trx('listings').where({ id: listingId }).first();

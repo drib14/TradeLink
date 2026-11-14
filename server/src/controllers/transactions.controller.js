@@ -132,13 +132,15 @@ const getTransactions = asyncHandler(async (req, res) => {
     query = query.where('transactions.status', status);
   }
 
+  const hasListingDeletedAt = await db.schema.hasColumn('listings', 'deleted_at').catch(() => false);
+
   const transactions = await query
     .select(
       'transactions.*',
       'listings.title as listing_title',
       'listings.status as listing_status',
-      'listings.deleted_at as listing_deleted_at',
-      'listings.deletion_reason as listing_deletion_reason',
+      hasListingDeletedAt ? 'listings.deleted_at as listing_deleted_at' : db.raw('NULL as listing_deleted_at'),
+      hasListingDeletedAt ? 'listings.deletion_reason as listing_deletion_reason' : db.raw('NULL as listing_deletion_reason'),
       'seller.name as seller_name',
       'seller.avatar_url as seller_avatar',
       'buyer.name as buyer_name',
@@ -171,6 +173,8 @@ const getTransactions = asyncHandler(async (req, res) => {
 const getTransactionById = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
 
+  const hasListingDeletedAt = await db.schema.hasColumn('listings', 'deleted_at').catch(() => false);
+
   const t = await db('transactions')
     .join('listings', 'transactions.listing_id', 'listings.id')
     .join('users as seller', 'transactions.seller_id', 'seller.id')
@@ -180,8 +184,8 @@ const getTransactionById = asyncHandler(async (req, res, next) => {
       'transactions.*',
       'listings.title as listing_title',
       'listings.status as listing_status',
-      'listings.deleted_at as listing_deleted_at',
-      'listings.deletion_reason as listing_deletion_reason',
+      hasListingDeletedAt ? 'listings.deleted_at as listing_deleted_at' : db.raw('NULL as listing_deleted_at'),
+      hasListingDeletedAt ? 'listings.deletion_reason as listing_deletion_reason' : db.raw('NULL as listing_deletion_reason'),
       'seller.name as seller_name',
       'seller.avatar_url as seller_avatar',
       'buyer.name as buyer_name',

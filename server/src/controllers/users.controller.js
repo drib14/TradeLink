@@ -23,10 +23,14 @@ const getUserProfile = asyncHandler(async (req, res, next) => {
   }
 
   // Get user's active listings (exclude soft-deleted)
-  const listings = await db('listings')
+  const hasListingDeletedAt = await db.schema.hasColumn('listings', 'deleted_at').catch(() => false);
+  let listingsQuery = db('listings')
     .where({ seller_id: id })
-    .whereNull('deleted_at')
-    .whereNot('status', 'deleted')
+    .whereNot('status', 'deleted');
+  if (hasListingDeletedAt) {
+    listingsQuery = listingsQuery.whereNull('deleted_at');
+  }
+  const listings = await listingsQuery
     .orderBy('created_at', 'desc')
     .limit(12);
 

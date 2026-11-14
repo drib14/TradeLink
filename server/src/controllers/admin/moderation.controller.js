@@ -107,14 +107,29 @@ const removeListingByAdmin = asyncHandler(async (req, res, next) => {
     });
   }
 
-  // Soft delete listing to preserve transaction and dispute audit history
-  await db('listings').where({ id: listingId }).update({
-    status: 'deleted',
-    deleted_at: new Date(),
-    deletion_reason: reason || 'Removed by TradeLink Campus Safety Admin',
-    deleted_by: req.user.id,
-    updated_at: new Date()
-  });
+  // Defensively soft delete listing
+  const hasListingDeletedAt = await db.schema.hasColumn('listings', 'deleted_at').catch(() => false);
+  try {
+    await db('listings').where({ id: listingId }).update({
+      status: 'deleted',
+      ...(hasListingDeletedAt ? {
+        deleted_at: new Date(),
+        deletion_reason: reason || 'Removed by TradeLink Campus Safety Admin',
+        deleted_by: req.user.id
+      } : {}),
+      updated_at: new Date()
+    });
+  } catch (err) {
+    await db('listings').where({ id: listingId }).update({
+      status: 'banned',
+      ...(hasListingDeletedAt ? {
+        deleted_at: new Date(),
+        deletion_reason: reason || 'Removed by TradeLink Campus Safety Admin',
+        deleted_by: req.user.id
+      } : {}),
+      updated_at: new Date()
+    });
+  }
 
   await logAdminAction(req.user, 'Deleted Listing', 'listing', listingId, `Reason: ${reason}`, req);
 

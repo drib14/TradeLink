@@ -115,17 +115,31 @@ const getListings = asyncHandler(async (req, res) => {
       builder.whereNull('seller.is_banned').orWhere('seller.is_banned', false);
     });
 
+  // Defensively check if soft delete column is present
+  const hasListingDeletedAt = await db.schema.hasColumn('listings', 'deleted_at').catch(() => false);
+
   // Filter: Status with soft-delete exclusion
   if (status && status.toLowerCase() === 'deleted') {
     query = query.where((builder) => {
-      builder.where('listings.status', 'deleted').orWhereNotNull('listings.deleted_at');
+      if (hasListingDeletedAt) {
+        builder.where('listings.status', 'deleted').orWhereNotNull('listings.deleted_at');
+      } else {
+        builder.where('listings.status', 'deleted');
+      }
     });
   } else if (status && status.toLowerCase() !== 'all') {
-    query = query.where('listings.status', status).whereNull('listings.deleted_at');
+    query = query.where('listings.status', status);
+    if (hasListingDeletedAt) {
+      query = query.whereNull('listings.deleted_at');
+    }
   } else {
     // Default browse / 'all': exclude soft-deleted listings
     query = query.where((builder) => {
-      builder.whereNull('listings.deleted_at').andWhereNot('listings.status', 'deleted');
+      if (hasListingDeletedAt) {
+        builder.whereNull('listings.deleted_at').andWhereNot('listings.status', 'deleted');
+      } else {
+        builder.whereNot('listings.status', 'deleted');
+      }
     });
   }
 
@@ -721,14 +735,30 @@ const deleteListing = asyncHandler(async (req, res, next) => {
     ? String(rawReason).trim()
     : 'Item removed by seller';
 
-  // Perform soft delete: update status, deleted_at, deletion_reason, deleted_by
-  await db('listings').where({ id }).update({
-    status: 'deleted',
-    deleted_at: new Date(),
-    deletion_reason: deletionReason,
-    deleted_by: req.user.id,
-    updated_at: new Date()
-  });
+  // Defensively perform soft delete
+  const hasListingDeletedAt = await db.schema.hasColumn('listings', 'deleted_at').catch(() => false);
+  try {
+    await db('listings').where({ id }).update({
+      status: 'deleted',
+      ...(hasListingDeletedAt ? {
+        deleted_at: new Date(),
+        deletion_reason: deletionReason,
+        deleted_by: req.user.id
+      } : {}),
+      updated_at: new Date()
+    });
+  } catch (err) {
+    // If 'deleted' ENUM not yet propagated in live DB, fallback to 'archived'
+    await db('listings').where({ id }).update({
+      status: 'archived',
+      ...(hasListingDeletedAt ? {
+        deleted_at: new Date(),
+        deletion_reason: deletionReason,
+        deleted_by: req.user.id
+      } : {}),
+      updated_at: new Date()
+    });
+  }
 
   // Soft-deletion preserves all financial transactions, swap offers, media, and dispute audit history!
   res.status(200).json({

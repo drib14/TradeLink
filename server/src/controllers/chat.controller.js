@@ -244,11 +244,17 @@ const getConversations = asyncHandler(async (req, res) => {
   unreadRows.forEach((r) => unreadMap.set(r.conversation_id, Number(r.unread_count || 0)));
 
   // Bulk fetch active pending transactions
+  const hasTxDualConfirm = await db.schema.hasColumn('transactions', 'buyer_confirmed_at').catch(() => false);
+  const txCols = ['id', 'reference_no', 'listing_id', 'amount', 'buyer_id', 'seller_id', 'status', 'payment_method', 'selected_variation', 'notes'];
+  if (hasTxDualConfirm) {
+    txCols.push('buyer_confirmed_at', 'seller_confirmed_at', 'handshake_completed_at');
+  }
+
   const activeTxs = listingIds.length > 0
     ? await db('transactions')
         .whereIn('listing_id', listingIds)
         .where('status', 'pending')
-        .select('id', 'reference_no', 'listing_id', 'amount', 'buyer_id', 'seller_id', 'status', 'payment_method', 'selected_variation', 'notes', 'buyer_confirmed_at', 'seller_confirmed_at', 'handshake_completed_at')
+        .select(txCols)
     : [];
 
   // Bulk fetch active swap offers

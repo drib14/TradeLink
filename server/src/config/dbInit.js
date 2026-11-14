@@ -408,24 +408,62 @@ async function autoInitDatabase() {
     }
 
     // 1m. Ensure soft delete columns in listings and flash_requests
-    const hasListingDeletedAt = await db.schema.hasColumn('listings', 'deleted_at').catch(() => false);
-    if (!hasListingDeletedAt) {
-      await db.schema.alterTable('listings', (t) => {
-        t.datetime('deleted_at').nullable().defaultTo(null);
-        t.string('deletion_reason', 255).nullable().defaultTo(null);
-        t.string('deleted_by', 36).nullable().defaultTo(null);
-      }).catch(() => {});
-      logger.info('[DB Init] Added soft delete columns to listings table.');
+    const hasListingsTable = await db.schema.hasTable('listings').catch(() => false);
+    if (hasListingsTable) {
+      const hasListingDeletedAt = await db.schema.hasColumn('listings', 'deleted_at').catch(() => false);
+      const hasListingDelReason = await db.schema.hasColumn('listings', 'deletion_reason').catch(() => false);
+      const hasListingDelBy = await db.schema.hasColumn('listings', 'deleted_by').catch(() => false);
+
+      if (!hasListingDeletedAt || !hasListingDelReason || !hasListingDelBy) {
+        await db.schema.alterTable('listings', (t) => {
+          if (!hasListingDeletedAt) t.datetime('deleted_at').nullable().defaultTo(null);
+          if (!hasListingDelReason) t.string('deletion_reason', 255).nullable().defaultTo(null);
+          if (!hasListingDelBy) t.string('deleted_by', 36).nullable().defaultTo(null);
+        }).catch(() => {});
+        logger.info('[DB Init] Added soft delete columns to listings table.');
+      }
+
+      try {
+        await db.raw("ALTER TABLE `listings` MODIFY COLUMN `status` ENUM('available', 'pending', 'sold', 'archived', 'banned', 'deleted') NOT NULL DEFAULT 'available';");
+      } catch (_) {}
     }
 
-    const hasFlashDeletedAt = await db.schema.hasColumn('flash_requests', 'deleted_at').catch(() => false);
-    if (!hasFlashDeletedAt) {
-      await db.schema.alterTable('flash_requests', (t) => {
-        t.datetime('deleted_at').nullable().defaultTo(null);
-        t.string('deletion_reason', 255).nullable().defaultTo(null);
-        t.string('deleted_by', 36).nullable().defaultTo(null);
-      }).catch(() => {});
-      logger.info('[DB Init] Added soft delete columns to flash_requests table.');
+    const hasFlashTable = await db.schema.hasTable('flash_requests').catch(() => false);
+    if (hasFlashTable) {
+      const hasFlashDeletedAt = await db.schema.hasColumn('flash_requests', 'deleted_at').catch(() => false);
+      const hasFlashDelReason = await db.schema.hasColumn('flash_requests', 'deletion_reason').catch(() => false);
+      const hasFlashDelBy = await db.schema.hasColumn('flash_requests', 'deleted_by').catch(() => false);
+
+      if (!hasFlashDeletedAt || !hasFlashDelReason || !hasFlashDelBy) {
+        await db.schema.alterTable('flash_requests', (t) => {
+          if (!hasFlashDeletedAt) t.datetime('deleted_at').nullable().defaultTo(null);
+          if (!hasFlashDelReason) t.string('deletion_reason', 255).nullable().defaultTo(null);
+          if (!hasFlashDelBy) t.string('deleted_by', 36).nullable().defaultTo(null);
+        }).catch(() => {});
+        logger.info('[DB Init] Added soft delete columns to flash_requests table.');
+      }
+
+      try {
+        await db.raw("ALTER TABLE `flash_requests` MODIFY COLUMN `status` ENUM('open', 'fulfilled', 'expired', 'cancelled', 'deleted') NOT NULL DEFAULT 'open';");
+      } catch (_) {}
+    }
+
+    // 1m-2. Ensure 'user_favorites' table exists
+    const hasUserFavoritesTable = await db.schema.hasTable('user_favorites').catch(() => false);
+    if (!hasUserFavoritesTable) {
+      await db.schema.createTable('user_favorites', (table) => {
+        table.string('id', 36).primary();
+        table.string('user_id', 36).notNullable();
+        table.string('listing_id', 36).notNullable();
+        table.dateTime('created_at').notNullable().defaultTo(db.fn.now());
+        table.foreign('user_id').references('id').inTable('users').onDelete('CASCADE');
+        table.foreign('listing_id').references('id').inTable('listings').onDelete('CASCADE');
+        table.unique(['user_id', 'listing_id'], 'uk_user_listing_favorite');
+        table.index(['listing_id'], 'idx_favorites_listing');
+      }).catch((err) => {
+        logger.warn(`[DB Init] Could not create user_favorites table: ${err.message}`);
+      });
+      logger.info('[DB Init] Created user_favorites table.');
     }
 
     // 1n. Ensure security_events audit table exists

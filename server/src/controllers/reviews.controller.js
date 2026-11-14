@@ -146,6 +146,24 @@ const getListingReviews = asyncHandler(async (req, res, next) => {
     return next(new AppError('Listing not found.', 404));
   }
 
+  // Defensively check reviews table and listing_id column existence
+  const hasReviewsTable = await db.schema.hasTable('reviews').catch(() => false);
+  const hasListingIdCol = hasReviewsTable
+    ? await db.schema.hasColumn('reviews', 'listing_id').catch(() => false)
+    : false;
+
+  if (!hasReviewsTable || !hasListingIdCol) {
+    return res.status(200).json({
+      status: 'success',
+      data: {
+        listingId,
+        rating: 0.0,
+        totalReviews: 0,
+        reviews: []
+      }
+    });
+  }
+
   const reviews = await db('reviews')
     .join('users as reviewer', 'reviews.reviewer_id', 'reviewer.id')
     .where({ 'reviews.listing_id': listingId })
