@@ -24,17 +24,16 @@ const normalizeOrigin = (url) => (url ? url.trim().replace(/\/+$/, '') : '');
 function getAllowedOrigins() {
   const origins = new Set();
 
-  // Allow standard local dev servers in non-production environments
-  if (!env.isProduction) {
-    defaultOrigins.map(normalizeOrigin).forEach((url) => {
-      if (url) origins.add(url);
-    });
-  }
+  // Allow standard local dev servers
+  defaultOrigins.map(normalizeOrigin).forEach((url) => {
+    if (url) origins.add(url);
+  });
 
-  // Always allow official live frontend domains
+  // Always allow official live frontend and backend domains
   origins.add('https://uc-tradelink.vercel.app');
   origins.add('https://tradelink-uc.vercel.app');
   origins.add('https://tradelink-admin.vercel.app');
+  origins.add('https://tradelink-backend.vercel.app');
 
   // Parse CLIENT_URL (e.g. "https://uc-tradelink.vercel.app" or comma-separated)
   if (env.clientUrl && env.clientUrl !== '*') {
@@ -71,10 +70,6 @@ function getAllowedOrigins() {
 function isOriginAllowed(origin) {
   // Allow requests without Origin header (mobile apps, curl, server-to-server)
   if (!origin) {
-    if (env.isProduction) {
-      const logger = require('../utils/logger');
-      logger.warn('[CORS] Request received without Origin header in production.');
-    }
     return true;
   }
 
@@ -85,9 +80,14 @@ function isOriginAllowed(origin) {
     return true;
   }
 
-  // Restrict Vercel preview deployments to authorized project domains only
-  const allowVercelPreviews = process.env.ALLOW_VERCEL_PREVIEWS === 'true';
-  if (allowVercelPreviews && /^https:\/\/(uc-tradelink|tradelink-admin|tradelink-[a-z0-9-]+-drib14)\.vercel\.app$/i.test(normalized)) {
+  // Allow any localhost / 127.0.0.1 origin regardless of port
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(normalized)) {
+    return true;
+  }
+
+  // Allow Vercel preview and production deployments for TradeLink
+  const allowVercelPreviews = process.env.ALLOW_VERCEL_PREVIEWS !== 'false';
+  if (allowVercelPreviews && /^https:\/\/[a-z0-9-_.]*(tradelink|uc-tradelink)[a-z0-9-_.]*\.vercel\.app$/i.test(normalized)) {
     return true;
   }
 
@@ -99,12 +99,8 @@ const corsOptions = {
     if (isOriginAllowed(origin)) {
       callback(null, true);
     } else {
-      callback(
-        new AppError(
-          `CORS policy violation: Access from origin '${origin}' is not allowed.`,
-          403
-        )
-      );
+      // Gracefully reject unauthorized origins without throwing unhandled Express exceptions
+      callback(null, false);
     }
   },
   credentials: true,

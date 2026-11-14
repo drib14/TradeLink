@@ -8,6 +8,8 @@ const logger = require('../utils/logger');
 /**
  * Auto-initialize database tables, default administrator credentials, and baseline system records.
  */
+const isVercel = Boolean(process.env.VERCEL);
+
 async function autoInitDatabase() {
   try {
     logger.info('[DB Init] Checking TradeLink database schema and baseline records...');
@@ -319,6 +321,8 @@ async function autoInitDatabase() {
     }
 
     // Self-healing: Backfill missing or null flash_requests images with high-resolution academic photos
+    // Skip on Vercel serverless to stay within function timeout budget
+    if (!isVercel) {
     try {
       const emptyImageRequests = await db('flash_requests')
         .whereNull('image_url')
@@ -352,6 +356,7 @@ async function autoInitDatabase() {
     } catch (backfillErr) {
       logger.warn(`[DB Init] Flash image backfill notice: ${backfillErr.message}`);
     }
+    } // end if (!isVercel) flash backfill
 
     // 1i. Ensure listings rating and total_reviews columns exist
     const hasListingRatingCol = await db.schema.hasColumn('listings', 'rating').catch(() => false);
@@ -408,7 +413,6 @@ async function autoInitDatabase() {
     }
 
     // 1m. Ensure soft delete columns in listings and flash_requests
-    const hasListingsTable = await db.schema.hasTable('listings').catch(() => false);
     if (hasListingsTable) {
       const hasListingDeletedAt = await db.schema.hasColumn('listings', 'deleted_at').catch(() => false);
       const hasListingDelReason = await db.schema.hasColumn('listings', 'deletion_reason').catch(() => false);
@@ -489,6 +493,8 @@ async function autoInitDatabase() {
     }
 
     // 1o. Database Optimization: Clean up orphaned records & create high-performance composite indexes
+    // Skip on Vercel serverless to stay within function timeout budget
+    if (!isVercel) {
     try {
       // Clean up orphaned media rows
       await db.raw(`
@@ -531,8 +537,17 @@ async function autoInitDatabase() {
     } catch (optErr) {
       logger.warn(`[DB Init] Index optimization note: ${optErr.message}`);
     }
+    } // end if (!isVercel)
 
 
+
+    // ────────────────────────────────────────────────────────────
+    // Sections 2-8: Admin seeding, announcements, keywords, feature flags,
+    // stats normalization, and category seeding.
+    // On Vercel serverless, skip these to keep cold-start under the 10s limit.
+    // These only need to run once (during initial setup or local dev).
+    // ────────────────────────────────────────────────────────────
+    if (!isVercel) {
 
     // 2. Ensure the administrator account exists without resetting an existing
     // password on every server boot. A password sync is opt-in and explicit.
@@ -762,6 +777,8 @@ async function autoInitDatabase() {
     } catch (catErr) {
       logger.warn(`[DB Init] Categories init: ${catErr.message}`);
     }
+
+    } // end if (!isVercel) — skip admin/seed/optimization on serverless
 
     logger.info('[DB Init] Database is fully synchronized.');
   } catch (err) {

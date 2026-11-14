@@ -78,8 +78,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// 3. CORS
+// 3. CORS & Preflight handling
 app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 // 4. Request Logging
 app.use(requestLogger);
