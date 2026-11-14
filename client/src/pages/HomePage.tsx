@@ -7,6 +7,7 @@ import { ListingCard } from '../components/marketplace/ListingCard';
 import { CampusCarouselBanner } from '../components/home/CampusCarouselBanner';
 import { ListingCardSkeleton } from '../components/common/SkeletonLoader';
 import { CampusDropdown } from '../components/common/CampusDropdown';
+import { CategoryDropdown } from '../components/common/CategoryDropdown';
 import { Campus, Listing } from '../types';
 import {
   ArrowRight,
@@ -59,13 +60,16 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenChat: _onO
     onNavigate('marketplace');
   };
 
-  // Filter listings based on active tab and selected campus
+  // Filter listings based on active tab, selected campus, and selected category
   const displayedListings = listings.filter((l: Listing) => {
     if (l.isSold) return false;
     if (selectedCampus !== 'All') {
       const matchSellerCampus = l.sellerCampus && l.sellerCampus.toLowerCase().includes(selectedCampus.toLowerCase());
       const matchItemCampus = (l as any).campus && (l as any).campus.toLowerCase().includes(selectedCampus.toLowerCase());
       if (!matchSellerCampus && !matchItemCampus) return false;
+    }
+    if (selectedCategory !== 'All') {
+      if (!l.category || l.category.toLowerCase() !== selectedCategory.toLowerCase()) return false;
     }
     if (activeFeedTab === 'swaps') return l.tradeMode === 'swap';
     if (activeFeedTab === 'free') return l.tradeMode === 'free_donation';
@@ -127,83 +131,62 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenChat: _onO
         </div>
       </section>
 
-      {/* Popular Student Categories Bar */}
+      {/* Browse By Category Bar with Custom Dynamic Dropdown */}
       <section className="container">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.65rem' }}>
-          <h3 style={{ fontSize: '0.94rem', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            Popular Categories
-          </h3>
-          <button
-            onClick={() => onNavigate('marketplace')}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--uc-blue)',
-              fontSize: '0.8rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.25rem'
-            }}
-          >
-            <span>View All</span>
-            <ArrowRight size={13} />
-          </button>
-        </div>
-
         <div
-          className="touch-scroll-row"
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '0.5rem',
-            paddingBottom: '0.35rem',
-            overflowX: 'auto',
-            scrollbarWidth: 'none'
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '0.85rem',
+            padding: '1rem 1.25rem',
+            borderRadius: '14px',
+            backgroundColor: 'var(--bg-surface, #FFFFFF)',
+            border: '1px solid var(--border-subtle, #CBD5E1)',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)'
           }}
         >
-          {[
-            { id: 'All', label: 'All Items', icon: ShoppingBag },
-            ...categories.map((c) => ({
-              id: c.name,
-              label: c.name,
-              icon: getCategoryIcon(c.name)
-            }))
-          ].map((cat) => {
-            const Icon = cat.icon;
-            const isSelected = selectedCategory === cat.id;
-            return (
-              <button
-                key={cat.id}
-                onClick={() => {
-                  setSelectedCategory(cat.id);
+          <div>
+            <h3 style={{ fontSize: '0.94rem', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0 }}>
+              Browse By Category
+            </h3>
+            <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              Filter campus listings by verified department books, uniforms, calculators, and supplies
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: '240px', flex: '1 1 240px', maxWidth: '380px' }}>
+            <div style={{ flex: 1 }}>
+              <CategoryDropdown
+                value={selectedCategory}
+                onChange={(cat) => {
+                  setSelectedCategory(cat);
                   onNavigate('marketplace');
                 }}
-                style={{
-                  padding: '0.5rem 0.95rem',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  borderRadius: '9999px',
-                  backgroundColor: isSelected ? 'var(--uc-blue, #002B7F)' : 'var(--bg-surface, #FFFFFF)',
-                  color: isSelected ? '#FFFFFF' : 'var(--text-secondary, #475569)',
-                  border: isSelected ? '1px solid var(--uc-blue, #002B7F)' : '1px solid var(--border-subtle, #CBD5E1)',
-                  boxShadow: isSelected
-                    ? '0 4px 12px rgba(0, 43, 127, 0.22)'
-                    : '0 1px 3px rgba(0, 0, 0, 0.04)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.45rem',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)'
-                }}
-              >
-                <Icon size={14} />
-                <span>{cat.label}</span>
-              </button>
-            );
-          })}
+                allowAll={true}
+                allLabel="All Categories"
+                allowCustom={false}
+                size="md"
+              />
+            </div>
+            <button
+              onClick={() => onNavigate('marketplace')}
+              className="btn-primary"
+              style={{
+                padding: '0.62rem 0.95rem',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              <span>Explore</span>
+              <ArrowRight size={14} />
+            </button>
+          </div>
         </div>
       </section>
 
@@ -219,10 +202,10 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenChat: _onO
             </p>
           </div>
 
-          {/* Controls: Segmented Feed Tab + On-Page Campus Dropdown */}
+          {/* Controls: Segmented Feed Tab + On-Page Campus & Category Dropdowns */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
             {/* Campus Dropdown Filter */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', minWidth: '160px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', minWidth: '150px' }}>
               <CampusDropdown
                 value={selectedCampus}
                 onChange={(c) => setSelectedCampus(c as any)}
@@ -243,6 +226,36 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenChat: _onO
                     borderRadius: '10px'
                   }}
                   title="Clear campus filter"
+                >
+                  <X size={13} />
+                  <span>Reset</span>
+                </button>
+              )}
+            </div>
+
+            {/* Category Dropdown Filter (Custom with icons/image from DB) */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', minWidth: '165px' }}>
+              <CategoryDropdown
+                value={selectedCategory}
+                onChange={(c) => setSelectedCategory(c)}
+                allowAll={true}
+                allLabel="All Categories"
+                allowCustom={false}
+                size="sm"
+              />
+
+              {selectedCategory !== 'All' && (
+                <button
+                  onClick={() => setSelectedCategory('All')}
+                  className="btn-neutral"
+                  style={{
+                    padding: '0.35rem 0.6rem',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    height: '36px',
+                    borderRadius: '10px'
+                  }}
+                  title="Clear category filter"
                 >
                   <X size={13} />
                   <span>Reset</span>

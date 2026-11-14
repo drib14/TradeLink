@@ -15,7 +15,22 @@ import {
   X,
   Search,
   Tag,
-  Layers
+  Layers,
+  Calculator,
+  Music,
+  Headphones,
+  Home,
+  Gamepad2,
+  GraduationCap,
+  Package,
+  Smartphone,
+  Cpu,
+  Wrench,
+  Dumbbell,
+  Utensils,
+  Sparkles,
+  Footprints,
+  Compass
 } from 'lucide-react';
 import { useCategories } from '../../hooks/useCategories';
 
@@ -43,30 +58,75 @@ interface CategoryDropdownProps {
 }
 
 export const getCategoryIcon = (catName: string, size = 15) => {
-  const lower = catName.toLowerCase();
-  if (lower.includes('textbook') || lower.includes('book') || lower.includes('reviewer')) {
-    return <BookOpen size={size} />;
+  const lower = (catName || '').toLowerCase();
+  if (lower === 'all' || lower.includes('all categories') || lower.includes('all items')) {
+    return <Layers size={size} />;
   }
-  if (lower.includes('uniform') || lower.includes('scrub') || lower.includes('polo')) {
-    return <Shirt size={size} />;
+  if (lower.includes('calc')) {
+    return <Calculator size={size} />;
   }
-  if (lower.includes('electronic') || lower.includes('calculator') || lower.includes('laptop') || lower.includes('gadget')) {
+  if (lower.includes('phone') || lower.includes('mobile') || lower.includes('tablet')) {
+    return <Smartphone size={size} />;
+  }
+  if (lower.includes('cpu') || lower.includes('computer part') || lower.includes('hardware') || lower.includes('peripheral')) {
+    return <Cpu size={size} />;
+  }
+  if (lower.includes('electronic') || lower.includes('laptop') || lower.includes('gadget') || lower.includes('tech')) {
     return <Laptop size={size} />;
   }
-  if (lower.includes('drafting') || lower.includes('supply') || lower.includes('stationery') || lower.includes('pen')) {
-    return <PenTool size={size} />;
+  if (lower.includes('junior high') || lower.includes('senior high') || lower.includes('reviewer')) {
+    return <GraduationCap size={size} />;
   }
-  if (lower.includes('lab') || lower.includes('medical') || lower.includes('nursing') || lower.includes('stethoscope')) {
+  if (lower.includes('textbook') || lower.includes('book') || lower.includes('module') || lower.includes('notes')) {
+    return <BookOpen size={size} />;
+  }
+  if (lower.includes('uniform') || lower.includes('scrub') || lower.includes('polo') || lower.includes('apparel') || lower.includes('clothing')) {
+    return <Shirt size={size} />;
+  }
+  if (lower.includes('music') || lower.includes('instrument') || lower.includes('guitar')) {
+    return <Music size={size} />;
+  }
+  if (lower.includes('audio') || lower.includes('headphone') || lower.includes('earphone') || lower.includes('speaker')) {
+    return <Headphones size={size} />;
+  }
+  if (lower.includes('gaming') || lower.includes('game') || lower.includes('console')) {
+    return <Gamepad2 size={size} />;
+  }
+  if (lower.includes('dorm') || lower.includes('living') || lower.includes('room') || lower.includes('furniture')) {
+    return <Home size={size} />;
+  }
+  if (lower.includes('lab') || lower.includes('medical') || lower.includes('nursing') || lower.includes('stethoscope') || lower.includes('equipment')) {
     return <Stethoscope size={size} />;
   }
-  if (lower.includes('art') || lower.includes('design') || lower.includes('palette')) {
+  if (lower.includes('art') || lower.includes('design') || lower.includes('paint') || lower.includes('palette')) {
     return <Palette size={size} />;
   }
-  if (lower.includes('pe') || lower.includes('sport') || lower.includes('fitness')) {
-    return <Trophy size={size} />;
+  if (lower.includes('drafting') || lower.includes('engineering') || lower.includes('compass') || lower.includes('ruler')) {
+    return <Compass size={size} />;
   }
-  if (lower.includes('bag') || lower.includes('backpack') || lower.includes('accessory')) {
+  if (lower.includes('tool') || lower.includes('repair')) {
+    return <Wrench size={size} />;
+  }
+  if (lower.includes('pe') || lower.includes('sport') || lower.includes('fitness') || lower.includes('gym')) {
+    return <Dumbbell size={size} />;
+  }
+  if (lower.includes('sneaker') || lower.includes('shoe') || lower.includes('footwear')) {
+    return <Footprints size={size} />;
+  }
+  if (lower.includes('fashion') || lower.includes('style') || lower.includes('beauty')) {
+    return <Sparkles size={size} />;
+  }
+  if (lower.includes('bag') || lower.includes('backpack') || lower.includes('accessory') || lower.includes('tote')) {
     return <ShoppingBag size={size} />;
+  }
+  if (lower.includes('food') || lower.includes('snack') || lower.includes('meal') || lower.includes('drink')) {
+    return <Utensils size={size} />;
+  }
+  if (lower.includes('stationery') || lower.includes('pen') || lower.includes('pencil') || lower.includes('paper')) {
+    return <PenTool size={size} />;
+  }
+  if (lower.includes('general') || lower.includes('supplies') || lower.includes('package') || lower.includes('box')) {
+    return <Package size={size} />;
   }
   return <Tag size={size} />;
 };
@@ -80,7 +140,7 @@ export const CategoryDropdown: React.FC<CategoryDropdownProps> = ({
   id,
   allowAll = false,
   allLabel = 'All Categories',
-  allowCustom = true,
+  allowCustom = false,
   customValue = '',
   onCustomChange,
   size = 'md'

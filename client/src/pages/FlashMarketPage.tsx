@@ -10,6 +10,7 @@ import { UserAvatar } from '../components/common/UserAvatar';
 import { FlashRequestCardSkeleton } from '../components/common/SkeletonLoader';
 import { Campus, FlashRequest } from '../types';
 import { CampusDropdown } from '../components/common/CampusDropdown';
+import { CategoryDropdown } from '../components/common/CategoryDropdown';
 import {
   Search,
   Plus,
@@ -59,6 +60,7 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
   const [selectedCampus, setSelectedCampus] = useState<'All' | Campus>(globalCampus || 'All');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [urgencyFilter, setUrgencyFilter] = useState<'all' | 'urgent' | 'this_week' | 'flexible'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSimulatingLoading, setIsSimulatingLoading] = useState(true);
@@ -83,7 +85,7 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
       setIsSimulatingLoading(false);
     }, 200);
     return () => clearTimeout(timer);
-  }, [selectedCampus, searchQuery, urgencyFilter]);
+  }, [selectedCampus, selectedCategory, searchQuery, urgencyFilter]);
 
   const campuses: Array<'All' | Campus> = [
     'All',
@@ -102,6 +104,11 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
       const matchPref = req.preferredCampus && req.preferredCampus.toLowerCase().includes(selectedCampus.toLowerCase());
       const matchReq = req.requesterCampus && req.requesterCampus.toLowerCase().includes(selectedCampus.toLowerCase());
       if (!matchPref && !matchReq) return false;
+    }
+
+    if (selectedCategory !== 'All') {
+      const matchCat = req.category && req.category.toLowerCase().includes(selectedCategory.toLowerCase());
+      if (!matchCat) return false;
     }
 
     if (urgencyFilter !== 'all') {
@@ -239,8 +246,8 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
           </div>
 
           {/* Campus Dropdown Filter */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', flex: '1 1 auto', minWidth: 'min(100%, 200px)' }}>
-            <div style={{ minWidth: '170px', flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', flex: '1 1 auto', minWidth: 'min(100%, 180px)' }}>
+            <div style={{ minWidth: '160px', flex: 1 }}>
               <CampusDropdown
                 value={selectedCampus}
                 onChange={(c) => handleCampusChange(c as any)}
@@ -262,6 +269,38 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
                   borderRadius: '10px'
                 }}
                 title="Clear campus filter"
+              >
+                <X size={14} />
+                <span>Reset</span>
+              </button>
+            )}
+          </div>
+
+          {/* Dynamic Category Dropdown Filter (Custom with icons/image from DB) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', flex: '1 1 auto', minWidth: 'min(100%, 180px)' }}>
+            <div style={{ minWidth: '170px', flex: 1 }}>
+              <CategoryDropdown
+                value={selectedCategory}
+                onChange={(c) => setSelectedCategory(c)}
+                allowAll={true}
+                allLabel="All Categories"
+                allowCustom={false}
+                size="md"
+              />
+            </div>
+
+            {selectedCategory !== 'All' && (
+              <button
+                onClick={() => setSelectedCategory('All')}
+                className="btn-neutral"
+                style={{
+                  padding: '0.35rem 0.65rem',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  height: '42px',
+                  borderRadius: '10px'
+                }}
+                title="Clear category filter"
               >
                 <X size={14} />
                 <span>Reset</span>
@@ -535,11 +574,12 @@ export const FlashMarketPage: React.FC<FlashMarketPageProps> = ({ onNavigate, on
                   {/* Description */}
                   <p
                     style={{
-                      fontSize: '0.8rem',
+                      fontSize: '0.84rem',
                       color: isCardExpired ? '#94A3B8' : 'var(--text-secondary)',
-                      lineHeight: 1.45,
+                      lineHeight: 1.6,
+                      letterSpacing: '0.008em',
                       margin: 0,
-                      minHeight: '2.8em',
+                      minHeight: '3.1em',
                       display: '-webkit-box',
                       WebkitLineClamp: 2,
                       WebkitBoxOrient: 'vertical',

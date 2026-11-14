@@ -26,6 +26,7 @@ interface AuthContextType {
     telemetry?: any
   ) => Promise<any>;
   refreshCurrentUser: () => Promise<void>;
+  scanStudentId: (idPhotoUrl: string, studentId?: string) => Promise<any>;
   getVerificationSession: () => Promise<{ sessionToken: string; challengeAction: { id: string; instruction: string }; flashColor: string; expiresAt: number }>;
   getVerificationStatus: () => Promise<any>;
   resetAllData: () => void;
@@ -232,6 +233,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return usersService.getVerificationSession();
   }, []);
 
+  const scanStudentId = useCallback(async (idPhotoUrl: string, studentId?: string) => {
+    return usersService.scanStudentId(idPhotoUrl, studentId);
+  }, []);
+
   const getVerificationStatus = useCallback(async () => {
     return usersService.getVerificationStatus();
   }, []);
@@ -258,6 +263,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logout,
         updateProfile,
         submitIdVerification,
+        scanStudentId,
         refreshCurrentUser,
         getVerificationSession,
         getVerificationStatus,

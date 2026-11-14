@@ -87,11 +87,7 @@ export const UnverifiedAccountModal: React.FC<UnverifiedAccountModalProps> = ({
             color: '#FFFFFF'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', backgroundColor: 'rgba(255, 199, 44, 0.2)', padding: '3px 10px', borderRadius: '9999px', fontSize: '0.74rem', fontWeight: 800, color: '#FFC72C' }}>
-              <ShieldAlert size={14} />
-              <span>Unverified Student Account</span>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
             <button
               onClick={onClose}
               style={{
@@ -112,7 +108,7 @@ export const UnverifiedAccountModal: React.FC<UnverifiedAccountModalProps> = ({
             </button>
           </div>
 
-          <h2 style={{ fontSize: '1.35rem', fontWeight: 900, color: '#FFFFFF', letterSpacing: '-0.02em', marginTop: '0.75rem', marginBottom: '0.25rem', fontFamily: 'var(--font-display)' }}>
+          <h2 style={{ fontSize: '1.35rem', fontWeight: 900, color: '#FFFFFF', letterSpacing: '-0.02em', marginTop: '0.25rem', marginBottom: '0.25rem', fontFamily: 'var(--font-display)' }}>
             Welcome to TradeLink, {currentUser?.name ? currentUser.name.split(' ')[0] : 'Student'}
           </h2>
           <p style={{ fontSize: '0.82rem', color: 'rgba(255, 255, 255, 0.8)', margin: 0, lineHeight: 1.45 }}>

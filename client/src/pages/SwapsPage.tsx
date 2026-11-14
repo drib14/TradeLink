@@ -7,6 +7,7 @@ import { ListingCard } from '../components/marketplace/ListingCard';
 import { SwapProposalModal } from '../components/marketplace/SwapProposalModal';
 import { TradeLinkIcon } from '../components/common/TradeLinkIcon';
 import { CampusDropdown } from '../components/common/CampusDropdown';
+import { CategoryDropdown } from '../components/common/CategoryDropdown';
 import { Listing, SwapOffer } from '../types';
 import { formatRelativeTime } from '../utils/date';
 import {
@@ -36,7 +37,7 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({
   onOpenAuth,
   onOpenVerification
 }) => {
-  const { listings, selectedCampus, setSelectedCampus } = useMarket();
+  const { listings, selectedCampus, setSelectedCampus, selectedCategory, setSelectedCategory } = useMarket();
   const { currentUser, isAuthenticated } = useAuth();
   const { swaps, respondToSwap, openChatForSwap } = useChat();
   const { showToast } = useToast();
@@ -50,6 +51,9 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({
       const matchSellerCampus = l.sellerCampus && l.sellerCampus.toLowerCase().includes(selectedCampus.toLowerCase());
       const matchItemCampus = (l as any).campus && (l as any).campus.toLowerCase().includes(selectedCampus.toLowerCase());
       if (!matchSellerCampus && !matchItemCampus) return false;
+    }
+    if (selectedCategory !== 'All') {
+      if (!l.category || l.category.toLowerCase() !== selectedCategory.toLowerCase()) return false;
     }
     return true;
   });
@@ -119,33 +123,66 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({
           </button>
         </div>
 
-        {/* Campus Filter Dropdown */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', minWidth: '160px' }}>
-          <CampusDropdown
-            value={selectedCampus}
-            onChange={(c) => setSelectedCampus(c as any)}
-            allowAll={true}
-            allLabel="All Campuses"
-            size="sm"
-          />
+        {/* Campus & Category Filter Dropdowns */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+          {/* Campus Filter */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', minWidth: '150px' }}>
+            <CampusDropdown
+              value={selectedCampus}
+              onChange={(c) => setSelectedCampus(c as any)}
+              allowAll={true}
+              allLabel="All Campuses"
+              size="sm"
+            />
 
-          {selectedCampus !== 'All' && (
-            <button
-              onClick={() => setSelectedCampus('All')}
-              className="btn-neutral"
-              style={{
-                padding: '0.35rem 0.6rem',
-                fontSize: '0.74rem',
-                fontWeight: 700,
-                height: '36px',
-                borderRadius: '10px'
-              }}
-              title="Clear campus filter"
-            >
-              <X size={13} />
-              <span>Reset</span>
-            </button>
-          )}
+            {selectedCampus !== 'All' && (
+              <button
+                onClick={() => setSelectedCampus('All')}
+                className="btn-neutral"
+                style={{
+                  padding: '0.35rem 0.6rem',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  height: '36px',
+                  borderRadius: '10px'
+                }}
+                title="Clear campus filter"
+              >
+                <X size={13} />
+                <span>Reset</span>
+              </button>
+            )}
+          </div>
+
+          {/* Dynamic Category Filter Dropdown (Custom with icons/image from DB) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', minWidth: '165px' }}>
+            <CategoryDropdown
+              value={selectedCategory}
+              onChange={(c) => setSelectedCategory(c)}
+              allowAll={true}
+              allLabel="All Categories"
+              allowCustom={false}
+              size="sm"
+            />
+
+            {selectedCategory !== 'All' && (
+              <button
+                onClick={() => setSelectedCategory('All')}
+                className="btn-neutral"
+                style={{
+                  padding: '0.35rem 0.6rem',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  height: '36px',
+                  borderRadius: '10px'
+                }}
+                title="Clear category filter"
+              >
+                <X size={13} />
+                <span>Reset</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -335,7 +372,7 @@ export const SwapsPage: React.FC<SwapsPageProps> = ({
                         </div>
                       )}
                       <div>
-                        <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.5, letterSpacing: '0.008em' }}>
                           {swap.offeredDescription}
                         </div>
                         {swap.cashTopUp !== 0 && (

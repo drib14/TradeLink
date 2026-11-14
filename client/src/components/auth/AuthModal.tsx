@@ -500,17 +500,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </div>
 
             <div style={{ marginTop: '0.75rem' }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', backgroundColor: 'rgba(255, 199, 44, 0.18)', padding: '2px 8px', borderRadius: '9999px', fontSize: '0.72rem', fontWeight: 800, color: '#FFC72C', marginBottom: '0.35rem' }}>
-                <ShieldCheck size={12} />
-                <span>Official UC Student Portal</span>
-              </div>
               <h2 style={{ fontSize: '1.4rem', fontWeight: 900, color: '#FFFFFF', letterSpacing: '-0.02em', margin: 0, fontFamily: 'var(--font-display)' }}>
                 {mode === 'login' && 'Student Sign In'}
                 {mode === 'register' && 'Create Student Account'}
               </h2>
-              <p style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.75)', margin: '0.2rem 0 0 0' }}>
+              <p style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.8)', margin: '0.35rem 0 0 0' }}>
                 {mode === 'login' && 'Enter your Student ID number and password to sign in'}
-                {mode === 'register' && 'Join the exclusive University of Cebu student trade network'}
+                {mode === 'register' && 'Join the University of Cebu student trade network'}
               </p>
             </div>
           </div>

@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const db = require('../config/db');
 const verificationSessionService = require('./verificationSession.service');
+const studentDocumentOcr = require('./studentDocumentOcr.service');
 const logger = require('../utils/logger');
 
 /**
@@ -352,29 +353,77 @@ async function evaluateVerification({
   };
 
   // -------------------------------------------------------------
-  // 6. Document-free review policy
+  // 6. Automated Document OCR Analysis (Tesseract.js + Sharp)
   // -------------------------------------------------------------
-  // Student verification is based on a live camera selfie and student number.
-  // No COE/COR/student-card document is collected or OCR-scanned.
-  const documentVerification = {
-    configured: false,
-    passed: null,
-    provider: 'not_used',
-    details: 'Document uploads are disabled. An authorized campus administrator must review the submitted live selfie.'
-  };
-  diagnostics.documentOcr = {
-    passed: null,
-    provider: 'not_used',
-    details: 'No enrollment documents are collected in the live-selfie verification flow.'
-  };
-  diagnostics.facialMatch = {
+  let documentVerification = {
+    configured: true,
     passed: false,
-    provider: 'manual_review_required',
-    details: 'The live camera selfie is queued for authorized campus administrator review.'
+    provider: 'tesseract_ocr',
+    ocrConfidence: 0,
+    details: 'Student ID card was not provided.'
   };
 
+  if (idPhotoUrl) {
+    try {
+      const ocrResult = await studentDocumentOcr.verifyStudentDocuments({
+        idPhotoUrl,
+        studentId: cleanId,
+        studentName: user.name
+      });
+      documentVerification = {
+        configured: true,
+        passed: ocrResult.passed,
+        provider: 'tesseract_ocr',
+        ocrConfidence: ocrResult.ocrConfidence || 0,
+        isUcDocument: ocrResult.isUcDocument,
+        studentIdFound: ocrResult.studentIdFound,
+        studentNameFound: ocrResult.studentNameFound,
+        detectedStudentId: ocrResult.detectedStudentId,
+        details: ocrResult.reason,
+        summary: ocrResult.summary
+      };
+      diagnostics.documentOcr = documentVerification;
+
+      // Add OCR contribution to overall confidence (up to 20 points)
+      const ocrScoreContribution = Math.round(((ocrResult.ocrConfidence || 0) / 100) * 20);
+      totalScore += ocrScoreContribution;
+    } catch (ocrErr) {
+      logger.warn(`[VerificationEngine] OCR evaluation error: ${ocrErr.message}`);
+      diagnostics.documentOcr = {
+        configured: true,
+        passed: false,
+        provider: 'tesseract_ocr',
+        details: 'Automated OCR processing encountered an issue; queued for manual admin review.'
+      };
+    }
+  } else {
+    diagnostics.documentOcr = documentVerification;
+  }
+
   // -------------------------------------------------------------
-  // 7. Final Decision Engine (Automated Approval vs Manual Review)
+  // 7. Biometric Facial Consistency & Liveness Telemetry
+  // -------------------------------------------------------------
+  const facialMatchScore = typeof telemetry?.facialMatchScore === 'number' ? telemetry.facialMatchScore : null;
+  const livenessScore = typeof telemetry?.livenessScore === 'number' ? telemetry.livenessScore : null;
+  const antiSpoofScore = typeof telemetry?.antiSpoofScore === 'number' ? telemetry.antiSpoofScore : null;
+
+  diagnostics.facialMatch = {
+    evaluated: facialMatchScore !== null,
+    matchScore: facialMatchScore,
+    livenessScore,
+    antiSpoofScore,
+    provider: 'vladmandic_human',
+    details: facialMatchScore !== null && facialMatchScore >= 80
+      ? 'Automated biometric match verified facial consistency between ID card and live selfie.'
+      : 'Biometric telemetry evaluated; queued for campus administrator confirmation.'
+  };
+
+  if (facialMatchScore !== null && facialMatchScore >= 80) {
+    totalScore += 5; // Bonus confidence for high biometric match
+  }
+
+  // -------------------------------------------------------------
+  // 8. Final Decision Engine (Automated Confidence Scoring & KYC Queue)
   // -------------------------------------------------------------
   const confidenceScore = Math.min(100, Math.max(0, Math.round(totalScore)));
 
@@ -388,15 +437,13 @@ async function evaluateVerification({
            r.includes('session validation failed')
   );
 
-  // A selfie alone does not establish enrollment. Require an authorized campus administrator to review every submission.
+  // Per university verification policy: all submissions are queued for authorized campus administrator approval
   const isApproved = false;
-
-  // Flag only concrete challenge-bypass and duplicate indicators for administrator review.
   const isSuspicious = hasCriticalFraud;
   const status = isApproved ? 'approved' : 'pending';
-  const reviewEstimate = isApproved ? 'immediate' : '1-3 business days';
+  const reviewEstimate = '1-2 business days';
 
-  logger.info(`[Student Verification Engine] Evaluated user [${user.id}]: score=${confidenceScore}%, documentReview=manual, status=${status}, isApproved=${isApproved}, suspiciousCount=${suspiciousReasons.length}`);
+  logger.info(`[Student Verification Engine] Evaluated user [${user.id}]: score=${confidenceScore}%, ocrPassed=${documentVerification.passed}, status=${status}, isApproved=${isApproved}, suspiciousCount=${suspiciousReasons.length}`);
 
   return {
     isApproved,

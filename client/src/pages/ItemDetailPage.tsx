@@ -872,12 +872,26 @@ export const ItemDetailPage: React.FC<ItemDetailPageProps> = ({
 
           {/* Description */}
           <div>
-            <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+            <h4 style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.45rem', fontFamily: 'var(--font-display)' }}>
               Item Details & Notes
             </h4>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+            <div
+              style={{
+                fontSize: '0.92rem',
+                color: 'var(--text-secondary)',
+                lineHeight: 1.72,
+                letterSpacing: '0.012em',
+                wordSpacing: '0.015em',
+                whiteSpace: 'pre-line',
+                backgroundColor: 'var(--bg-surface)',
+                padding: '1rem 1.15rem',
+                borderRadius: '12px',
+                border: '1px solid var(--border-subtle)',
+                boxShadow: 'var(--shadow-xs)'
+              }}
+            >
               {listing.description}
-            </p>
+            </div>
           </div>
 
           {/* Listing Specifications Grid */}

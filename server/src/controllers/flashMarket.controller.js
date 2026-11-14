@@ -2,6 +2,7 @@ const { v4: uuidv4 } = require('uuid');
 const db = require('../config/db');
 const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
+const { ensureCategoryExists } = require('./categories.controller');
 
 function escapeLike(str) {
   return str.replace(/[%_]/g, '\\$&');
@@ -129,6 +130,13 @@ const createFlashRequest = asyncHandler(async (req, res, next) => {
   const title = (itemTitle || itemName || '').trim();
   if (!title || !category) {
     return next(new AppError('Item title and category are required.', 400));
+  }
+
+  // Ensure category is persisted to database dynamically
+  if (category) {
+    await ensureCategoryExists(category, req.user?.id).catch((err) => {
+      console.warn('[FlashMarket] Non-fatal: Failed to persist custom category:', err.message);
+    });
   }
 
   let hours = parseInt(durationHours, 10);

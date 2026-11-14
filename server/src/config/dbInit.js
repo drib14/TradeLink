@@ -497,7 +497,7 @@ async function autoInitDatabase() {
 
       await db('users').where({ id: existingAdmin.id }).update(adminUpdates);
       logger.info('[DB Init] Administrator account metadata verified.');
-    } else if (configuredAdminEmail && adminPassword && adminPassword.length >= 16) {
+    } else if (configuredAdminEmail && adminPassword && adminPassword.length >= 8) {
       const adminPasswordHash = await bcrypt.hash(adminPassword, 12);
       await db('users').insert({
         id: 'user-admin-main',
@@ -523,93 +523,113 @@ async function autoInitDatabase() {
       });
       logger.info('[DB Init] Created administrator account from server environment configuration.');
     } else {
-      logger.warn('[DB Init] No administrator account exists. Set ADMIN_SEED_EMAIL and an ADMIN_SEED_PASSWORD of at least 16 characters in server/.env before enabling admin access.');
+      logger.warn('[DB Init] No administrator account configured in server/.env.');
     }
 
+    // Determine default admin user ID for FK references
+    const activeAdmin = await db('users').where({ role: 'admin' }).first().catch(() => null);
+    const defaultAuthorId = activeAdmin ? activeAdmin.id : null;
+
     // 3. Ensure Default System Configuration Exists
-    const hasConfigTable = await db.schema.hasTable('system_config');
-    if (hasConfigTable) {
-      const existingConfig = await db('system_config').where({ config_key: 'platform_rules' }).first();
-      if (!existingConfig) {
-        await db('system_config').insert({
-          config_key: 'platform_rules',
-          config_value: JSON.stringify({
-            maintenanceMode: false,
-            maxListingPrice: 50000,
-            maxImagesPerListing: 10,
-            swapModeEnabled: true,
-            flashMarketEnabled: true,
-            freeDonationEnabled: true,
-            maxListingsPerUser: 20
-          }),
-          last_updated_by: 'user-admin'
-        });
-        logger.info('[DB Init] Initialized default system configuration.');
+    try {
+      const hasConfigTable = await db.schema.hasTable('system_config');
+      if (hasConfigTable) {
+        const existingConfig = await db('system_config').where({ config_key: 'platform_rules' }).first();
+        if (!existingConfig) {
+          await db('system_config').insert({
+            config_key: 'platform_rules',
+            config_value: JSON.stringify({
+              maintenanceMode: false,
+              maxListingPrice: 50000,
+              maxImagesPerListing: 10,
+              swapModeEnabled: true,
+              flashMarketEnabled: true,
+              freeDonationEnabled: true,
+              maxListingsPerUser: 20
+            }),
+            last_updated_by: defaultAuthorId
+          });
+          logger.info('[DB Init] Initialized default system configuration.');
+        }
       }
+    } catch (cfgErr) {
+      logger.warn(`[DB Init] System config init: ${cfgErr.message}`);
     }
 
     // 4. Ensure Default Announcements Exist
-    const hasAnnouncementsTable = await db.schema.hasTable('announcements');
-    if (hasAnnouncementsTable) {
-      const announcementCount = await db('announcements').count('id as count').first();
-      if (Number(announcementCount?.count || 0) === 0) {
-        await db('announcements').insert([
-          {
-            id: 'ann-1',
-            title: 'Guarded Meetup Reminder',
-            message: 'Always meet inside official UC campus security gates during daytime hours. Inspect items before completing the transaction.',
-            campus: 'All',
-            type: 'alert',
-            author_id: 'user-admin',
-            is_active: true
-          },
-          {
-            id: 'ann-2',
-            title: 'Junior High & Senior High Trading Desk Live',
-            message: 'Students from UC PRI and UC South high school departments can now trade textbooks and PE uniforms with zero platform fees.',
-            campus: 'UC PRI',
-            type: 'info',
-            author_id: 'user-admin',
-            is_active: true
-          }
-        ]);
-        logger.info('[DB Init] Seeded baseline campus announcements.');
+    try {
+      const hasAnnouncementsTable = await db.schema.hasTable('announcements');
+      if (hasAnnouncementsTable) {
+        const announcementCount = await db('announcements').count('id as count').first();
+        if (Number(announcementCount?.count || 0) === 0) {
+          await db('announcements').insert([
+            {
+              id: 'ann-1',
+              title: 'Guarded Meetup Reminder',
+              message: 'Always meet inside official UC campus security gates during daytime hours. Inspect items before completing the transaction.',
+              campus: 'All',
+              type: 'alert',
+              author_id: defaultAuthorId,
+              is_active: true
+            },
+            {
+              id: 'ann-2',
+              title: 'Junior High & Senior High Trading Desk Live',
+              message: 'Students from UC PRI and UC South high school departments can now trade textbooks and PE uniforms with zero platform fees.',
+              campus: 'UC PRI',
+              type: 'info',
+              author_id: defaultAuthorId,
+              is_active: true
+            }
+          ]);
+          logger.info('[DB Init] Seeded baseline campus announcements.');
+        }
       }
+    } catch (annErr) {
+      logger.warn(`[DB Init] Announcements init: ${annErr.message}`);
     }
 
     // 5. Ensure Default Prohibited Keywords Exist
-    const hasKeywordsTable = await db.schema.hasTable('prohibited_keywords');
-    if (hasKeywordsTable) {
-      const keywordCount = await db('prohibited_keywords').count('id as count').first();
-      if (Number(keywordCount?.count || 0) === 0) {
-        const defaultKeywords = [
-          'exam leak', 'test bank', 'test paper', 'midterm answer', 'final exam key',
-          'homework service', 'essay writer', 'shabu', 'marijuana', 'weed', 'vape',
-          'cigarette', 'alcohol', 'gambling', 'weapon', 'knife', 'proxy test'
-        ];
-        const keywordRows = defaultKeywords.map((kw, idx) => ({
-          id: `kw-${idx + 1}`,
-          keyword: kw,
-          added_by: 'user-admin'
-        }));
-        await db('prohibited_keywords').insert(keywordRows);
-        logger.info(`[DB Init] Seeded ${defaultKeywords.length} prohibited security keywords.`);
+    try {
+      const hasKeywordsTable = await db.schema.hasTable('prohibited_keywords');
+      if (hasKeywordsTable) {
+        const keywordCount = await db('prohibited_keywords').count('id as count').first();
+        if (Number(keywordCount?.count || 0) === 0) {
+          const defaultKeywords = [
+            'exam leak', 'test bank', 'test paper', 'midterm answer', 'final exam key',
+            'homework service', 'essay writer', 'shabu', 'marijuana', 'weed', 'vape',
+            'cigarette', 'alcohol', 'gambling', 'weapon', 'knife', 'proxy test'
+          ];
+          const keywordRows = defaultKeywords.map((kw, idx) => ({
+            id: `kw-${idx + 1}`,
+            keyword: kw,
+            added_by: defaultAuthorId
+          }));
+          await db('prohibited_keywords').insert(keywordRows);
+          logger.info(`[DB Init] Seeded ${defaultKeywords.length} prohibited security keywords.`);
+        }
       }
+    } catch (kwErr) {
+      logger.warn(`[DB Init] Keywords init: ${kwErr.message}`);
     }
 
     // 6. Ensure Default Feature Flags Exist
-    const hasFlagsTable = await db.schema.hasTable('feature_flags');
-    if (hasFlagsTable) {
-      const flagCount = await db('feature_flags').count('id as count').first();
-      if (Number(flagCount?.count || 0) === 0) {
-        await db('feature_flags').insert([
-          { id: 'ff-1', name: 'Campus Fair Price Guide', description: 'Standard campus student resale valuation', enabled: true },
-          { id: 'ff-2', name: 'Campus Map', description: 'Interactive campus meetup map', enabled: true },
-          { id: 'ff-3', name: 'Pro Merchant Badge', description: 'Allow pro merchant status for top sellers', enabled: true },
-          { id: 'ff-4', name: 'Dark Mode', description: 'Dark mode toggle for all users', enabled: true }
-        ]);
-        logger.info('[DB Init] Seeded default feature flags.');
+    try {
+      const hasFlagsTable = await db.schema.hasTable('feature_flags');
+      if (hasFlagsTable) {
+        const flagCount = await db('feature_flags').count('id as count').first();
+        if (Number(flagCount?.count || 0) === 0) {
+          await db('feature_flags').insert([
+            { id: 'ff-1', name: 'Campus Fair Price Guide', description: 'Standard campus student resale valuation', enabled: true },
+            { id: 'ff-2', name: 'Campus Map', description: 'Interactive campus meetup map', enabled: true },
+            { id: 'ff-3', name: 'Pro Merchant Badge', description: 'Allow pro merchant status for top sellers', enabled: true },
+            { id: 'ff-4', name: 'Dark Mode', description: 'Dark mode toggle for all users', enabled: true }
+          ]);
+          logger.info('[DB Init] Seeded default feature flags.');
+        }
       }
+    } catch (ffErr) {
+      logger.warn(`[DB Init] Feature flags init: ${ffErr.message}`);
     }
 
     // 7. Normalize all zero-transaction user stats to 0, 0.0, and 0%
@@ -626,60 +646,62 @@ async function autoInitDatabase() {
     }
 
     // 8. Ensure categories table and baseline categories exist
-    const hasCategoriesTable = await db.schema.hasTable('categories');
-    if (!hasCategoriesTable) {
-      await db.schema.createTable('categories', (table) => {
-        table.string('id', 36).primary();
-        table.string('name', 100).notNullable().unique();
-        table.string('slug', 100).notNullable();
-        table.string('icon', 50).nullable();
-        table.integer('display_order').defaultTo(0);
-        table.boolean('is_active').defaultTo(true);
-        table.string('created_by', 36).nullable();
-        table.timestamp('created_at').defaultTo(db.fn.now());
-        table.timestamp('updated_at').defaultTo(db.fn.now());
+    try {
+      const hasCategoriesTable = await db.schema.hasTable('categories');
+      if (!hasCategoriesTable) {
+        await db.schema.createTable('categories', (table) => {
+          table.string('id', 36).primary();
+          table.string('name', 100).notNullable().unique();
+          table.string('slug', 100).notNullable();
+          table.string('icon', 50).nullable();
+          table.integer('display_order').defaultTo(0);
+          table.boolean('is_active').defaultTo(true);
+          table.string('created_by', 36).nullable();
+          table.timestamp('created_at').defaultTo(db.fn.now());
+          table.timestamp('updated_at').defaultTo(db.fn.now());
 
-        table.index(['slug'], 'idx_categories_slug');
-        table.index(['display_order'], 'idx_categories_display_order');
-        table.index(['is_active'], 'idx_categories_is_active');
-      }).catch((err) => {
-        logger.warn(`[DB Init] Could not create categories table: ${err.message}`);
-      });
-      logger.info('[DB Init] Created categories table.');
-    }
-
-    if (await db.schema.hasTable('categories')) {
-      const catCount = await db('categories').count('id as count').first();
-      if (Number(catCount?.count || 0) === 0) {
-        const { v4: uuidv4 } = require('uuid');
-        const defaultCats = [
-          'Electronics & Gadgets',
-          'Textbooks & Reviewers',
-          'Uniforms & Apparel',
-          'Calculators & Electronics',
-          'Fashion & Sneakers',
-          'Music & Instruments',
-          'Audio & Gadgets',
-          'Dorm & Living',
-          'Gaming & Tech',
-          'Medical Equipment',
-          'Junior High School Books & Reviewers',
-          'Senior High Reviewers & Books',
-          'General Supplies'
-        ];
-        for (let i = 0; i < defaultCats.length; i++) {
-          const name = defaultCats[i];
-          const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-          await db('categories').insert({
-            id: uuidv4(),
-            name,
-            slug: slug || 'general',
-            display_order: i + 1,
-            is_active: true
-          }).catch(() => {});
-        }
-        logger.info(`[DB Init] Seeded ${defaultCats.length} default categories.`);
+          table.index(['slug'], 'idx_categories_slug');
+          table.index(['display_order'], 'idx_categories_display_order');
+          table.index(['is_active'], 'idx_categories_is_active');
+        });
+        logger.info('[DB Init] Created categories table.');
       }
+
+      if (await db.schema.hasTable('categories')) {
+        const catCount = await db('categories').count('id as count').first();
+        if (Number(catCount?.count || 0) === 0) {
+          const { v4: uuidv4 } = require('uuid');
+          const defaultCats = [
+            'Electronics & Gadgets',
+            'Textbooks & Reviewers',
+            'Uniforms & Apparel',
+            'Calculators & Electronics',
+            'Fashion & Sneakers',
+            'Music & Instruments',
+            'Audio & Gadgets',
+            'Dorm & Living',
+            'Gaming & Tech',
+            'Medical Equipment',
+            'Junior High School Books & Reviewers',
+            'Senior High Reviewers & Books',
+            'General Supplies'
+          ];
+          for (let i = 0; i < defaultCats.length; i++) {
+            const name = defaultCats[i];
+            const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+            await db('categories').insert({
+              id: uuidv4(),
+              name,
+              slug: slug || 'general',
+              display_order: i + 1,
+              is_active: true
+            }).catch(() => {});
+          }
+          logger.info(`[DB Init] Seeded ${defaultCats.length} default categories.`);
+        }
+      }
+    } catch (catErr) {
+      logger.warn(`[DB Init] Categories init: ${catErr.message}`);
     }
 
     logger.info('[DB Init] Database is fully synchronized.');

@@ -4,6 +4,7 @@ const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
 const { serializeListing } = require('../serializers/listingSerializer');
 const storageService = require('../services/storage.service');
+const { ensureCategoryExists } = require('./categories.controller');
 
 /**
  * Escapes special wildcard characters for SQL LIKE statements
@@ -322,6 +323,11 @@ const createListing = asyncHandler(async (req, res, next) => {
     }
   } else if (typeof acceptedPaymentMethods === 'string' && acceptedPaymentMethods.trim()) {
     paymentMethodsStr = acceptedPaymentMethods.trim();
+  }
+
+  // Automatically persist user-specified category to categories table
+  if (category) {
+    await ensureCategoryExists(category, req.user.id).catch(() => {});
   }
 
   const listingId = uuidv4();

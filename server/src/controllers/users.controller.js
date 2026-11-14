@@ -9,6 +9,7 @@ const { serializeReview } = require('../serializers');
 const storageService = require('../services/storage.service');
 const verificationSessionService = require('../services/verificationSession.service');
 const studentVerificationEngine = require('../services/studentVerificationEngine');
+const studentDocumentOcr = require('../services/studentDocumentOcr.service');
 
 /**
  * Get public profile of a student
@@ -144,6 +145,27 @@ const getVerificationStatus = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Real-time OCR scanner for student ID card upload
+ */
+const scanStudentIdCard = asyncHandler(async (req, res, next) => {
+  const { idPhotoUrl, studentId } = req.body;
+  if (!idPhotoUrl) {
+    return next(new AppError('Student ID card photo is required for OCR scanning.', 400));
+  }
+
+  const result = await studentDocumentOcr.verifyStudentDocuments({
+    idPhotoUrl,
+    studentId: studentId || req.user?.student_id || '',
+    studentName: req.user?.name || ''
+  });
+
+  res.status(200).json({
+    status: 'success',
+    data: result
+  });
+});
+
+/**
  * Submit student ID verification request with Sharp image security validation and anti-duplicate hashing
  */
 const submitIdVerification = asyncHandler(async (req, res, next) => {
@@ -158,11 +180,10 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
   } = req.body;
 
   const rawIdPhoto = idPhotoUrl || idCardImageUrl;
-  // No enrollment proof is collected; the same live selfie is stored in both legacy image fields.
-  const secondaryProof = selfiePhotoUrl || null;
+  const secondaryProof = selfiePhotoUrl || enrollmentProofUrl || null;
 
   if (!studentIdNumber || !rawIdPhoto) {
-    return next(new AppError('Student ID number and live selfie captured from your device camera are required.', 400));
+    return next(new AppError('Student ID number and student ID card photo are required.', 400));
   }
   if (!sessionToken) {
     return next(new AppError('A valid live verification session is required. Please restart the selfie verification process.', 400));
@@ -177,10 +198,10 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
   // Basic image data sanity check
   const isDataUrl = (str) => typeof str === 'string' && (str.startsWith('data:image/') || str.startsWith('http'));
   if (!isDataUrl(rawIdPhoto)) {
-    return next(new AppError('Invalid live selfie format. Please capture your selfie again using your device camera.', 400));
+    return next(new AppError('Invalid student ID card photo format. Please upload a clear JPEG, PNG, or WebP photo.', 400));
   }
   if (secondaryProof && !isDataUrl(secondaryProof)) {
-    return next(new AppError('Invalid secondary proof format. Files must be valid JPEG, PNG, or WebP images.', 400));
+    return next(new AppError('Invalid live selfie format. Please capture your selfie again using your device camera.', 400));
   }
 
   // Check rate limiting: max 5 verification submissions per 24 hours
@@ -222,7 +243,7 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
     return next(new AppError('A verification request with this Student ID is already active on another account.', 409));
   }
 
-  // Compute cryptographic SHA-256 hash of the submitted live selfie for duplicate detection and audit.
+  // Compute cryptographic SHA-256 hash of the submitted images for duplicate detection and audit.
   const computeHash = (dataUrl) => {
     if (!dataUrl || typeof dataUrl !== 'string') return '';
     const pure = dataUrl.includes('base64,') ? dataUrl.split('base64,')[1] : dataUrl;
@@ -240,6 +261,18 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
       .first();
 
     if (duplicatePhoto) {
+      return next(new AppError('This Student ID photo has already been submitted by another account. Contact campus administration if you believe this is an error.', 409));
+    }
+  }
+
+  if (secondaryProof && secondaryHash) {
+    const duplicateSelfie = await db('verification_requests')
+      .where({ selfie_photo_hash: secondaryHash })
+      .andWhereNot({ user_id: req.user.id })
+      .whereIn('status', ['approved', 'pending'])
+      .first();
+
+    if (duplicateSelfie) {
       return next(new AppError('This live selfie image has already been submitted by another account. Contact campus administration if you believe this is an error.', 409));
     }
   }
@@ -278,7 +311,7 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
         user: req.user,
         studentId: cleanId,
         idPhotoUrl: rawIdPhoto,
-        selfiePhotoUrl: selfiePhotoUrl || rawIdPhoto,
+        selfiePhotoUrl: secondaryProof || rawIdPhoto,
         sessionToken,
         telemetry
       });
@@ -590,6 +623,7 @@ module.exports = {
   updateProfile,
   getVerificationSession,
   getVerificationStatus,
+  scanStudentIdCard,
   submitIdVerification,
   getUserReviews,
   getUserAnalytics

@@ -33,6 +33,28 @@ export const usersService = {
     return res.data;
   },
 
+  async scanStudentId(
+    idPhotoUrl: string,
+    studentId?: string
+  ): Promise<{
+    configured: boolean;
+    passed: boolean;
+    ocrConfidence: number;
+    isUcDocument: boolean;
+    studentIdFound: boolean;
+    studentNameFound: boolean;
+    detectedStudentId: string | null;
+    ocrLineCount: number;
+    reason: string;
+    summary?: string;
+  }> {
+    const res = await api.post<any>('/users/me/scan-id', {
+      idPhotoUrl,
+      studentId
+    });
+    return res.data;
+  },
+
   async submitIdVerification(
     studentIdNumber: string,
     idPhotoUrl: string,

@@ -109,9 +109,6 @@ const AdminAuthGate: React.FC = () => {
           <Logo size="lg" showSubtitle={true} subtitleText="Administration & Safety Portal" />
 
           <div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: '#002B7F', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', backgroundColor: '#EBF1FC', padding: '0.25rem 0.65rem', borderRadius: '6px', border: '1px solid #BCD1F7' }}>
-              <ShieldCheck size={13} color="#002B7F" /> Restricted Campus Portal
-            </div>
             <h1 style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0F172A', marginTop: '0.55rem', margin: '0.55rem 0 0 0' }}>
               University of Cebu Moderation Desk
             </h1>

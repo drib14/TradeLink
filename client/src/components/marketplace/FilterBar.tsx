@@ -16,11 +16,15 @@ import {
   ShieldCheck,
   Flame,
   Sparkles,
-  Layers
+  Layers,
+  Filter,
+  CheckCircle2,
+  Search
 } from 'lucide-react';
 import { ConditionGrade } from '../../types';
 import { CampusDropdown } from '../common/CampusDropdown';
 import { CustomSelect, SelectOption } from '../common/CustomSelect';
+import { CategoryDropdown, getCategoryIcon } from '../common/CategoryDropdown';
 
 export const FilterBar: React.FC = () => {
   const { categories } = useCategories();
@@ -53,10 +57,10 @@ export const FilterBar: React.FC = () => {
 
   const conditionOptions: SelectOption[] = [
     { value: 'All', label: 'All Conditions', icon: <Sparkles size={13} /> },
-    { value: 'Brand New', label: 'Brand New', badge: '10/10', badgeBg: '#ECFDF5', badgeColor: '#047857' },
-    { value: 'Like New', label: 'Like New', badge: '9/10', badgeBg: '#EFF6FF', badgeColor: '#1D4ED8' },
-    { value: 'Good', label: 'Good Condition', badge: '7-8/10', badgeBg: '#FFFBEB', badgeColor: '#B45309' },
-    { value: 'Fair', label: 'Fair Condition', badge: '5-6/10', badgeBg: '#F1F5F9', badgeColor: '#475569' }
+    { value: 'Brand New', label: 'Brand New', icon: <CheckCircle2 size={13} color="#059669" />, badge: '10/10', badgeBg: '#ECFDF5', badgeColor: '#047857' },
+    { value: 'Like New', label: 'Like New', icon: <Sparkles size={13} color="#1D4ED8" />, badge: '9/10', badgeBg: '#EFF6FF', badgeColor: '#1D4ED8' },
+    { value: 'Good', label: 'Good Condition', icon: <ShieldCheck size={13} color="#B45309" />, badge: '7-8/10', badgeBg: '#FFFBEB', badgeColor: '#B45309' },
+    { value: 'Fair', label: 'Fair Condition', icon: <Clock size={13} color="#64748B" />, badge: '5-6/10', badgeBg: '#F1F5F9', badgeColor: '#475569' }
   ];
 
   const sortByOptions: SelectOption[] = [
@@ -65,14 +69,6 @@ export const FilterBar: React.FC = () => {
     { value: 'price_high', label: 'Price: High to Low', icon: <ArrowUp size={13} /> },
     { value: 'trust_high', label: 'Highest Seller Trust', icon: <ShieldCheck size={13} />, badge: 'Verified' },
     { value: 'views_high', label: 'Most Popular', icon: <Flame size={13} /> }
-  ];
-
-  const tagChips = [
-    { id: 'All', label: 'All Categories' },
-    ...categories.map((c) => ({
-      id: c.name,
-      label: c.name
-    }))
   ];
 
   const conditions: { id: 'All' | ConditionGrade; label: string }[] = [
@@ -104,46 +100,7 @@ export const FilterBar: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', width: '100%', minWidth: 0 }}>
-      {/* Row 1: Quick Category Chips (Touch Scrollable) */}
-      <div
-        className="touch-scroll-row"
-        style={{
-          width: '100%',
-          minWidth: 0,
-          paddingBottom: '2px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.4rem'
-        }}
-      >
-        {tagChips.map((chip) => {
-          const isSelected = selectedCategory === chip.id;
-          return (
-            <button
-              key={chip.id}
-              onClick={() => setSelectedCategory(chip.id)}
-              style={{
-                padding: '0.4rem 0.9rem',
-                borderRadius: '9999px',
-                fontSize: '0.8rem',
-                fontWeight: isSelected ? 800 : 600,
-                backgroundColor: isSelected ? 'var(--uc-blue)' : 'var(--bg-surface)',
-                color: isSelected ? '#FFFFFF' : 'var(--text-secondary)',
-                border: isSelected ? '1.5px solid var(--uc-blue)' : '1px solid var(--border-subtle)',
-                boxShadow: isSelected ? '0 2px 8px rgba(0, 43, 127, 0.2)' : 'none',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.15s ease',
-                cursor: 'pointer',
-                flexShrink: 0
-              }}
-            >
-              {chip.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Row 2: Primary Controls (Trade Mode, Condition, Sort, Filter Toggle) */}
+      {/* Primary Controls Row: Campus, Category Dropdown, Trade Mode, Condition, Sort, Filter Toggle */}
       <div
         style={{
           display: 'flex',
@@ -163,6 +120,18 @@ export const FilterBar: React.FC = () => {
               onChange={(camp) => setSelectedCampus(camp as any)}
               allowAll={true}
               allLabel="All Campuses"
+              size="sm"
+            />
+          </div>
+
+          {/* Dynamic Category Filter Dropdown (Custom with icons/image from DB) */}
+          <div style={{ position: 'relative', minWidth: '170px', flex: '1 1 170px', maxWidth: '240px' }}>
+            <CategoryDropdown
+              value={selectedCategory}
+              onChange={(cat) => setSelectedCategory(cat)}
+              allowAll={true}
+              allLabel="All Categories"
+              allowCustom={false}
               size="sm"
             />
           </div>
@@ -281,6 +250,9 @@ export const FilterBar: React.FC = () => {
                     key={preset.label}
                     onClick={() => setPriceRange(preset.range)}
                     style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.3rem',
                       fontSize: '0.72rem',
                       fontWeight: isActive ? 800 : 600,
                       padding: '0.25rem 0.6rem',
@@ -291,7 +263,8 @@ export const FilterBar: React.FC = () => {
                       cursor: 'pointer'
                     }}
                   >
-                    {preset.label}
+                    <Tag size={10} style={{ opacity: 0.7 }} />
+                    <span>{preset.label}</span>
                   </button>
                 );
               })}
@@ -344,7 +317,9 @@ export const FilterBar: React.FC = () => {
       {/* Row 4: Active Filter Dismiss Pills */}
       {hasActiveFilters && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', paddingTop: '2px' }}>
-          <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 700 }}>Active filters:</span>
+          <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+            <Filter size={12} /> Active filters:
+          </span>
 
           {selectedCampus !== 'All' && (
             <span
@@ -387,7 +362,10 @@ export const FilterBar: React.FC = () => {
                 border: '1px solid rgba(0, 43, 127, 0.15)'
               }}
             >
-              <Tag size={11} /> {selectedCategory}
+              <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                {getCategoryIcon(selectedCategory, 11)}
+              </span>
+              <span>{selectedCategory}</span>
               <button
                 onClick={() => setSelectedCategory('All')}
                 style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', color: 'var(--uc-blue)' }}
@@ -412,7 +390,8 @@ export const FilterBar: React.FC = () => {
                 border: '1px solid rgba(0, 43, 127, 0.15)'
               }}
             >
-              Mode: {selectedTradeMode === 'buy_sell' ? 'Buy & Sell' : selectedTradeMode === 'swap' ? 'Swap' : 'Free'}
+              {selectedTradeMode === 'buy_sell' ? <DollarSign size={11} /> : selectedTradeMode === 'swap' ? <Repeat size={11} /> : <Gift size={11} />}
+              <span>Mode: {selectedTradeMode === 'buy_sell' ? 'Buy & Sell' : selectedTradeMode === 'swap' ? 'Swap' : 'Free'}</span>
               <button
                 onClick={() => setSelectedTradeMode('All')}
                 style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', color: 'var(--uc-blue)' }}
@@ -437,7 +416,8 @@ export const FilterBar: React.FC = () => {
                 border: '1px solid rgba(0, 43, 127, 0.15)'
               }}
             >
-              Condition: {selectedCondition}
+              <Sparkles size={11} />
+              <span>Condition: {selectedCondition}</span>
               <button
                 onClick={() => setSelectedCondition('All')}
                 style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', color: 'var(--uc-blue)' }}
@@ -462,7 +442,8 @@ export const FilterBar: React.FC = () => {
                 border: '1px solid rgba(0, 43, 127, 0.15)'
               }}
             >
-              Price: ₱{priceRange[0].toLocaleString()} - ₱{priceRange[1].toLocaleString()}
+              <DollarSign size={11} />
+              <span>Price: ₱{priceRange[0].toLocaleString()} - ₱{priceRange[1].toLocaleString()}</span>
               <button
                 onClick={() => setPriceRange([0, 50000])}
                 style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', color: 'var(--uc-blue)' }}
@@ -487,7 +468,8 @@ export const FilterBar: React.FC = () => {
                 border: '1px solid rgba(0, 43, 127, 0.15)'
               }}
             >
-              "{searchQuery}"
+              <Search size={11} />
+              <span>"{searchQuery}"</span>
               <button
                 onClick={() => setSearchQuery('')}
                 style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', color: 'var(--uc-blue)' }}

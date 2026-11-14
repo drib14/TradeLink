@@ -48,6 +48,8 @@ dist/
 **/dist-web-test/
 .expo/
 build/
+*.traineddata
+*.traineddata.gz
 .next/
 out/
 .nuxt/

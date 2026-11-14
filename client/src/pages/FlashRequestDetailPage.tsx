@@ -554,9 +554,23 @@ export const FlashRequestDetailPage: React.FC<FlashRequestDetailPageProps> = ({
               <span>Urgent Need Details & Specifications</span>
             </h3>
 
-            <p style={{ fontSize: '0.92rem', color: 'var(--text-primary)', lineHeight: 1.65, margin: 0, whiteSpace: 'pre-line' }}>
+            <div
+              style={{
+                fontSize: '0.94rem',
+                color: 'var(--text-secondary)',
+                lineHeight: 1.72,
+                letterSpacing: '0.012em',
+                wordSpacing: '0.015em',
+                margin: 0,
+                whiteSpace: 'pre-line',
+                backgroundColor: 'var(--bg-subtle)',
+                padding: '1rem 1.15rem',
+                borderRadius: '12px',
+                border: '1px solid var(--border-subtle)'
+              }}
+            >
               {currentRequest.description}
-            </p>
+            </div>
 
             {/* Academic Context Badges */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem', marginTop: '0.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border-subtle)' }}>

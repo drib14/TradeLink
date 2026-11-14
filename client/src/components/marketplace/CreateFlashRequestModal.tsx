@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useFlashMarket } from '../../context/FlashMarketContext';
 import { useAuth } from '../../context/AuthContext';
+import { useCategories } from '../../hooks/useCategories';
 import { useToast } from '../common/Toast';
 import { Campus } from '../../types';
 import { DragDropUpload } from '../common/DragDropUpload';
@@ -36,6 +37,7 @@ export const CreateFlashRequestModal: React.FC<CreateFlashRequestModalProps> = (
 }) => {
   const { currentUser } = useAuth();
   const { addRequest } = useFlashMarket();
+  const { addCategory } = useCategories();
   const { showToast } = useToast();
 
   // Wizard Step State (1: Item & Campus, 2: Budget & Urgency, 3: Photo & Confirm)
@@ -157,6 +159,11 @@ export const CreateFlashRequestModal: React.FC<CreateFlashRequestModalProps> = (
         showToast('Category Required', 'Please enter your custom category name.', 'warning');
         setCurrentStep(1);
         return;
+      }
+      try {
+        await addCategory(finalCategory);
+      } catch (catErr) {
+        console.warn('Failed to dynamically persist custom category:', catErr);
       }
     }
 

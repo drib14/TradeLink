@@ -71,8 +71,48 @@ const createCategory = asyncHandler(async (req, res, next) => {
   });
 });
 
+/**
+ * Automatically persists a category to the DB if it does not yet exist.
+ * Used when users specify new categories in listings or flash requests.
+ */
+async function ensureCategoryExists(rawName, userId = null) {
+  if (!rawName || typeof rawName !== 'string') return null;
+  const trimmed = rawName.trim();
+  if (trimmed.length < 2 || trimmed.toLowerCase() === 'all' || trimmed.toLowerCase() === 'other') return null;
+
+  try {
+    const existing = await db('categories')
+      .whereRaw('LOWER(name) = ?', [trimmed.toLowerCase()])
+      .first();
+
+    if (existing) return existing;
+
+    const slug = trimmed.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'general';
+    const highestOrder = await db('categories').max('display_order as maxOrder').first();
+    const nextOrder = (highestOrder?.maxOrder || 0) + 1;
+
+    const newCategory = {
+      id: uuidv4(),
+      name: trimmed,
+      slug,
+      icon: null,
+      display_order: nextOrder,
+      is_active: true,
+      created_by: userId || null,
+      created_at: new Date(),
+      updated_at: new Date()
+    };
+
+    await db('categories').insert(newCategory);
+    return newCategory;
+  } catch (err) {
+    return await db('categories').whereRaw('LOWER(name) = ?', [trimmed.toLowerCase()]).first().catch(() => null);
+  }
+}
+
 module.exports = {
   getCategories,
-  createCategory
+  createCategory,
+  ensureCategoryExists
 };
 
