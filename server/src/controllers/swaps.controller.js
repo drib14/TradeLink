@@ -223,6 +223,16 @@ const proposeSwap = asyncHandler(async (req, res, next) => {
   const variationSuffix = selectedVariation ? ` [Option requested: ${selectedVariation}]` : '';
   const chatContent = `[Barter Proposal] Offered "${finalOfferedTitle}" ${newSwap.cash_adjustment > 0 ? `with +₱${newSwap.cash_adjustment} cash adjustment` : ''} in exchange for "${targetListing.title}"${variationSuffix}. Review and accept or decline below!`;
 
+  try {
+    const [seller, proposer] = await Promise.all([
+      db('users').where({ id: targetListing.seller_id }).first(),
+      db('users').where({ id: req.user.id }).first()
+    ]);
+    await emailService.sendSwapProposalEmail(seller, proposer, { ...newSwap, target_title: targetListing.title }, req);
+  } catch (emailErr) {
+    console.error('[SWAP EMAIL] Proposal notification failed:', emailErr.message);
+  }
+
   await syncSwapToChat({
     listingId: targetListingId,
     proposerId: req.user.id,
@@ -316,7 +326,7 @@ const respondToSwap = asyncHandler(async (req, res, next) => {
       await trx('transactions').insert(swapTransaction);
     });
 
-    // Send the private code only to the proposer/buyer. It is never added to chat.
+    // Notify both parties about acceptance; the private meetup code is still sent only to the buyer.
     let handshakeEmailSent = false;
     try {
       const [buyerUser, sellerUser, targetListing] = await Promise.all([
@@ -325,6 +335,8 @@ const respondToSwap = asyncHandler(async (req, res, next) => {
         db('listings').where({ id: swap.listing_id }).first()
       ]);
       if (buyerUser && sellerUser && targetListing) {
+        await emailService.sendSwapResponseEmail(buyerUser, sellerUser, swap, 'accepted', req).catch((err) => console.error('[SWAP EMAIL] Buyer acceptance notice failed:', err.message));
+        await emailService.sendNewOrderSellerEmail(sellerUser, buyerUser, swapTransaction, targetListing, req).catch((err) => console.error('[SWAP EMAIL] Seller new barter order notice failed:', err.message));
         const delivery = await emailService.sendOrderPlacedBuyerEmail(
           buyerUser, sellerUser, swapTransaction, targetListing, req, handshakeCode
         );
@@ -347,6 +359,15 @@ const respondToSwap = asyncHandler(async (req, res, next) => {
     });
   } else {
     await db('swap_offers').where({ id }).update({ status: mappedStatus });
+    try {
+      const [proposer, seller] = await Promise.all([
+        db('users').where({ id: swap.proposer_id }).first(),
+        db('users').where({ id: swap.target_seller_id }).first()
+      ]);
+      if (proposer && seller) await emailService.sendSwapResponseEmail(proposer, seller, swap, 'rejected', req);
+    } catch (emailErr) {
+      console.error('[SWAP EMAIL] Rejection notification failed:', emailErr.message);
+    }
 
     await syncSwapToChat({
       listingId: swap.listing_id,
