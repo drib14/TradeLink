@@ -766,6 +766,149 @@ async function testEmailConnection(recipientEmail = null) {
   return diagnostics;
 }
 
+
+/** Escape untrusted values before placing them in HTML email templates. */
+function escapeEmailHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[char]));
+}
+
+/**
+ * Shared transactional notification template. Email delivery is best-effort:
+ * callers should never roll back a completed marketplace action on mail failure.
+ */
+async function sendTransactionalNotification({
+  toEmail, subject, preheader, greeting = 'Student', headline, message,
+  ctaLabel = 'Open TradeLink', ctaUrl, details = [], req = null
+}) {
+  if (!toEmail) return { ok: false, skipped: true, error: 'Recipient email unavailable' };
+  const safeName = escapeEmailHtml(greeting);
+  const safeHeadline = escapeEmailHtml(headline);
+  const safeMessage = escapeEmailHtml(message);
+  const safeCta = escapeEmailHtml(ctaLabel);
+  const safeUrl = escapeEmailHtml(ctaUrl || getAppBaseUrl(req));
+  const rows = details.map(({ label, value }) =>
+    '<tr><td style="padding:7px;color:#64748B;width:38%;">' +
+    escapeEmailHtml(label) + '</td><td style="padding:7px;color:#0F172A;font-weight:600;">' +
+    escapeEmailHtml(value) + '</td></tr>'
+  ).join('');
+  const body = `
+    <div style="text-align:center;margin-bottom:16px;">
+      <span style="display:inline-block;background:#EBF1FC;color:#002B7F;font-size:12px;font-weight:bold;padding:5px 14px;border-radius:20px;">TradeLink Notification</span>
+    </div>
+    <h2 style="margin:0 0 12px;color:#002B7F;font-size:20px;text-align:center;">${safeHeadline}</h2>
+    <p style="color:#334155;font-size:15px;">Hello <strong>${safeName}</strong>,</p>
+    <p style="color:#475569;font-size:14px;line-height:1.7;">${safeMessage}</p>
+    ${rows ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;margin:18px 0;">${rows}</table>` : ''}
+    <div style="text-align:center;margin:24px 0;">
+      <a href="${safeUrl}" style="display:inline-block;background:#002B7F;color:#FFFFFF;text-decoration:none;font-weight:bold;font-size:14px;padding:12px 24px;border-radius:9px;">${safeCta}</a>
+    </div>
+    <p style="font-size:12px;color:#94A3B8;text-align:center;">If the button does not work, copy this link: <a href="${safeUrl}" style="color:#002B7F;">${safeUrl}</a></p>
+  `;
+  return sendMail(toEmail, subject, `${headline}\n\nHello ${greeting},\n\n${message}\n\n${ctaUrl || getAppBaseUrl(req)}`, buildEmailLayout(body, preheader || headline, getAppBaseUrl(req)));
+}
+
+async function sendWelcomeEmail(user, req = null) {
+  const appUrl = getAppBaseUrl(req);
+  return sendTransactionalNotification({
+    toEmail: user?.email, greeting: user?.name, subject: '[TradeLink] Welcome to your campus marketplace',
+    headline: 'Welcome to TradeLink!', message: 'Your student marketplace account is ready. Discover campus listings, connect with fellow students, and arrange safe meetups.',
+    ctaLabel: 'Explore TradeLink', ctaUrl: appUrl, req
+  });
+}
+
+async function sendChatMessageNotificationEmail(receiver, sender, conversationId, req = null) {
+  const appUrl = getAppBaseUrl(req);
+  return sendTransactionalNotification({
+    toEmail: receiver?.email, greeting: receiver?.name, subject: `[TradeLink] New message from ${sender?.name || 'a student'}`,
+    headline: 'You have a new message', message: `${sender?.name || 'A student'} sent you a message on TradeLink. Sign in to read and reply. For your privacy, message contents and attachments are not included in this email.`,
+    ctaLabel: 'Open Messages', ctaUrl: `${appUrl}/messages?conversationId=${encodeURIComponent(conversationId || '')}`, req
+  });
+}
+
+async function sendVerificationSubmittedEmail(user, verification, req = null) {
+  const appUrl = getAppBaseUrl(req);
+  return sendTransactionalNotification({
+    toEmail: user?.email, greeting: user?.name, subject: '[TradeLink] Student verification received',
+    headline: 'Your student verification was received',
+    message: verification?.status === 'approved'
+      ? 'Your student credentials passed the verification process and your verified student status is now active.'
+      : 'Your student verification request has been received and is waiting for authorized campus administrator review. Your account will remain unverified until it is approved.',
+    ctaLabel: 'View Verification Status', ctaUrl: `${appUrl}/profile`, req,
+    details: [{ label: 'Review status', value: verification?.status === 'approved' ? 'Approved' : 'Pending review' },
+      { label: 'Verification method', value: verification?.method === 'studyload_manual_kyc' ? 'Studyload document (manual review)' : 'Live selfie / student ID' }]
+  });
+}
+
+async function sendAdminVerificationSubmittedEmail(admin, student, verification, req = null) {
+  const adminUrl = getAdminBaseUrl(req);
+  return sendTransactionalNotification({
+    toEmail: admin?.email, greeting: admin?.name || 'Administrator',
+    subject: '[TradeLink Admin] Student verification requires review',
+    headline: 'New student verification request',
+    message: `${student?.name || 'A student'} submitted student verification credentials. Please review the request in the administrator portal. Do not approve based on this email alone.`,
+    ctaLabel: 'Review Verification', ctaUrl: `${adminUrl}/verifications`, req,
+    details: [
+      { label: 'Student', value: student?.name || 'Student' },
+      { label: 'Campus', value: student?.campus || 'Not specified' },
+      { label: 'Method', value: verification?.method === 'studyload_manual_kyc' ? 'Studyload manual review' : 'Live selfie / ID' },
+      { label: 'Status', value: verification?.status || 'pending' }
+    ]
+  });
+}
+
+async function sendVerificationDecisionEmail(user, status, reason = '', req = null) {
+  const appUrl = getAppBaseUrl(req);
+  const approved = status === 'approved';
+  return sendTransactionalNotification({
+    toEmail: user?.email, greeting: user?.name,
+    subject: approved ? '[TradeLink] Student verification approved' : '[TradeLink] Student verification needs attention',
+    headline: approved ? 'Your student account is verified' : 'Your student verification was not approved',
+    message: approved
+      ? 'Your student credentials have been approved by campus administration. Your verified student status is now active.'
+      : 'Campus administration could not approve your submitted credentials. Review the note below and submit updated documents if needed.',
+    ctaLabel: 'View Verification Status', ctaUrl: `${appUrl}/profile`, req,
+    details: [{ label: 'Decision', value: approved ? 'Approved' : 'Rejected' }, ...(reason ? [{ label: 'Administrator note', value: reason }] : [])]
+  });
+}
+
+async function sendSwapProposalEmail(seller, proposer, swap, req = null) {
+  const appUrl = getAppBaseUrl(req);
+  return sendTransactionalNotification({
+    toEmail: seller?.email, greeting: seller?.name,
+    subject: '[TradeLink] New barter proposal for your listing',
+    headline: 'You received a swap proposal',
+    message: `${proposer?.name || 'A student'} proposed a barter exchange for your listing. Open TradeLink to review the offered item and respond.`,
+    ctaLabel: 'Review Swap Proposal', ctaUrl: `${appUrl}/messages`, req,
+    details: [{ label: 'Your listing', value: swap?.target_title || 'Campus listing' }, { label: 'Offered item', value: swap?.offered_item_title || 'Student item' }]
+  });
+}
+
+async function sendSwapResponseEmail(proposer, seller, swap, status, req = null) {
+  const appUrl = getAppBaseUrl(req);
+  return sendTransactionalNotification({
+    toEmail: proposer?.email, greeting: proposer?.name,
+    subject: `[TradeLink] Your swap proposal was ${status}`,
+    headline: status === 'accepted' ? 'Your swap proposal was accepted' : 'Your swap proposal was declined',
+    message: `${seller?.name || 'The seller'} ${status === 'accepted' ? 'accepted' : 'declined'} your barter proposal. ${status === 'accepted' ? 'A transaction has been created; coordinate the handover in TradeLink.' : 'You can continue browsing other campus listings.'}`,
+    ctaLabel: 'View Trade', ctaUrl: `${appUrl}/transactions`, req,
+    details: [{ label: 'Listing', value: swap?.target_title || 'Campus listing' }, { label: 'Offered item', value: swap?.offered_item_title || 'Student item' }]
+  });
+}
+
+async function sendFlashOfferEmail(requester, responder, flashRequest, req = null) {
+  const appUrl = getAppBaseUrl(req);
+  return sendTransactionalNotification({
+    toEmail: requester?.email, greeting: requester?.name,
+    subject: '[TradeLink] Someone responded to your Flash Market request',
+    headline: 'You received a Flash Market offer',
+    message: `${responder?.name || 'A student'} responded to your request. Open TradeLink to view the offer and continue the conversation.`,
+    ctaLabel: 'View Offer', ctaUrl: `${appUrl}/flash-market`, req,
+    details: [{ label: 'Requested item', value: flashRequest?.item_name || 'Campus item' }, { label: 'Campus', value: flashRequest?.target_campus || 'UC Campus' }]
+  });
+}
+
 module.exports = {
   getAppBaseUrl,
   getAdminBaseUrl,
@@ -778,5 +921,14 @@ module.exports = {
   sendOrderPlacedBuyerEmail,
   sendNewOrderSellerEmail,
   sendOrderStatusUpdateEmail,
+  sendTransactionalNotification,
+  sendWelcomeEmail,
+  sendChatMessageNotificationEmail,
+  sendVerificationSubmittedEmail,
+  sendAdminVerificationSubmittedEmail,
+  sendVerificationDecisionEmail,
+  sendSwapProposalEmail,
+  sendSwapResponseEmail,
+  sendFlashOfferEmail,
   testEmailConnection
 };
