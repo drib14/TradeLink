@@ -917,6 +917,30 @@ async function sendFlashOfferEmail(requester, responder, flashRequest, req = nul
   });
 }
 
+
+async function sendPasswordChangedEmail(user, req = null) {
+  const appUrl = getAppBaseUrl(req);
+  return sendTransactionalNotification({
+    toEmail: user?.email, greeting: user?.name,
+    subject: '[TradeLink] Your password was changed',
+    headline: 'Password updated successfully',
+    message: 'The password for your TradeLink account was changed. If you did not make this change, contact TradeLink support immediately and secure your account.',
+    ctaLabel: 'Open TradeLink', ctaUrl: appUrl, req
+  });
+}
+
+async function sendReviewReceivedEmail(seller, reviewer, listing, rating, req = null) {
+  const appUrl = getAppBaseUrl(req);
+  return sendTransactionalNotification({
+    toEmail: seller?.email, greeting: seller?.name,
+    subject: '[TradeLink] You received a new marketplace review',
+    headline: 'New review on your listing',
+    message: `${reviewer?.name || 'A student'} left a review for your campus listing. Sign in to TradeLink to read the feedback.`,
+    ctaLabel: 'View Listing Reviews', ctaUrl: `${appUrl}/listing/${encodeURIComponent(listing?.id || '')}`, req,
+    details: [{ label: 'Listing', value: listing?.title || 'Campus listing' }, { label: 'Rating', value: `${Number(rating) || 0} / 5 stars` }]
+  });
+}
+
 module.exports = {
   getAppBaseUrl,
   getAdminBaseUrl,
@@ -938,5 +962,7 @@ module.exports = {
   sendSwapProposalEmail,
   sendSwapResponseEmail,
   sendFlashOfferEmail,
+  sendPasswordChangedEmail,
+  sendReviewReceivedEmail,
   testEmailConnection
 };
