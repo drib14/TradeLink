@@ -603,10 +603,18 @@ async function sendOrderStatusUpdateEmail(targetUser, otherUser, transaction, li
   const refNo = transaction.reference_no || transaction.id;
   const ctaUrl = `${appUrl}/transactions?id=${encodeURIComponent(refNo)}`;
 
-  const isCompleted = status === 'completed';
-  const badgeColor = isCompleted ? '#DEF7EC' : '#FDE8E8';
-  const textColor = isCompleted ? '#03543F' : '#9B1C1C';
-  const titleText = isCompleted ? 'Deal Successfully Completed' : 'Order Cancelled';
+  const statusPresentation = {
+    completed: { label: 'Deal Successfully Completed', background: '#DEF7EC', color: '#03543F' },
+    cancelled: { label: 'Order Cancelled', background: '#FDE8E8', color: '#9B1C1C' },
+    confirmed: { label: 'Order Confirmed', background: '#DBEAFE', color: '#1E40AF' },
+    disputed: { label: 'Order Under Review', background: '#FEF3C7', color: '#92400E' },
+    pending: { label: 'Order Update', background: '#E0E7FF', color: '#3730A3' },
+    handover_confirmed: { label: 'Handover Confirmation Received', background: '#D1FAE5', color: '#065F46' }
+  };
+  const presentation = statusPresentation[status] || statusPresentation.pending;
+  const badgeColor = presentation.background;
+  const textColor = presentation.color;
+  const titleText = presentation.label;
 
   const subject = `[TradeLink] Order #${refNo} Status: ${status.toUpperCase()} — ${listing.title}`;
   const text = `Hello ${targetUser.name},\n\nOrder #${refNo} for "${listing.title}" is now marked as ${status.toUpperCase()}.\n${reason ? `Note: ${reason}\n` : ''}\nView details on TradeLink:\n${ctaUrl}\n\nTradeLink Marketplace Team`;
