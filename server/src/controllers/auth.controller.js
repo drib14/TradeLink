@@ -78,12 +78,7 @@ const register = asyncHandler(async (req, res, next) => {
   };
 
   await db('users').insert(newUser);
-  // Welcome email is best-effort and never blocks account creation.
-  emailService.sendWelcomeEmail(newUser, req).catch((emailErr) => {
-    console.error('[AUTH EMAIL] Welcome email failed:', emailErr.message);
-  });
-
-  // If ID was uploaded during registration, create pending verification request
+  // If ID was uploaded during registration, create pending verification request.
   if (idPhotoUrl) {
     await db('verification_requests').insert({
       id: uuidv4(),
@@ -92,6 +87,21 @@ const register = asyncHandler(async (req, res, next) => {
       id_photo_url: idPhotoUrl,
       status: 'pending'
     });
+  }
+
+  // Deliver account and verification receipts after the database writes succeed.
+  try {
+    const notifications = [emailService.sendWelcomeEmail(newUser, req)];
+    if (idPhotoUrl) {
+      notifications.push(emailService.sendVerificationSubmittedEmail(newUser, { status: 'pending', method: 'registration_id_upload' }, req));
+      const administrators = await db('users').where({ role: 'admin' }).whereNotNull('email').select('id', 'name', 'email');
+      for (const administrator of administrators) {
+        notifications.push(emailService.sendAdminVerificationSubmittedEmail(administrator, newUser, { status: 'pending', method: 'registration_id_upload' }, req));
+      }
+    }
+    await Promise.allSettled(notifications);
+  } catch (emailErr) {
+    console.error('[AUTH EMAIL] Registration notification dispatch failed:', emailErr.message);
   }
 
   const { accessToken, refreshToken } = generateTokens(newUser.id, newUser.role, newUser.campus);
@@ -500,6 +510,10 @@ const resetPassword = asyncHandler(async (req, res, next) => {
     .update({ status: 'completed' })
     .catch(() => {});
 
+  emailService.sendPasswordChangedEmail(user, req).catch((emailErr) => {
+    console.error('[AUTH EMAIL] Password reset security notification failed:', emailErr.message);
+  });
+
   res.status(200).json({
     status: 'success',
     message: 'Password reset successfully. You may now login with your new password.'
@@ -543,6 +557,9 @@ const changePassword = asyncHandler(async (req, res, next) => {
     userId: user.id,
     details: { reason: 'User initiated password change' },
     req
+  });
+  emailService.sendPasswordChangedEmail(user, req).catch((emailErr) => {
+    console.error('[AUTH EMAIL] Password change security notification failed:', emailErr.message);
   });
 
   res.status(200).json({
