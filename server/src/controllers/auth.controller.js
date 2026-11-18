@@ -78,6 +78,10 @@ const register = asyncHandler(async (req, res, next) => {
   };
 
   await db('users').insert(newUser);
+  // Welcome email is best-effort and never blocks account creation.
+  emailService.sendWelcomeEmail(newUser, req).catch((emailErr) => {
+    console.error('[AUTH EMAIL] Welcome email failed:', emailErr.message);
+  });
 
   // If ID was uploaded during registration, create pending verification request
   if (idPhotoUrl) {
