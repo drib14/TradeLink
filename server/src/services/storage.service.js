@@ -9,7 +9,7 @@ const AppError = require('../utils/AppError');
 
 // Local uploads directory (used as fallback or for local dev)
 const uploadBase = path.resolve(__dirname, '../../uploads');
-const folders = ['listings', 'avatars', 'id-photos', 'chat'];
+const folders = ['listings', 'avatars', 'id-photos', 'chat', 'studyloads'];
 
 folders.forEach((folder) => {
   try {
@@ -75,7 +75,8 @@ function getExtension(filename, mimeType) {
       'video/mp4': '.mp4',
       'video/webm': '.webm',
       'video/quicktime': '.mov',
-      'video/x-m4v': '.m4v'
+      'video/x-m4v': '.m4v',
+      'application/pdf': '.pdf'
     };
     return map[mimeType.toLowerCase()] || (mimeType.startsWith('video/') ? '.mp4' : '.jpg');
   }
@@ -214,10 +215,10 @@ async function uploadBuffer(buffer, originalFilename = 'file.jpg', mimeType = 'i
   }
 
   const safeFolder = folders.includes(folder) ? folder : 'listings';
-  let mediaType = getMediaType(originalFilename, mimeType);
-
-  // Validate magic bytes match claimed MIME type
-  if (!validateMagicBytes(buffer, mimeType)) {
+  const isStudyloadPdf = safeFolder === 'studyloads' && mimeType === 'application/pdf' && path.extname(originalFilename).toLowerCase() === '.pdf' && buffer.slice(0, 5).toString('ascii') === '%PDF-';
+  if (safeFolder === 'studyloads' && !isStudyloadPdf) throw new Error('Studyload verification accepts PDF documents only.');
+  let mediaType = isStudyloadPdf ? 'raw' : getMediaType(originalFilename, mimeType);
+  if (!isStudyloadPdf && !validateMagicBytes(buffer, mimeType)) {
     throw new Error('File content does not match the declared file type. Upload rejected for security.');
   }
 
@@ -242,14 +243,14 @@ async function uploadBuffer(buffer, originalFilename = 'file.jpg', mimeType = 'i
     try {
       const uploadOptions = {
         folder: `tradelink/${safeFolder}`,
-        public_id: uniqueId,
-        resource_type: mediaType === 'video' ? 'video' : 'image',
-        ...(process.env.CLOUDINARY_MODERATION === 'true' ? { moderation: 'aws_rek' } : {}),
-        transformation: mediaType === 'video' ? [
+        public_id: mediaType === 'raw' ? filename : uniqueId,
+        resource_type: mediaType === 'raw' ? 'raw' : (mediaType === 'video' ? 'video' : 'image'),
+        ...(mediaType !== 'raw' && process.env.CLOUDINARY_MODERATION === 'true' ? { moderation: 'aws_rek' } : {}),
+        ...(mediaType === 'raw' ? {} : { transformation: mediaType === 'video' ? [
           { quality: 'auto:eco', video_codec: 'auto' }
         ] : [
           { quality: 'auto:good', fetch_format: 'auto', width: 1200, crop: 'limit' }
-        ]
+        ] })
       };
 
       const result = await new Promise((resolve, reject) => {
@@ -374,12 +375,10 @@ async function deleteFile(fileUrlOrKey) {
     try {
       const publicId = extractCloudinaryPublicId(fileUrlOrKey);
       if (publicId) {
-        const isVideo = Boolean(
-          fileUrlOrKey.match(/\.(mp4|webm|mov|m4v)(\?.*)?$/i) ||
-          fileUrlOrKey.includes('/video/upload/')
-        );
+        const isRaw = fileUrlOrKey.includes('/raw/upload/');
+        const isVideo = Boolean(fileUrlOrKey.match(/\.(mp4|webm|mov|m4v)(\?.*)?$/i) || fileUrlOrKey.includes('/video/upload/'));
         await cloudinary.uploader.destroy(publicId, {
-          resource_type: isVideo ? 'video' : 'image',
+          resource_type: isRaw ? 'raw' : (isVideo ? 'video' : 'image'),
           invalidate: true
         });
       }
