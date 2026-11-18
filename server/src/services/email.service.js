@@ -598,50 +598,35 @@ async function sendNewOrderSellerEmail(seller, buyer, transaction, listing, req 
  * Sends order status update (completed / cancelled)
  */
 async function sendOrderStatusUpdateEmail(targetUser, otherUser, transaction, listing, status, reason = '', req = null) {
-  if (!targetUser || !targetUser.email) return;
-  const appUrl = getAppBaseUrl(req);
+  if (!targetUser?.email) return { ok: false, skipped: true, error: 'Recipient email unavailable' };
   const refNo = transaction.reference_no || transaction.id;
-  const ctaUrl = `${appUrl}/transactions?id=${encodeURIComponent(refNo)}`;
-
-  const statusPresentation = {
-    completed: { label: 'Deal Successfully Completed', background: '#DEF7EC', color: '#03543F' },
-    cancelled: { label: 'Order Cancelled', background: '#FDE8E8', color: '#9B1C1C' },
-    confirmed: { label: 'Order Confirmed', background: '#DBEAFE', color: '#1E40AF' },
-    disputed: { label: 'Order Under Review', background: '#FEF3C7', color: '#92400E' },
-    pending: { label: 'Order Update', background: '#E0E7FF', color: '#3730A3' },
-    handover_confirmed: { label: 'Handover Confirmation Received', background: '#D1FAE5', color: '#065F46' }
+  const statusLabels = {
+    completed: 'completed',
+    cancelled: 'cancelled',
+    confirmed: 'confirmed',
+    disputed: 'placed under review',
+    pending: 'updated',
+    handover_confirmed: 'confirmed the in-person handover'
   };
-  const presentation = statusPresentation[status] || statusPresentation.pending;
-  const badgeColor = presentation.background;
-  const textColor = presentation.color;
-  const titleText = presentation.label;
-
-  const subject = `[TradeLink] Order #${refNo} Status: ${status.toUpperCase()} — ${listing.title}`;
-  const text = `Hello ${targetUser.name},\n\nOrder #${refNo} for "${listing.title}" is now marked as ${status.toUpperCase()}.\n${reason ? `Note: ${reason}\n` : ''}\nView details on TradeLink:\n${ctaUrl}\n\nTradeLink Marketplace Team`;
-
-  const bodyContent = `
-    <div style="text-align: center; margin-bottom: 16px;">
-      <span style="display: inline-block; background-color: ${badgeColor}; color: ${textColor}; font-size: 12px; font-weight: bold; padding: 4px 14px; border-radius: 12px;">
-        ${titleText}
-      </span>
-    </div>
-    <p style="color: #334155; font-size: 15px; margin: 0 0 12px 0;">Hello <strong>${targetUser.name}</strong>,</p>
-    <p style="color: #475569; font-size: 14px; line-height: 1.6; margin: 0 0 18px 0;">
-      Order <strong>#${refNo}</strong> for <strong>${listing.title}</strong> has been updated to <strong>${status.toUpperCase()}</strong>.
-    </p>
-    ${reason ? `<div style="background-color: #FFF5F5; border-left: 4px solid #E02424; padding: 12px 16px; border-radius: 4px; margin: 0 0 18px 0; color: #771D1D; font-size: 13px;"><strong>Reason / Note:</strong> ${reason}</div>` : ''}
-    <div style="text-align: center; margin: 24px 0 20px 0;">
-      <a href="${ctaUrl}" target="_blank" style="display: inline-block; background-color: #002B7F; color: #FFFFFF; font-size: 14px; font-weight: bold; text-decoration: none; padding: 12px 28px; border-radius: 10px;">
-        View Transaction Record
-      </a>
-    </div>
-    <p style="font-size: 12px; color: #94A3B8; text-align: center; margin: 0;">
-      Direct link: <a href="${ctaUrl}" style="color: #002B7F; word-break: break-all;">${ctaUrl}</a>
-    </p>
-  `;
-
-  const html = buildEmailLayout(bodyContent, `Order #${refNo} marked as ${status}`, appUrl);
-  return sendMail(targetUser.email, subject, text, html);
+  const statusText = statusLabels[status] || 'updated';
+  const isCompleted = status === 'completed';
+  const isCancelled = status === 'cancelled';
+  return sendTransactionalNotification({
+    toEmail: targetUser.email,
+    greeting: targetUser.name,
+    subject: `[TradeLink] Order #${refNo} status update — ${listing?.title || 'Campus item'}`,
+    headline: isCompleted ? 'Deal successfully completed' : isCancelled ? 'Order cancelled' : 'Your order has an update',
+    message: `Order #${refNo} for "${listing?.title || 'your campus item'}" has been ${statusText}.${reason ? ` Note: ${reason}` : ''}`,
+    ctaLabel: 'View Transaction Record',
+    ctaUrl: `${getAppBaseUrl(req)}/transactions?id=${encodeURIComponent(refNo)}`,
+    details: [
+      { label: 'Order reference', value: refNo },
+      { label: 'Item', value: listing?.title || 'Campus item' },
+      { label: 'Status', value: status.toUpperCase() },
+      ...(reason ? [{ label: 'Note', value: reason }] : [])
+    ],
+    req
+  });
 }
 
 /**
