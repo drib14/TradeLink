@@ -10,6 +10,7 @@ const storageService = require('../services/storage.service');
 const verificationSessionService = require('../services/verificationSession.service');
 const studentVerificationEngine = require('../services/studentVerificationEngine');
 const studentDocumentOcr = require('../services/studentDocumentOcr.service');
+const emailService = require('../services/email.service');
 
 /**
  * Get public profile of a student
@@ -409,6 +410,22 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
   await db('admin_audit_logs').insert(verifLog).catch(() => {});
 
   const isAutoApproved = status === 'approved';
+  // Send transactional email after persistence. Delivery failures must not undo a valid verification submission.
+  try {
+    const student = currentUserRecord || await db('users').where({ id: req.user.id }).first();
+    const verificationNotice = { status, method: verificationMethod };
+    const notifications = [emailService.sendVerificationSubmittedEmail(student, verificationNotice, req)];
+    if (!isAutoApproved) {
+      const administrators = await db('users').where({ role: 'admin' }).whereNotNull('email').select('id', 'name', 'email');
+      for (const administrator of administrators) {
+        notifications.push(emailService.sendAdminVerificationSubmittedEmail(administrator, student, verificationNotice, req));
+      }
+    }
+    await Promise.allSettled(notifications);
+  } catch (emailErr) {
+    console.error('[VERIFICATION EMAIL] Could not dispatch verification notifications:', emailErr.message);
+  }
+
   res.status(200).json({
     status: 'success',
     message: isAutoApproved
