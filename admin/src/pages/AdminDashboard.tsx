@@ -36,6 +36,7 @@ import {
   Receipt,
   Edit3,
   Clock,
+  FileText,
   Building2
 } from 'lucide-react';
 import { VerifiedBadge } from '../components/common/VerifiedBadge';
@@ -1313,7 +1314,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     </div>
                   )}
 
-                  {/* Live selfie preview for document-free verification */}
+                  {/* Live selfie or alternative studyload document preview */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.5rem' }}>
                     {req.idCardImageUrl && req.idCardImageUrl !== req.selfiePhotoUrl && (
                       <div
@@ -1348,7 +1349,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
 
                     {req.selfiePhotoUrl && (
                       <div
-                        onClick={() => setInspectedImage(req.selfiePhotoUrl)}
+                        onClick={req.verificationMethod === 'studyload_manual_kyc' ? undefined : () => setInspectedImage(req.selfiePhotoUrl)}
                         style={{
                           height: '130px',
                           borderRadius: '8px',
@@ -1358,7 +1359,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                           cursor: 'pointer'
                         }}
                       >
-                        <img src={req.selfiePhotoUrl} alt="Student live selfie" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        {req.verificationMethod === 'studyload_manual_kyc' ? (
+                          <a href={req.selfiePhotoUrl} target="_blank" rel="noopener noreferrer" onClick={(event) => event.stopPropagation()} style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', color: '#FFFFFF', textDecoration: 'none', fontSize: '0.78rem', fontWeight: 700 }}>
+                            <FileText size={30} /> Open submitted studyload PDF
+                          </a>
+                        ) : (
+                          <img src={req.selfiePhotoUrl} alt="Student live selfie" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        )}
                         <div
                           style={{
                             position: 'absolute',
@@ -1372,7 +1379,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                             fontWeight: 700
                           }}
                         >
-                          Live Selfie
+                          {req.verificationMethod === 'studyload_manual_kyc' ? 'Studyload Document' : 'Live Selfie'}
                         </div>
                       </div>
                     )}
