@@ -3,6 +3,7 @@ const db = require('../config/db');
 const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
 const { createMessage, encryptMessageContent, decryptMessageContent } = require('../services/message.service');
+const emailService = require('../services/email.service');
 
 /**
  * Get or create a conversation between current user and target user
@@ -551,6 +552,16 @@ const sendMessage = asyncHandler(async (req, res, next) => {
     mediaUrl,
     mediaType
   });
+
+  // Email notification for direct user messages only. Never email system messages or message contents.
+  if (!message.isSystemMessage) {
+    try {
+      const receiver = await db('users').where({ id: message.receiverId }).first();
+      await emailService.sendChatMessageNotificationEmail(receiver, req.user, conversationId, req);
+    } catch (emailErr) {
+      console.error('[CHAT EMAIL] Message notification failed:', emailErr.message);
+    }
+  }
 
   // Real-time socket broadcast
   const io = req.app.get('io');
