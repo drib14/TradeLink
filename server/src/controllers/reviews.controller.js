@@ -2,6 +2,7 @@ const { v4: uuidv4 } = require('uuid');
 const db = require('../config/db');
 const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
+const emailService = require('../services/email.service');
 
 /**
  * Submit a product review for a listing
@@ -121,6 +122,13 @@ const createReview = asyncHandler(async (req, res, next) => {
       rating: sellerAvgRating,
       total_reviews: sellerTotalReviews
     });
+  }
+
+  try {
+    const seller = await db('users').where({ id: listing.seller_id }).first();
+    await emailService.sendReviewReceivedEmail(seller, req.user, listing, numRating, req);
+  } catch (emailErr) {
+    console.error('[REVIEW EMAIL] Seller review notification failed:', emailErr.message);
   }
 
   res.status(201).json({
