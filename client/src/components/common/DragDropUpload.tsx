@@ -162,6 +162,7 @@ export const DragDropUpload: React.FC<DragDropUploadProps> = ({
 
     const filesToProcess = validFiles.slice(0, remainingSlots);
     const newItems: string[] = [];
+    let uploadedToServer = false;
     setIsUploading(true);
     setUploadProgress(0);
     setUploadComplete(false);
@@ -181,6 +182,7 @@ export const DragDropUpload: React.FC<DragDropUploadProps> = ({
         try {
           const uploadRes = await uploadFile(fileToUpload, 'listings', setUploadProgress);
           if (uploadRes && uploadRes.url) {
+            uploadedToServer = true;
             newItems.push(uploadRes.url);
             continue;
           }
@@ -212,8 +214,8 @@ export const DragDropUpload: React.FC<DragDropUploadProps> = ({
       }
 
       if (newItems.length > 0) {
-        setUploadProgress(100);
-        setUploadComplete(true);
+        setUploadProgress(uploadedToServer ? 100 : 0);
+        setUploadComplete(uploadedToServer);
         if (isMultiple) {
           onChange([...images, ...newItems]);
         } else {
