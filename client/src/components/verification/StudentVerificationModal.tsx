@@ -338,7 +338,11 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
       setIsComparingBiometrics(true);
       setStep('review');
       try {
-        if (idCardPhotoUrl) setBiometricResult(await compareIdAndSelfie(idCardPhotoUrl, capturedSelfie));
+        if (idCardPhotoUrl) {
+          const bio = await compareIdAndSelfie(idCardPhotoUrl, capturedSelfie);
+          setBiometricResult(bio);
+          if (bio.isManualReviewNeeded || !bio.faceDetectedInSelfie) setAllowStudyloadFallback(true);
+        }
       } catch (err) {
         console.warn('Facial comparison notice:', err);
         setAllowStudyloadFallback(true);
