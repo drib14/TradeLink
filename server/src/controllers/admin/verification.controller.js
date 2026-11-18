@@ -1,6 +1,7 @@
 const db = require('../../config/db');
 const AppError = require('../../utils/AppError');
 const asyncHandler = require('../../utils/asyncHandler');
+const emailService = require('../../services/email.service');
 
 async function logAdminAction(adminUser, action, targetType, targetId, details, req) {
   const ip = req?.headers ? (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1') : '127.0.0.1';
@@ -130,6 +131,12 @@ const approveVerification = asyncHandler(async (req, res, next) => {
   });
 
   await logAdminAction(req.user, 'Approved Student Verification', 'verification', id, `Verified user ${verif.user_id}`, req);
+  try {
+    const student = await db('users').where({ id: verif.user_id }).first();
+    await emailService.sendVerificationDecisionEmail(student, 'approved', '', req);
+  } catch (emailErr) {
+    console.error('[VERIFICATION EMAIL] Approval notification failed:', emailErr.message);
+  }
 
   res.status(200).json({
     status: 'success',
@@ -163,6 +170,12 @@ const rejectVerification = asyncHandler(async (req, res, next) => {
   });
 
   await logAdminAction(req.user, 'Rejected Verification', 'verification', id, `Rejected: ${reason}`, req);
+  try {
+    const student = await db('users').where({ id: verif.user_id }).first();
+    await emailService.sendVerificationDecisionEmail(student, 'rejected', reason, req);
+  } catch (emailErr) {
+    console.error('[VERIFICATION EMAIL] Rejection notification failed:', emailErr.message);
+  }
 
   res.status(200).json({
     status: 'success',
