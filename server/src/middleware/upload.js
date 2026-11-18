@@ -5,9 +5,10 @@ const AppError = require('../utils/AppError');
 // Memory storage for direct pipeline processing through Sharp and Cloudinary
 const storage = multer.memoryStorage();
 
-const ALLOWED_EXTENSIONS = new Set(['.jpeg', '.jpg', '.png', '.webp', '.gif', '.mp4', '.webm', '.mov']);
+const ALLOWED_EXTENSIONS = new Set(['.jpeg', '.jpg', '.png', '.webp', '.gif', '.mp4', '.webm', '.mov', '.pdf']);
 const ALLOWED_IMAGE_MIMES = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']);
 const ALLOWED_VIDEO_MIMES = new Set(['video/mp4', 'video/webm', 'video/quicktime', 'video/x-m4v']);
+const ALLOWED_DOCUMENT_MIMES = new Set(['application/pdf']);
 
 const fileFilter = (req, file, cb) => {
   const originalName = file.originalname || '';
@@ -32,14 +33,14 @@ const fileFilter = (req, file, cb) => {
 
   // Verify extension is in whitelist
   if (!ALLOWED_EXTENSIONS.has(ext)) {
-    return cb(new AppError(`Invalid file extension "${ext}". Allowed: JPEG, JPG, PNG, WEBP, GIF, MP4, WEBM, MOV.`, 400));
+    return cb(new AppError(`Invalid file extension "${ext}". Allowed: JPEG, JPG, PNG, WEBP, GIF, MP4, WEBM, MOV, PDF (studyload verification only).`, 400));
   }
 
   // Verify MIME is in whitelist
   const isAllowedImage = ALLOWED_IMAGE_MIMES.has(mime);
   const isAllowedVideo = ALLOWED_VIDEO_MIMES.has(mime);
-
-  if (!isAllowedImage && !isAllowedVideo) {
+  const isAllowedDocument = ALLOWED_DOCUMENT_MIMES.has(mime) && ext === '.pdf';
+  if (!isAllowedImage && !isAllowedVideo && !isAllowedDocument) {
     return cb(new AppError(`Invalid file MIME type "${mime}".`, 400));
   }
 
