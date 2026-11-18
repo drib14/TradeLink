@@ -418,7 +418,7 @@ async function sendPasswordResetRejectedEmail(toEmail, userName = 'Student', rea
  * Sends a password reset code directly to an admin
  */
 async function sendAdminPasswordResetEmail(toEmail, code, req = null) {
-  const adminUrl = getAdminBaseUrl(req);
+  const adminUrl = getAdminBaseUrl();
   const subject = `[TradeLink] Administrator Password Reset - Code: ${code}`;
   const text = `TradeLink Administration Portal\n\nYour administrator password reset verification code is: ${code}\n\nThis code will expire in 30 minutes.\n\nOpen Administration Portal:\n${adminUrl}\n\nIf you did not request this, your account may be compromised. Please secure your account immediately.\n\nTradeLink Administration`;
 
@@ -856,7 +856,7 @@ async function sendAdminVerificationSubmittedEmail(admin, student, verification,
     subject: '[TradeLink Admin] Student verification requires review',
     headline: 'New student verification request',
     message: `${student?.name || 'A student'} submitted student verification credentials. Please review the request in the administrator portal. Do not approve based on this email alone.`,
-    ctaLabel: 'Review Verification', ctaUrl: `${adminUrl}/verifications`, req,
+    ctaLabel: 'Open Admin Review Queue', ctaUrl: adminUrl, req,
     details: [
       { label: 'Student', value: student?.name || 'Student' },
       { label: 'Campus', value: student?.campus || 'Not specified' },
