@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Upload, X, Video, Film, Loader2, CheckCircle2 } from 'lucide-react';
+import { Upload, X, Film, Loader2, CheckCircle2 } from 'lucide-react';
 import { useToast } from './Toast';
 import { uploadFile } from '../../services/api';
 
