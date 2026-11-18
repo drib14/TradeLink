@@ -23,7 +23,8 @@ interface AuthContextType {
     idPhotoUrl: string,
     selfiePhotoUrl?: string,
     sessionToken?: string,
-    telemetry?: any
+    telemetry?: any,
+    enrollmentProofUrl?: string
   ) => Promise<any>;
   refreshCurrentUser: () => Promise<void>;
   scanStudentId: (idPhotoUrl: string, studentId?: string) => Promise<any>;
@@ -205,10 +206,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       idPhotoUrl: string,
       selfiePhotoUrl?: string,
       sessionToken?: string,
-      telemetry?: any
+      telemetry?: any,
+      enrollmentProofUrl?: string
     ) => {
       const cleanId = studentIdNumber.replace(/\D/g, '');
-      const res = await usersService.submitIdVerification(cleanId, idPhotoUrl, selfiePhotoUrl, sessionToken, telemetry);
+      const res = await usersService.submitIdVerification(cleanId, idPhotoUrl, selfiePhotoUrl, sessionToken, telemetry, enrollmentProofUrl);
 
     const isAutoApproved = Boolean(res?.autoApproved || res?.data?.autoApproved);
 
