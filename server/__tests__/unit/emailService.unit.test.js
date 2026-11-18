@@ -89,6 +89,10 @@ describe('Unit Test: Email Service & Dynamic Live URL Resolution', () => {
       const swap = await emailService.sendSwapProposalEmail(student, admin, { target_title: 'Calculator', offered_item_title: 'Textbook' });
       const swapResponse = await emailService.sendSwapResponseEmail(student, admin, { target_title: 'Calculator' }, 'accepted');
       const flash = await emailService.sendFlashOfferEmail(student, admin, { item_name: 'Calculator', target_campus: 'UC Main' });
+      const passwordChanged = await emailService.sendPasswordChangedEmail(student);
+      const review = await emailService.sendReviewReceivedEmail(student, admin, { id: 'listing-test', title: 'Calculator' }, 5);
+      expect(passwordChanged.ok).toBe(true);
+      expect(review.ok).toBe(true);
       expect(welcome.ok).toBe(true);
       expect(swap.ok).toBe(true);
       expect(swapResponse.ok).toBe(true);
