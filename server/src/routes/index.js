@@ -51,6 +51,9 @@ router.post('/upload', authenticate, checkUploadQuota, uploadLimiter, upload.arr
   }
 
   const folder = req.body.folder || req.query.folder || 'listings';
+  const hasPdf = uploadedFiles.some((file) => file.mimetype === 'application/pdf');
+  if (hasPdf && (folder !== 'studyloads' || uploadedFiles.some((file) => file.mimetype !== 'application/pdf'))) return next(new AppError('PDF files are accepted only for student studyload verification.', 400));
+  if (folder === 'studyloads' && uploadedFiles.some((file) => file.mimetype !== 'application/pdf')) return next(new AppError('Studyload verification accepts PDF documents only.', 400));
   const uploadResults = await Promise.all(
     uploadedFiles.map((f) =>
       storageService.uploadBuffer(f.buffer, f.originalname, f.mimetype, folder)
