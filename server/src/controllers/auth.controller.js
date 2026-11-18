@@ -510,9 +510,11 @@ const resetPassword = asyncHandler(async (req, res, next) => {
     .update({ status: 'completed' })
     .catch(() => {});
 
-  emailService.sendPasswordChangedEmail(user, req).catch((emailErr) => {
+  try {
+    await emailService.sendPasswordChangedEmail(user, req);
+  } catch (emailErr) {
     console.error('[AUTH EMAIL] Password reset security notification failed:', emailErr.message);
-  });
+  }
 
   res.status(200).json({
     status: 'success',
@@ -558,9 +560,11 @@ const changePassword = asyncHandler(async (req, res, next) => {
     details: { reason: 'User initiated password change' },
     req
   });
-  emailService.sendPasswordChangedEmail(user, req).catch((emailErr) => {
+  try {
+    await emailService.sendPasswordChangedEmail(user, req);
+  } catch (emailErr) {
     console.error('[AUTH EMAIL] Password change security notification failed:', emailErr.message);
-  });
+  }
 
   res.status(200).json({
     status: 'success',
