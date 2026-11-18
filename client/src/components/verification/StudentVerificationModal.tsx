@@ -437,8 +437,8 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
       setStep('submitted');
       showToast('Studyload Submitted', 'Your studyload is queued for manual campus review. Your account remains unverified until approval.', 'success');
       onSuccess?.();
-    } catch (error: any) {
-      showToast('Submission Failed', error?.message || 'Could not submit your studyload.', 'error');
+    } catch (error: unknown) {
+      showToast('Submission Failed', error instanceof Error ? error.message : 'Could not submit your studyload.', 'error');
     } finally { setIsSubmitting(false); }
   };
 
@@ -811,7 +811,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
                   if (file.size > 10 * 1024 * 1024) { showToast('File Too Large', 'Studyload PDF must be 10MB or smaller.', 'warning'); event.currentTarget.value = ''; return; }
                   setIsUploadingStudyload(true); setStudyloadProgress(0); setStudyloadPhotoUrl('');
                   try { const uploaded = await uploadFile(file, 'studyloads', setStudyloadProgress); setStudyloadPhotoUrl(uploaded.url); showToast('Studyload Uploaded', 'Your PDF is uploaded and ready to submit.', 'success'); }
-                  catch (error: any) { showToast('Upload Failed', error?.message || 'Could not upload studyload PDF.', 'error'); }
+                  catch (error: unknown) { showToast('Upload Failed', error instanceof Error ? error.message : 'Could not upload studyload PDF.', 'error'); }
                   finally { setIsUploadingStudyload(false); }
                 }} />
               </label>
