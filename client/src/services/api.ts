@@ -370,36 +370,37 @@ export const api = {
 // Upload helper (multipart/form-data, streamed to Cloudinary / storage service)
 export async function uploadFile(
   file: File,
-  folder: 'listings' | 'avatars' | 'id-photos' | 'chat' = 'listings'
+  folder: 'listings' | 'avatars' | 'id-photos' | 'chat' | 'studyloads' = 'listings',
+  onProgress?: (percentage: number) => void
 ): Promise<{ url: string; key?: string; filename: string; size?: number; storage?: string }> {
   const formData = new FormData();
-  formData.append('image', file);
   formData.append('folder', folder);
-
+  formData.append('image', file);
   const headers: Record<string, string> = {};
-  if (accessToken) {
-    headers['Authorization'] = `Bearer ${accessToken}`;
-  }
-
+  if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
   const xsrfToken = getCsrfToken();
   if (xsrfToken) {
     headers['X-XSRF-TOKEN'] = xsrfToken;
     headers['X-CSRF-Token'] = xsrfToken;
   }
-
-  const res = await fetch(`${API_BASE_URL}/upload`, {
-    method: 'POST',
-    headers,
-    body: formData,
-    credentials: 'include'
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${API_BASE_URL}/upload`);
+    xhr.withCredentials = true;
+    Object.entries(headers).forEach(([key, value]) => xhr.setRequestHeader(key, value));
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) onProgress?.(Math.min(99, Math.round(event.loaded / event.total * 100)));
+    };
+    xhr.onload = () => {
+      let json: any = {};
+      try { json = JSON.parse(xhr.responseText || '{}'); } catch {}
+      if (xhr.status >= 200 && xhr.status < 300) { onProgress?.(100); resolve(json.data); }
+      else reject({ status: 'error', message: json.message || 'Upload failed. Please try again.', statusCode: xhr.status });
+    };
+    xhr.onerror = () => reject({ status: 'error', message: 'Network error while uploading. Please check your connection.', statusCode: 0 });
+    xhr.onabort = () => reject({ status: 'error', message: 'Upload was cancelled.', statusCode: 0 });
+    xhr.send(formData);
   });
-
-  const json = await res.json();
-  if (!res.ok) {
-    throw { status: 'error', message: json.message || 'Upload failed', statusCode: res.status };
-  }
-
-  return json.data;
 }
 
 export type { ApiResponse, ApiError };
