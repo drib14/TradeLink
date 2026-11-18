@@ -21,6 +21,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../common/Toast';
 import { Modal } from '../common/Modal';
 import { detectLiveFace, compareIdAndSelfie } from '../../services/faceVerification.service';
+import { uploadFile } from '../../services/api';
 
 interface StudentVerificationModalProps {
   isOpen: boolean;
@@ -29,7 +30,7 @@ interface StudentVerificationModalProps {
   onOpenAuth?: () => void;
 }
 
-type Step = 'id_upload' | 'live_selfie' | 'review' | 'status_view' | 'submitted';
+type Step = 'id_upload' | 'live_selfie' | 'studyload_fallback' | 'review' | 'status_view' | 'submitted';
 
 interface OcrDiagnostic {
   configured: boolean;
@@ -55,6 +56,15 @@ interface BiometricDiagnostic {
 /**
  * Compresses an image file client-side using an offscreen canvas to keep uploads snappy (<300KB)
  */
+function dataUrlToFile(dataUrl: string, filename: string): File {
+  const [header, encoded] = dataUrl.split(',');
+  const mime = header.match(/data:([^;]+)/)?.[1] || 'image/jpeg';
+  const binary = atob(encoded);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new File([bytes], filename, { type: mime });
+}
+
 function compressImage(file: File, maxDimension = 1400, quality = 0.85): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -128,6 +138,16 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
   const [liveFaceStatus, setLiveFaceStatus] = useState<string>('Align your face within the guide');
   const [isFaceReady, setIsFaceReady] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStage, setUploadStage] = useState('');
+  const [uploadComplete, setUploadComplete] = useState(false);
+  const [isUploadingSelfie, setIsUploadingSelfie] = useState(false);
+  const [allowStudyloadFallback, setAllowStudyloadFallback] = useState(false);
+  const [studyloadPhotoUrl, setStudyloadPhotoUrl] = useState('');
+  const [studyloadProgress, setStudyloadProgress] = useState(0);
+  const [isUploadingStudyload, setIsUploadingStudyload] = useState(false);
+  const [usedStudyloadFallback, setUsedStudyloadFallback] = useState(false);
+  const [serverVerificationMethod, setServerVerificationMethod] = useState<string | null>(null);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -151,6 +171,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
     setCameraError(null);
     if (!navigator.mediaDevices?.getUserMedia) {
       setCameraError('Your browser does not support camera access. Use a modern browser on HTTPS.');
+      setAllowStudyloadFallback(true);
       return;
     }
     try {
@@ -190,11 +211,8 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
         streamRef.current = null;
       }
     } catch (error: any) {
-      setCameraError(
-        error?.name === 'NotAllowedError'
-          ? 'Camera permission was denied. Allow camera access in your browser settings to continue.'
-          : 'TradeLink could not access your camera. Ensure no other app is using it and try again.'
-      );
+      setCameraError(error?.name === 'NotAllowedError' ? 'Camera permission was denied. You can retry camera access or use your studyload for manual review.' : 'TradeLink could not access your camera. You can retry or use your studyload for manual review.');
+      setAllowStudyloadFallback(true);
     }
   }, [stopCamera]);
 
@@ -210,6 +228,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
       .then((data) => {
         if (data?.status) {
           setServerStatus(data.status);
+          setServerVerificationMethod(data.verificationMethod || null);
           setRejectionReason(data.rejectionReason || null);
           if (data.status === 'pending' || data.status === 'approved') {
             setStep('status_view');
@@ -236,7 +255,11 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
           setChallengeInstruction(session?.challengeAction?.instruction || 'Look directly at the camera');
           setChallengeColor(session?.flashColor || '#FFC72C');
         })
-        .catch(() => setSessionToken(''));
+        .catch(() => {
+          setSessionToken('');
+          setCameraError('TradeLink could not create a secure live-verification session. Retry or submit your studyload for manual review.');
+          setAllowStudyloadFallback(true);
+        });
       startCamera();
     } else {
       stopCamera();
@@ -246,33 +269,38 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
 
   // Handle ID Card file selection & instant OCR scan
   const handleIdCardFileSelect = async (file: File) => {
+    if (file.size > 10 * 1024 * 1024) {
+      showToast('File Too Large', 'Student ID photo must be 10MB or smaller.', 'warning');
+      return;
+    }
     if (!file.type.startsWith('image/')) {
       showToast('Invalid File Type', 'Please upload an image file (JPEG, PNG, or WebP).', 'warning');
       return;
     }
     try {
       setIsScanningId(true);
+      setUploadProgress(0);
+      setUploadStage('Uploading student ID photo');
+      setUploadComplete(false);
       setOcrResult(null);
-      const compressedDataUrl = await compressImage(file);
-      setIdCardPhotoUrl(compressedDataUrl);
-
-      // Perform real-time OCR scan via backend
+      const uploaded = await uploadFile(file, 'id-photos', setUploadProgress);
+      setIdCardPhotoUrl(uploaded.url);
+      setUploadComplete(true);
+      setUploadStage('Upload complete. Analyzing document...');
       try {
-        const scanRes = await scanStudentId(compressedDataUrl, studentIdInput.trim());
+        const scanRes = await scanStudentId(uploaded.url, studentIdInput.trim());
         setOcrResult(scanRes);
-
-        // Autofill student ID if empty and detected by OCR
         if (!studentIdInput && scanRes.detectedStudentId) {
           setStudentIdInput(scanRes.detectedStudentId);
           showToast('ID Detected', `Autofilled Student ID: ${scanRes.detectedStudentId}`, 'info');
-        } else if (scanRes.isUcDocument) {
-          showToast('Document Recognized', 'University of Cebu credentials detected.', 'success');
-        }
+        } else if (scanRes.isUcDocument) showToast('Document Recognized', 'University of Cebu credentials detected.', 'success');
       } catch (scanErr: any) {
         console.warn('[StudentVerificationModal] OCR scan warning:', scanErr.message);
       }
     } catch (err: any) {
-      showToast('Image Processing Error', err?.message || 'Could not process ID image.', 'error');
+      setIdCardPhotoUrl('');
+      setUploadComplete(false);
+      showToast('Upload Failed', err?.message || 'Could not upload ID image.', 'error');
     } finally {
       setIsScanningId(false);
     }
@@ -297,24 +325,34 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
     context.scale(-1, 1);
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
     const capturedSelfie = canvas.toDataURL('image/jpeg', 0.88);
-    setSelfiePhotoUrl(capturedSelfie);
     stopCamera();
-
-    // Trigger biometric facial match analysis between ID card and live selfie
-    setIsComparingBiometrics(true);
-    setStep('review');
+    setIsUploadingSelfie(true);
+    setUploadProgress(0);
+    setUploadStage('Uploading live selfie');
+    setUploadComplete(false);
     try {
-      if (idCardPhotoUrl) {
-        const bio = await compareIdAndSelfie(idCardPhotoUrl, capturedSelfie);
-        setBiometricResult(bio);
+      const uploaded = await uploadFile(dataUrlToFile(capturedSelfie, 'live-selfie.jpg'), 'id-photos', setUploadProgress);
+      setUploadComplete(true);
+      setSelfiePhotoUrl(uploaded.url);
+      setIsComparingBiometrics(true);
+      setStep('review');
+      try {
+        if (idCardPhotoUrl) setBiometricResult(await compareIdAndSelfie(idCardPhotoUrl, uploaded.url));
+      } catch (err) {
+        console.warn('Facial comparison notice:', err);
+        setAllowStudyloadFallback(true);
+      } finally {
+        setIsComparingBiometrics(false);
       }
-    } catch (err) {
-      console.warn('Facial comparison notice:', err);
+      showToast('Selfie Uploaded', 'Your live selfie is ready for review.', 'success');
+    } catch (err: any) {
+      setAllowStudyloadFallback(true);
+      setCameraError(err?.message || 'Live selfie upload failed. Retry or use a studyload for manual review.');
+      setStep('live_selfie');
+      showToast('Selfie Upload Failed', err?.message || 'Could not upload your live selfie.', 'error');
     } finally {
-      setIsComparingBiometrics(false);
+      setIsUploadingSelfie(false);
     }
-
-    showToast('Selfie Captured', 'Review your ID card and selfie before submitting.', 'success');
   };
 
   const handleSubmitVerification = async () => {
@@ -334,7 +372,9 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
       return;
     }
     if (!sessionToken) {
-      showToast('Session Expired', 'Please recapture your selfie to generate a new live session.', 'warning');
+      setAllowStudyloadFallback(true);
+      setCameraError('Your secure live-verification session is unavailable or expired. Retry or use a studyload for manual review.');
+      showToast('Session Expired', 'Please retry live verification or use the studyload alternative.', 'warning');
       setSelfiePhotoUrl('');
       setStep('live_selfie');
       return;
@@ -358,6 +398,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
       );
 
       const isAutoApproved = Boolean(response?.autoApproved || response?.data?.autoApproved);
+      setServerVerificationMethod('live_selfie');
       setServerStatus(isAutoApproved ? 'approved' : 'pending');
       setStep('submitted');
       showToast(
@@ -369,10 +410,31 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
       );
       onSuccess?.();
     } catch (error: any) {
-      showToast('Submission Failed', error?.message || 'Could not submit verification. Please try again.', 'error');
+      const message = error?.message || 'Could not submit verification. Please try again.';
+      if (/session|liveness|live verification/i.test(message)) { setAllowStudyloadFallback(true); setCameraError(message); setStep('live_selfie'); }
+      showToast('Submission Failed', message, 'error');
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleSubmitStudyloadVerification = async () => {
+    if (!studentIdInput.trim() || !idCardPhotoUrl || !studyloadPhotoUrl) {
+      showToast('Missing Documents', 'Upload your student ID photo and studyload PDF before submitting.', 'warning');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await submitIdVerification(studentIdInput.trim(), idCardPhotoUrl, undefined, undefined, { verificationMethod: 'studyload_manual_kyc', clientTimestamp: Date.now() }, studyloadPhotoUrl);
+      setUsedStudyloadFallback(true);
+      setServerVerificationMethod('studyload_manual_kyc');
+      setServerStatus('pending');
+      setStep('submitted');
+      showToast('Studyload Submitted', 'Your studyload is queued for manual campus review. Your account remains unverified until approval.', 'success');
+      onSuccess?.();
+    } catch (error: any) {
+      showToast('Submission Failed', error?.message || 'Could not submit your studyload.', 'error');
+    } finally { setIsSubmitting(false); }
   };
 
   return (
@@ -459,6 +521,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
                     if (file) handleIdCardFileSelect(file);
                   }}
                 />
+                {isScanningId && <div style={{ padding: '0.65rem 0.75rem', borderRadius: '9px', background: '#EFF6FF', border: '1px solid #BFDBFE', color: '#1E3A8A', fontSize: '0.78rem' }}><div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}><strong>{uploadStage}</strong><strong>{uploadProgress}%</strong></div><div style={{ height: '7px', borderRadius: '99px', background: '#DBEAFE', overflow: 'hidden' }}><div style={{ width: `${uploadProgress}%`, height: '100%', background: uploadComplete ? '#059669' : '#2563EB' }} /></div>{uploadComplete && <div style={{ color: '#059669', marginTop: '0.4rem', fontWeight: 700 }}>✓ Upload successful</div>}</div>}
 
                 {!idCardPhotoUrl ? (
                   <div
@@ -641,9 +704,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
                     <strong>Camera Access Required</strong>
                   </div>
                   <p style={{ margin: 0, fontSize: '0.82rem', lineHeight: 1.5 }}>{cameraError}</p>
-                  <button type="button" onClick={startCamera} className="btn-primary" style={{ padding: '0.6rem 1rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', alignSelf: 'flex-start' }}>
-                    <RefreshCw size={15} /> Retry Camera
-                  </button>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.55rem' }}><button type="button" onClick={startCamera} className="btn-primary" style={{ padding: '0.6rem 1rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}><RefreshCw size={15} /> Retry Camera</button>{allowStudyloadFallback && <button type="button" onClick={() => setStep('studyload_fallback')} className="btn-secondary" style={{ padding: '0.6rem 1rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}><FileText size={15} /> Use Studyload Instead</button>}</div>
                 </div>
               ) : (
                 <div style={{ position: 'relative', width: '100%', maxWidth: '440px', margin: '0 auto', aspectRatio: '4 / 3', overflow: 'hidden', borderRadius: '14px', background: '#0F172A', border: '2px solid var(--border-subtle, #CBD5E1)' }}>
@@ -703,6 +764,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
                 </div>
               )}
 
+              {isUploadingSelfie && <div style={{ padding: '0.7rem', borderRadius: '9px', background: '#EFF6FF', border: '1px solid #BFDBFE', color: '#1E3A8A', fontSize: '0.78rem' }}><div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}><strong>{uploadStage}</strong><strong>{uploadProgress}%</strong></div><div style={{ height: '7px', borderRadius: '99px', background: '#DBEAFE', overflow: 'hidden' }}><div style={{ width: `${uploadProgress}%`, height: '100%', background: uploadComplete ? '#059669' : '#2563EB' }} /></div>{uploadComplete && <div style={{ color: '#059669', marginTop: '0.4rem', fontWeight: 700 }}>✓ Upload successful</div>}</div>}
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.6rem', marginTop: '0.4rem' }}>
                 <button
                   type="button"
@@ -731,6 +793,25 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
                   <Camera size={17} /> Capture Live Selfie
                 </button>
               </div>
+            </div>
+          )}
+
+          {step === 'studyload_fallback' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+              <div style={{ padding: '0.85rem', borderRadius: '10px', background: '#FFFBEB', border: '1px solid #FDE68A', color: '#92400E', fontSize: '0.8rem', lineHeight: 1.5 }}><strong>Alternative student verification</strong><p style={{ margin: '0.35rem 0 0' }}>Live selfie verification is unavailable. You may submit your current UC studyload (PDF) for manual campus review. This does not automatically verify your account.</p></div>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>Studyload PDF
+                <input type="file" accept="application/pdf,.pdf" disabled={isUploadingStudyload} onChange={async (event) => {
+                  const file = event.target.files?.[0]; if (!file) return;
+                  if (file.type !== 'application/pdf' || !file.name.toLowerCase().endsWith('.pdf')) { showToast('Invalid Document', 'Please select a PDF copy of your current studyload.', 'warning'); event.currentTarget.value = ''; return; }
+                  if (file.size > 10 * 1024 * 1024) { showToast('File Too Large', 'Studyload PDF must be 10MB or smaller.', 'warning'); event.currentTarget.value = ''; return; }
+                  setIsUploadingStudyload(true); setStudyloadProgress(0); setStudyloadPhotoUrl('');
+                  try { const uploaded = await uploadFile(file, 'studyloads', setStudyloadProgress); setStudyloadPhotoUrl(uploaded.url); showToast('Studyload Uploaded', 'Your PDF is uploaded and ready to submit.', 'success'); }
+                  catch (error: any) { showToast('Upload Failed', error?.message || 'Could not upload studyload PDF.', 'error'); }
+                  finally { setIsUploadingStudyload(false); }
+                }} />
+              </label>
+              {(isUploadingStudyload || studyloadPhotoUrl) && <div style={{ padding: '0.7rem', borderRadius: '9px', background: '#F8FAFC', border: '1px solid #E2E8F0', fontSize: '0.78rem' }}><div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}><strong>{studyloadPhotoUrl ? 'Studyload upload complete' : 'Uploading studyload...'}</strong><strong>{studyloadProgress}%</strong></div><div style={{ height: '7px', borderRadius: '99px', background: '#E2E8F0', overflow: 'hidden' }}><div style={{ width: `${studyloadProgress}%`, height: '100%', background: studyloadPhotoUrl ? '#059669' : '#2563EB' }} /></div>{studyloadPhotoUrl && <div style={{ color: '#059669', marginTop: '0.45rem', fontWeight: 700 }}>✓ PDF uploaded successfully</div>}</div>}
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.6rem' }}><button type="button" className="btn-secondary" onClick={() => setStep('live_selfie')} style={{ padding: '0.65rem 1rem' }}>Back to Live Selfie</button><button type="button" className="btn-primary" disabled={!studyloadPhotoUrl || isUploadingStudyload || isSubmitting || !idCardPhotoUrl} onClick={handleSubmitStudyloadVerification} style={{ padding: '0.65rem 1rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>{isSubmitting ? <><Loader2 size={15} className="animate-spin" /> Submitting...</> : <>Submit for Manual Review <ArrowRight size={15} /></>}</button></div>
             </div>
           )}
 
@@ -832,6 +913,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.6rem' }}>
+                {allowStudyloadFallback && <button type="button" onClick={() => setStep('studyload_fallback')} className="btn-secondary" style={{ padding: '0.65rem 0.8rem' }}><FileText size={14} /> Use Studyload</button>}
                 <button
                   type="button"
                   onClick={() => {
@@ -885,7 +967,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
                 <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.84rem', lineHeight: 1.5, maxWidth: '440px' }}>
                   {serverStatus === 'approved'
                     ? 'Your University of Cebu student badge is fully activated.'
-                    : 'Your student ID card and biometric selfie have been analyzed and queued for authorized campus administrator review.'}
+                    : (usedStudyloadFallback || serverVerificationMethod === 'studyload_manual_kyc') ? 'Your student ID and studyload PDF are queued for manual campus review. Your account remains unverified until an administrator approves it.' : 'Your student ID card and biometric selfie have been analyzed and queued for authorized campus administrator review.'}
                 </p>
               </div>
 
