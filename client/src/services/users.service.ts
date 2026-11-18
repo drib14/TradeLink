@@ -28,6 +28,7 @@ export const usersService = {
     reviewedAt: string | null;
     idPhotoUrl: string | null;
     selfiePhotoUrl: string | null;
+    verificationMethod?: string | null;
   }> {
     const res = await api.get<any>('/users/me/verification-status');
     return res.data;
@@ -60,7 +61,8 @@ export const usersService = {
     idPhotoUrl: string,
     selfiePhotoUrl?: string,
     sessionToken?: string,
-    telemetry?: any
+    telemetry?: any,
+    enrollmentProofUrl?: string
   ): Promise<any> {
     const res = await api.post<any>('/users/me/verify-id', {
       studentIdNumber,
@@ -68,7 +70,8 @@ export const usersService = {
       idCardImageUrl: idPhotoUrl,
       selfiePhotoUrl,
       sessionToken,
-      telemetry
+      telemetry,
+      enrollmentProofUrl
     });
     return res;
   },
