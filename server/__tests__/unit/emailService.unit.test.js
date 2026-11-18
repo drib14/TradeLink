@@ -57,6 +57,45 @@ describe('Unit Test: Email Service & Dynamic Live URL Resolution', () => {
     });
   });
 
+  describe('Marketplace Event Notification Email Dispatchers', () => {
+    const student = { name: 'Juan Dela Cruz', email: 'juan@uc.edu.ph', campus: 'UC Main' };
+    const admin = { name: 'Campus Admin', email: 'admin@uc.edu.ph' };
+    const verification = { status: 'pending', method: 'studyload_manual_kyc' };
+
+    it('should send a private new-message notification without message content', async () => {
+      const result = await emailService.sendChatMessageNotificationEmail(student, { name: 'Maria Santos' }, 'conversation-test');
+      expect(result.ok).toBe(true);
+    });
+
+    it('should notify the student when verification is submitted', async () => {
+      const result = await emailService.sendVerificationSubmittedEmail(student, verification);
+      expect(result.ok).toBe(true);
+    });
+
+    it('should notify administrators about pending verification review', async () => {
+      const result = await emailService.sendAdminVerificationSubmittedEmail(admin, student, verification);
+      expect(result.ok).toBe(true);
+    });
+
+    it('should notify students of verification decisions', async () => {
+      const approved = await emailService.sendVerificationDecisionEmail(student, 'approved');
+      const rejected = await emailService.sendVerificationDecisionEmail(student, 'rejected', 'Please upload a clearer document.');
+      expect(approved.ok).toBe(true);
+      expect(rejected.ok).toBe(true);
+    });
+
+    it('should send welcome, swap, and Flash Market event notifications', async () => {
+      const welcome = await emailService.sendWelcomeEmail(student);
+      const swap = await emailService.sendSwapProposalEmail(student, admin, { target_title: 'Calculator', offered_item_title: 'Textbook' });
+      const swapResponse = await emailService.sendSwapResponseEmail(student, admin, { target_title: 'Calculator' }, 'accepted');
+      const flash = await emailService.sendFlashOfferEmail(student, admin, { item_name: 'Calculator', target_campus: 'UC Main' });
+      expect(welcome.ok).toBe(true);
+      expect(swap.ok).toBe(true);
+      expect(swapResponse.ok).toBe(true);
+      expect(flash.ok).toBe(true);
+    });
+  });
+
   describe('Transaction Notification Email Dispatchers', () => {
     const mockBuyer = { name: 'Juan Dela Cruz', email: 'juan@uc.edu.ph' };
     const mockSeller = { name: 'Maria Santos', email: 'maria@uc.edu.ph' };
