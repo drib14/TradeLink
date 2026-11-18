@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Upload, X, Video, Film, Loader2 } from 'lucide-react';
+import { Upload, X, Video, Film, Loader2, CheckCircle2 } from 'lucide-react';
 import { useToast } from './Toast';
 import { uploadFile } from '../../services/api';
 
@@ -116,6 +116,8 @@ export const DragDropUpload: React.FC<DragDropUploadProps> = ({
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadComplete, setUploadComplete] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { showToast } = useToast();
 
@@ -161,6 +163,8 @@ export const DragDropUpload: React.FC<DragDropUploadProps> = ({
     const filesToProcess = validFiles.slice(0, remainingSlots);
     const newItems: string[] = [];
     setIsUploading(true);
+    setUploadProgress(0);
+    setUploadComplete(false);
 
     try {
       for (const file of filesToProcess) {
@@ -175,7 +179,7 @@ export const DragDropUpload: React.FC<DragDropUploadProps> = ({
 
         // 1. Try uploading to server endpoint directly
         try {
-          const uploadRes = await uploadFile(fileToUpload, 'listings');
+          const uploadRes = await uploadFile(fileToUpload, 'listings', setUploadProgress);
           if (uploadRes && uploadRes.url) {
             newItems.push(uploadRes.url);
             continue;
@@ -208,6 +212,8 @@ export const DragDropUpload: React.FC<DragDropUploadProps> = ({
       }
 
       if (newItems.length > 0) {
+        setUploadProgress(100);
+        setUploadComplete(true);
         if (isMultiple) {
           onChange([...images, ...newItems]);
         } else {
@@ -305,17 +311,18 @@ export const DragDropUpload: React.FC<DragDropUploadProps> = ({
             transform: isDragging ? 'scale(1.1)' : 'scale(1)'
           }}
         >
-          {isUploading ? <Loader2 size={20} className="animate-spin" /> : <Upload size={20} />}
+          {isUploading ? <Loader2 size={20} className="animate-spin" /> : uploadComplete ? <CheckCircle2 size={20} color="#059669" /> : <Upload size={20} />}
         </div>
 
         <div>
           <p style={{ fontSize: '0.84rem', fontWeight: 700, color: '#002B7F' }}>
-            {isUploading ? 'Optimizing & uploading media...' : isDragging ? 'Drop media files here' : helperText}
+            {isUploading ? `Uploading media... ${uploadProgress}%` : uploadComplete ? 'Upload complete — ready to preview' : isDragging ? 'Drop media files here' : helperText}
           </p>
           <p style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '2px' }}>
             Supports JPG, PNG, WEBP & MP4, WEBM, MOV videos up to 15MB
           </p>
         </div>
+        {isUploading && <div style={{ width: '100%', maxWidth: '280px', height: '7px', borderRadius: '99px', background: '#E2E8F0', overflow: 'hidden' }}><div style={{ width: `${uploadProgress}%`, height: '100%', background: '#059669', transition: 'width 0.15s ease' }} /></div>}
       </div>
 
       {/* Preview Grid */}
