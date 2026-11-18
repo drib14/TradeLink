@@ -145,7 +145,8 @@ const getVerificationStatus = asyncHandler(async (req, res) => {
       submittedAt: latest?.created_at || null,
       reviewedAt: latest?.reviewed_at || null,
       idPhotoUrl: latest?.id_photo_url || user?.id_photo_url || null,
-      selfiePhotoUrl: latest?.selfie_photo_url || null
+      selfiePhotoUrl: latest?.selfie_photo_url || null,
+      verificationMethod: latest?.verification_method || null
     }
   });
 });
@@ -186,13 +187,19 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
   } = req.body;
 
   const rawIdPhoto = idPhotoUrl || idCardImageUrl;
+  const isStudyloadFallback = Boolean(enrollmentProofUrl && !selfiePhotoUrl && !sessionToken);
   const secondaryProof = selfiePhotoUrl || enrollmentProofUrl || null;
 
   if (!studentIdNumber || !rawIdPhoto) {
     return next(new AppError('Student ID number and student ID card photo are required.', 400));
   }
-  if (!sessionToken) {
-    return next(new AppError('A valid live verification session is required. Please restart the selfie verification process.', 400));
+  if (!sessionToken && !isStudyloadFallback) return next(new AppError('A live selfie session or an uploaded studyload PDF is required to continue verification.', 400));
+  if (sessionToken && !selfiePhotoUrl) return next(new AppError('A live selfie is required for biometric verification.', 400));
+  if (isStudyloadFallback) {
+    try {
+      const proofUrl = new URL(enrollmentProofUrl);
+      if (proofUrl.hostname !== 'res.cloudinary.com' || !proofUrl.pathname.includes('/raw/upload/') || !proofUrl.pathname.toLowerCase().endsWith('.pdf')) return next(new AppError('Please upload a valid PDF studyload using the TradeLink upload form.', 400));
+    } catch { return next(new AppError('Invalid studyload document URL.', 400)); }
   }
 
   // Check if current user is already verified
@@ -207,7 +214,7 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
     return next(new AppError('Invalid student ID card photo format. Please upload a clear JPEG, PNG, or WebP photo.', 400));
   }
   if (secondaryProof && !isDataUrl(secondaryProof)) {
-    return next(new AppError('Invalid live selfie format. Please capture your selfie again using your device camera.', 400));
+    return next(new AppError(isStudyloadFallback ? 'Invalid studyload document URL.' : 'Invalid live selfie format. Please capture your selfie again using your device camera.', 400));
   }
 
   // Check rate limiting: max 5 verification submissions per 24 hours
@@ -302,11 +309,14 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
   let confidenceScore = 100;
   let isSuspicious = 0;
   let suspiciousReasons = null;
-  let verificationMethod = 'admin_kyc';
+  let verificationMethod = isStudyloadFallback ? 'studyload_manual_kyc' : 'admin_kyc';
   let credentialDiagnostics = {
     verifiedFormat: cleanId,
     submittedAt: new Date().toISOString(),
-    secondaryProofProvided: Boolean(resolvedSecondaryProof)
+    secondaryProofProvided: Boolean(resolvedSecondaryProof),
+    verificationMethod: isStudyloadFallback ? 'studyload_manual_kyc' : 'admin_kyc',
+    studyloadProvided: isStudyloadFallback,
+    liveSelfieRequired: !isStudyloadFallback
   };
 
   // Evaluate on the server when a signed session is supplied. Browser facial
