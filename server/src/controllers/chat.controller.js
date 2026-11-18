@@ -77,6 +77,14 @@ const getOrCreateConversation = asyncHandler(async (req, res, next) => {
         is_system_message: false,
         created_at: new Date()
       });
+
+      // Initial messages are also unread messages: send the same privacy-safe email alert.
+      try {
+        const sender = await db('users').where({ id: currentUserId }).first();
+        await emailService.sendChatMessageNotificationEmail(targetUser, sender || req.user, convId, req);
+      } catch (emailErr) {
+        console.error('[CHAT EMAIL] Initial message notification failed:', emailErr.message);
+      }
     }
   }
 
