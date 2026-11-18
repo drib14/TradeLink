@@ -2,6 +2,7 @@ const { v4: uuidv4 } = require('uuid');
 const db = require('../config/db');
 const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
+const emailService = require('../services/email.service');
 const { ensureCategoryExists } = require('./categories.controller');
 
 function escapeLike(str) {
@@ -288,6 +289,17 @@ const respondToFlashRequest = asyncHandler(async (req, res, next) => {
     created_at: new Date()
   };
   await db('messages').insert(newMsg);
+
+  // Notify the request owner by email; never include the private message body.
+  try {
+    const [requester, responder] = await Promise.all([
+      db('users').where({ id: target.requester_id }).first(),
+      db('users').where({ id: currentUserId }).first()
+    ]);
+    await emailService.sendFlashOfferEmail(requester, responder, target, req);
+  } catch (emailErr) {
+    console.error('[FLASH MARKET EMAIL] Offer notification failed:', emailErr.message);
+  }
 
   // Real-time socket broadcast
   const io = req.app.get('io');
