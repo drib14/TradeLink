@@ -539,6 +539,21 @@ const confirmHandshake = asyncHandler(async (req, res, next) => {
   } else {
     const tx = result.transaction;
     const io = req.app.get('io');
+    // Seller has verified the in-person code; notify the buyer that their confirmation is next.
+    if (req.user.id === tx.seller_id && result.sellerConfirmedAt) {
+      try {
+        const [buyer, seller, listing] = await Promise.all([
+          db('users').where({ id: tx.buyer_id }).first(),
+          db('users').where({ id: tx.seller_id }).first(),
+          db('listings').where({ id: tx.listing_id }).first()
+        ]);
+        if (buyer && seller && listing) {
+          await emailService.sendOrderStatusUpdateEmail(buyer, seller, tx, listing, 'handover_confirmed', 'The seller verified the private handover code. Please confirm receipt in TradeLink to complete this transaction.', req);
+        }
+      } catch (emailErr) {
+        console.error('[TRANSACTION EMAIL] Handover confirmation email failed:', emailErr.message);
+      }
+    }
     await syncTransactionToChat({
       listingId: tx.listing_id,
       buyerId: tx.buyer_id,
@@ -757,7 +772,24 @@ const updateTransactionStatus = asyncHandler(async (req, res, next) => {
     return next(new AppError('Unauthorized.', 403));
   }
 
-  await db('transactions').where({ id }).update({ status });
+  if (tx.status !== status) {
+    await db('transactions').where({ id }).update({ status });
+    try {
+      const [buyer, seller, listing] = await Promise.all([
+        db('users').where({ id: tx.buyer_id }).first(),
+        db('users').where({ id: tx.seller_id }).first(),
+        db('listings').where({ id: tx.listing_id }).first()
+      ]);
+      if (buyer && seller && listing) {
+        await Promise.allSettled([
+          emailService.sendOrderStatusUpdateEmail(buyer, seller, tx, listing, status, reason || '', req),
+          emailService.sendOrderStatusUpdateEmail(seller, buyer, tx, listing, status, reason || '', req)
+        ]);
+      }
+    } catch (emailErr) {
+      console.error('[TRANSACTION EMAIL] Status update email failed:', emailErr.message);
+    }
+  }
 
   res.status(200).json({
     status: 'success',
