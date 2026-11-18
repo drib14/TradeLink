@@ -283,12 +283,13 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
       setUploadStage('Uploading student ID photo');
       setUploadComplete(false);
       setOcrResult(null);
-      const uploaded = await uploadFile(file, 'id-photos', setUploadProgress);
+      const compressedDataUrl = await compressImage(file);
+      const uploaded = await uploadFile(dataUrlToFile(compressedDataUrl, file.name.replace(/\.[^.]+$/, '.jpg')), 'id-photos', setUploadProgress);
       setIdCardPhotoUrl(uploaded.url);
       setUploadComplete(true);
       setUploadStage('Upload complete. Analyzing document...');
       try {
-        const scanRes = await scanStudentId(uploaded.url, studentIdInput.trim());
+        const scanRes = await scanStudentId(compressedDataUrl, studentIdInput.trim());
         setOcrResult(scanRes);
         if (!studentIdInput && scanRes.detectedStudentId) {
           setStudentIdInput(scanRes.detectedStudentId);
@@ -337,7 +338,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
       setIsComparingBiometrics(true);
       setStep('review');
       try {
-        if (idCardPhotoUrl) setBiometricResult(await compareIdAndSelfie(idCardPhotoUrl, uploaded.url));
+        if (idCardPhotoUrl) setBiometricResult(await compareIdAndSelfie(idCardPhotoUrl, capturedSelfie));
       } catch (err) {
         console.warn('Facial comparison notice:', err);
         setAllowStudyloadFallback(true);
