@@ -30,7 +30,7 @@ export const AdminVisitorAnalytics: React.FC = () => {
   const month = selected.getMonth();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const mondayOffset = (new Date(year, month, 1).getDay() + 6) % 7;
-  const dayMap = useMemo(() => new Map((data?.daily || []).map((item) => [item.date, item.visitors])), [data]);
+  const dayMap = useMemo(() => new Map<string, number>((data?.daily || []).map((item): [string, number] => [item.date, item.visitors])), [data]);
   const maxDay = Math.max(1, ...(data?.daily || []).map((item) => item.visitors));
   const peakDay = (data?.daily || []).reduce((peak, item) => item.visitors > (peak?.visitors || 0) ? item : peak, null as VisitDay | null);
 
