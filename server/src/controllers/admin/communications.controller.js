@@ -1,4 +1,4 @@
-const { v4: uuidv4 } = require('uuid');
+
 const db = require('../../config/db');
 const AppError = require('../../utils/AppError');
 const asyncHandler = require('../../utils/asyncHandler');
@@ -145,7 +145,7 @@ const createEmailCampaign = asyncHandler(async (req, res, next) => {
   const recipients = await audienceQuery(audience, campus);
   if (!recipients.length) return next(new AppError('No eligible student email addresses were found for this audience.', 404));
 
-  const campaignId = uuidv4();
+  const campaignId = require('crypto').randomUUID();
   await db.transaction(async (trx) => {
     await trx('email_campaigns').insert({
       id: campaignId,
@@ -161,7 +161,7 @@ const createEmailCampaign = asyncHandler(async (req, res, next) => {
 
     for (let offset = 0; offset < recipients.length; offset += 200) {
       const rows = recipients.slice(offset, offset + 200).map((user) => ({
-        id: uuidv4(),
+        id: require('crypto').randomUUID(),
         campaign_id: campaignId,
         user_id: user.id,
         email: user.email,
