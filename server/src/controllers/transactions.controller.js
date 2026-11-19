@@ -266,6 +266,12 @@ const createTransaction = asyncHandler(async (req, res, next) => {
     });
   }
 
+  // Reject stale listing cards and direct API requests for sold, reserved,
+  // deleted, or otherwise unavailable inventory.
+  if (listing.status !== 'active' || Number(listing.quantity ?? 1) <= 0) {
+    return next(new AppError('This item is no longer available. The seller may have sold it or another student may have reserved it.', 409));
+  }
+
   const txId = uuidv4();
   const referenceNo = generateReferenceNo();
 
@@ -300,14 +306,39 @@ const createTransaction = asyncHandler(async (req, res, next) => {
   }
 
   const orderQuantity = Math.max(1, parseInt(req.body.quantity, 10) || (notes?.match(/Qty:\s*(\d+)/i) ? parseInt(notes.match(/Qty:\s*(\d+)/i)[1], 10) : 1));
+  if (orderQuantity > Math.max(1, Number(listing.quantity ?? 1))) {
+    return next(new AppError('The requested quantity is greater than the available stock.', 409));
+  }
+
+  // Persist quantity in the existing notes field so the handshake completion
+  // path can decrement the correct stock amount without a schema migration.
+  newTx.notes = [notes && notes.trim(), `Qty: ${orderQuantity}`].filter(Boolean).join('\\n');
 
   await db.transaction(async (trx) => {
-    await trx('transactions').insert(txInsertData);
-    // Only mark listing as reserved if this order claims all remaining units
-    const currentQty = Math.max(1, listing.quantity || 1);
-    if (orderQuantity >= currentQty) {
-      await trx('listings').where({ id: targetListingId }).update({ status: 'reserved' });
+    // Lock and re-check the authoritative row inside the same transaction.
+    // This closes the race where two buyers submit after reading the same
+    // active listing, or a seller marks it sold while checkout is in progress.
+    const lockedListing = await trx('listings')
+      .where({ id: targetListingId })
+      .forUpdate()
+      .first();
+
+    if (!lockedListing || lockedListing.status !== 'active' || Number(lockedListing.quantity ?? 1) <= 0) {
+      throw new AppError('This item is no longer available. It has been sold or reserved by another student.', 409);
     }
+
+    const availableQuantity = Math.max(1, Number(lockedListing.quantity ?? 1));
+    if (orderQuantity > availableQuantity) {
+      throw new AppError('The requested quantity is greater than the available stock.', 409);
+    }
+
+    await trx('transactions').insert(txInsertData);
+    // Reserve the listing for the pending handshake. This prevents another
+    // buyer from creating a competing order before the first deal completes
+    // or is cancelled. Completion decrements stock; cancellation reactivates it.
+    await trx('listings')
+      .where({ id: targetListingId })
+      .update({ status: 'reserved', updated_at: new Date() });
   });
 
   // Sync to chat conversation
