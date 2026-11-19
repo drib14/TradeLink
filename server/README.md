@@ -178,8 +178,10 @@ Server will start on `http://localhost:3001` with base API route at `http://loca
 - `DELETE /api/admin/flags/:id/remove` — Delete listing for policy breach
 - `GET /api/admin/disputes` — Active transaction dispute cases
 - `PATCH /api/admin/disputes/:id/resolve` — Issue verdict (refund, warning, dismissal, account ban)
-- `GET /api/admin/announcements` — Campus bulletin list
-- `POST /api/admin/announcements` — Create announcement
+- `GET /api/admin/visits` — Daily, weekly, monthly, and yearly unique visitor analytics
+- `GET /api/admin/email-campaigns/audience` — Eligible student email audience count
+- `POST /api/admin/email-campaigns` — Queue a direct email update for students
+- `POST /api/admin/email-campaigns/:id/process` — Deliver or resume a campaign in small batches
 - `GET /api/admin/audit-logs` — Administrative audit trail with IP addresses
 - `GET /api/admin/users` — Student directory with warning and ban tools
 - `PATCH /api/admin/users/:id/ban` — Suspend account
