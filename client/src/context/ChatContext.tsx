@@ -227,27 +227,69 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [isAuthenticated, currentUser, activeConvId, refreshAll]);
 
-  // 3. Fetch messages when active conversation changes
+  // 3. Fetch messages when active conversation changes. Use Socket.IO when
+  // available; Vercel Serverless deployments cannot host persistent sockets, so
+  // fall back to lightweight polling there instead of requiring manual refresh.
   useEffect(() => {
     if (!activeConvId) return;
+
+    let polling = false;
+    const mergeServerMessages = (serverMsgs: Message[]) => {
+      setMessages((prev) => {
+        const otherMsgs = prev.filter((m) => m.conversationId !== activeConvId);
+        const currentById = new Map<string, Message>(
+          prev
+            .filter((m) => m.conversationId === activeConvId)
+            .map((m): [string, Message] => [String(m.id), m])
+        );
+        for (const message of serverMsgs) {
+          currentById.set(String(message.id), message);
+        }
+        return [...otherMsgs, ...Array.from(currentById.values())];
+      });
+      const latest = serverMsgs[serverMsgs.length - 1];
+      if (latest) {
+        setConversations((prev) =>
+          prev.map((conversation) =>
+            conversation.id === activeConvId
+              ? {
+                  ...conversation,
+                  lastMessage: latest.content,
+                  lastMessageTimestamp: latest.timestamp || 'Just now',
+                  unreadCount: 0
+                }
+              : conversation
+          )
+        );
+      }
+    };
+
+    const loadMessages = async () => {
+      if (polling) return;
+      polling = true;
+      try {
+        const serverMsgs = await chatService.getMessages(activeConvId);
+        mergeServerMessages(serverMsgs || []);
+      } catch {
+        // Keep the current conversation visible during temporary network errors.
+      } finally {
+        polling = false;
+      }
+    };
 
     socketService.joinConversation(activeConvId);
     socketService.markRead(activeConvId);
     chatService.markConversationAsRead(activeConvId).catch(() => {});
+    void loadMessages();
 
-    chatService
-      .getMessages(activeConvId)
-      .then((serverMsgs) => {
-        if (serverMsgs) {
-          setMessages((prev) => {
-            const otherMsgs = prev.filter((m) => m.conversationId !== activeConvId);
-            return [...otherMsgs, ...serverMsgs];
-          });
-        }
-      })
-      .catch(() => {});
+    const pollTimer = window.setInterval(() => {
+      if (!socketService.isConnected()) {
+        void loadMessages();
+      }
+    }, 4000);
 
     return () => {
+      window.clearInterval(pollTimer);
       socketService.leaveConversation(activeConvId);
     };
   }, [activeConvId]);

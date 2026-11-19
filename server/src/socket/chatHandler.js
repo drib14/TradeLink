@@ -142,23 +142,36 @@ module.exports = (io, socket) => {
   /**
    * Typing indicator
    */
-  socket.on('chat:typing', ({ conversationId, isTyping }) => {
-    if (conversationId) {
+  socket.on('chat:typing', async ({ conversationId, isTyping } = {}) => {
+    try {
+      if (!conversationId) return;
+      const conv = await db('conversations').where({ id: conversationId }).first();
+      if (!conv || (conv.user_one_id !== userId && conv.user_two_id !== userId)) {
+        return;
+      }
+
       socket.to(`conv:${conversationId}`).emit('chat:typing', {
         conversationId,
         userId,
         userName: socket.user.name,
         isTyping: Boolean(isTyping)
       });
+    } catch (err) {
+      logger.error('Error in chat:typing handler:', err);
     }
   });
 
   /**
    * Mark messages as read
    */
-  socket.on('chat:read', async ({ conversationId }) => {
+  socket.on('chat:read', async ({ conversationId } = {}) => {
     try {
       if (!conversationId) return;
+
+      const conv = await db('conversations').where({ id: conversationId }).first();
+      if (!conv || (conv.user_one_id !== userId && conv.user_two_id !== userId)) {
+        return;
+      }
 
       await db('messages')
         .where({ conversation_id: conversationId, receiver_id: userId, is_read: false })

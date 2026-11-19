@@ -105,6 +105,9 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const filteredListings = useMemo(() => {
     return listings
       .filter((item) => {
+        // Marketplace feeds must never show fulfilled or reserved inventory.
+        // The raw list remains available to the seller's profile history.
+        if (item.isSold || item.status !== 'active') return false;
         // Campus filter
         if (selectedCampus !== 'All' && item.sellerCampus !== selectedCampus) {
           return false;

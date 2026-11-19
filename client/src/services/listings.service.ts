@@ -119,7 +119,7 @@ function mapListingFromApi(raw: any): Listing {
 
 export const listingsService = {
   async getListings(filters?: ListingsFilters): Promise<Listing[]> {
-    const res = await api.get<{ listings: any[] }>('/listings', filters as any, { skipAuth: true });
+    const res = await api.get<{ listings: any[] }>('/listings', filters as any);
     const rawListings = res.data?.listings || res.data || [];
     if (Array.isArray(rawListings)) {
       return rawListings.map(mapListingFromApi);

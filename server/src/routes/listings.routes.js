@@ -18,7 +18,7 @@ const { checkUploadQuota } = require('../middleware/uploadQuota');
 
 decodeParams.bindRouter(router);
 
-router.get('/', validate(queryListingsSchema, 'query'), listingsController.getListings);
+router.get('/', optionalAuth, validate(queryListingsSchema, 'query'), listingsController.getListings);
 router.get('/:id', validateUUID('id'), optionalAuth, listingsController.getListingById);
 router.get('/:id/reviews', validateUUID('id'), reviewsController.getListingReviews);
 router.post('/:id/reviews', validateUUID('id'), authenticate, requireStudent, reviewsController.createReview);
