@@ -45,7 +45,7 @@ module.exports = function visitorTracking(req, res, next) {
     while (recentlySeen.size > 10000) recentlySeen.delete(recentlySeen.keys().next().value);
   }
 
-  db('site_visits')
+  return db('site_visits')
     .insert({
       visitor_hash: visitorHash,
       visit_date: visitDate,
@@ -58,13 +58,13 @@ module.exports = function visitorTracking(req, res, next) {
       last_seen_at: db.fn.now(),
       last_path: path.slice(0, 200)
     })
+    .then(() => next())
     .catch((error) => {
       recentlySeen.delete(cacheKey);
       // Analytics must never make marketplace requests fail.
       if (process.env.NODE_ENV !== 'test') {
         console.warn('[VISITOR ANALYTICS] Visit write skipped:', error.message);
       }
+      return next();
     });
-
-  return next();
 };
