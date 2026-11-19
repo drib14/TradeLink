@@ -126,8 +126,8 @@ const getEmailCampaigns = asyncHandler(async (req, res) => {
 });
 
 const createEmailCampaign = asyncHandler(async (req, res, next) => {
-  const title = String(req.body.title || '').replace(/[\\r\\n]+/g, ' ').trim();
-  const subject = String(req.body.subject || '').replace(/[\\r\\n]+/g, ' ').trim();
+  const title = String(req.body.title || '').replaceAll(String.fromCharCode(10), ' ').replaceAll(String.fromCharCode(13), ' ').trim();
+  const subject = String(req.body.subject || '').replaceAll(String.fromCharCode(10), ' ').replaceAll(String.fromCharCode(13), ' ').trim();
   const message = String(req.body.message || '').trim();
   const audience = ['all', 'campus', 'verified', 'unverified'].includes(req.body.audience) ? req.body.audience : 'all';
   const campus = String(req.body.campus || '').trim();
