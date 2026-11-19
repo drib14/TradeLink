@@ -51,8 +51,7 @@ module.exports = function visitorTracking(req, res, next) {
       visit_date: visitDate,
     })
     .onConflict(['visitor_hash', 'visit_date'])
-    .merge({
-    })
+    .ignore()
     .then(() => next())
     .catch((error) => {
       recentlySeen.delete(cacheKey);
