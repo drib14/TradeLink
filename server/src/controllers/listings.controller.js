@@ -1,4 +1,4 @@
-const { v4: uuidv4 } = require('uuid');
+
 const db = require('../config/db');
 const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
@@ -55,7 +55,7 @@ async function recordUniqueView(listingId, req, listing) {
       }
 
       await db('listing_views').insert({
-        id: uuidv4(),
+        id: require('crypto').randomUUID(),
         listing_id: listingId,
         viewer_identifier: viewerIdentifier,
         created_at: new Date()
@@ -363,7 +363,7 @@ const createListing = asyncHandler(async (req, res, next) => {
     await ensureCategoryExists(category, req.user.id).catch(() => {});
   }
 
-  const listingId = uuidv4();
+  const listingId = require('crypto').randomUUID();
   const parsedQuantity = Math.max(1, parseInt(quantity, 10) || 1);
   const newListing = {
     id: listingId,
@@ -407,7 +407,7 @@ const createListing = asyncHandler(async (req, res, next) => {
         uploadedUrl.includes('/video/upload/')
       );
       return {
-        id: uuidv4(),
+        id: require('crypto').randomUUID(),
         listing_id: listingId,
         media_url: uploadedUrl,
         media_type: (isExplicitVideo || isDetectedVideo) ? 'video' : 'image',
@@ -439,7 +439,7 @@ const createListing = asyncHandler(async (req, res, next) => {
       }
 
       resolvedVariations.push({
-        id: uuidv4(),
+        id: require('crypto').randomUUID(),
         listing_id: listingId,
         title: vTitle,
         price: (v.price !== undefined && v.price !== null && !isNaN(Number(v.price))) ? parseFloat(v.price) : null,
@@ -587,7 +587,7 @@ const updateListing = asyncHandler(async (req, res, next) => {
             uploadedUrl.includes('/video/upload/')
           );
           return {
-            id: uuidv4(),
+            id: require('crypto').randomUUID(),
             listing_id: id,
             media_url: uploadedUrl,
             media_type: (isExplicitVideo || isDetectedVideo) ? 'video' : 'image',
@@ -635,7 +635,7 @@ const updateListing = asyncHandler(async (req, res, next) => {
           const qty = isNaN(rawQty) ? 1 : Math.max(0, rawQty);
 
           return {
-            id: v.id || uuidv4(),
+            id: v.id || require('crypto').randomUUID(),
             listing_id: id,
             title: vTitle,
             price: (v.price !== undefined && v.price !== null && !isNaN(Number(v.price))) ? parseFloat(v.price) : null,
@@ -843,7 +843,7 @@ const reportListing = asyncHandler(async (req, res, next) => {
   }
 
   await db('flagged_listings').insert({
-    id: uuidv4(),
+    id: require('crypto').randomUUID(),
     listing_id: id,
     reporter_id: req.user.id,
     reason: (reason || 'Inappropriate listing').trim(),

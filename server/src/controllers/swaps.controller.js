@@ -1,4 +1,4 @@
-const { v4: uuidv4 } = require('uuid');
+
 const db = require('../config/db');
 const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
@@ -39,7 +39,7 @@ async function syncSwapToChat({
       .first();
 
     if (!conv) {
-      const convId = uuidv4();
+      const convId = require('crypto').randomUUID();
       conv = {
         id: convId,
         listing_id: listingId,
@@ -56,7 +56,7 @@ async function syncSwapToChat({
       });
     }
 
-    const msgId = uuidv4();
+    const msgId = require('crypto').randomUUID();
     const newMsg = {
       id: msgId,
       conversation_id: conv.id,
@@ -200,7 +200,7 @@ const proposeSwap = asyncHandler(async (req, res, next) => {
     }
   }
 
-  const swapId = uuidv4();
+  const swapId = require('crypto').randomUUID();
   const newSwap = {
     id: swapId,
     listing_id: targetListingId,
@@ -294,7 +294,7 @@ const respondToSwap = asyncHandler(async (req, res, next) => {
     // Generate a buyer-only code for the accepted barter transaction.
     const handshakeCode = generate4DigitCode().slice(0, 4);
     const handshakeCodeHash = await hashCode(handshakeCode);
-    const txId = uuidv4();
+    const txId = require('crypto').randomUUID();
     const refNo = generateReferenceNo();
     const swapTransaction = {
       id: txId,

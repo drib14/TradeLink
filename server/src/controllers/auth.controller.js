@@ -1,6 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { v4: uuidv4 } = require('uuid');
+
 const db = require('../config/db');
 const env = require('../config/env');
 const AppError = require('../utils/AppError');
@@ -47,7 +47,7 @@ const register = asyncHandler(async (req, res, next) => {
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
-  const userId = uuidv4();
+  const userId = require('crypto').randomUUID();
   const isVerified = false;
   const trustScore = 60;
 
@@ -81,7 +81,7 @@ const register = asyncHandler(async (req, res, next) => {
   // If ID was uploaded during registration, create pending verification request.
   if (idPhotoUrl) {
     await db('verification_requests').insert({
-      id: uuidv4(),
+      id: require('crypto').randomUUID(),
       user_id: userId,
       student_id_number: studentId.trim(),
       id_photo_url: idPhotoUrl,
@@ -358,7 +358,7 @@ const forgotPassword = asyncHandler(async (req, res, next) => {
   });
 
   // Record in password_reset_requests for compliance & logging
-  const requestId = uuidv4();
+  const requestId = require('crypto').randomUUID();
   await db('password_reset_requests').insert({
     id: requestId,
     user_id: user.id,

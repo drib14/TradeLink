@@ -1,4 +1,4 @@
-const { v4: uuidv4 } = require('uuid');
+
 const db = require('../config/db');
 const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
@@ -49,7 +49,7 @@ const createCategory = asyncHandler(async (req, res, next) => {
   const nextOrder = (highestOrder?.maxOrder || 0) + 1;
 
   const newCategory = {
-    id: uuidv4(),
+    id: require('crypto').randomUUID(),
     name: rawName,
     slug,
     icon: req.body.icon || null,
@@ -92,7 +92,7 @@ async function ensureCategoryExists(rawName, userId = null) {
     const nextOrder = (highestOrder?.maxOrder || 0) + 1;
 
     const newCategory = {
-      id: uuidv4(),
+      id: require('crypto').randomUUID(),
       name: trimmed,
       slug,
       icon: null,

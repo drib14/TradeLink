@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const { v4: uuidv4 } = require('uuid');
+
 const db = require('../config/db');
 const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
@@ -303,7 +303,7 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
     .andWhere({ status: 'pending' })
     .first();
 
-  const targetVerifId = existingPending ? existingPending.id : uuidv4();
+  const targetVerifId = existingPending ? existingPending.id : require('crypto').randomUUID();
 
   // Default fallback values (Admin KYC)
   let status = 'pending';

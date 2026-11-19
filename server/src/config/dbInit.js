@@ -777,7 +777,7 @@ async function autoInitDatabase() {
       if (await db.schema.hasTable('categories')) {
         const catCount = await db('categories').count('id as count').first();
         if (Number(catCount?.count || 0) === 0) {
-          const { v4: uuidv4 } = require('uuid');
+
           const defaultCats = [
             'Electronics & Gadgets',
             'Textbooks & Reviewers',
@@ -797,7 +797,7 @@ async function autoInitDatabase() {
             const name = defaultCats[i];
             const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
             await db('categories').insert({
-              id: uuidv4(),
+              id: require('crypto').randomUUID(),
               name,
               slug: slug || 'general',
               display_order: i + 1,
