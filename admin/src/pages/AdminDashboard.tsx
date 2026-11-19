@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAdmin } from '../context/AdminContext';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import { useToast } from '../components/common/Toast';
-import { VerificationRequest, User, Listing, TradeDispute } from '../types';
+import { VerificationRequest, User, Listing, TradeDispute, Campus } from '../types';
 import {
   ShieldAlert,
   UserX,
