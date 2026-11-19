@@ -16,6 +16,7 @@ exports.seed = async function(knex) {
   }
   // Truncate tables in reverse dependency order
   const tables = [
+    'email_campaign_recipients', 'email_campaigns', 'site_visits',
     'review_badges', 'reviews', 'messages', 'conversations',
     'transactions', 'swap_offers', 'flash_requests', 'wanted_requests',
     'listing_media', 'listings', 'verification_requests', 'flagged_listings',
