@@ -160,6 +160,21 @@ function getCookie(name: string): string | null {
   return match ? decodeURIComponent(match[3]) : null;
 }
 
+// Anonymous, persistent browser identifier used only for daily unique-visitor counts.
+function getVisitorId(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    let id = localStorage.getItem('tradelink_visitor_id');
+    if (!id) {
+      id = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : 'v-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+      localStorage.setItem('tradelink_visitor_id', id);
+    }
+    return id;
+  } catch { return null; }
+}
+
 // Core request function with automatic retry for network glitches & Render cold-starts
 async function request<T = any>(
   method: HttpMethod,
@@ -183,6 +198,8 @@ async function request<T = any>(
     'Content-Type': 'application/json',
     ...customHeaders
   };
+  const visitorId = getVisitorId();
+  if (visitorId) headers['X-Visitor-Id'] = visitorId;
 
   if (!skipAuth && accessToken) {
     headers['Authorization'] = `Bearer ${accessToken}`;
