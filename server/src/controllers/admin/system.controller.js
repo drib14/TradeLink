@@ -1,4 +1,4 @@
-const { v4: uuidv4 } = require('uuid');
+
 const db = require('../../config/db');
 const AppError = require('../../utils/AppError');
 const asyncHandler = require('../../utils/asyncHandler');
@@ -281,7 +281,7 @@ const addKeyword = asyncHandler(async (req, res, next) => {
   }
 
   await db('prohibited_keywords').insert({
-    id: `kw_${uuidv4()}`,
+    id: `kw_${require('crypto').randomUUID()}`,
     keyword: trimmed,
     added_by: req.user.id
   });
