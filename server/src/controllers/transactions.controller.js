@@ -312,7 +312,8 @@ const createTransaction = asyncHandler(async (req, res, next) => {
 
   // Persist quantity in the existing notes field so the handshake completion
   // path can decrement the correct stock amount without a schema migration.
-  newTx.notes = [notes && notes.trim(), `Qty: ${orderQuantity}`].filter(Boolean).join('\\n');
+  newTx.notes = [notes && notes.trim(), `Qty: ${orderQuantity}`].filter(Boolean).join('\n');
+  txInsertData.notes = newTx.notes;
 
   await db.transaction(async (trx) => {
     // Lock and re-check the authoritative row inside the same transaction.
