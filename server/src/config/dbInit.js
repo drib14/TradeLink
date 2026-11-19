@@ -404,14 +404,18 @@ async function autoInitDatabase() {
       logger.info('[DB Init] Initialized listing_variations table.');
     }
 
-    // 1l. Ensure transactions.selected_variation and variation_id exist
-    const hasTxVarCol = await db.schema.hasColumn('transactions', 'selected_variation').catch(() => false);
-    if (!hasTxVarCol) {
+    // 1l. Ensure each optional transaction variation column independently.
+    const [hasTxVarCol, hasTxVariationIdCol] = await Promise.all([
+      db.schema.hasColumn('transactions', 'selected_variation').catch(() => false),
+      db.schema.hasColumn('transactions', 'variation_id').catch(() => false)
+    ]);
+    if (!hasTxVarCol || !hasTxVariationIdCol) {
       await db.schema.alterTable('transactions', (t) => {
-        t.string('selected_variation', 150).nullable();
-        t.string('variation_id', 36).nullable();
-      }).catch(() => {});
-      logger.info('[DB Init] Added selected_variation and variation_id to transactions table.');
+        if (!hasTxVarCol) t.string('selected_variation', 150).nullable();
+        if (!hasTxVariationIdCol) t.string('variation_id', 36).nullable();
+      }).catch((err) => {
+        logger.warn(`[DB Init] Could not ensure transaction variation columns: ${err.message}`);
+      });
     }
 
     // 1m. Ensure soft delete columns in listings and flash_requests
