@@ -9,7 +9,7 @@ const createTransactionSchema = Joi.object({
   quantity: Joi.number().integer().min(1).max(100).default(1),
   quantity: Joi.number().integer().min(1).max(100).default(1),
   finalPrice: Joi.number().min(0).max(1000000).allow(null),
-  paymentMethod: Joi.string().valid('cash', 'gcash', 'maya', 'free').default('cash'),
+  paymentMethod: Joi.string().valid('cash', 'gcash', 'maya', 'barter', 'free').default('cash'),
   swapOfferId: Joi.string().max(100).allow(null, ''),
   notes: Joi.string().max(500).allow(null, ''),
   selectedVariation: Joi.string().max(200).allow(null, ''),
