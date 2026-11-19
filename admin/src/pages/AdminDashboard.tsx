@@ -16,9 +16,7 @@ import {
   BarChart3,
   History,
   Eye,
-  Flame,
   Zap,
-  MapPin,
   BadgeCheck,
   TrendingUp,
   Plus,
@@ -28,12 +26,8 @@ import {
   Download,
   Scale,
   Award,
-  DollarSign,
   AlertCircle,
   Shield,
-  Heart,
-  ExternalLink,
-  Filter,
   Receipt,
   Edit3,
   Clock,
@@ -96,7 +90,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     flashRequests = [],
     wantedRequests = [],
     transactions = [],
-    meetups,
     analytics,
     isLoading,
     refreshAdminData,
@@ -104,14 +97,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     updateListingByAdmin,
     deleteFlashRequest,
     removeWantedByAdmin,
-    deleteWantedRequest,
     completeTransactionByAdmin,
-    cancelTransactionByAdmin,
-    completeMeetupByAdmin,
-    cancelMeetupByAdmin
+    cancelTransactionByAdmin
   } = useAdmin();
 
-  const { adminUser: currentUser, isAdminAuthenticated: isAdmin, login, logout, forgotPassword, resetPassword } = useAdminAuth();
+  const { adminUser: currentUser, isAdminAuthenticated: isAdmin, login, logout } = useAdminAuth();
   const { showToast } = useToast();
 
   const [activeTab, setActiveTab] = useState<
@@ -275,7 +265,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
 
   const pendingRequests = verificationRequests.filter((r) => r.status === 'pending');
   const pendingFlags = flaggedListings.filter((f) => f.status === 'pending');
-  const bannedUsers = allUsers.filter((u) => u.isBanned);
 
   const handleAdminGateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
