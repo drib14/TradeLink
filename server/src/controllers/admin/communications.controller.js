@@ -102,7 +102,7 @@ const getEmailAudience = asyncHandler(async (req, res) => {
   res.status(200).json({ status: 'success', data: { count: Number(row?.count) || 0 } });
 });
 
-const getEmailCampaigns = asyncHandler(async (req, res) => {
+const getEmailCampaigns = asyncHandler(async (_req, res) => {
   const campaigns = await db('email_campaigns')
     .leftJoin('users', 'email_campaigns.created_by', 'users.id')
     .select('email_campaigns.*', 'users.name as admin_name')
