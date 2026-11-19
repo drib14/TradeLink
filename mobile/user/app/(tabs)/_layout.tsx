@@ -12,24 +12,27 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#002B7F',
-        tabBarInactiveTintColor: '#94A3B8',
+        tabBarActiveTintColor: '#173F83',
+        tabBarInactiveTintColor: '#98A3B3',
+        tabBarHideOnKeyboard: true,
+        tabBarItemStyle: { paddingVertical: 3 },
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
-          borderTopColor: '#E2E8F0',
-          borderTopWidth: 1,
-          height: Platform.OS === 'ios' ? 88 : 64,
-          paddingBottom: Platform.OS === 'ios' ? 28 : 8,
+          borderTopColor: '#EDF1F6',
+          borderTopWidth: 0,
+          height: Platform.OS === 'ios' ? 88 : 66,
+          paddingBottom: Platform.OS === 'ios' ? 28 : 9,
           paddingTop: 8,
-          elevation: 8,
+          elevation: 12,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.06,
-          shadowRadius: 4,
+          shadowOpacity: 0.08,
+          shadowRadius: 8,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '700',
+          fontSize: 10,
+          fontWeight: '800',
+          letterSpacing: 0.15,
         },
       }}
     >
@@ -95,7 +98,7 @@ export default function TabLayout() {
               />
               {unreadTotal > 0 && (
                 <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{unreadTotal}</Text>
+                  <Text style={styles.badgeText}>{unreadTotal > 99 ? '99+' : unreadTotal}</Text>
                 </View>
               )}
             </View>
