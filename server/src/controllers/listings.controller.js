@@ -136,7 +136,18 @@ const getListings = asyncHandler(async (req, res) => {
     // Public marketplace browsing (including status=All) must only expose
     // inventory that can still be requested. Sold and reserved listings remain
     // accessible through explicit status filters and transaction history.
-    query = query.where('listings.status', 'active');
+    query = query.where((builder) => {
+      builder.where('listings.status', 'active');
+      // Authenticated sellers can still see their own fulfilled listings in
+      // profile history, while other students only receive active inventory.
+      if (req.user?.id) {
+        builder.orWhere((ownListings) => {
+          ownListings
+            .where('listings.seller_id', req.user.id)
+            .whereIn('listings.status', ['sold', 'swapped', 'donated']);
+        });
+      }
+    });
     if (hasListingDeletedAt) {
       query = query.whereNull('listings.deleted_at');
     }
