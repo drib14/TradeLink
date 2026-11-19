@@ -239,17 +239,18 @@ const createTransaction = asyncHandler(async (req, res, next) => {
   // SECURITY: Always use the authenticated user as buyer — never trust client-supplied buyerId
   const targetBuyerId = req.user.id;
   const targetAmount = Number(amount ?? finalPrice ?? 0);
+
+  const listing = await db('listings').where({ id: targetListingId }).first();
+  if (!listing) {
+    return next(new AppError('Listing not found.', 404));
+  }
+
   const requestedTradeMode = tradeMode || listing?.trade_mode || 'buy_sell';
   const normalizedTradeMode = requestedTradeMode === 'barter'
     ? 'swap'
     : ['donation', 'free'].includes(requestedTradeMode)
       ? 'free_donation'
       : requestedTradeMode === 'flash' ? 'buy_sell' : requestedTradeMode;
-
-  const listing = await db('listings').where({ id: targetListingId }).first();
-  if (!listing) {
-    return next(new AppError('Listing not found.', 404));
-  }
 
   // SECURITY: Validate sellerId matches the listing's actual owner
   const actualSellerId = listing.seller_id;
