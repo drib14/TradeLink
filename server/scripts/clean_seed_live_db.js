@@ -55,6 +55,8 @@ async function main() {
       console.log('✓ Schema applied successfully.');
     }
 
+    await connection.query('DROP TABLE IF EXISTS announcements');
+
     console.log('\n--- Cleaning tables (deleting all mock users and products) ---');
     await connection.query('SET FOREIGN_KEY_CHECKS = 0');
 
