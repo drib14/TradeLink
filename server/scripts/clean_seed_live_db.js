@@ -137,13 +137,7 @@ async function main() {
     `, [adminName, adminEmail, adminPasswordHash]);
     console.log(`✓ Administrator account seeded: ${adminEmail} (ADMIN001)`);
 
-    console.log('\n--- Seeding Baseline Announcements & Prohibited Keywords ---');
-    await connection.query(`
-      INSERT INTO \`announcements\` (\`id\`, \`title\`, \`message\`, \`campus\`, \`type\`, \`author_id\`, \`is_active\`) VALUES
-      ('ann-1', 'Campus Safety & Meetup Guidelines', 'Schedule handovers in well-lit public campus spots (canteen, library entrance, or student lounge) during daylight hours. Always physically inspect items before finalizing payment or barter.', 'All', 'alert', 'user-admin', 1),
-      ('ann-2', 'Academic Resource Desk Active', 'Need calculators, reviewers, or course essentials urgently? Use Flash Market to post instant same-day peer requests to students on your campus.', 'All', 'info', 'user-admin', 1),
-      ('ann-3', 'Textbook & Gear Swap Portal Live', 'TradeLink now fully supports direct item-for-item swaps and textbook exchanges with zero platform fees.', 'All', 'info', 'user-admin', 1)
-    `);
+    console.log('\\n--- Seeding Prohibited Keywords ---');
 
     await connection.query(`
       INSERT INTO \`admin_audit_logs\` (\`id\`, \`admin_id\`, \`admin_name\`, \`action\`, \`target_type\`, \`target_id\`, \`details\`, \`ip_address\`) VALUES
