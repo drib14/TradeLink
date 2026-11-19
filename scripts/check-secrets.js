@@ -72,8 +72,8 @@ function isPlaceholder(value) {
 }
 
 function isCodeReference(value) {
-  return /^(?:config|env|process\.env)\.[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/.test(String(value || '').trim());
-}
+  const reference = String(value || '').trim().replace(/[;,)}\\]]+$/, '');
+  return /^(?:config|env|process\\.env)\\.[A-Za-z_$][\\w$]*(?:\\.[A-Za-z_$][\\w$]*)*$/.test(reference);
 
 function redact(value) {
   const text = String(value || '');
