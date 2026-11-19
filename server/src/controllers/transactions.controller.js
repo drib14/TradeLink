@@ -1,4 +1,4 @@
-const { v4: uuidv4 } = require('uuid');
+
 const db = require('../config/db');
 const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
@@ -42,7 +42,7 @@ async function syncTransactionToChat({
       .first();
 
     if (!conv) {
-      const convId = uuidv4();
+      const convId = require('crypto').randomUUID();
       conv = {
         id: convId,
         listing_id: listingId,
@@ -59,7 +59,7 @@ async function syncTransactionToChat({
       });
     }
 
-    const msgId = uuidv4();
+    const msgId = require('crypto').randomUUID();
     const newMsg = {
       id: msgId,
       conversation_id: conv.id,
@@ -281,7 +281,7 @@ const createTransaction = asyncHandler(async (req, res, next) => {
     return next(new AppError('This item is no longer available. The seller may have sold it or another student may have reserved it.', 409));
   }
 
-  const txId = uuidv4();
+  const txId = require('crypto').randomUUID();
   const referenceNo = generateReferenceNo();
 
   // Generate cryptographically secure 4-digit handshake code for buyer verification
