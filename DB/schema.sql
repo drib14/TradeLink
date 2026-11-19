@@ -617,9 +617,6 @@ SET FOREIGN_KEY_CHECKS = 1;
 CREATE TABLE `site_visits` (
   `visitor_hash` CHAR(64) NOT NULL,
   `visit_date` DATE NOT NULL,
-  `first_seen_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `last_seen_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `last_path` VARCHAR(200) DEFAULT NULL,
   PRIMARY KEY (`visitor_hash`, `visit_date`),
   INDEX `idx_site_visits_date` (`visit_date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
