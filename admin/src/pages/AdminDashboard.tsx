@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAdmin } from '../context/AdminContext';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import { useToast } from '../components/common/Toast';
-import { VerificationRequest, User, Listing, Campus, TradeDispute } from '../types';
+import { VerificationRequest, User, Listing, TradeDispute } from '../types';
 import {
   ShieldAlert,
   UserX,
@@ -12,7 +12,8 @@ import {
   Check,
   X,
   Search,
-  Megaphone,
+  Mail,
+  BarChart3,
   History,
   Eye,
   Flame,
@@ -46,6 +47,8 @@ import { UserAvatar } from '../components/common/UserAvatar';
 import { Logo } from '../components/common/Logo';
 import { TradeLinkIcon } from '../components/common/TradeLinkIcon';
 import { AdminAnalyticsGraphs } from '../components/dashboard/AdminAnalyticsGraphs';
+import { AdminVisitorAnalytics } from '../components/dashboard/AdminVisitorAnalytics';
+import { AdminEmailCampaigns } from '../components/dashboard/AdminEmailCampaigns';
 
 function formatRelativeTime(dateStr?: string) {
   if (!dateStr) return '';
@@ -69,7 +72,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   const {
     verificationRequests,
     flaggedListings,
-    announcements,
     auditLogs,
     prohibitedKeywords,
     disputes,
@@ -85,9 +87,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     warnUserByAdmin,
     toggleVerifyByAdmin,
     deleteUserByAdmin,
-    createAnnouncement,
-    deleteAnnouncement,
-    toggleAnnouncement,
     addProhibitedKeyword,
     removeProhibitedKeyword,
     resolveDispute,
@@ -127,7 +126,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     | 'wanted'
     | 'transactions'
     | 'meetups'
-    | 'announcements'
+    | 'visitors'
+    | 'email'
     | 'audit'
   >('overview');
 
@@ -165,11 +165,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   const [rejectReasonInput, setRejectReasonInput] = useState('');
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [requestToDelete, setRequestToDelete] = useState<any | null>(null);
-  const [isNewAnnModalOpen, setIsNewAnnModalOpen] = useState(false);
-  const [newAnnTitle, setNewAnnTitle] = useState('');
-  const [newAnnMessage, setNewAnnMessage] = useState('');
-  const [newAnnCampus, setNewAnnCampus] = useState<Campus | 'All'>('All');
-  const [newAnnType, setNewAnnType] = useState<'info' | 'alert' | 'event'>('info');
 
   // Listings Manager States
   const [listingSearch, setListingSearch] = useState('');
@@ -584,27 +579,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     );
   };
 
-  // Announcement Actions
-  const handleCreateAnnouncementSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const title = newAnnTitle.trim();
-    const message = newAnnMessage.trim();
-    if (!title || !message) {
-      showToast('Missing Fields', 'Please enter a title and message.', 'warning');
-      return;
-    }
-    const succeeded = await runAdminAction(
-      () => createAnnouncement(title, message, newAnnCampus, newAnnType),
-      'Broadcast Published',
-      'Campus-wide announcement is now live.'
-    );
-    if (succeeded) {
-      setNewAnnTitle('');
-      setNewAnnMessage('');
-      setIsNewAnnModalOpen(false);
-    }
-  };
-
   // Export Audit Trail to CSV
   const handleExportAuditCSV = () => {
     const headers = ['ID', 'Admin Name', 'Action', 'Target Type', 'Target ID', 'Details', 'Timestamp'];
@@ -691,12 +665,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
           <button
-            onClick={() => setIsNewAnnModalOpen(true)}
-            className="btn-gold"
+            onClick={() => setActiveTab('email')}
+            className="admin-primary-button"
             style={{ padding: '0.55rem 1rem', fontSize: '0.82rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
           >
-            <Megaphone size={14} />
-            <span>Post Broadcast</span>
+            <Mail size={14} />
+            <span>Email students</span>
           </button>
           <button
             onClick={() => {
@@ -723,58 +697,36 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
         </div>
       </div>
 
-      {/* Admin Navigation Tabs */}
-      <div
-        className="touch-scroll-row"
-        style={{
-          backgroundColor: '#FFFFFF',
-          padding: '0.35rem',
-          borderRadius: '12px',
-          border: '1px solid #E2E8F0',
-          width: '100%',
-          minWidth: 0
-        }}
-      >
-        {[
-          { id: 'overview', label: 'Overview', icon: <TrendingUp size={14} /> },
-          { id: 'verifications', label: 'Student Verifications', icon: <BadgeCheck size={14} /> },
-          { id: 'users', label: `Users & Moderation (${allUsers.length})`, icon: <UserCheck size={14} /> },
-          { id: 'listings', label: `Listings & Flags (${pendingFlagsCount})`, icon: <ShieldAlert size={14} /> },
-          { id: 'scanner', label: `Prohibited Scanner (${scannedViolations.length})`, icon: <Shield size={14} /> },
-          { id: 'disputes', label: `Trade Disputes (${pendingDisputesCount})`, icon: <Scale size={14} /> },
-          { id: 'flash-market', label: `Flash Market (${(flashRequests || wantedRequests).length})`, icon: <Zap size={14} /> },
-          { id: 'transactions', label: `Transactions (${transactions.length})`, icon: <Receipt size={14} /> },
-          { id: 'announcements', label: `Broadcasts (${announcements.length})`, icon: <Megaphone size={14} /> },
-          { id: 'audit', label: `Audit Log (${auditLogs.length})`, icon: <History size={14} /> }
-        ].map((tab) => {
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              style={{
-                padding: '0.55rem 0.95rem',
-                borderRadius: '8px',
-                fontSize: '0.8rem',
-                fontWeight: isActive ? 800 : 600,
-                backgroundColor: isActive ? '#002B7F' : 'transparent',
-                color: isActive ? '#FFFFFF' : '#475569',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.45rem',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.15s ease',
-                flexShrink: 0,
-                cursor: 'pointer'
-              }}
-            >
-              <span style={{ display: 'inline-flex', flexShrink: 0 }}>{tab.icon}</span>
-              <span>{tab.label}</span>
-            </button>
-          );
-        })}
-      </div>
-
+      <div className="admin-workspace">
+        <nav className="admin-sidebar" aria-label="Administration sections">
+          <div className="admin-sidebar-caption">WORKSPACE</div>
+          {[
+            { id: 'overview', label: 'Overview', icon: <TrendingUp size={17} /> },
+            { id: 'visitors', label: 'Visitor analytics', icon: <BarChart3 size={17} /> },
+            { id: 'email', label: 'Email students', icon: <Mail size={17} /> },
+            { id: 'verifications', label: 'Verifications', icon: <BadgeCheck size={17} />, count: pendingVerificationsCount },
+            { id: 'users', label: 'Users & moderation', icon: <UserCheck size={17} />, count: allUsers.length },
+            { id: 'listings', label: 'Listings & flags', icon: <ShieldAlert size={17} />, count: pendingFlagsCount },
+            { id: 'scanner', label: 'Content scanner', icon: <Shield size={17} />, count: scannedViolations.length },
+            { id: 'disputes', label: 'Trade disputes', icon: <Scale size={17} />, count: pendingDisputesCount },
+            { id: 'flash-market', label: 'Flash Market', icon: <Zap size={17} />, count: (flashRequests || wantedRequests).length },
+            { id: 'transactions', label: 'Transactions', icon: <Receipt size={17} />, count: transactions.length },
+            { id: 'audit', label: 'Audit log', icon: <History size={17} />, count: auditLogs.length }
+          ].map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button key={tab.id} type="button" className={"admin-nav-item " + (isActive ? "active" : "")} onClick={() => setActiveTab(tab.id as any)} aria-current={isActive ? 'page' : undefined}>
+                <span className="admin-nav-icon">{tab.icon}</span>
+                <span className="admin-nav-label">{tab.label}</span>
+                {typeof tab.count === 'number' && tab.count > 0 && <span className="admin-nav-count">{tab.count > 99 ? '99+' : tab.count}</span>}
+              </button>
+            );
+          })}
+          <div className="admin-sidebar-footer"><Shield size={15} /><span>Protected administrator workspace</span></div>
+        </nav>
+        <main className="admin-content">
+          {activeTab === 'visitors' && <AdminVisitorAnalytics />}
+          {activeTab === 'email' && <AdminEmailCampaigns />}
       {/* =========================================================================
           TAB 1: OVERVIEW & SYSTEM METRICS (DATA-DENSE OPERATIONAL DASHBOARD)
           ========================================================================= */}
@@ -2483,76 +2435,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
       )}
 
       {/* =========================================================================
-          TAB 11: CAMPUS BROADCAST ANNOUNCEMENTS
-          ========================================================================= */}
-      {activeTab === 'announcements' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A' }}>Active Campus Broadcasts ({announcements.length})</h3>
-            <button
-              onClick={() => setIsNewAnnModalOpen(true)}
-              className="btn-primary"
-              style={{ padding: '0.45rem 0.85rem', fontSize: '0.8rem', fontWeight: 800 }}
-            >
-              <Plus size={14} /> New Broadcast
-            </button>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
-            {announcements.map((ann) => (
-              <div key={ann.id} className="clean-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                    <span
-                      style={{
-                        padding: '0.2rem 0.5rem',
-                        borderRadius: '4px',
-                        fontSize: '0.68rem',
-                        fontWeight: 800,
-                        textTransform: 'uppercase',
-                        backgroundColor: ann.type === 'alert' ? '#FEF2F2' : '#EBF1FC',
-                        color: ann.type === 'alert' ? '#DC2626' : '#002B7F'
-                      }}
-                    >
-                      {ann.type}
-                    </span>
-                    <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 700 }}>• {ann.campus}</span>
-                  </div>
-
-                  <button
-                    onClick={() => { void runAdminAction(() => deleteAnnouncement(ann.id), 'Announcement Deleted', 'The announcement has been removed.', 'info'); }}
-                    style={{ color: '#DC2626', padding: '0.2rem' }}
-                    title="Delete Announcement"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-
-                <h4 style={{ fontSize: '0.98rem', fontWeight: 800, color: '#0F172A' }}>{ann.title}</h4>
-                <p style={{ fontSize: '0.82rem', color: '#475569', lineHeight: 1.45 }}>{ann.message}</p>
-
-                <div style={{ marginTop: 'auto', paddingTop: '0.5rem', borderTop: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748B' }}>
-                  <span>By: {ann.authorName}</span>
-                  <button
-                    onClick={() => { void runAdminAction(() => toggleAnnouncement(ann.id), 'Announcement Updated', 'Announcement visibility has been updated.'); }}
-                    style={{
-                      padding: '0.2rem 0.5rem',
-                      borderRadius: '4px',
-                      fontWeight: 800,
-                      backgroundColor: ann.isActive ? '#ECFDF5' : '#F1F5F9',
-                      color: ann.isActive ? '#059669' : '#64748B'
-                    }}
-                  >
-                    {ann.isActive ? 'Active' : 'Disabled'}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* =========================================================================
           TAB 13: REAL-TIME ADMIN AUDIT LOG & CSV EXPORTER
           ========================================================================= */}
       {activeTab === 'audit' && (
@@ -2634,6 +2516,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
           </div>
         </div>
       )}
+
+        </main>
+      </div>
 
       {/* =========================================================================
           MODALS: BAN USER MODAL
@@ -2840,115 +2725,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 Decline Request
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* =========================================================================
-          MODALS: NEW ANNOUNCEMENT MODAL
-          ========================================================================= */}
-      {isNewAnnModalOpen && (
-        <div
-          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0, 29, 89, 0.65)', backdropFilter: 'blur(6px)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
-          onClick={() => setIsNewAnnModalOpen(false)}
-        >
-          <div
-            style={{ backgroundColor: '#FFFFFF', borderRadius: '14px', border: '1.5px solid #CBD5E1', width: '100%', maxWidth: '480px', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#002B7F', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Megaphone size={18} /> Post Campus Broadcast
-              </h3>
-              <button onClick={() => setIsNewAnnModalOpen(false)} style={{ color: '#64748B' }}>
-                <X size={18} />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateAnnouncementSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
-                  Broadcast Title *
-                </label>
-                <input
-                  type="text"
-                  placeholder="Announcement title"
-                  value={newAnnTitle}
-                  onChange={(e) => setNewAnnTitle(e.target.value)}
-                  className="clean-input"
-                  required
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
-                    Target Campus
-                  </label>
-                  <select
-                    value={newAnnCampus}
-                    onChange={(e: any) => setNewAnnCampus(e.target.value)}
-                    style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.82rem' }}
-                  >
-                    <option value="All">All Campuses</option>
-                    <option value="UC Main">UC Main</option>
-                    <option value="UC Banilad">UC Banilad</option>
-                    <option value="UC LM">UC LM</option>
-                    <option value="UC METC">UC METC</option>
-                    <option value="UC PRI">UC PRI</option>
-                    <option value="UC Pardo-Talisay">UC Pardo-Talisay</option>
-                    <option value="UC South Campus">UC South Campus</option>
-                    <option value="UC Medical Center">UC Medical Center</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
-                    Category
-                  </label>
-                  <select
-                    value={newAnnType}
-                    onChange={(e: any) => setNewAnnType(e.target.value)}
-                    style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.82rem' }}
-                  >
-                    <option value="info">Information</option>
-                    <option value="alert">Safety Alert</option>
-                    <option value="event">Trading Event</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.3rem' }}>
-                  Broadcast Message *
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder="Type the announcement details..."
-                  value={newAnnMessage}
-                  onChange={(e) => setNewAnnMessage(e.target.value)}
-                  className="clean-input"
-                  required
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-                <button
-                  type="button"
-                  onClick={() => setIsNewAnnModalOpen(false)}
-                  style={{ flex: 1, padding: '0.6rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, backgroundColor: '#F1F5F9', color: '#475569' }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn-primary"
-                  style={{ flex: 1, padding: '0.6rem', fontSize: '0.82rem', fontWeight: 800, justifyContent: 'center' }}
-                >
-                  Publish Broadcast
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}
