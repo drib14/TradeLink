@@ -1,4 +1,4 @@
-const { v4: uuidv4 } = require('uuid');
+
 const db = require('../config/db');
 const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
@@ -69,7 +69,7 @@ const createReview = asyncHandler(async (req, res, next) => {
   const rawBadges = Array.isArray(inputBadges) ? inputBadges : (Array.isArray(traitBadges) ? traitBadges : []);
   const safeBadges = rawBadges.map((b) => String(b).trim()).filter(Boolean);
 
-  const reviewId = `rev_${uuidv4()}`;
+  const reviewId = `rev_${require('crypto').randomUUID()}`;
 
   const reviewData = {
     id: reviewId,
