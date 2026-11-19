@@ -1,4 +1,4 @@
-const { v4: uuidv4 } = require('uuid');
+
 const db = require('../config/db');
 const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
@@ -47,7 +47,7 @@ const getOrCreateConversation = asyncHandler(async (req, res, next) => {
   let isNew = false;
 
   if (!conv) {
-    const convId = uuidv4();
+    const convId = require('crypto').randomUUID();
     const cleanInitial = (initialMessage || '').trim();
     const initialSummary = cleanInitial || 'Conversation started';
 
@@ -68,7 +68,7 @@ const getOrCreateConversation = asyncHandler(async (req, res, next) => {
 
     if (cleanInitial) {
       await db('messages').insert({
-        id: uuidv4(),
+        id: require('crypto').randomUUID(),
         conversation_id: convId,
         sender_id: currentUserId,
         receiver_id: targetUserId,
