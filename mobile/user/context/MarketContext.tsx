@@ -110,7 +110,13 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setPriceRange([0, 100000]);
   };
 
-  const filteredListings = useMemo(() => listings, [listings]);
+  const filteredListings = useMemo(
+    () => listings.filter((listing) =>
+      !listing.isSold &&
+      !['sold', 'reserved', 'swapped', 'donated', 'deleted'].includes(String(listing.status || '').toLowerCase())
+    ),
+    [listings]
+  );
 
   const addListing = async (listingData: Partial<Listing>): Promise<Listing | null> => {
     try {
