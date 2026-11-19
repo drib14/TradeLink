@@ -778,7 +778,7 @@ async function sendTransactionalNotification({
   if (!toEmail) return { ok: false, skipped: true, error: 'Recipient email unavailable' };
   const safeName = escapeEmailHtml(greeting);
   const safeHeadline = escapeEmailHtml(headline);
-  const safeMessage = escapeEmailHtml(message).replace(/\\r?\\n/g, '<br>');
+  const safeMessage = escapeEmailHtml(message).replaceAll(String.fromCharCode(13) + String.fromCharCode(10), '<br>').replaceAll(String.fromCharCode(10), '<br>').replaceAll(String.fromCharCode(13), '<br>');
   const safeCta = escapeEmailHtml(ctaLabel);
   const safeUrl = escapeEmailHtml(ctaUrl || getAppBaseUrl(req));
   const rows = details.map(({ label, value }) =>
