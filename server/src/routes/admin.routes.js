@@ -8,7 +8,6 @@ const decodeParams = require('../middleware/decodeParams');
 const validate = require('../middleware/validate');
 const validateUUID = require('../middleware/validateUUID');
 const {
-  createAnnouncementSchema,
   banUserSchema,
   warnUserSchema,
   adjustTrustScoreSchema,
@@ -21,8 +20,7 @@ const {
 
 decodeParams.bindRouter(router);
 
-// Publicly readable bulletin announcements & public system config
-router.get('/announcements', adminController.getAnnouncements);
+// Public system configuration remains readable without admin authentication.
 router.get('/config', adminController.getSystemConfig);
 
 // All protected admin routes strictly require dedicated administrator authentication
@@ -65,10 +63,12 @@ router.delete('/flags/:id/remove', validateUUID('id'), adminController.removeLis
 router.get('/disputes', adminController.getDisputes);
 router.patch('/disputes/:id/resolve', validate(resolveDisputeSchema), adminController.resolveDispute);
 
-// Campus Announcements Management
-router.post('/announcements', validate(createAnnouncementSchema), adminController.createAnnouncement);
-router.delete('/announcements/:id', adminController.deleteAnnouncement);
-router.patch('/announcements/:id/toggle', adminController.toggleAnnouncement);
+// Visitor analytics and direct-to-user email campaigns
+router.get('/visits', adminController.getVisitAnalytics);
+router.get('/email-campaigns/audience', adminController.getEmailAudience);
+router.get('/email-campaigns', adminController.getEmailCampaigns);
+router.post('/email-campaigns', adminController.createEmailCampaign);
+router.post('/email-campaigns/:id/process', validateUUID('id'), adminController.processEmailCampaignBatch);
 
 // Audit Logs
 router.get('/audit-logs', adminController.getAuditLogs);
