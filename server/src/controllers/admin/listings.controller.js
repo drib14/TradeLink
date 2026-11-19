@@ -1,4 +1,4 @@
-const { v4: uuidv4 } = require('uuid');
+
 const db = require('../../config/db');
 const AppError = require('../../utils/AppError');
 const asyncHandler = require('../../utils/asyncHandler');
@@ -124,7 +124,7 @@ const createListingAdmin = asyncHandler(async (req, res, next) => {
   }
 
   const effectiveSellerId = sellerId || req.user.id;
-  const listingId = uuidv4();
+  const listingId = require('crypto').randomUUID();
 
   await db.transaction(async (trx) => {
     await trx('listings').insert({
@@ -149,7 +149,7 @@ const createListingAdmin = asyncHandler(async (req, res, next) => {
       media.forEach((item, idx) => {
         if (item.url && item.url.trim()) {
           mediaToInsert.push({
-            id: uuidv4(),
+            id: require('crypto').randomUUID(),
             listing_id: listingId,
             media_url: item.url.trim(),
             media_type: item.type === 'video' ? 'video' : 'image',
@@ -162,7 +162,7 @@ const createListingAdmin = asyncHandler(async (req, res, next) => {
         if (imgUrl && typeof imgUrl === 'string' && imgUrl.trim()) {
           const isVid = imgUrl.match(/\.(mp4|webm|mov|mkv)$/i) || imgUrl.includes('/video/upload/');
           mediaToInsert.push({
-            id: uuidv4(),
+            id: require('crypto').randomUUID(),
             listing_id: listingId,
             media_url: imgUrl.trim(),
             media_type: isVid ? 'video' : 'image',
@@ -258,7 +258,7 @@ const updateListingAdmin = asyncHandler(async (req, res, next) => {
         media.forEach((item, idx) => {
           if (item.url && item.url.trim()) {
             mediaToInsert.push({
-              id: uuidv4(),
+              id: require('crypto').randomUUID(),
               listing_id: id,
               media_url: item.url.trim(),
               media_type: item.type === 'video' ? 'video' : 'image',
@@ -271,7 +271,7 @@ const updateListingAdmin = asyncHandler(async (req, res, next) => {
           if (imgUrl && typeof imgUrl === 'string' && imgUrl.trim()) {
             const isVid = imgUrl.match(/\.(mp4|webm|mov|mkv)$/i) || imgUrl.includes('/video/upload/');
             mediaToInsert.push({
-              id: uuidv4(),
+              id: require('crypto').randomUUID(),
               listing_id: id,
               media_url: imgUrl.trim(),
               media_type: isVid ? 'video' : 'image',
