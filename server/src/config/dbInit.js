@@ -542,7 +542,7 @@ async function autoInitDatabase() {
 
 
     // ────────────────────────────────────────────────────────────
-    // Sections 2-8: Admin seeding, announcements, keywords, feature flags,
+    // Sections 2-8: Admin seeding, keywords, feature flags,
     // stats normalization, and category seeding.
     // On Vercel serverless, skip these to keep cold-start under the 10s limit.
     // These only need to run once (during initial setup or local dev).
@@ -630,40 +630,7 @@ async function autoInitDatabase() {
       logger.warn(`[DB Init] System config init: ${cfgErr.message}`);
     }
 
-    // 4. Ensure Default Announcements Exist
-    try {
-      const hasAnnouncementsTable = await db.schema.hasTable('announcements');
-      if (hasAnnouncementsTable) {
-        const announcementCount = await db('announcements').count('id as count').first();
-        if (Number(announcementCount?.count || 0) === 0) {
-          await db('announcements').insert([
-            {
-              id: 'ann-1',
-              title: 'Guarded Meetup Reminder',
-              message: 'Always meet inside official UC campus security gates during daytime hours. Inspect items before completing the transaction.',
-              campus: 'All',
-              type: 'alert',
-              author_id: defaultAuthorId,
-              is_active: true
-            },
-            {
-              id: 'ann-2',
-              title: 'Junior High & Senior High Trading Desk Live',
-              message: 'Students from UC PRI and UC South high school departments can now trade textbooks and PE uniforms with zero platform fees.',
-              campus: 'UC PRI',
-              type: 'info',
-              author_id: defaultAuthorId,
-              is_active: true
-            }
-          ]);
-          logger.info('[DB Init] Seeded baseline campus announcements.');
-        }
-      }
-    } catch (annErr) {
-      logger.warn(`[DB Init] Announcements init: ${annErr.message}`);
-    }
-
-    // 5. Ensure Default Prohibited Keywords Exist
+    // 4. Ensure Default Prohibited Keywords Exist
     try {
       const hasKeywordsTable = await db.schema.hasTable('prohibited_keywords');
       if (hasKeywordsTable) {
