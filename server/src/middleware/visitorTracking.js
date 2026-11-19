@@ -49,14 +49,9 @@ module.exports = function visitorTracking(req, res, next) {
     .insert({
       visitor_hash: visitorHash,
       visit_date: visitDate,
-      first_seen_at: db.fn.now(),
-      last_seen_at: db.fn.now(),
-      last_path: path.slice(0, 200)
     })
     .onConflict(['visitor_hash', 'visit_date'])
     .merge({
-      last_seen_at: db.fn.now(),
-      last_path: path.slice(0, 200)
     })
     .then(() => next())
     .catch((error) => {
