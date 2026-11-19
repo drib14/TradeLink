@@ -40,8 +40,8 @@ export const AdminVisitorAnalytics: React.FC = () => {
     try {
       const result = await adminService.getVisits({ period, date: selectedDate });
       setData(result);
-    } catch (err: any) {
-      setError(err?.message || 'Unable to load visitor analytics.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unable to load visitor analytics.');
     } finally {
       setLoading(false);
     }
