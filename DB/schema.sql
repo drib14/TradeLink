@@ -16,6 +16,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS `email_campaign_recipients`;
 DROP TABLE IF EXISTS `email_campaigns`;
 DROP TABLE IF EXISTS `site_visits`;
+DROP TABLE IF EXISTS `announcements`;
 DROP TABLE IF EXISTS `user_favorites`;
 DROP TABLE IF EXISTS `notifications`;
 DROP TABLE IF EXISTS `security_events`;
