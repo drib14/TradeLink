@@ -99,8 +99,8 @@ const corsOptions = {
     if (isOriginAllowed(origin)) {
       callback(null, true);
     } else {
-      // Gracefully reject unauthorized origins without throwing unhandled Express exceptions
-      callback(null, false);
+      // Reject disallowed origins at the API boundary instead of silently processing them.
+      callback(new AppError('CORS policy violation: origin is not allowed.', 403));
     }
   },
   credentials: true,

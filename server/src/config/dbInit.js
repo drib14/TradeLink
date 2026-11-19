@@ -2,8 +2,8 @@ const fs = require('fs');
 const path = require('path');
 const bcrypt = require('bcryptjs');
 const db = require('./db');
-const env = require('./env');
 const logger = require('../utils/logger');
+const { ensureListingStatusSchema } = require('../services/listingStatusSchema.service');
 
 /**
  * Auto-initialize database tables, default administrator credentials, and baseline system records.
@@ -402,14 +402,18 @@ async function autoInitDatabase() {
       logger.info('[DB Init] Initialized listing_variations table.');
     }
 
-    // 1l. Ensure transactions.selected_variation and variation_id exist
-    const hasTxVarCol = await db.schema.hasColumn('transactions', 'selected_variation').catch(() => false);
-    if (!hasTxVarCol) {
+    // 1l. Ensure each optional transaction variation column independently.
+    const [hasTxVarCol, hasTxVariationIdCol] = await Promise.all([
+      db.schema.hasColumn('transactions', 'selected_variation').catch(() => false),
+      db.schema.hasColumn('transactions', 'variation_id').catch(() => false)
+    ]);
+    if (!hasTxVarCol || !hasTxVariationIdCol) {
       await db.schema.alterTable('transactions', (t) => {
-        t.string('selected_variation', 150).nullable();
-        t.string('variation_id', 36).nullable();
-      }).catch(() => {});
-      logger.info('[DB Init] Added selected_variation and variation_id to transactions table.');
+        if (!hasTxVarCol) t.string('selected_variation', 150).nullable();
+        if (!hasTxVariationIdCol) t.string('variation_id', 36).nullable();
+      }).catch((err) => {
+        logger.warn(`[DB Init] Could not ensure transaction variation columns: ${err.message}`);
+      });
     }
 
     // 1m. Ensure soft delete columns in listings and flash_requests
@@ -428,8 +432,12 @@ async function autoInitDatabase() {
       }
 
       try {
-        await db.raw("ALTER TABLE `listings` MODIFY COLUMN `status` ENUM('available', 'pending', 'sold', 'archived', 'banned', 'deleted') NOT NULL DEFAULT 'available';");
-      } catch (_) {}
+        await ensureListingStatusSchema();
+        logger.info('[DB Init] Listing status enum verified for active/reserved marketplace states.');
+      } catch (statusSchemaError) {
+        logger.error(`[DB Init] Could not normalize listings.status: ${statusSchemaError.message}`);
+        throw statusSchemaError;
+      }
     }
 
     const hasFlashTable = await db.schema.hasTable('flash_requests').catch(() => false);
