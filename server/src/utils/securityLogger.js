@@ -1,6 +1,5 @@
 const logger = require('./logger');
 const db = require('../config/db');
-const { v4: uuidv4 } = require('uuid');
 
 /**
  * Centrally log and persist security-sensitive events
@@ -16,7 +15,7 @@ async function logSecurityEvent({ event, severity = 'info', userId, ip, details,
       'unknown';
 
     const logEntry = {
-      id: uuidv4(),
+      id: require('crypto').randomUUID(),
       event_type: event,
       severity, // 'info', 'warning', 'critical'
       user_id: userId || req?.user?.id || null,
