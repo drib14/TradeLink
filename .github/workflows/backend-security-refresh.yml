@@ -30,6 +30,8 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: server/package-lock.json
+      - name: Synchronize lockfile with declared dependencies
+        run: npm install --package-lock-only --ignore-scripts
       - name: Refresh vulnerable compatible dependencies
         run: npm audit fix --package-lock-only
       - name: Install exact refreshed lockfile
