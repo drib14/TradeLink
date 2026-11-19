@@ -51,17 +51,6 @@ export interface User {
   warningsCount?: number;
 }
 
-export interface CampusAnnouncement {
-  id: string;
-  title: string;
-  message: string;
-  campus: Campus | 'All';
-  type: 'info' | 'alert' | 'event';
-  authorName: string;
-  createdAt: string;
-  isActive: boolean;
-}
-
 export interface TradeDispute {
   id: string;
   transactionId?: string;
