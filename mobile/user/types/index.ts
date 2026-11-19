@@ -199,6 +199,8 @@ export interface Conversation {
   participantName?: string;
   participantAvatar?: string;
   participantCampus?: Campus;
+  participantIsVerified?: boolean;
+  isVerified?: boolean;
   otherParticipant?: ConversationParticipant;
   lastMessage: string;
   lastMessageAt?: string;
