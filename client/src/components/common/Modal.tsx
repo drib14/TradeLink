@@ -41,7 +41,7 @@ export const Modal: React.FC<ModalProps> = ({
       }, 50);
     }
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = '';
       document.body.classList.remove('modal-open');
     };
   }, [isOpen]);
@@ -51,7 +51,7 @@ export const Modal: React.FC<ModalProps> = ({
     setTimeout(() => {
       setIsClosing(false);
       setShouldRender(false);
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = '';
       document.body.classList.remove('modal-open');
       onClose();
       previousActiveElementRef.current?.focus?.();

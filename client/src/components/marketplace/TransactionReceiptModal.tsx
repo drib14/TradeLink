@@ -23,7 +23,7 @@ export const TransactionReceiptModal: React.FC<TransactionReceiptModalProps> = (
       document.body.classList.add('modal-open');
     }
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = '';
       document.body.classList.remove('modal-open');
     };
   }, [isOpen, transaction]);

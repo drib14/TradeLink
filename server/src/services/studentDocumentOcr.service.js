@@ -18,17 +18,32 @@ function normalizeText(value) {
 }
 
 /**
+ * Normalizes common OCR misread characters between letters and digits.
+ * Very common on laminated university cards (e.g. O->0, I/l->1, S->5, B->8).
+ */
+function normalizeOcrDigits(value) {
+  return String(value || '')
+    .toUpperCase()
+    .replace(/[OD]/g, '0')
+    .replace(/[IL|]/g, '1')
+    .replace(/[Z]/g, '2')
+    .replace(/[S]/g, '5')
+    .replace(/[B]/g, '8')
+    .replace(/[^0-9]/g, '');
+}
+
+/**
  * Checks if user name tokens appear in the OCR recognized text.
  */
 function nameAppearsInOcr(name, text) {
   if (!name || !text) return false;
   const upperText = String(text).toUpperCase();
   const ignore = new Set(['THE', 'AND', 'FOR', 'NOT', 'STUDENT', 'UNIVERSITY', 'COLLEGE', 'CEBU']);
-  const tokens = [...new Set((String(name).toUpperCase().match(/[A-Z]{3,}/g) || []).filter((t) => !ignore.has(t)))];
+  const tokens = [...new Set((String(name).toUpperCase().match(/[A-Z]{2,}/g) || []).filter((t) => !ignore.has(t)))];
   if (tokens.length === 0) return true;
   
   const matchCount = tokens.filter((token) => upperText.includes(token)).length;
-  return matchCount >= Math.min(tokens.length, Math.max(1, Math.ceil(tokens.length * 0.5)));
+  return matchCount >= Math.min(tokens.length, Math.max(1, Math.ceil(tokens.length * 0.4)));
 }
 
 /**
@@ -47,6 +62,7 @@ function detectInstitutionalMarkers(ocrText) {
     'BANILAD',
     'METC',
     'LAPU-LAPU',
+    'LAPULAPU',
     'MANDAUE',
     'LM CAMPUS',
     'PT CAMPUS',
@@ -55,9 +71,18 @@ function detectInstitutionalMarkers(ocrText) {
     'DEPARTMENT',
     'ACADEMIC',
     'ENROLLMENT',
-    'REPUBLIC OF THE PHILIPPINES'
+    'ASSESSMENT',
+    'STUDYLOAD',
+    'REPUBLIC OF THE PHILIPPINES',
+    'U.C.',
+    'UC'
   ];
-  const matched = markers.filter((m) => upperText.includes(m));
+  const matched = markers.filter((m) => {
+    if (m === 'UC' || m === 'U.C.') {
+      return /\bU\.?C\.?\b/i.test(upperText);
+    }
+    return upperText.includes(m);
+  });
   return {
     isUcDocument: matched.length > 0,
     matchedMarkers: matched
@@ -69,14 +94,35 @@ function detectInstitutionalMarkers(ocrText) {
  */
 function extractCandidateStudentIds(ocrText) {
   const text = String(ocrText || '');
-  const hyphenPattern = /\b\d{2,4}-\d{4,8}\b/g;
+  const candidateSet = new Set();
+  
+  // 1. Hyphenated pattern with optional whitespace or special dashes (e.g. 2024-12345, 2024 - 12345, 2024–12345)
+  const hyphenPattern = /\b(\d{2,4})\s*[-–—]\s*(\d{4,8})\b/g;
+  let match;
+  while ((match = hyphenPattern.exec(text)) !== null) {
+    candidateSet.add(`${match[1]}-${match[2]}`);
+    candidateSet.add(`${match[1]}${match[2]}`);
+  }
+
+  // 2. Pure digit pattern
   const digitPattern = /\b\d{6,12}\b/g;
-  
-  const hyphenMatches = text.match(hyphenPattern) || [];
   const digitMatches = text.match(digitPattern) || [];
-  
-  const allCandidates = [...new Set([...hyphenMatches, ...digitMatches])];
-  return allCandidates;
+  digitMatches.forEach((d) => candidateSet.add(d));
+
+  // 3. ID / Student No. prefix matching with OCR digit normalization
+  const prefixPattern = /(?:ID|STUDENT\s*NO\.?|ID\s*NO\.?|SN|NO\.?)\s*[:#-]?\s*([0-9A-Za-z-]{5,15})/gi;
+  while ((match = prefixPattern.exec(text)) !== null) {
+    const rawClean = match[1].replace(/\s+/g, '');
+    if (rawClean.length >= 5) {
+      candidateSet.add(rawClean);
+      const digitsOnly = normalizeOcrDigits(rawClean);
+      if (digitsOnly.length >= 6) {
+        candidateSet.add(digitsOnly);
+      }
+    }
+  }
+
+  return [...candidateSet];
 }
 
 /**
@@ -128,12 +174,15 @@ async function verifyStudentDocuments({ idPhotoUrl, studentId, studentName }) {
     const { text: ocrText, confidence: tesseractRawConfidence, lines } = await extractDocumentText(idPhotoUrl);
     const cleanOcrNorm = normalizeText(ocrText);
     const cleanSubmittedId = normalizeText(studentId);
+    const cleanOcrDigits = normalizeOcrDigits(ocrText);
+    const submittedDigits = normalizeOcrDigits(studentId);
 
     // 1. Candidate Student IDs
     const candidateIds = extractCandidateStudentIds(ocrText);
     const studentIdFound = Boolean(
       (cleanSubmittedId && cleanOcrNorm.includes(cleanSubmittedId)) ||
-      candidateIds.some((c) => normalizeText(c) === cleanSubmittedId)
+      (submittedDigits && submittedDigits.length >= 6 && cleanOcrDigits.includes(submittedDigits)) ||
+      candidateIds.some((c) => normalizeText(c) === cleanSubmittedId || (submittedDigits && submittedDigits.length >= 6 && normalizeOcrDigits(c) === submittedDigits))
     );
     const detectedStudentId = candidateIds.length > 0 ? candidateIds[0] : null;
 

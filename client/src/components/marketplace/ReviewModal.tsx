@@ -43,16 +43,15 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
   const [shouldRender, setShouldRender] = useState(false);
 
   const handleClose = React.useCallback(() => {
-    if (isSubmitting) return;
     setIsClosing(true);
     setTimeout(() => {
       setIsClosing(false);
       setShouldRender(false);
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = '';
       document.body.classList.remove('modal-open');
       onClose();
     }, 200);
-  }, [isSubmitting, onClose]);
+  }, [onClose]);
 
   React.useEffect(() => {
     if (isOpen) {
@@ -63,6 +62,10 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
     } else if (shouldRender && !isClosing) {
       handleClose();
     }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.classList.remove('modal-open');
+    };
   }, [isOpen]);
 
   React.useEffect(() => {

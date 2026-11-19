@@ -31,16 +31,15 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   const cardRef = useRef<HTMLDivElement | null>(null);
 
   const handleClose = useCallback(() => {
-    if (isLoading) return;
     setIsClosing(true);
     setTimeout(() => {
       setIsClosing(false);
       setShouldRender(false);
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = '';
       document.body.classList.remove('modal-open');
       onCancel();
     }, 200);
-  }, [isLoading, onCancel]);
+  }, [onCancel]);
 
   useEffect(() => {
     if (isOpen) {
@@ -52,6 +51,10 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
     } else if (shouldRender && !isClosing) {
       handleClose();
     }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.classList.remove('modal-open');
+    };
   }, [isOpen]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {

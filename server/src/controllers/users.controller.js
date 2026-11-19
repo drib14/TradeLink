@@ -194,7 +194,7 @@ const submitIdVerification = asyncHandler(async (req, res, next) => {
   if (!studentIdNumber || !rawIdPhoto) {
     return next(new AppError('Student ID number and student ID card photo are required.', 400));
   }
-  if (!sessionToken && !isStudyloadFallback) return next(new AppError('A live selfie session or an uploaded studyload PDF is required to continue verification.', 400));
+  if (!sessionToken && !isStudyloadFallback && !selfiePhotoUrl) return next(new AppError('A live selfie session or an uploaded studyload PDF is required to continue verification.', 400));
   if (sessionToken && !selfiePhotoUrl) return next(new AppError('A live selfie is required for biometric verification.', 400));
   if (isStudyloadFallback) {
     try {

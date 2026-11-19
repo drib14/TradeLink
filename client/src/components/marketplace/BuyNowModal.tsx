@@ -82,16 +82,15 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
   const [isOpeningChat, setIsOpeningChat] = useState(false);
 
   const handleClose = useCallback(() => {
-    if (isSubmitting) return;
     setIsClosing(true);
     setTimeout(() => {
       setIsClosing(false);
       setShouldRender(false);
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = '';
       document.body.classList.remove('modal-open');
       onClose();
     }, 200);
-  }, [isSubmitting, onClose]);
+  }, [onClose]);
 
   useEffect(() => {
     if (isOpen) {
@@ -102,6 +101,10 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
     } else if (shouldRender && !isClosing) {
       handleClose();
     }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.classList.remove('modal-open');
+    };
   }, [isOpen]);
 
   useEffect(() => {

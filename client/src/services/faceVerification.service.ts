@@ -170,20 +170,22 @@ export async function detectLiveFace(video: HTMLVideoElement): Promise<LiveFaceR
     }
 
     const face = result.face[0];
-    const rawLiveness = face.live !== undefined ? face.live : (face.score > 0.6 ? 0.88 : 0.6);
-    const rawAntiSpoof = face.real !== undefined ? face.real : (face.score > 0.6 ? 0.92 : 0.6);
+    const rawLiveness = face.live !== undefined ? face.live : (face.score > 0.5 ? 0.88 : 0.6);
+    const rawAntiSpoof = face.real !== undefined ? face.real : (face.score > 0.5 ? 0.92 : 0.6);
 
     const livenessScore = Math.min(100, Math.max(0, Math.round(rawLiveness * 100)));
     const antiSpoofScore = Math.min(100, Math.max(0, Math.round(rawAntiSpoof * 100)));
 
-    const isLive = livenessScore >= 65 && antiSpoofScore >= 50;
+    const isLive = (livenessScore >= 50 && antiSpoofScore >= 40) || (face.score > 0.55 && livenessScore >= 40);
 
     let message = 'Face detected';
     if (!isLive) {
-      if (livenessScore < 65) {
-        message = 'Please look straight at the camera';
-      } else if (antiSpoofScore < 50) {
-        message = 'Make sure there is good lighting without glare';
+      if (livenessScore < 45) {
+        message = 'Please center your face and look directly at the camera';
+      } else if (antiSpoofScore < 35) {
+        message = 'Ensure even lighting and avoid direct glare';
+      } else {
+        message = 'Hold steady within the guide oval';
       }
     } else {
       message = 'Looking good! Hold still for your photo.';

@@ -32,7 +32,8 @@ import {
   Edit3,
   Clock,
   FileText,
-  Building2
+  Building2,
+  ExternalLink
 } from 'lucide-react';
 import { VerifiedBadge } from '../components/common/VerifiedBadge';
 import { ConfirmModal } from '../components/common/ConfirmModal';
@@ -56,6 +57,28 @@ function formatRelativeTime(dateStr?: string) {
   if (days === 1) return 'Yesterday';
   if (days < 30) return `${days}d ago`;
   return new Date(dateStr).toLocaleDateString();
+}
+
+function resolveDocumentUrl(url: string | null | undefined): string {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('blob:')) {
+    return url;
+  }
+  const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+  const serverOrigin = apiBase.replace(/\/api\/?$/, '');
+  return `${serverOrigin}${url.startsWith('/') ? '' : '/'}${url}`;
+}
+
+function isPdfDocument(url: string | null | undefined): boolean {
+  if (!url) return false;
+  const lower = url.toLowerCase();
+  return (
+    lower.includes('.pdf') ||
+    lower.startsWith('data:application/pdf') ||
+    lower.includes('format=pdf') ||
+    lower.includes('/raw/upload/') ||
+    lower.includes('studyload')
+  );
 }
 
 interface AdminDashboardProps {
@@ -681,7 +704,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
             }}
           >
             <LogOut size={14} />
-            <span>Exit Admin</span>
+            <span>Logout</span>
           </button>
         </div>
       </div>
@@ -1269,7 +1292,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                           cursor: 'pointer'
                         }}
                       >
-                        <img src={req.idCardImageUrl} alt="Student ID Document" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        {isPdfDocument(req.idCardImageUrl) ? (
+                          <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', color: '#FFFFFF', backgroundColor: '#1E293B', padding: '0.5rem', textAlign: 'center' }}>
+                            <FileText size={30} color="#38BDF8" />
+                            <span style={{ fontSize: '0.74rem', fontWeight: 700 }}>Click to preview PDF</span>
+                            <span style={{ fontSize: '0.62rem', color: '#94A3B8' }}>Student ID Document</span>
+                          </div>
+                        ) : (
+                          <img src={resolveDocumentUrl(req.idCardImageUrl)} alt="Student ID Document" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        )}
                         <div
                           style={{
                             position: 'absolute',
@@ -1283,14 +1314,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                             fontWeight: 700
                           }}
                         >
-                          Additional Verification Image
+                          {isPdfDocument(req.idCardImageUrl) ? 'ID Document (PDF)' : 'ID Photo'}
                         </div>
                       </div>
                     )}
 
                     {req.selfiePhotoUrl && (
                       <div
-                        onClick={req.verificationMethod === 'studyload_manual_kyc' ? undefined : () => setInspectedImage(req.selfiePhotoUrl)}
+                        onClick={() => setInspectedImage(req.selfiePhotoUrl)}
                         style={{
                           height: '130px',
                           borderRadius: '8px',
@@ -1300,12 +1331,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                           cursor: 'pointer'
                         }}
                       >
-                        {req.verificationMethod === 'studyload_manual_kyc' ? (
-                          <a href={req.selfiePhotoUrl} target="_blank" rel="noopener noreferrer" onClick={(event) => event.stopPropagation()} style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', color: '#FFFFFF', textDecoration: 'none', fontSize: '0.78rem', fontWeight: 700 }}>
-                            <FileText size={30} /> Open submitted studyload PDF
-                          </a>
+                        {req.verificationMethod === 'studyload_manual_kyc' || isPdfDocument(req.selfiePhotoUrl) ? (
+                          <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', color: '#FFFFFF', backgroundColor: '#1E293B', padding: '0.5rem', textAlign: 'center' }}>
+                            <FileText size={30} color="#38BDF8" />
+                            <span style={{ fontSize: '0.76rem', fontWeight: 700 }}>Click to preview studyload PDF</span>
+                            <span style={{ fontSize: '0.62rem', color: '#94A3B8' }}>Official Assessment Form</span>
+                          </div>
                         ) : (
-                          <img src={req.selfiePhotoUrl} alt="Student live selfie" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <img src={resolveDocumentUrl(req.selfiePhotoUrl)} alt="Student live selfie" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         )}
                         <div
                           style={{
@@ -1320,7 +1353,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                             fontWeight: 700
                           }}
                         >
-                          {req.verificationMethod === 'studyload_manual_kyc' ? 'Studyload Document' : 'Live Selfie'}
+                          {req.verificationMethod === 'studyload_manual_kyc' || isPdfDocument(req.selfiePhotoUrl) ? 'Studyload Document (PDF)' : 'Live Selfie'}
                         </div>
                       </div>
                     )}
@@ -2776,24 +2809,86 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
       )}
 
       {/* =========================================================================
-          MODALS: FULL-SCREEN ID PHOTO VIEWER
+          MODALS: FULL-SCREEN ID PHOTO & PDF DOCUMENT VIEWER
           ========================================================================= */}
-      {inspectedImage && (
-        <div
-          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(8px)', zIndex: 4000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}
-          onClick={() => setInspectedImage(null)}
-        >
-          <div style={{ position: 'relative', maxWidth: '700px', width: '100%', maxHeight: '85vh', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <img src={inspectedImage} alt="ID Document Inspection" style={{ maxWidth: '100%', maxHeight: '75vh', borderRadius: '12px', objectFit: 'contain' }} />
-            <button
-              onClick={() => setInspectedImage(null)}
-              style={{ marginTop: '1rem', backgroundColor: '#FFFFFF', color: '#0F172A', padding: '0.5rem 1.25rem', borderRadius: '9999px', fontSize: '0.85rem', fontWeight: 800 }}
+      {inspectedImage && (() => {
+        const docUrl = resolveDocumentUrl(inspectedImage);
+        const isPdf = isPdfDocument(inspectedImage);
+        return (
+          <div
+            style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0, 0, 0, 0.88)', backdropFilter: 'blur(8px)', zIndex: 4000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
+            onClick={() => setInspectedImage(null)}
+          >
+            <div
+              style={{ position: 'relative', maxWidth: isPdf ? '900px' : '720px', width: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column', backgroundColor: '#0F172A', borderRadius: '16px', overflow: 'hidden', border: '1px solid #334155', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}
+              onClick={(e) => e.stopPropagation()}
             >
-              Close Viewer
-            </button>
+              {/* Header toolbar */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', borderBottom: '1px solid #1E293B', backgroundColor: '#1E293B' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#FFFFFF', fontSize: '0.88rem', fontWeight: 700 }}>
+                  <FileText size={18} color="#38BDF8" />
+                  <span>{isPdf ? 'Student Studyload / PDF Document' : 'Student Verification Image Inspection'}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <a
+                    href={docUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', backgroundColor: '#0284C7', color: '#FFFFFF', padding: '0.35rem 0.75rem', borderRadius: '6px', fontSize: '0.74rem', fontWeight: 700, textDecoration: 'none' }}
+                  >
+                    <ExternalLink size={13} />
+                    <span>Open in New Tab</span>
+                  </a>
+                  {isPdf && (
+                    <a
+                      href={docUrl}
+                      download="student_document.pdf"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', backgroundColor: '#334155', color: '#FFFFFF', padding: '0.35rem 0.75rem', borderRadius: '6px', fontSize: '0.74rem', fontWeight: 700, textDecoration: 'none' }}
+                    >
+                      <Download size={13} />
+                      <span>Download</span>
+                    </a>
+                  )}
+                  <button
+                    onClick={() => setInspectedImage(null)}
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', borderRadius: '6px', backgroundColor: '#334155', color: '#FFFFFF', border: 'none', cursor: 'pointer' }}
+                    title="Close viewer"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Document / Image Content Body */}
+              <div style={{ flex: 1, maxHeight: 'calc(90vh - 110px)', overflowY: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#020617', padding: isPdf ? '0' : '1rem' }}>
+                {isPdf ? (
+                  <iframe
+                    src={docUrl}
+                    title="PDF Document Preview"
+                    style={{ width: '100%', height: '75vh', border: 'none', backgroundColor: '#FFFFFF' }}
+                  />
+                ) : (
+                  <img
+                    src={docUrl}
+                    alt="ID Document Inspection"
+                    style={{ maxWidth: '100%', maxHeight: '75vh', borderRadius: '8px', objectFit: 'contain' }}
+                  />
+                )}
+              </div>
+
+              {/* Footer */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '0.6rem 1rem', borderTop: '1px solid #1E293B', backgroundColor: '#0F172A' }}>
+                <button
+                  onClick={() => setInspectedImage(null)}
+                  style={{ backgroundColor: '#FFFFFF', color: '#0F172A', padding: '0.4rem 1.1rem', borderRadius: '9999px', fontSize: '0.8rem', fontWeight: 800, border: 'none', cursor: 'pointer' }}
+                >
+                  Close Viewer
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* =========================================================================
           MODALS: ADMIN CREATE OFFICIAL LISTING

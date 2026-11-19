@@ -58,7 +58,7 @@ export const SwapProposalModal: React.FC<SwapProposalModalProps> = ({
       document.body.classList.add('modal-open');
     }
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = '';
       document.body.classList.remove('modal-open');
     };
   }, [isOpen]);

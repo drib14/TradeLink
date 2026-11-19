@@ -124,6 +124,36 @@ export const MainApp: React.FC = () => {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
+  // Global scroll-lock recovery watchdog: ensures page scrolling is never stuck
+  // when navigating, on modal dismissal, or if an unhandled error happens.
+  useEffect(() => {
+    if (!isAuthModalOpen && !isUnverifiedModalOpen && !isVerificationModalOpen) {
+      const hasOpenModal = document.querySelector('.modal-backdrop-custom, [role="dialog"], .modal-overlay');
+      if (!hasOpenModal) {
+        document.body.style.overflow = '';
+        document.body.classList.remove('modal-open');
+      }
+    }
+  }, [isAuthModalOpen, isUnverifiedModalOpen, isVerificationModalOpen, currentView]);
+
+  useEffect(() => {
+    const handleReleaseScrollLock = () => {
+      setTimeout(() => {
+        const hasOpenModal = document.querySelector('.modal-backdrop-custom, [role="dialog"], .modal-overlay');
+        if (!hasOpenModal) {
+          document.body.style.overflow = '';
+          document.body.classList.remove('modal-open');
+        }
+      }, 50);
+    };
+    window.addEventListener('error', handleReleaseScrollLock);
+    window.addEventListener('unhandledrejection', handleReleaseScrollLock);
+    return () => {
+      window.removeEventListener('error', handleReleaseScrollLock);
+      window.removeEventListener('unhandledrejection', handleReleaseScrollLock);
+    };
+  }, []);
+
   const handleNavigate = (view: string, params: any = {}) => {
     const validViews = [
       'home', 'marketplace', 'item-detail', 'create-listing', 'flash-market',

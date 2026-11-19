@@ -62,17 +62,16 @@ export const CreateFlashRequestModal: React.FC<CreateFlashRequestModalProps> = (
   const [shouldRender, setShouldRender] = useState(false);
 
   const handleClose = React.useCallback(() => {
-    if (isSubmitting) return;
     setIsClosing(true);
     setTimeout(() => {
       setIsClosing(false);
       setShouldRender(false);
       setCurrentStep(1);
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = '';
       document.body.classList.remove('modal-open');
       onClose();
     }, 200);
-  }, [isSubmitting, onClose]);
+  }, [onClose]);
 
   React.useEffect(() => {
     if (isOpen) {
@@ -84,6 +83,10 @@ export const CreateFlashRequestModal: React.FC<CreateFlashRequestModalProps> = (
     } else if (shouldRender && !isClosing) {
       handleClose();
     }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.classList.remove('modal-open');
+    };
   }, [isOpen]);
 
   React.useEffect(() => {

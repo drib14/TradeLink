@@ -20,13 +20,15 @@ interface ApiResponse<T = any> {
   data?: T;
 }
 
-// Token storage (Strictly in-memory for security against XSS; persistence via HttpOnly cookie)
+// Token storage (In-memory + Session storage to persist through page refresh)
 let accessToken: string | null = null;
 
-// Purge any legacy token from localStorage
+const ADMIN_STORAGE_KEY = 'tradelink_admin_token';
+
+// Try to hydrate token from session storage on module initialization
 try {
   if (typeof window !== 'undefined') {
-    localStorage.removeItem('tradelink_access_token');
+    accessToken = sessionStorage.getItem(ADMIN_STORAGE_KEY) || localStorage.getItem(ADMIN_STORAGE_KEY) || null;
   }
 } catch {}
 
@@ -34,13 +36,30 @@ export function setAccessToken(token: string | null) {
   accessToken = token;
   try {
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('tradelink_access_token');
+      if (token) {
+        sessionStorage.setItem(ADMIN_STORAGE_KEY, token);
+        localStorage.setItem(ADMIN_STORAGE_KEY, token);
+      } else {
+        sessionStorage.removeItem(ADMIN_STORAGE_KEY);
+        localStorage.removeItem(ADMIN_STORAGE_KEY);
+        localStorage.removeItem('tradelink_access_token');
+      }
     }
   } catch {}
 }
 
 export function getAccessToken(): string | null {
-  return accessToken;
+  if (accessToken) return accessToken;
+  try {
+    if (typeof window !== 'undefined') {
+      const stored = sessionStorage.getItem(ADMIN_STORAGE_KEY) || localStorage.getItem(ADMIN_STORAGE_KEY);
+      if (stored) {
+        accessToken = stored;
+        return stored;
+      }
+    }
+  } catch {}
+  return null;
 }
 
 export async function attemptTokenRefresh(): Promise<string | null> {

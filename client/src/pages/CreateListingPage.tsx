@@ -25,7 +25,9 @@ import {
   X,
   MapPin,
   Check,
-  Camera
+  Camera,
+  RotateCcw,
+  Sparkles
 } from 'lucide-react';
 
 export type PostingFormMode = 'sell' | 'swap';
@@ -88,6 +90,9 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const [hasRestoredDraft, setHasRestoredDraft] = useState(false);
+
+  const DRAFT_STORAGE_KEY = 'tradelink_create_listing_draft';
 
   // Item Variations state (matching images to options, e.g. PE 101-104, Math 101-104)
   const [hasVariations, setHasVariations] = useState(false);
@@ -97,6 +102,103 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
     price?: number | '';
     imageIndex: number;
   }[]>([]);
+
+  // Hydrate draft from localStorage on initial render
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (saved) {
+        const d = JSON.parse(saved);
+        if (d && (d.title || d.description || (d.images && d.images.length > 0) || d.price !== '' || d.swapPreference)) {
+          if (d.formMode) setFormMode(d.formMode);
+          if (d.currentStep) setCurrentStep(d.currentStep);
+          if (d.title) setTitle(d.title);
+          if (d.description) setDescription(d.description);
+          if (d.category) setCategory(d.category);
+          if (d.isCustomCategory !== undefined) setIsCustomCategory(d.isCustomCategory);
+          if (d.customCategoryName) setCustomCategoryName(d.customCategoryName);
+          if (d.condition) setCondition(d.condition);
+          if (d.quantity) setQuantity(d.quantity);
+          if (d.sellType) setSellType(d.sellType);
+          if (d.price !== undefined) setPrice(d.price);
+          if (d.originalSrp !== undefined) setOriginalSrp(d.originalSrp);
+          if (d.swapPreference) setSwapPreference(d.swapPreference);
+          if (d.swapConditionNote) setSwapConditionNote(d.swapConditionNote);
+          if (Array.isArray(d.tags)) setTags(d.tags);
+          if (Array.isArray(d.images)) setImages(d.images);
+          if (d.hasVariations !== undefined) setHasVariations(d.hasVariations);
+          if (Array.isArray(d.variations)) setVariations(d.variations);
+          setHasRestoredDraft(true);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to restore listing draft:', e);
+    }
+  }, []);
+
+  // Auto-save draft on form state changes (debounced)
+  useEffect(() => {
+    if (!title && !description && images.length === 0 && price === '' && !swapPreference) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      try {
+        const draftData = {
+          formMode,
+          currentStep,
+          title,
+          description,
+          category,
+          isCustomCategory,
+          customCategoryName,
+          condition,
+          quantity,
+          sellType,
+          price,
+          originalSrp,
+          swapPreference,
+          swapConditionNote,
+          tags,
+          images,
+          hasVariations,
+          variations,
+          savedAt: Date.now()
+        };
+        localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftData));
+      } catch (e) {
+        // Ignored
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [
+    formMode, currentStep, title, description, category, isCustomCategory,
+    customCategoryName, condition, quantity, sellType, price, originalSrp,
+    swapPreference, swapConditionNote, tags, images, hasVariations, variations
+  ]);
+
+  const clearDraft = () => {
+    localStorage.removeItem(DRAFT_STORAGE_KEY);
+    setTitle('');
+    setDescription('');
+    setCategory('Electronics & Gadgets');
+    setIsCustomCategory(false);
+    setCustomCategoryName('');
+    setCondition('Gently Used');
+    setQuantity(1);
+    setSellType('paid');
+    setPrice('');
+    setOriginalSrp('');
+    setSwapPreference('');
+    setSwapConditionNote('');
+    setTags([]);
+    setImages([]);
+    setHasVariations(false);
+    setVariations([]);
+    setCurrentStep(1);
+    setHasRestoredDraft(false);
+    showToast('Draft Cleared', 'Your listing form has been reset.', 'info');
+  };
 
   const applyVariationPreset = (type: 'pe' | 'math' | 'sizes') => {
     setHasVariations(true);
@@ -328,6 +430,12 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
           ? `"${newListing.title}" is now live in the Campus Swap Hub.`
           : `"${newListing.title}" is now active in the campus catalog.`;
 
+      try {
+        localStorage.removeItem(DRAFT_STORAGE_KEY);
+      } catch (e) {
+        // Ignored
+      }
+
       showToast(successTitle, successMsg, 'success');
       onNavigate('item-detail', { id: newListing.id });
     } catch (err: any) {
@@ -461,6 +569,68 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
           </span>
         </div>
       </div>
+
+      {/* Auto-Saved Draft Restored Banner */}
+      {hasRestoredDraft && (
+        <div
+          style={{
+            marginBottom: '1rem',
+            padding: '0.65rem 1rem',
+            borderRadius: '10px',
+            backgroundColor: '#EFF6FF',
+            border: '1px solid #BFDBFE',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '0.75rem',
+            flexWrap: 'wrap'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1E40AF', fontSize: '0.82rem' }}>
+            <Sparkles size={16} color="#2563EB" />
+            <span>
+              <strong>Draft Restored:</strong> We retrieved your saved listing progress from your last session.
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <button
+              type="button"
+              onClick={clearDraft}
+              style={{
+                background: 'none',
+                border: '1px solid #93C5FD',
+                borderRadius: '6px',
+                padding: '0.25rem 0.55rem',
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                color: '#1D4ED8',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.25rem'
+              }}
+            >
+              <RotateCcw size={12} /> Clear Draft
+            </button>
+            <button
+              type="button"
+              onClick={() => setHasRestoredDraft(false)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#6B7280',
+                cursor: 'pointer',
+                padding: '2px',
+                display: 'flex',
+                alignItems: 'center'
+              }}
+              title="Dismiss"
+            >
+              <X size={15} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Top-Level Posting Form Selector (Sell Form vs Swap Form) */}
       <div
@@ -1627,6 +1797,11 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
         cancelText="Keep Editing"
         variant="danger"
         onConfirm={() => {
+          try {
+            localStorage.removeItem(DRAFT_STORAGE_KEY);
+          } catch (e) {
+            // Ignored
+          }
           setShowDiscardConfirm(false);
           onNavigate(formMode === 'swap' ? 'swaps' : 'marketplace');
         }}

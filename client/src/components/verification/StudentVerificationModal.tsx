@@ -118,6 +118,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
   const [step, setStep] = useState<Step>('id_upload');
   const [studentIdInput, setStudentIdInput] = useState(currentUser?.studentId || '');
   const [idCardPhotoUrl, setIdCardPhotoUrl] = useState('');
+  const [localIdDataUrl, setLocalIdDataUrl] = useState('');
   const [selfiePhotoUrl, setSelfiePhotoUrl] = useState('');
   const [sessionToken, setSessionToken] = useState('');
   const [challengeInstruction, setChallengeInstruction] = useState('Look directly at the camera');
@@ -284,6 +285,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
       setUploadComplete(false);
       setOcrResult(null);
       const compressedDataUrl = await compressImage(file);
+      setLocalIdDataUrl(compressedDataUrl);
       const uploaded = await uploadFile(dataUrlToFile(compressedDataUrl, file.name.replace(/\.[^.]+$/, '.jpg')), 'id-photos', setUploadProgress);
       setIdCardPhotoUrl(uploaded.url);
       setUploadComplete(true);
@@ -338,8 +340,8 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
       setIsComparingBiometrics(true);
       setStep('review');
       try {
-        if (idCardPhotoUrl) {
-          const bio = await compareIdAndSelfie(idCardPhotoUrl, capturedSelfie);
+        if (localIdDataUrl || idCardPhotoUrl) {
+          const bio = await compareIdAndSelfie(localIdDataUrl || idCardPhotoUrl, capturedSelfie);
           setBiometricResult(bio);
           if (bio.isManualReviewNeeded || !bio.faceDetectedInSelfie) setAllowStudyloadFallback(true);
         }
