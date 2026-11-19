@@ -20,7 +20,6 @@ const initializeSocket = require('./socket');
 const storageService = require('./services/storage.service');
 const { autoInitDatabase } = require('./config/dbInit');
 
-const { v4: uuidv4 } = require('uuid');
 const { csrfProtection, getCsrfToken } = require('./middleware/csrfProtection');
 
 const app = express();
@@ -65,7 +64,7 @@ app.use(
 
 // 2. Request Correlation ID & Core Security Headers
 app.use((req, res, next) => {
-  req.id = uuidv4();
+  req.id = require('crypto').randomUUID();
   res.setHeader('X-Request-ID', req.id);
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
