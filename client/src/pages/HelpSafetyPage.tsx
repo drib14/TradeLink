@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   ShieldCheck,
   CheckCircle2,
@@ -10,7 +10,6 @@ import {
   Camera,
   FileText,
   MessageSquare,
-  Sparkles,
   MapPin,
   Clock,
   ThumbsUp
@@ -22,8 +21,6 @@ interface HelpSafetyPageProps {
 }
 
 export const HelpSafetyPage: React.FC<HelpSafetyPageProps> = ({ onNavigate }) => {
-  const [activeTab, setActiveTab] = useState<'tips' | 'verification'>('tips');
-
   return (
     <div className="container page-enter" style={{ maxWidth: '960px', paddingTop: 'clamp(1rem, 2.5vw, 2rem)', paddingBottom: '5rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       {/* Page Header */}

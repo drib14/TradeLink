@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useChat } from '../context/ChatContext';
 import { useMarket } from '../context/MarketContext';
@@ -124,7 +124,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
   }, [activeMessages.length]);
 
   // Find active transaction for a given conversation
-  const getConvTransaction = (conv: typeof conversations[0]) => {
+  const getConvTransaction = useCallback((conv: typeof conversations[0]) => {
     if (conv.activeTransaction) return conv.activeTransaction;
     if (!conv.listingId) return null;
     return transactions.find(
@@ -133,7 +133,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
         (t.buyerId === conv.otherParticipant.id || t.sellerId === conv.otherParticipant.id) &&
         (t.status === 'pending' || t.status === 'completed')
     ) || null;
-  };
+  }, [transactions]);
 
   // Filter conversations by search and tab
   const filteredConversations = useMemo(() => {
@@ -156,7 +156,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
       }
       return true;
     });
-  }, [conversations, searchFilter, filterTab, transactions]);
+  }, [conversations, searchFilter, filterTab, getConvTransaction]);
 
   // Counts for tabs
   const activeOrdersCount = useMemo(() => {
@@ -164,7 +164,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
       const tx = getConvTransaction(c);
       return tx && tx.status === 'pending';
     }).length;
-  }, [conversations, transactions]);
+  }, [conversations, getConvTransaction]);
 
   const totalUnreadCount = useMemo(() => {
     return conversations.filter((c) => (c.unreadCount || 0) > 0).length;

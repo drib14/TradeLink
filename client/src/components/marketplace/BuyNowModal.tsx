@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Listing } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { useChat } from '../../context/ChatContext';
@@ -57,9 +57,11 @@ export const BuyNowModal: React.FC<BuyNowModalProps> = ({
     }
   }, [initialVariation, listing]);
 
-  const availableMethods = (listing.acceptedPaymentMethods && listing.acceptedPaymentMethods.length > 0)
-    ? listing.acceptedPaymentMethods
-    : (['cash', 'gcash', 'maya'] as ('cash' | 'gcash' | 'maya')[]);
+  const availableMethods = useMemo(() => {
+    return (listing.acceptedPaymentMethods && listing.acceptedPaymentMethods.length > 0)
+      ? listing.acceptedPaymentMethods
+      : (['cash', 'gcash', 'maya'] as ('cash' | 'gcash' | 'maya')[]);
+  }, [listing.acceptedPaymentMethods]);
 
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'gcash' | 'maya'>(
     availableMethods[0] || 'cash'

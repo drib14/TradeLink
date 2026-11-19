@@ -52,7 +52,7 @@ export const adminService = {
   },
 
   async removeListing(flagId: string, reason?: string) {
-    const res = await api.delete(`/admin/flags/${flagId}/remove`);
+    const res = await api.delete(`/admin/flags/${flagId}/remove`, { reason });
     return res;
   },
 

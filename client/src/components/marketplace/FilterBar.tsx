@@ -27,7 +27,6 @@ import { CustomSelect, SelectOption } from '../common/CustomSelect';
 import { CategoryDropdown, getCategoryIcon } from '../common/CategoryDropdown';
 
 export const FilterBar: React.FC = () => {
-  const { categories } = useCategories();
   const {
     selectedCampus,
     setSelectedCampus,
@@ -57,10 +56,13 @@ export const FilterBar: React.FC = () => {
 
   const conditionOptions: SelectOption[] = [
     { value: 'All', label: 'All Conditions', icon: <Sparkles size={13} /> },
-    { value: 'Brand New', label: 'Brand New', icon: <CheckCircle2 size={13} color="#059669" />, badge: '10/10', badgeBg: '#ECFDF5', badgeColor: '#047857' },
-    { value: 'Like New', label: 'Like New', icon: <Sparkles size={13} color="#1D4ED8" />, badge: '9/10', badgeBg: '#EFF6FF', badgeColor: '#1D4ED8' },
-    { value: 'Good', label: 'Good Condition', icon: <ShieldCheck size={13} color="#B45309" />, badge: '7-8/10', badgeBg: '#FFFBEB', badgeColor: '#B45309' },
-    { value: 'Fair', label: 'Fair Condition', icon: <Clock size={13} color="#64748B" />, badge: '5-6/10', badgeBg: '#F1F5F9', badgeColor: '#475569' }
+    { value: 'Brand New', label: 'Brand New (10/10)', icon: <CheckCircle2 size={13} color="#059669" />, badge: '10/10', badgeBg: '#ECFDF5', badgeColor: '#047857' },
+    { value: 'Like New', label: 'Like New (9/10)', icon: <Sparkles size={13} color="#1D4ED8" />, badge: '9/10', badgeBg: '#EFF6FF', badgeColor: '#1D4ED8' },
+    { value: 'Gently Used', label: 'Gently Used (8/10)', icon: <ShieldCheck size={13} color="#B45309" />, badge: '8/10', badgeBg: '#FFFBEB', badgeColor: '#B45309' },
+    { value: 'Lightly Used', label: 'Lightly Used (7/10)', icon: <Clock size={13} color="#B45309" />, badge: '7/10', badgeBg: '#FFFBEB', badgeColor: '#B45309' },
+    { value: 'Well Used', label: 'Well Used (6/10)', icon: <Clock size={13} color="#64748B" />, badge: '6/10', badgeBg: '#F1F5F9', badgeColor: '#475569' },
+    { value: 'Heavily Used', label: 'Heavily Used (5/10)', icon: <Clock size={13} color="#64748B" />, badge: '5/10', badgeBg: '#F1F5F9', badgeColor: '#475569' },
+    { value: 'Fair / Academic Usable', label: 'Fair / Academic Usable', icon: <Clock size={13} color="#64748B" />, badge: 'Academic', badgeBg: '#F1F5F9', badgeColor: '#475569' }
   ];
 
   const sortByOptions: SelectOption[] = [
@@ -69,17 +71,6 @@ export const FilterBar: React.FC = () => {
     { value: 'price_high', label: 'Price: High to Low', icon: <ArrowUp size={13} /> },
     { value: 'trust_high', label: 'Highest Seller Trust', icon: <ShieldCheck size={13} />, badge: 'Verified' },
     { value: 'views_high', label: 'Most Popular', icon: <Flame size={13} /> }
-  ];
-
-  const conditions: { id: 'All' | ConditionGrade; label: string }[] = [
-    { id: 'All', label: 'All Conditions' },
-    { id: 'Brand New', label: 'Brand New' },
-    { id: 'Like New', label: 'Like New' },
-    { id: 'Gently Used', label: 'Gently Used' },
-    { id: 'Lightly Used', label: 'Lightly Used' },
-    { id: 'Well Used', label: 'Well Used' },
-    { id: 'Heavily Used', label: 'Heavily Used' },
-    { id: 'Fair / Academic Usable', label: 'Fair / Academic Usable' }
   ];
 
   const pricePresets = [

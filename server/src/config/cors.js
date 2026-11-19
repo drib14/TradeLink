@@ -80,14 +80,14 @@ function isOriginAllowed(origin) {
     return true;
   }
 
-  // Allow any localhost / 127.0.0.1 origin regardless of port
-  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(normalized)) {
+  // In development and test environments, allow localhost / 127.0.0.1 origins
+  if (!env.isProduction && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(normalized)) {
     return true;
   }
 
-  // Allow Vercel preview and production deployments for TradeLink
+  // Allow official TradeLink Vercel preview and production deployments
   const allowVercelPreviews = process.env.ALLOW_VERCEL_PREVIEWS !== 'false';
-  if (allowVercelPreviews && /^https:\/\/[a-z0-9-_.]*(tradelink|uc-tradelink)[a-z0-9-_.]*\.vercel\.app$/i.test(normalized)) {
+  if (allowVercelPreviews && /^https:\/\/(uc-tradelink|tradelink-admin|tradelink-backend|tradelink-uc)(-[a-z0-9-]+)?\.vercel\.app$/i.test(normalized)) {
     return true;
   }
 

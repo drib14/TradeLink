@@ -215,5 +215,5 @@ export const api = {
   post: <T = any>(endpoint: string, body?: any) => request<T>('POST', endpoint, body),
   put: <T = any>(endpoint: string, body?: any) => request<T>('PUT', endpoint, body),
   patch: <T = any>(endpoint: string, body?: any) => request<T>('PATCH', endpoint, body),
-  delete: <T = any>(endpoint: string) => request<T>('DELETE', endpoint),
+  delete: <T = any>(endpoint: string, body?: any) => request<T>('DELETE', endpoint, body),
 };
