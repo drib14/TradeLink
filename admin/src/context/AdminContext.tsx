@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { adminService } from '../services/admin.service';
-import { Listing, FlashRequest, WantedRequest, MeetupTransaction, VerificationRequest, TradeDispute, CampusAnnouncement, AdminAuditLog } from '../types';
+import { Listing, FlashRequest, WantedRequest, MeetupTransaction, VerificationRequest, TradeDispute, AdminAuditLog } from '../types';
 
 export interface FlaggedListingItem {
   id: string;
@@ -55,7 +55,6 @@ export interface AdminAnalytics {
 interface AdminContextType {
   verificationRequests: VerificationRequest[];
   flaggedListings: FlaggedListingItem[];
-  announcements: CampusAnnouncement[];
   auditLogs: AdminAuditLog[];
   prohibitedKeywords: string[];
   disputes: TradeDispute[];
@@ -94,9 +93,6 @@ interface AdminContextType {
   promoteToAdmin: (userId: string) => Promise<void>;
   demoteAdmin: (userId: string) => Promise<void>;
   adjustUserTrustScore: (userId: string, delta: number, reason: string) => Promise<void>;
-  createAnnouncement: (title: string, message: string, campus: string, type: string) => Promise<void>;
-  deleteAnnouncement: (id: string) => Promise<void>;
-  toggleAnnouncement: (id: string) => Promise<void>;
   addProhibitedKeyword: (word: string) => Promise<void>;
   removeProhibitedKeyword: (word: string) => Promise<void>;
   resolveDispute: (disputeId: string, action: string, note: string) => Promise<void>;
@@ -109,7 +105,6 @@ const AdminContext = createContext<AdminContextType | undefined>(undefined);
 export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [verificationRequests, setVerificationRequests] = useState<VerificationRequest[]>([]);
   const [flaggedListings, setFlaggedListings] = useState<FlaggedListingItem[]>([]);
-  const [announcements, setAnnouncements] = useState<CampusAnnouncement[]>([]);
   const [auditLogs, setAuditLogs] = useState<AdminAuditLog[]>([]);
   const [prohibitedKeywords, setProhibitedKeywords] = useState<string[]>([]);
   const [disputes, setDisputes] = useState<TradeDispute[]>([]);
@@ -138,7 +133,6 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         verifs,
         flags,
         disputeData,
-        anns,
         logs,
         usersList,
         keywords,
@@ -152,7 +146,6 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         adminService.getVerifications(),
         adminService.getFlags(),
         adminService.getDisputes(),
-        adminService.getAnnouncements(),
         adminService.getAuditLogs(),
         adminService.getAllUsers(),
         adminService.getKeywords(),
@@ -167,7 +160,6 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (verifs.status === 'fulfilled') setVerificationRequests(verifs.value || []);
       if (flags.status === 'fulfilled') setFlaggedListings(flags.value || []);
       if (disputeData.status === 'fulfilled') setDisputes(disputeData.value || []);
-      if (anns.status === 'fulfilled') setAnnouncements(anns.value || []);
       if (logs.status === 'fulfilled') setAuditLogs(logs.value || []);
       if (usersList.status === 'fulfilled') setAllUsers(usersList.value || []);
       if (keywords.status === 'fulfilled') setProhibitedKeywords(keywords.value || []);
@@ -299,21 +291,6 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     fetchAdminData();
   };
 
-  const createAnnouncement = async (title: string, message: string, campus: string, type: string) => {
-    await adminService.createAnnouncement({ title, message, campus, type });
-    fetchAdminData();
-  };
-
-  const deleteAnnouncement = async (id: string) => {
-    await adminService.deleteAnnouncement(id);
-    fetchAdminData();
-  };
-
-  const toggleAnnouncement = async (id: string) => {
-    await adminService.toggleAnnouncement(id);
-    fetchAdminData();
-  };
-
   const addProhibitedKeyword = async (word: string) => {
     await adminService.addKeyword(word);
     fetchAdminData();
@@ -343,7 +320,6 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       value={{
         verificationRequests,
         flaggedListings,
-        announcements,
         auditLogs,
         prohibitedKeywords,
         disputes,
@@ -382,9 +358,6 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         promoteToAdmin,
         demoteAdmin,
         adjustUserTrustScore,
-        createAnnouncement,
-        deleteAnnouncement,
-        toggleAnnouncement,
         addProhibitedKeyword,
         removeProhibitedKeyword,
         resolveDispute,
