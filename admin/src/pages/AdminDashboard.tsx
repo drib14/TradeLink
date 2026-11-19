@@ -2469,7 +2469,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 <option value="listing">Listing Takedowns</option>
                 <option value="dispute">Dispute Verdicts</option>
                 <option value="meetup">Meetup Escrows</option>
-                <option value="announcement">Broadcasts</option>
+                <option value="email_campaign">Email Campaigns</option>
                 <option value="system">System Config</option>
               </select>
 
