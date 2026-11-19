@@ -5,7 +5,6 @@ const db = require('./db');
 const env = require('./env');
 const logger = require('../utils/logger');
 const { ensureListingStatusSchema } = require('../services/listingStatusSchema.service');
-const { ensureListingStatusSchema } = require('../services/listingStatusSchema.service');
 
 /**
  * Auto-initialize database tables, default administrator credentials, and baseline system records.
