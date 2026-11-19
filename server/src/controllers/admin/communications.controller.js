@@ -130,11 +130,12 @@ const getEmailCampaigns = asyncHandler(async (_req, res) => {
 });
 
 const createEmailCampaign = asyncHandler(async (req, res, next) => {
-  const title = String(req.body.title || '').replaceAll(String.fromCharCode(10), ' ').replaceAll(String.fromCharCode(13), ' ').trim();
-  const subject = String(req.body.subject || '').replaceAll(String.fromCharCode(10), ' ').replaceAll(String.fromCharCode(13), ' ').trim();
-  const message = String(req.body.message || '').trim();
-  const audience = ['all', 'campus', 'verified', 'unverified'].includes(req.body.audience) ? req.body.audience : 'all';
-  const campus = String(req.body.campus || '').trim();
+  const body = req.body || {};
+  const title = String(body.title || '').replaceAll(String.fromCharCode(10), ' ').replaceAll(String.fromCharCode(13), ' ').trim();
+  const subject = String(body.subject || '').replaceAll(String.fromCharCode(10), ' ').replaceAll(String.fromCharCode(13), ' ').trim();
+  const message = String(body.message || '').trim();
+  const audience = ['all', 'campus', 'verified', 'unverified'].includes(body.audience) ? req.body.audience : 'all';
+  const campus = String(body.campus || '').trim();
 
   if (title.length < 3 || title.length > 160) return next(new AppError('Title must be between 3 and 160 characters.', 400));
   if (subject.length < 3 || subject.length > 200) return next(new AppError('Subject must be between 3 and 200 characters.', 400));
