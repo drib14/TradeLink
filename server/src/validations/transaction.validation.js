@@ -7,7 +7,6 @@ const createTransactionSchema = Joi.object({
   tradeMode: Joi.string().valid('buy_sell', 'barter', 'swap', 'donation', 'free_donation', 'flash').default('buy_sell'),
   amount: Joi.number().min(0).max(1000000).allow(null),
   quantity: Joi.number().integer().min(1).max(100).default(1),
-  quantity: Joi.number().integer().min(1).max(100).default(1),
   finalPrice: Joi.number().min(0).max(1000000).allow(null),
   paymentMethod: Joi.string().valid('cash', 'gcash', 'maya', 'barter', 'free').default('cash'),
   swapOfferId: Joi.string().max(100).allow(null, ''),
