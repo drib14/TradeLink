@@ -237,10 +237,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const mergeServerMessages = (serverMsgs: Message[]) => {
       setMessages((prev) => {
         const otherMsgs = prev.filter((m) => m.conversationId !== activeConvId);
-        const currentById = new Map(
+        const currentById = new Map<string, Message>(
           prev
             .filter((m) => m.conversationId === activeConvId)
-            .map((m) => [String(m.id), m])
+            .map((m): [string, Message] => [String(m.id), m])
         );
         for (const message of serverMsgs) {
           currentById.set(String(message.id), message);
