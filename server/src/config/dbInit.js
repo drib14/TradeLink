@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const db = require('./db');
 const env = require('./env');
 const logger = require('../utils/logger');
+const { ensureListingStatusSchema } = require('../services/listingStatusSchema.service');
 
 /**
  * Auto-initialize database tables, default administrator credentials, and baseline system records.
@@ -428,8 +429,12 @@ async function autoInitDatabase() {
       }
 
       try {
-        await db.raw("ALTER TABLE `listings` MODIFY COLUMN `status` ENUM('available', 'pending', 'sold', 'archived', 'banned', 'deleted') NOT NULL DEFAULT 'available';");
-      } catch (_) {}
+        await ensureListingStatusSchema();
+        logger.info('[DB Init] Listing status enum verified for active/reserved marketplace states.');
+      } catch (statusSchemaError) {
+        logger.error(`[DB Init] Could not normalize listings.status: ${statusSchemaError.message}`);
+        throw statusSchemaError;
+      }
     }
 
     const hasFlashTable = await db.schema.hasTable('flash_requests').catch(() => false);
