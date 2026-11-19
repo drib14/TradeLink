@@ -1,0 +1,51 @@
+name: TradeLink Build Validation
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, fix/live-purchase-schema-and-admin-build]
+
+permissions:
+  contents: read
+
+jobs:
+  frontend-builds:
+    name: Build admin and student web apps
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            admin/package-lock.json
+            client/package-lock.json
+      - name: Install admin dependencies
+        run: npm ci --prefix admin
+      - name: Build admin dashboard
+        run: npm run build --prefix admin
+      - name: Install student web dependencies
+        run: npm ci --prefix client
+      - name: Build student web app
+        run: npm run build --prefix client
+
+  backend-validation:
+    name: Validate backend JavaScript and purchase schema
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - name: Install backend dependencies
+        run: npm ci --prefix server
+      - name: Check changed backend JavaScript syntax
+        run: |
+          node --check server/src/services/listingStatusSchema.service.js
+          node --check server/src/config/dbInit.js
+          node --check server/src/controllers/transactions.controller.js
+          node --check server/src/validations/transaction.validation.js
