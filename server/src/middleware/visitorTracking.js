@@ -17,7 +17,7 @@ function getCampusDate() {
  * Counts one anonymous browser/device once per campus-local calendar day.
  * The raw visitor token is never stored; only its SHA-256 digest is persisted.
  */
-module.exports = function visitorTracking(req, res, next) {
+module.exports = function visitorTracking(req, _res, next) {
   const path = String(req.path || '');
   if (
     req.method === 'OPTIONS' ||
@@ -56,9 +56,7 @@ module.exports = function visitorTracking(req, res, next) {
     .catch((error) => {
       recentlySeen.delete(cacheKey);
       // Analytics must never make marketplace requests fail.
-      if (process.env.NODE_ENV !== 'test') {
-        console.warn('[VISITOR ANALYTICS] Visit write skipped:', error.message);
-      }
+      console.warn('[VISITOR ANALYTICS] Visit write skipped:', error.message);
       return next();
     });
 };
