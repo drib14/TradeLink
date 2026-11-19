@@ -121,7 +121,7 @@ export const AdminVisitorAnalytics: React.FC = () => {
               {Array.from({ length: 12 }, (_, index) => <option key={index} value={index}>{new Date(2024, index, 1).toLocaleDateString('en-PH', { month: 'long' })}</option>)}
             </select>
             <select aria-label="Year" value={year} onChange={(event) => setSelectedDate(toDateKey(new Date(Number(event.target.value), month, 1)))}>
-              {Array.from({ length: 7 }, (_, index) => new Date().getFullYear() - 5 + index).map((item) => <option key={item} value={item}>{item}</option>)}
+              {Array.from({ length: 13 }, (_, index) => new Date().getFullYear() - 10 + index).map((item) => <option key={item} value={item}>{item}</option>)}
             </select>
             <button onClick={() => setSelectedDate(toDateKey(new Date()))}>Today</button>
           </div>
