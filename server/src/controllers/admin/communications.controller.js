@@ -50,7 +50,7 @@ const getVisitAnalytics = asyncHandler(async (req, res) => {
       .orderBy('visit_date', 'asc'),
     db('site_visits')
       .whereBetween('visit_date', [formatDate(rangeStart), formatDate(rangeEnd)])
-      .count('* as visitors')
+      .countDistinct({ visitors: 'visitor_hash' })
       .first(),
     db('site_visits')
       .where({ visit_date: formatDate(selectedDate) })
