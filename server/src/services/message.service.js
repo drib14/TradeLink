@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const { v4: uuidv4 } = require('uuid');
+
 const db = require('../config/db');
 const AppError = require('../utils/AppError');
 const config = require('../config/env');
@@ -79,7 +79,7 @@ async function createMessage({
 
   const actualReceiverId = conv.user_one_id === senderId ? conv.user_two_id : conv.user_one_id;
 
-  const msgId = uuidv4();
+  const msgId = require('crypto').randomUUID();
   const summaryContent = cleanContent || (mediaType === 'video' ? '[Video Attachment]' : '[Image Attachment]');
   const storedContent = isSystemMessage ? summaryContent : encryptMessageContent(summaryContent);
 
