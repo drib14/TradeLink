@@ -152,7 +152,8 @@ flowchart TD
         ADMIN_DASH --> FLAGS[Review flagged listings]
         ADMIN_DASH --> DISPUTES[Review transaction disputes]
         ADMIN_DASH --> USERS[Review student directory]
-        ADMIN_DASH --> ANNOUNCE[Publish campus announcements]
+        ADMIN_DASH --> VISITS[Review visitor analytics]
+        ADMIN_DASH --> EMAIL[Send student email updates]
         VERIFICATION_QUEUE --> ADMIN_REVIEW
         FLAGS --> FLAG_DECISION{Policy breach?}
         FLAG_DECISION -->|No| SAFE[Resolve flag and keep listing]
@@ -215,7 +216,7 @@ flowchart TD
 | Actor | Main responsibilities |
 | --- | --- |
 | Student | Register, verify identity, browse, list items, chat, propose swaps, schedule meetups, verify handshakes, review transactions |
-| Admin | Review IDs, resolve reports and disputes, moderate listings, manage warnings and bans, publish campus announcements |
+| Admin | Review IDs, resolve reports and disputes, moderate listings, manage warnings and bans, review visitor analytics, send student email updates |
 | SuperAdmin | Manage roles, delete accounts, change system configuration, control feature flags |
 | TradeLink API | Authenticate requests, validate input, enforce RBAC and rate limits, run business logic, persist data, emit notifications |
 | MySQL database | Store users, listings, images, swaps, meetups, messages, reviews, notifications, disputes, and audit logs |
