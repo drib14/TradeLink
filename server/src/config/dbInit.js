@@ -2,7 +2,6 @@ const fs = require('fs');
 const path = require('path');
 const bcrypt = require('bcryptjs');
 const db = require('./db');
-const env = require('./env');
 const logger = require('../utils/logger');
 const { ensureListingStatusSchema } = require('../services/listingStatusSchema.service');
 
