@@ -1,0 +1,52 @@
+name: Backend dependency security refresh
+
+on:
+  push:
+    branches: [chore/security-lint-remediation]
+    paths:
+      - ".github/workflows/backend-security-refresh.yml"
+      - "server/package.json"
+      - "server/package-lock.json"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-and-verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - name: Check out remediation branch
+        uses: actions/checkout@v4
+        with:
+          ref: chore/security-lint-remediation
+          persist-credentials: true
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - name: Refresh vulnerable compatible dependencies
+        run: npm audit fix --package-lock-only
+      - name: Install exact refreshed lockfile
+        run: npm ci
+      - name: Fail on high or critical vulnerabilities
+        run: npm audit --audit-level=high
+      - name: Run backend test suite
+        run: npm test -- --runInBand
+      - name: Commit verified lockfile updates
+        working-directory: .
+        run: |
+          if git diff --quiet -- server/package-lock.json; then
+            echo "No lockfile changes were needed."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add server/package-lock.json
+          git commit -m "fix(security): refresh vulnerable backend dependencies"
+          git push origin HEAD:chore/security-lint-remediation
