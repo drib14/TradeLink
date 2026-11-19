@@ -43,7 +43,7 @@ exports.up = async function(knex) {
       table.string('email', 254).notNullable();
       table.string('recipient_name', 120).nullable();
       table.enu('status', ['queued', 'processing', 'sent', 'failed']).notNullable().defaultTo('queued');
-      table.string('error_message', 500).nullable();
+      table.string('error_message', 255).nullable();
       table.dateTime('processing_at').nullable();
       table.dateTime('sent_at').nullable();
       table.timestamps(true, true);

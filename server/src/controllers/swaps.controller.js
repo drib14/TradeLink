@@ -316,6 +316,14 @@ const respondToSwap = asyncHandler(async (req, res, next) => {
       notes: `Barter trade: ${swap.offered_item_title} for ${swap.target_title}${swap.selected_variation ? ` [Option: ${swap.selected_variation}]` : ''}`
     };
 
+    const [hasVariationCol, hasHandshakeSentCol] = await Promise.all([
+      db.schema.hasColumn('transactions', 'selected_variation').catch(() => false),
+      db.schema.hasColumn('transactions', 'handshake_code_sent_at').catch(() => false)
+    ]);
+    const txInsertData = { ...swapTransaction };
+    if (!hasVariationCol) delete txInsertData.selected_variation;
+    if (!hasHandshakeSentCol) delete txInsertData.handshake_code_sent_at;
+
     await db.transaction(async (trx) => {
       const pendingSwap = await trx('swap_offers').where({ id, status: 'pending' }).forUpdate().first();
       if (!pendingSwap) {
@@ -323,7 +331,7 @@ const respondToSwap = asyncHandler(async (req, res, next) => {
       }
       await trx('swap_offers').where({ id }).update({ status: 'accepted' });
       await trx('listings').where({ id: swap.listing_id }).update({ status: 'reserved' });
-      await trx('transactions').insert(swapTransaction);
+      await trx('transactions').insert(txInsertData);
     });
 
     // Notify both parties about acceptance; the private meetup code is still sent only to the buyer.

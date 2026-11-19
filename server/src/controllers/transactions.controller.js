@@ -308,13 +308,15 @@ const createTransaction = asyncHandler(async (req, res, next) => {
     notes: notes ? notes.trim() : null
   };
 
-  const [hasVariationCol, hasVariationIdCol] = await Promise.all([
+  const [hasVariationCol, hasVariationIdCol, hasHandshakeSentCol] = await Promise.all([
     db.schema.hasColumn('transactions', 'selected_variation').catch(() => false),
-    db.schema.hasColumn('transactions', 'variation_id').catch(() => false)
+    db.schema.hasColumn('transactions', 'variation_id').catch(() => false),
+    db.schema.hasColumn('transactions', 'handshake_code_sent_at').catch(() => false)
   ]);
   const txInsertData = { ...newTx };
   if (!hasVariationCol) delete txInsertData.selected_variation;
   if (!hasVariationIdCol) delete txInsertData.variation_id;
+  if (!hasHandshakeSentCol) delete txInsertData.handshake_code_sent_at;
 
   const orderQuantity = Math.max(1, parseInt(req.body.quantity, 10) || (notes?.match(/Qty:\s*(\d+)/i) ? parseInt(notes.match(/Qty:\s*(\d+)/i)[1], 10) : 1));
   if (orderQuantity > Math.max(1, Number(listing.quantity ?? 1))) {

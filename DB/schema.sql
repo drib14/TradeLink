@@ -579,25 +579,7 @@ CREATE TABLE `security_events` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
--- 22. NOTIFICATIONS TABLE (Student System & In-App Activity Notifications)
--- ----------------------------------------------------------------------------
-CREATE TABLE `notifications` (
-  `id` VARCHAR(36) NOT NULL PRIMARY KEY,
-  `user_id` VARCHAR(36) NOT NULL,
-  `type` VARCHAR(50) NOT NULL,
-  `title` VARCHAR(200) NOT NULL,
-  `message` TEXT NOT NULL,
-  `data` JSON DEFAULT NULL,
-  `is_read` BOOLEAN NOT NULL DEFAULT FALSE,
-  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-  FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  INDEX `idx_notifications_user_read` (`user_id`, `is_read`),
-  INDEX `idx_notifications_user_created` (`user_id`, `created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ----------------------------------------------------------------------------
--- 23. USER FAVORITES TABLE (Saved / Watchlist Listings)
+-- 22. USER FAVORITES TABLE (Saved / Watchlist Listings)
 -- ----------------------------------------------------------------------------
 CREATE TABLE `user_favorites` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY,
@@ -655,7 +637,7 @@ CREATE TABLE `email_campaign_recipients` (
   `email` VARCHAR(254) NOT NULL,
   `recipient_name` VARCHAR(120) DEFAULT NULL,
   `status` ENUM('queued', 'processing', 'sent', 'failed') NOT NULL DEFAULT 'queued',
-  `error_message` VARCHAR(500) DEFAULT NULL,
+  `error_message` VARCHAR(255) DEFAULT NULL,
   `processing_at` DATETIME DEFAULT NULL,
   `sent_at` DATETIME DEFAULT NULL,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

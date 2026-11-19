@@ -29,9 +29,9 @@ async function run() {
     CREATE TABLE IF NOT EXISTS \`listing_media\` (
       \`id\` VARCHAR(36) NOT NULL PRIMARY KEY,
       \`listing_id\` VARCHAR(36) NOT NULL,
-      \`media_url\` VARCHAR(500) NOT NULL,
+      \`media_url\` VARCHAR(255) NOT NULL,
       \`media_type\` ENUM('image', 'video') NOT NULL DEFAULT 'image',
-      \`thumbnail_url\` VARCHAR(500) DEFAULT NULL,
+      \`thumbnail_url\` VARCHAR(255) DEFAULT NULL,
       \`is_primary\` BOOLEAN NOT NULL DEFAULT FALSE,
       \`display_order\` TINYINT UNSIGNED NOT NULL DEFAULT 0,
       \`created_at\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -74,7 +74,7 @@ async function run() {
       \`notes\` TEXT DEFAULT NULL,
       \`completed_at\` DATETIME DEFAULT NULL,
       \`cancelled_at\` DATETIME DEFAULT NULL,
-      \`cancellation_reason\` VARCHAR(500) DEFAULT NULL,
+      \`cancellation_reason\` VARCHAR(255) DEFAULT NULL,
       \`created_at\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       \`updated_at\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       INDEX \`idx_tx_ref\` (\`reference_no\`),
@@ -92,7 +92,7 @@ async function run() {
     const [msgCols] = await db.raw("SHOW COLUMNS FROM `messages`");
     const colNames = msgCols.map((c) => c.Field);
     if (!colNames.includes('media_url')) {
-      await db.raw("ALTER TABLE `messages` ADD COLUMN `media_url` VARCHAR(500) DEFAULT NULL AFTER `is_system_message`");
+      await db.raw("ALTER TABLE `messages` ADD COLUMN `media_url` VARCHAR(255) DEFAULT NULL AFTER `is_system_message`");
       console.log('✓ Added messages.media_url');
     }
     if (!colNames.includes('media_type')) {

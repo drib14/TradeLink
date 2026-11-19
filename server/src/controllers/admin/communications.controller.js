@@ -223,7 +223,7 @@ const processEmailCampaignBatch = asyncHandler(async (req, res, next) => {
       return { sent: true };
     } catch (error) {
       await db('email_campaign_recipients').where({ id: recipient.id }).update({
-        status: 'failed', processing_at: null, error_message: String(error.message || 'Delivery failed').slice(0, 500)
+        status: 'failed', processing_at: null, error_message: String(error.message || 'Delivery failed').slice(0, 255)
       });
       await db('email_campaigns').where({ id: campaign.id }).increment('failed_count', 1);
       return { sent: false };

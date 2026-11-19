@@ -318,6 +318,21 @@ async function autoInitDatabase() {
         });
         logger.info('[DB Init] Added verification_code_hash and security columns to transactions table.');
       }
+
+      // Ensure dual handshake confirmation timestamps and tracking columns exist
+      const hasHandshakeSent = await db.schema.hasColumn('transactions', 'handshake_code_sent_at').catch(() => false);
+      if (!hasHandshakeSent) {
+        await db.schema.alterTable('transactions', (t) => {
+          t.dateTime('handshake_code_sent_at').nullable();
+          t.dateTime('buyer_confirmed_at').nullable();
+          t.dateTime('seller_confirmed_at').nullable();
+          t.dateTime('handshake_completed_at').nullable();
+          t.string('completion_override_by', 36).nullable();
+        }).catch((err) => {
+          logger.warn(`[DB Init] Could not add dual handshake columns to transactions: ${err.message}`);
+        });
+        logger.info('[DB Init] Added dual handshake columns to transactions table.');
+      }
     }
 
     // Self-healing: Backfill missing or null flash_requests images with high-resolution academic photos
@@ -596,7 +611,7 @@ async function autoInitDatabase() {
         table.string('email', 254).notNullable();
         table.string('recipient_name', 120).nullable();
         table.enu('status', ['queued', 'processing', 'sent', 'failed']).notNullable().defaultTo('queued');
-        table.string('error_message', 500).nullable();
+        table.string('error_message', 255).nullable();
         table.dateTime('processing_at').nullable();
         table.dateTime('sent_at').nullable();
         table.timestamps(true, true);

@@ -17,9 +17,9 @@ exports.up = async function(knex) {
     ]).notNullable();
     table.string('college', 50).notNullable();
     table.string('year_level', 50).notNullable();
-    table.string('avatar_url', 500).nullable();
+    table.string('avatar_url', 255).nullable();
     table.boolean('is_verified').notNullable().defaultTo(false);
-    table.string('id_photo_url', 500).nullable();
+    table.string('id_photo_url', 255).nullable();
     table.tinyint('trust_score').unsigned().notNullable().defaultTo(60);
     table.decimal('rating', 2, 1).notNullable().defaultTo(0.0);
     table.integer('total_reviews').unsigned().notNullable().defaultTo(0);
@@ -28,7 +28,7 @@ exports.up = async function(knex) {
     table.text('bio').nullable();
     table.boolean('is_pro_merchant').notNullable().defaultTo(false);
     table.boolean('is_banned').notNullable().defaultTo(false);
-    table.string('ban_reason', 500).nullable();
+    table.string('ban_reason', 255).nullable();
     table.dateTime('banned_at').nullable();
     table.tinyint('warnings_count').unsigned().notNullable().defaultTo(0);
     table.string('refresh_token_hash', 255).nullable();
@@ -80,9 +80,9 @@ exports.up = async function(knex) {
   await knex.schema.createTable('listing_media', (table) => {
     table.string('id', 36).primary();
     table.string('listing_id', 36).notNullable().references('id').inTable('listings').onDelete('CASCADE');
-    table.string('media_url', 500).notNullable();
+    table.string('media_url', 255).notNullable();
     table.enu('media_type', ['image', 'video']).notNullable().defaultTo('image');
-    table.string('thumbnail_url', 500).nullable();
+    table.string('thumbnail_url', 255).nullable();
     table.boolean('is_primary').notNullable().defaultTo(false);
     table.tinyint('display_order').unsigned().notNullable().defaultTo(0);
     table.timestamp('created_at').defaultTo(knex.fn.now());
@@ -112,7 +112,7 @@ exports.up = async function(knex) {
     table.string('proposer_id', 36).notNullable().references('id').inTable('users').onDelete('CASCADE');
     table.string('offered_item_title', 200).notNullable();
     table.text('offered_item_description').nullable();
-    table.string('offered_item_image', 500).nullable();
+    table.string('offered_item_image', 255).nullable();
     table.string('offered_listing_id', 36).nullable().references('id').inTable('listings').onDelete('SET NULL');
     table.decimal('cash_adjustment', 10, 2).notNullable().defaultTo(0.00);
     table.enu('adjustment_type', ['none', 'proposer_adds_cash', 'proposer_requests_cash']).notNullable().defaultTo('none');
@@ -141,7 +141,7 @@ exports.up = async function(knex) {
     table.text('notes').nullable();
     table.dateTime('completed_at').nullable();
     table.dateTime('cancelled_at').nullable();
-    table.string('cancellation_reason', 500).nullable();
+    table.string('cancellation_reason', 255).nullable();
     table.timestamps(true, true);
 
     table.index(['reference_no'], 'idx_tx_ref');
@@ -160,7 +160,7 @@ exports.up = async function(knex) {
     table.text('content').notNullable();
     table.boolean('is_read').notNullable().defaultTo(false);
     table.boolean('is_system_message').notNullable().defaultTo(false);
-    table.string('media_url', 500).nullable();
+    table.string('media_url', 255).nullable();
     table.enu('media_type', ['image', 'video']).nullable();
     table.string('swap_offer_id', 36).nullable().references('id').inTable('swap_offers').onDelete('SET NULL');
     table.string('transaction_id', 36).nullable().references('id').inTable('transactions').onDelete('SET NULL');
@@ -224,8 +224,8 @@ exports.up = async function(knex) {
     table.string('id', 36).primary();
     table.string('user_id', 36).notNullable().references('id').inTable('users').onDelete('CASCADE');
     table.string('student_id_number', 50).notNullable();
-    table.string('id_photo_url', 500).notNullable();
-    table.string('selfie_photo_url', 500).nullable();
+    table.string('id_photo_url', 255).notNullable();
+    table.string('selfie_photo_url', 255).nullable();
     table.enu('status', ['pending', 'approved', 'rejected']).notNullable().defaultTo('pending');
     table.string('rejection_reason', 255).nullable();
     table.string('reviewed_by', 36).nullable();
@@ -322,7 +322,7 @@ exports.up = async function(knex) {
     table.string('code_hash', 255).nullable();
     table.dateTime('code_exp').nullable();
     table.string('reviewed_by', 36).nullable();
-    table.string('admin_note', 500).nullable();
+    table.string('admin_note', 255).nullable();
     table.dateTime('reviewed_at').nullable();
     table.timestamps(true, true);
 
