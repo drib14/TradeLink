@@ -174,6 +174,11 @@ describe('Tier 1: Server API Smoke Tests', () => {
       expect(res.status).toBe(401);
     });
 
+    it('GET /api/admin/email-campaigns should reject unauthenticated requests with 401', async () => {
+      const res = await request(app).get('/api/admin/email-campaigns');
+      expect(res.status).toBe(401);
+    });
+
     it('GET /api/admin/config should return 200 for public system config (or 500/503 if DB offline)', async () => {
       const res = await request(app).get('/api/admin/config');
       expect([200, 500, 503]).toContain(res.status);
