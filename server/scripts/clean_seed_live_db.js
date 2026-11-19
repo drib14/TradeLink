@@ -137,7 +137,7 @@ async function main() {
     `, [adminName, adminEmail, adminPasswordHash]);
     console.log(`✓ Administrator account seeded: ${adminEmail} (ADMIN001)`);
 
-    console.log('\\n--- Seeding Prohibited Keywords ---');
+    console.log('\n--- Seeding Prohibited Keywords ---');
 
     await connection.query(`
       INSERT INTO \`admin_audit_logs\` (\`id\`, \`admin_id\`, \`admin_name\`, \`action\`, \`target_type\`, \`target_id\`, \`details\`, \`ip_address\`) VALUES
