@@ -2394,3 +2394,97 @@ body.modal-open .mobile-nav-bar { display: none !important; pointer-events: none
 }
 
 
+
+
+/* ==========================================================================
+   CUSTOMER EXPERIENCE POLISH — FAST FEEDBACK, ACCESSIBILITY & TOUCH UX
+   ========================================================================== */
+:root {
+  --tl-motion-fast: 140ms;
+  --tl-motion-standard: 190ms;
+  --tl-focus-ring: 0 0 0 3px rgba(35, 91, 164, .18);
+}
+html { scroll-behavior: smooth; scrollbar-gutter: stable; }
+body { overscroll-behavior-y: contain; }
+button, a, [role="button"], input, select, textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+button, [role="button"] {
+  touch-action: manipulation;
+}
+button:not(:disabled), [role="button"], a {
+  transition: color var(--tl-motion-fast) ease, background-color var(--tl-motion-fast) ease,
+    border-color var(--tl-motion-fast) ease, box-shadow var(--tl-motion-fast) ease,
+    transform var(--tl-motion-fast) ease, opacity var(--tl-motion-fast) ease;
+}
+button:active:not(:disabled), [role="button"]:active {
+  transform: scale(.985);
+}
+button:disabled {
+  cursor: not-allowed;
+  opacity: .58;
+}
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: none;
+  box-shadow: var(--tl-focus-ring);
+}
+:where(input, select, textarea) {
+  transition: border-color var(--tl-motion-standard) ease, box-shadow var(--tl-motion-standard) ease,
+    background-color var(--tl-motion-standard) ease;
+}
+:where(input, select, textarea):focus {
+  border-color: #8eadd8;
+}
+@media (hover: hover) and (pointer: fine) {
+  .clean-card, .listing-card, .product-card, .marketplace-card {
+    transition: transform var(--tl-motion-standard) ease, box-shadow var(--tl-motion-standard) ease,
+      border-color var(--tl-motion-standard) ease;
+  }
+  .clean-card:hover, .listing-card:hover, .product-card:hover, .marketplace-card:hover {
+    transform: translateY(-2px);
+  }
+}
+.tl-skeleton {
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #edf1f6;
+}
+.tl-skeleton::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.72), transparent);
+  animation: tlSkeletonShimmer 1.35s ease-in-out infinite;
+}
+@keyframes tlSkeletonShimmer {
+  to { transform: translateX(100%); }
+}
+.tl-loading-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #718096;
+  font-size: .82rem;
+  font-weight: 650;
+}
+.tl-loading-indicator::before {
+  width: 15px;
+  height: 15px;
+  border: 2px solid #dbe4f1;
+  border-top-color: #24528f;
+  border-radius: 50%;
+  content: "";
+  animation: tlLoadingSpin .7s linear infinite;
+}
+@keyframes tlLoadingSpin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
