@@ -1,6 +1,6 @@
 const path = require('path');
 const fs = require('fs');
-const { v4: uuidv4 } = require('uuid');
+
 const cloudinary = require('cloudinary').v2;
 const sharp = require('sharp');
 const config = require('../config/env');
@@ -236,7 +236,7 @@ async function uploadBuffer(buffer, originalFilename = 'file.jpg', mimeType = 'i
     }
   }
 
-  const uniqueId = uuidv4();
+  const uniqueId = require('crypto').randomUUID();
   const filename = `${uniqueId}${ext}`;
 
   if (isCloudinaryConfigured()) {
