@@ -133,14 +133,13 @@ const getListings = asyncHandler(async (req, res) => {
       query = query.whereNull('listings.deleted_at');
     }
   } else {
-    // Default browse / 'all': exclude soft-deleted listings
-    query = query.where((builder) => {
-      if (hasListingDeletedAt) {
-        builder.whereNull('listings.deleted_at').andWhereNot('listings.status', 'deleted');
-      } else {
-        builder.whereNot('listings.status', 'deleted');
-      }
-    });
+    // Public marketplace browsing (including status=All) must only expose
+    // inventory that can still be requested. Sold and reserved listings remain
+    // accessible through explicit status filters and transaction history.
+    query = query.where('listings.status', 'active');
+    if (hasListingDeletedAt) {
+      query = query.whereNull('listings.deleted_at');
+    }
   }
 
   // Filter: Campus (query on listings.campus to hit composite index, with seller fallback)
