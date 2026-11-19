@@ -1,13 +1,5 @@
 const Joi = require('joi');
-const { CAMPUSES, DISPUTE_ACTIONS } = require('../config/constants');
-const ALLOWED_CAMPUSES = ['All', ...CAMPUSES];
-
-const createAnnouncementSchema = Joi.object({
-  title: Joi.string().trim().min(3).max(200).required(),
-  message: Joi.string().trim().min(5).max(3000).required(),
-  campus: Joi.string().valid(...ALLOWED_CAMPUSES).default('All'),
-  type: Joi.string().valid('info', 'alert', 'event').default('info')
-});
+const { DISPUTE_ACTIONS } = require('../config/constants');
 
 const banUserSchema = Joi.object({
   reason: Joi.string().trim().min(5).max(500).required().messages({
@@ -86,7 +78,6 @@ const adminUpdateListingSchema = Joi.object({
 });
 
 module.exports = {
-  createAnnouncementSchema,
   banUserSchema,
   warnUserSchema,
   adjustTrustScoreSchema,
