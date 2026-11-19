@@ -233,8 +233,6 @@ const createTransaction = asyncHandler(async (req, res, next) => {
 
   await ensureListingStatusSchema();
 
-  await ensureListingStatusSchema();
-
   const targetListingId = listingId;
   // SECURITY: Always use the authenticated user as buyer — never trust client-supplied buyerId
   const targetBuyerId = req.user.id;
