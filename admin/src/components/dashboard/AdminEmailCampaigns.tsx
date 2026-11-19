@@ -23,7 +23,7 @@ export const AdminEmailCampaigns: React.FC = () => {
 
   const loadCampaigns = async () => {
     try { setCampaigns(await adminService.getEmailCampaigns()); }
-    catch (err: any) { setError(err?.message || 'Could not load campaign history.'); }
+    catch (err: unknown) { setError(err instanceof Error ? err.message : 'Could not load campaign history.'); }
   };
 
   useEffect(() => { void loadCampaigns(); }, []);
@@ -63,8 +63,8 @@ export const AdminEmailCampaigns: React.FC = () => {
       else if (status === 'sent') setNotice(`Successfully sent to ${sent.toLocaleString()} students.`);
       else setNotice(`Delivery finished: ${sent.toLocaleString()} sent, ${failed.toLocaleString()} failed.`);
       await loadCampaigns();
-    } catch (err: any) {
-      setError(err?.message || 'Email delivery was interrupted. Resume it from campaign history.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Email delivery was interrupted. Resume it from campaign history.');
       await loadCampaigns();
     } finally {
       setSendingId('');
@@ -82,7 +82,7 @@ export const AdminEmailCampaigns: React.FC = () => {
       setError('There are no eligible student email addresses in this audience.');
       return;
     }
-    const confirmed = window.confirm(`Send this email to ${audienceCount.toLocaleString()} student accounts? This action cannot be undone.`);
+    const confirmed = globalThis.confirm(`Send this email to ${audienceCount.toLocaleString()} student accounts? This action cannot be undone.`);
     if (!confirmed) return;
 
     setLoading(true);
@@ -95,8 +95,8 @@ export const AdminEmailCampaigns: React.FC = () => {
       setMessage('');
       await loadCampaigns();
       await processCampaign(created.campaignId, { totalRecipients: created.totalRecipients });
-    } catch (err: any) {
-      setError(err?.message || 'Unable to create email campaign.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unable to create email campaign.');
       setLoading(false);
     }
   };
