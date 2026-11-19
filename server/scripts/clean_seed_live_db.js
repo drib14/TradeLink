@@ -62,7 +62,7 @@ async function main() {
       'review_badges', 'reviews', 'messages', 'conversations',
       'transactions', 'swap_offers', 'flash_requests', 'wanted_requests',
       'listing_media', 'listings', 'verification_requests', 'flagged_listings',
-      'trade_disputes', 'announcements', 'admin_audit_logs', 'prohibited_keywords',
+      'trade_disputes', 'admin_audit_logs', 'prohibited_keywords',
       'password_reset_requests', 'feature_flags', 'system_config',
       'users'
     ];
@@ -199,13 +199,11 @@ async function main() {
     const [[listingCount]] = await connection.query('SELECT COUNT(*) as count FROM listings');
     const [[txCount]] = await connection.query('SELECT COUNT(*) as count FROM transactions');
     const [[flashCount]] = await connection.query('SELECT COUNT(*) as count FROM flash_requests');
-    const [[annCount]] = await connection.query('SELECT COUNT(*) as count FROM announcements');
 
     console.log(`Users in DB:        ${userCount.count} (Expected: 1 - Admin only)`);
     console.log(`Listings in DB:     ${listingCount.count} (Expected: 0 - Clean)`);
     console.log(`Transactions in DB: ${txCount.count} (Expected: 0 - Clean)`);
     console.log(`Flash Requests:     ${flashCount.count} (Expected: 0 - Clean)`);
-    console.log(`Announcements:      ${annCount.count} (Expected: 3 - Baseline)`);
 
     console.log('\n✓ Clean seed completed successfully!');
   } catch (err) {
