@@ -555,9 +555,6 @@ async function autoInitDatabase() {
       await ensureTable('site_visits', () => db.schema.createTable('site_visits', (table) => {
         table.string('visitor_hash', 64).notNullable();
         table.date('visit_date').notNullable();
-        table.dateTime('first_seen_at').notNullable().defaultTo(db.fn.now());
-        table.dateTime('last_seen_at').notNullable().defaultTo(db.fn.now());
-        table.string('last_path', 200).nullable();
         table.primary(['visitor_hash', 'visit_date']);
         table.index(['visit_date'], 'idx_site_visits_date');
       }));
