@@ -98,7 +98,7 @@ export interface AdminAuditLog {
   id: string;
   adminName: string;
   action: string;
-  targetType: 'user' | 'listing' | 'verification' | 'flash' | 'wanted' | 'meetup' | 'announcement' | 'dispute' | 'system';
+  targetType: 'user' | 'listing' | 'verification' | 'flash' | 'wanted' | 'meetup' | 'email_campaign' | 'dispute' | 'system';
   targetId: string;
   details: string;
   timestamp: string;
