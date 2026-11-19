@@ -15,9 +15,9 @@ describe('ensureListingStatusSchema', () => {
 
     await ensureListingStatusSchema();
 
-    expect(db.raw).toHaveBeenCalledTimes(4);
+    expect(db.raw).toHaveBeenCalledTimes(5);
     expect(db.raw.mock.calls[1][0]).toContain("'reserved'");
     expect(db.raw.mock.calls[2][0]).toContain("= 'active' WHERE");
-    expect(db.raw.mock.calls[3][0]).toContain("'swapped'");
+    expect(db.raw.mock.calls[4][0]).toContain("'swapped'");
   });
 });
