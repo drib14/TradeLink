@@ -1,4 +1,3 @@
-const { v4: uuidv4 } = require('uuid');
 
 const SEED_CATEGORIES = [
   'Electronics & Gadgets',
@@ -65,7 +64,7 @@ exports.up = async function(knex) {
 
     if (!existing) {
       await knex('categories').insert({
-        id: uuidv4(),
+        id: require('crypto').randomUUID(),
         name: catName,
         slug: slug || 'general',
         icon: null,
