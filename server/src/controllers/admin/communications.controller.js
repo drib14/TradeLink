@@ -15,6 +15,10 @@ function formatDate(date) {
   return date.toISOString().slice(0, 10);
 }
 
+function getCampusDate() {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+}
+
 function shiftDays(date, amount) {
   const copy = new Date(date);
   copy.setUTCDate(copy.getUTCDate() + amount);
@@ -22,7 +26,7 @@ function shiftDays(date, amount) {
 }
 
 const getVisitAnalytics = asyncHandler(async (req, res) => {
-  const selectedDate = parseDate(req.query.date) || new Date(formatDate(new Date()) + 'T00:00:00.000Z');
+  const selectedDate = parseDate(req.query.date) || parseDate(getCampusDate());
   const period = ['day', 'week', 'month', 'year'].includes(req.query.period) ? req.query.period : 'month';
   const monthStart = new Date(Date.UTC(selectedDate.getUTCFullYear(), selectedDate.getUTCMonth(), 1));
   const monthEnd = new Date(Date.UTC(selectedDate.getUTCFullYear(), selectedDate.getUTCMonth() + 1, 0));
