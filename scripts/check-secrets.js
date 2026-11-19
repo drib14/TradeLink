@@ -72,7 +72,7 @@ function isPlaceholder(value) {
 }
 
 function isCodeReference(value) {
-  return /^(?:config|env|process\\.env)\\.[A-Za-z_$][\\w$]*(?:\\.[A-Za-z_$][\\w$]*)*$/.test(String(value || '').trim());
+  return /^(?:config|env|process\.env)\.[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/.test(String(value || '').trim());
 }
 
 function redact(value) {
