@@ -307,7 +307,7 @@ async function evaluateVerification({
       .catch(() => null);
 
     if (duplicateId) {
-      suspiciousReasons.push(`Duplicate live selfie detected: exact image fingerprint was previously submitted by user ID [${duplicateId.user_id}].`);
+      suspiciousReasons.push('Duplicate ID photo detected: exact image fingerprint was previously submitted by another account.');
       diagnostics.antiDuplicateCheck.passed = false;
     }
   }
@@ -321,7 +321,7 @@ async function evaluateVerification({
       .catch(() => null);
 
     if (duplicateSelfie) {
-      suspiciousReasons.push(`Duplicate selfie detected: identical facial selfie was previously submitted by user ID [${duplicateSelfie.user_id}].`);
+      suspiciousReasons.push('Duplicate selfie detected: identical facial selfie was previously submitted by another account.');
       diagnostics.antiDuplicateCheck.passed = false;
     }
   }
@@ -402,10 +402,12 @@ async function evaluateVerification({
 
   // -------------------------------------------------------------
   // 7. Biometric Facial Consistency & Liveness Telemetry
+  // (Client biometric telemetry is recorded for administrator review, but
+  // never untrusted for automated score increments)
   // -------------------------------------------------------------
-  const facialMatchScore = typeof telemetry?.facialMatchScore === 'number' ? telemetry.facialMatchScore : null;
-  const livenessScore = typeof telemetry?.livenessScore === 'number' ? telemetry.livenessScore : null;
-  const antiSpoofScore = typeof telemetry?.antiSpoofScore === 'number' ? telemetry.antiSpoofScore : null;
+  const facialMatchScore = typeof telemetry?.facialMatchScore === 'number' ? Math.min(100, Math.max(0, telemetry.facialMatchScore)) : null;
+  const livenessScore = typeof telemetry?.livenessScore === 'number' ? Math.min(100, Math.max(0, telemetry.livenessScore)) : null;
+  const antiSpoofScore = typeof telemetry?.antiSpoofScore === 'number' ? Math.min(100, Math.max(0, telemetry.antiSpoofScore)) : null;
 
   diagnostics.facialMatch = {
     evaluated: facialMatchScore !== null,
@@ -414,13 +416,9 @@ async function evaluateVerification({
     antiSpoofScore,
     provider: 'vladmandic_human',
     details: facialMatchScore !== null && facialMatchScore >= 80
-      ? 'Automated biometric match verified facial consistency between ID card and live selfie.'
+      ? 'Client biometric telemetry reported facial match between ID card and live selfie (subject to admin confirmation).'
       : 'Biometric telemetry evaluated; queued for campus administrator confirmation.'
   };
-
-  if (facialMatchScore !== null && facialMatchScore >= 80) {
-    totalScore += 5; // Bonus confidence for high biometric match
-  }
 
   // -------------------------------------------------------------
   // 8. Final Decision Engine (Automated Confidence Scoring & KYC Queue)
@@ -437,20 +435,30 @@ async function evaluateVerification({
            r.includes('session validation failed')
   );
 
-  // Per university verification policy: all submissions are queued for authorized campus administrator approval
-  const isApproved = false;
+  // Auto-approval eligibility is true if all automated criteria pass with high confidence
+  const autoApprovalEligible = confidenceScore >= 90 &&
+    documentVerification.passed &&
+    !hasCriticalFraud &&
+    diagnostics.idSyntax.passed &&
+    diagnostics.sessionChallenge.passed &&
+    !idSharpness.isBlurred &&
+    !selfieSharpness.isBlurred;
+
+  // University policy flag: auto-approval can be enabled via AUTO_APPROVE_VERIFICATIONS env or default to admin queue
+  const allowAutoApproval = process.env.AUTO_APPROVE_VERIFICATIONS === 'true';
+  const isApproved = allowAutoApproval && autoApprovalEligible;
   const isSuspicious = hasCriticalFraud;
   const status = isApproved ? 'approved' : 'pending';
-  const reviewEstimate = '1-2 business days';
+  const reviewEstimate = isApproved ? 'Instant' : '1-2 business days';
 
-  logger.info(`[Student Verification Engine] Evaluated user [${user.id}]: score=${confidenceScore}%, ocrPassed=${documentVerification.passed}, status=${status}, isApproved=${isApproved}, suspiciousCount=${suspiciousReasons.length}`);
+  logger.info(`[Student Verification Engine] Evaluated user [${user.id}]: score=${confidenceScore}%, ocrPassed=${documentVerification.passed}, status=${status}, isApproved=${isApproved}, eligible=${autoApprovalEligible}, suspiciousCount=${suspiciousReasons.length}`);
 
   return {
     isApproved,
     isSuspicious,
     confidenceScore,
     documentVerification,
-    autoApprovalEligible: false,
+    autoApprovalEligible,
     reviewEstimate,
     status,
     suspiciousReasons,

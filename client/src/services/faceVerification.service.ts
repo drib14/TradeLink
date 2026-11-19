@@ -318,12 +318,12 @@ export async function compareIdAndSelfie(
   } catch (error: any) {
     console.error('Error comparing ID and selfie:', error);
     return {
-      matchScore: 70, // Graceful fallback
+      matchScore: 0,
       distance: null,
       isMatchOver85: false,
       isManualReviewNeeded: true,
-      faceDetectedInId: true,
-      faceDetectedInSelfie: true,
+      faceDetectedInId: false,
+      faceDetectedInSelfie: false,
       statusMessage: 'Automated facial comparison encountered an error. Queued for manual admin KYC.'
     };
   }

@@ -156,6 +156,18 @@ const userReviewsLimiter = rateLimit({
   legacyHeaders: false
 });
 
+// Student verification submission & OCR scan limiter
+const verificationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // max 10 verification or OCR scan requests per 15 minutes per IP
+  message: {
+    status: 'fail',
+    message: 'Too many verification attempts from this network. Please wait 15 minutes before submitting again.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
 module.exports = {
   authLimiter,
   passwordResetLimiter,
@@ -169,6 +181,7 @@ module.exports = {
   adminAuthLimiter,
   chatMessageLimiter,
   aiLimiter,
-  userReviewsLimiter
+  userReviewsLimiter,
+  verificationLimiter
 };
 

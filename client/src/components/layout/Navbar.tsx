@@ -120,8 +120,13 @@ export const Navbar: React.FC<NavbarProps> = ({
       style={{
         position: 'sticky',
         top: 0,
-        zIndex: 100,
+        zIndex: 1000,
         width: '100%',
+        backgroundColor: 'rgba(255, 255, 255, 0.96)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        borderBottom: '1px solid var(--border-subtle, rgba(0, 43, 127, 0.08))',
+        boxShadow: '0 2px 10px rgba(0, 43, 127, 0.06)',
         transition: 'all 0.2s ease'
       }}
     >

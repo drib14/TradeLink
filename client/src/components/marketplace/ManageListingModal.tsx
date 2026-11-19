@@ -34,8 +34,8 @@ export const ManageListingModal: React.FC<ManageListingModalProps> = ({
   const { updateListing, markAsSold, deleteListing, toggleVariationSold } = useMarket();
   const { showToast } = useToast();
 
-  const [price, setPrice] = useState<number>(listing.price);
-  const [quantity, setQuantity] = useState<number>(listing.quantity ?? 1);
+  const [price, setPrice] = useState<number | ''>(listing.price !== undefined && listing.price !== null ? listing.price : '');
+  const [quantity, setQuantity] = useState<number | ''>(listing.quantity ?? 1);
   const [description, setDescription] = useState<string>(listing.description || '');
   const [isSold, setIsSold] = useState<boolean>(Boolean(listing.isSold));
   const [variations, setVariations] = useState<ListingVariation[]>(listing.variations || []);
@@ -47,7 +47,7 @@ export const ManageListingModal: React.FC<ManageListingModalProps> = ({
 
   React.useEffect(() => {
     if (isOpen && listing) {
-      setPrice(listing.price);
+      setPrice(listing.price !== undefined && listing.price !== null ? listing.price : '');
       setQuantity(listing.quantity ?? 1);
       setDescription(listing.description || '');
       setIsSold(Boolean(listing.isSold));
@@ -112,11 +112,13 @@ export const ManageListingModal: React.FC<ManageListingModalProps> = ({
 
   const handleSaveDetails = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (price < 0) {
+    const finalPrice = price === '' ? 0 : Number(price);
+    if (isNaN(finalPrice) || finalPrice < 0) {
       showToast('Invalid Price', 'Price cannot be negative.', 'warning');
       return;
     }
-    if (quantity < 0) {
+    const finalQuantity = quantity === '' ? 0 : Number(quantity);
+    if (isNaN(finalQuantity) || finalQuantity < 0) {
       showToast('Invalid Quantity', 'Quantity cannot be negative.', 'warning');
       return;
     }
@@ -124,8 +126,8 @@ export const ManageListingModal: React.FC<ManageListingModalProps> = ({
     setIsSaving(true);
     try {
       await updateListing(listing.id, {
-        price,
-        quantity,
+        price: finalPrice,
+        quantity: finalQuantity,
         description: description.trim(),
         isSold,
         status: isSold ? 'sold' : 'active',
@@ -443,10 +445,19 @@ export const ManageListingModal: React.FC<ManageListingModalProps> = ({
                   type="number"
                   min="0"
                   step="1"
-                  value={price}
-                  onChange={(e) => setPrice(Math.max(0, Number(e.target.value)))}
+                  value={price === '' ? '' : price}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '') {
+                      setPrice('');
+                    } else {
+                      const num = parseFloat(val);
+                      setPrice(isNaN(num) ? '' : Math.max(0, num));
+                    }
+                  }}
                   className="clean-input"
                   style={{ fontWeight: 700 }}
+                  placeholder="0"
                   required
                 />
               </div>
@@ -467,10 +478,19 @@ export const ManageListingModal: React.FC<ManageListingModalProps> = ({
                   type="number"
                   min="0"
                   step="1"
-                  value={quantity}
-                  onChange={(e) => setQuantity(Math.max(0, Number(e.target.value)))}
+                  value={quantity === '' ? '' : quantity}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '') {
+                      setQuantity('');
+                    } else {
+                      const num = parseInt(val, 10);
+                      setQuantity(isNaN(num) ? '' : Math.max(0, num));
+                    }
+                  }}
                   className="clean-input"
                   style={{ fontWeight: 700 }}
+                  placeholder="1"
                   required
                 />
               </div>

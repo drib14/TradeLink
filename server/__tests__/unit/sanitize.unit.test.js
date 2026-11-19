@@ -19,7 +19,7 @@ describe('Unit Test: Serializers & Data Sanitization', () => {
       is_verified: 1
     };
 
-    const sanitized = serializeUser(rawDbUser);
+    const sanitized = serializeUser(rawDbUser, { isSelf: true });
 
     expect(sanitized.id).toBe('usr_123');
     expect(sanitized.name).toBe('Maria Santos');

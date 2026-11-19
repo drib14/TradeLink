@@ -380,7 +380,8 @@ const forgotPassword = asyncHandler(async (req, res, next) => {
   }
 
   if (process.env.NODE_ENV === 'development') {
-    logger.info(`[DEV AUTH] 🔑 PASSWORD RESET CODE FOR ${user.email}: [ ${code} ]`);
+    const maskedEmail = user.email.replace(/(?<=^.).+(?=@)/, '***');
+    logger.info(`[DEV AUTH] 🔑 PASSWORD RESET CODE FOR ${maskedEmail}: [ ${code} ]`);
   }
 
   // Security: Never expose verification code in HTTP response payload

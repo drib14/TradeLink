@@ -195,10 +195,10 @@ export const UnverifiedAccountModal: React.FC<UnverifiedAccountModalProps> = ({
               </div>
               <div>
                 <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                  2. Proof of Enrollment / COR
+                  2. Live Camera Selfie / Verification
                 </div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-                  Upload your Certificate of Registration (COR), current study load, or photo holding your ID.
+                  Take a quick live camera selfie to confirm card ownership (or upload current studyload PDF as fallback).
                 </div>
               </div>
             </div>

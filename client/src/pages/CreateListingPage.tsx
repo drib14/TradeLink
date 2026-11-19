@@ -363,8 +363,10 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
           ? 'free_donation'
           : 'buy_sell';
 
-      const computedPrice = computedTradeMode === 'buy_sell' ? (typeof price === 'number' ? price : 0) : 0;
-      const numSrp = typeof originalSrp === 'number' ? originalSrp : 0;
+      const rawPriceNum = typeof price === 'number' ? price : parseFloat(String(price));
+      const computedPrice = computedTradeMode === 'buy_sell' ? (!isNaN(rawPriceNum) && rawPriceNum > 0 ? rawPriceNum : 0) : 0;
+      const rawSrpNum = typeof originalSrp === 'number' ? originalSrp : parseFloat(String(originalSrp));
+      const numSrp = !isNaN(rawSrpNum) && rawSrpNum > 0 ? rawSrpNum : 0;
       const computedSrp = computedTradeMode === 'buy_sell' ? (numSrp > 0 ? numSrp : computedPrice) : 0;
 
       const combinedSwapPreference =
@@ -421,7 +423,7 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
         sellerCollege: currentUser?.department || currentUser?.college,
         sellerIsVerified: Boolean(currentUser?.isVerified),
         sellerTrustScore: Number(currentUser?.trustScore || 0),
-        acceptedPaymentMethods: ['cash']
+        acceptedPaymentMethods: acceptedPaymentMethods.length > 0 ? acceptedPaymentMethods : ['cash']
       });
 
       const successTitle = formMode === 'swap' ? 'Swap Offer Published!' : 'Listing Published for Sale!';
@@ -1243,8 +1245,16 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
                   </span>
                   <input
                     type="number"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value === '' ? '' : Math.max(0, parseFloat(e.target.value) || 0))}
+                    value={price === '' ? '' : price}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === '') {
+                        setPrice('');
+                      } else {
+                        const parsed = parseFloat(val);
+                        setPrice(isNaN(parsed) ? '' : Math.max(0, parsed));
+                      }
+                    }}
                     className="clean-input"
                     style={{ paddingLeft: '1.85rem', fontWeight: 800, fontSize: '1rem', color: 'var(--uc-blue)' }}
                     placeholder="0.00"
@@ -1264,8 +1274,16 @@ export const CreateListingPage: React.FC<CreateListingPageProps> = ({
                   </span>
                   <input
                     type="number"
-                    value={originalSrp}
-                    onChange={(e) => setOriginalSrp(e.target.value === '' ? '' : Math.max(0, parseFloat(e.target.value) || 0))}
+                    value={originalSrp === '' ? '' : originalSrp}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === '') {
+                        setOriginalSrp('');
+                      } else {
+                        const parsed = parseFloat(val);
+                        setOriginalSrp(isNaN(parsed) ? '' : Math.max(0, parsed));
+                      }
+                    }}
                     className="clean-input"
                     style={{ paddingLeft: '1.85rem', fontSize: '0.95rem' }}
                     placeholder="0.00"

@@ -663,9 +663,16 @@ const updateListing = asyncHandler(async (req, res, next) => {
     }
   });
 
+  const updatedListingRow = await db('listings').where({ id }).first();
+  const [updatedMedia, updatedVars] = await Promise.all([
+    db('listing_media').where({ listing_id: id }).orderBy('display_order', 'asc'),
+    db('listing_variations').where({ listing_id: id }).orderBy('display_order', 'asc')
+  ]);
+
   res.status(200).json({
     status: 'success',
-    message: 'Listing updated successfully.'
+    message: 'Listing updated successfully.',
+    data: { listing: serializeListing(updatedListingRow, updatedMedia, updatedVars) }
   });
 });
 

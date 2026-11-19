@@ -204,7 +204,7 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
             }
           } catch {
             setLiveFaceStatus('Position face within the oval');
-            setIsFaceReady(true);
+            setIsFaceReady(false);
           }
         }, 800);
       } else {
@@ -798,6 +798,31 @@ export const StudentVerificationModal: React.FC<StudentVerificationModalProps> =
                   }}
                 >
                   <Camera size={17} /> Capture Live Selfie
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '0.2rem' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    stopCamera();
+                    setAllowStudyloadFallback(true);
+                    setStep('studyload_fallback');
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-muted, #64748B)',
+                    fontSize: '0.76rem',
+                    textDecoration: 'underline',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem'
+                  }}
+                >
+                  <FileText size={13} />
+                  Can't use camera? Submit official UC studyload (PDF) instead
                 </button>
               </div>
             </div>

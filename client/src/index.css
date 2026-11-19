@@ -2417,7 +2417,7 @@ body.modal-open .mobile-nav-bar { display: none !important; pointer-events: none
   --tl-focus-ring: 0 0 0 3px rgba(35, 91, 164, .18);
 }
 html { scroll-behavior: smooth; scrollbar-gutter: stable; }
-body { overscroll-behavior-y: contain; }
+body { overscroll-behavior-y: auto; }
 button, a, [role="button"], input, select, textarea {
   -webkit-tap-highlight-color: transparent;
 }

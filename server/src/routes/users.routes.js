@@ -6,7 +6,7 @@ const { requireStudent } = require('../middleware/rbac');
 const decodeParams = require('../middleware/decodeParams');
 const validate = require('../middleware/validate');
 const validateUUID = require('../middleware/validateUUID');
-const { userReviewsLimiter } = require('../middleware/rateLimiter');
+const { userReviewsLimiter, verificationLimiter } = require('../middleware/rateLimiter');
 const { updateProfileSchema } = require('../validations/auth.validation');
 
 decodeParams.bindRouter(router);
@@ -21,12 +21,12 @@ router.get('/verification-session', authenticate, requireStudent, usersControlle
 router.get('/me/verification-status', authenticate, usersController.getVerificationStatus);
 
 // Real-time student ID card OCR scanning
-router.post('/me/scan-id', authenticate, requireStudent, usersController.scanStudentIdCard);
-router.post('/scan-id', authenticate, requireStudent, usersController.scanStudentIdCard);
+router.post('/me/scan-id', authenticate, requireStudent, verificationLimiter, usersController.scanStudentIdCard);
+router.post('/scan-id', authenticate, requireStudent, verificationLimiter, usersController.scanStudentIdCard);
 
 // Verification submission (supports both /me/verify-id and mobile /verify-id)
-router.post('/me/verify-id', authenticate, requireStudent, usersController.submitIdVerification);
-router.post('/verify-id', authenticate, requireStudent, usersController.submitIdVerification);
+router.post('/me/verify-id', authenticate, requireStudent, verificationLimiter, usersController.submitIdVerification);
+router.post('/verify-id', authenticate, requireStudent, verificationLimiter, usersController.submitIdVerification);
 
 router.get('/:id/analytics', authenticate, validateUUID('id'), usersController.getUserAnalytics);
 router.get('/:id', validateUUID('id'), optionalAuth, usersController.getUserProfile);
