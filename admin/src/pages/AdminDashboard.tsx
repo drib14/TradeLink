@@ -715,7 +715,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
           ].map((tab) => {
             const isActive = activeTab === tab.id;
             return (
-              <button key={tab.id} type="button" className={"admin-nav-item " + (isActive ? "active" : "")} onClick={() => setActiveTab(tab.id as any)} aria-current={isActive ? 'page' : undefined}>
+              <button key={tab.id} type="button" className={"admin-nav-item " + (isActive ? "active" : "")} onClick={() => setActiveTab(tab.id as typeof activeTab)} aria-current={isActive ? 'page' : undefined}>
                 <span className="admin-nav-icon">{tab.icon}</span>
                 <span className="admin-nav-label">{tab.label}</span>
                 {typeof tab.count === 'number' && tab.count > 0 && <span className="admin-nav-count">{tab.count > 99 ? '99+' : tab.count}</span>}
