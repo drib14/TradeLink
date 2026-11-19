@@ -264,7 +264,7 @@ export default function FlashMarketScreen() {
             />
 
             <TouchableOpacity style={styles.modalSubmitBtn} onPress={handleCreateRequest}>
-              <Text style={styles.modalSubmitBtnText}>⚡ Publish to Flash Market</Text>
+              <Text style={styles.modalSubmitBtnText}>Publish to Flash Market</Text>
             </TouchableOpacity>
           </View>
         </View>

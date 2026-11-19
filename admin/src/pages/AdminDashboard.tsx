@@ -888,7 +888,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                             <CampusBadge campus={req.campus} size="sm" />
                           </td>
                           <td style={{ padding: '0.75rem', color: '#475569' }}>
-                            {req.isSuspicious ? <span style={{ color: '#DC2626', fontWeight: 700 }}>⚠️ {req.suspiciousReasons?.join(', ') || 'Suspicious submission'}</span> : 'Standard student ID card upload'}
+                            {req.isSuspicious ? (
+                              <span style={{ color: '#DC2626', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                                <AlertTriangle size={13} />
+                                {req.suspiciousReasons?.join(', ') || 'Suspicious submission'}
+                              </span>
+                            ) : (
+                              'Standard student ID card upload'
+                            )}
                           </td>
                           <td style={{ padding: '0.75rem', color: '#64748B', fontSize: '0.75rem' }}>
                             {formatRelativeTime(req.submittedAt)}

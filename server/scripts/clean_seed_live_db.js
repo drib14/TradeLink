@@ -33,9 +33,9 @@ async function main() {
       ssl: sslConfig,
       multipleStatements: true
     });
-    console.log('✓ Successfully connected to live database!');
+    console.log('[OK] Successfully connected to live database!');
   } catch (err) {
-    console.error('✗ Failed to connect to database:', err.message);
+    console.error('[ERROR] Failed to connect to database:', err.message);
     process.exit(1);
   }
 

@@ -283,9 +283,9 @@ export default function CreateListingScreen() {
           <Text style={styles.sectionLabel}>Trade Mode</Text>
           <View style={styles.tradeModeRow}>
             {[
-              { id: 'buy_sell', label: '💰 Sell for Cash' },
-              { id: 'swap', label: '🔄 Propose Swap' },
-              { id: 'free_donation', label: '🎁 Free Donation' },
+              { id: 'buy_sell', label: 'Sell for Cash' },
+              { id: 'swap', label: 'Propose Swap' },
+              { id: 'free_donation', label: 'Free Donation' },
             ].map((m) => {
               const isActive = tradeMode === m.id;
               return (
@@ -367,7 +367,7 @@ export default function CreateListingScreen() {
             </View>
             {originalSrp && Number(price) > Number(originalSrp) && (
               <Text style={{ fontSize: 11, color: '#D97706', fontWeight: '600', marginTop: 6 }}>
-                ⚠️ Notice: Asking price is higher than the original retail SRP.
+                Notice: Asking price is higher than the original retail SRP.
               </Text>
             )}
           </View>

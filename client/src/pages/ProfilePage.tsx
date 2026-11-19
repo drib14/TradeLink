@@ -59,7 +59,8 @@ import {
   Calendar,
   ChevronRight,
   Shield,
-  HeartHandshake
+  HeartHandshake,
+  Lightbulb
 } from 'lucide-react';
 import { StudentVerificationModal } from '../components/verification/StudentVerificationModal';
 import { maskStudentId } from '../utils/security';
@@ -1135,8 +1136,15 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 <div style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
                   Trust &amp; Rating
                 </div>
-                <div style={{ fontSize: '1.45rem', fontWeight: 900, color: rating > 0 ? '#D97706' : 'var(--text-muted)', marginTop: '0.2rem', fontFamily: 'var(--font-display)' }}>
-                  {rating > 0 ? `${rating.toFixed(1)} ★` : 'New Member'}
+                <div style={{ fontSize: '1.45rem', fontWeight: 900, color: rating > 0 ? '#D97706' : 'var(--text-muted)', marginTop: '0.2rem', fontFamily: 'var(--font-display)', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                  {rating > 0 ? (
+                    <>
+                      <span>{rating.toFixed(1)}</span>
+                      <Star size={18} fill="#D97706" color="#D97706" />
+                    </>
+                  ) : (
+                    'New Member'
+                  )}
                 </div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
                   {totalReviewsCount > 0 ? (
@@ -1323,7 +1331,10 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
 
               {/* Chart Footer Highlights */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-subtle)', fontSize: '0.76rem', color: 'var(--text-muted)' }}>
-                <span>💡 Tap any month node to view breakdown</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <Lightbulb size={14} color="var(--accent-gold, #D97706)" />
+                  Tap any month node to view breakdown
+                </span>
                 <span style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>
                   Peak Activity: Midterm &amp; Finals Season
                 </span>

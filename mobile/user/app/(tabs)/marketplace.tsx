@@ -56,9 +56,9 @@ export default function MarketplaceScreen() {
         <View style={styles.tradeModeRow}>
           {[
             { id: 'All', label: 'All Modes' },
-            { id: 'buy_sell', label: '💰 Buy & Sell' },
-            { id: 'swap', label: '🔄 Swaps' },
-            { id: 'free_donation', label: '🎁 Free' },
+            { id: 'buy_sell', label: 'Buy & Sell' },
+            { id: 'swap', label: 'Swaps' },
+            { id: 'free_donation', label: 'Free' },
           ].map((mode) => {
             const isSelected = selectedTradeMode === mode.id;
             return (
@@ -111,11 +111,11 @@ export default function MarketplaceScreen() {
       {isSortOpen && (
         <View style={styles.sortMenu}>
           {[
-            { id: 'recent', label: '⚡ Newest' },
-            { id: 'price_low', label: '📉 Price: Low to High' },
-            { id: 'price_high', label: '📈 Price: High to Low' },
-            { id: 'trust_high', label: '⭐ Seller Trust Rating' },
-            { id: 'views_high', label: '🔥 Most Viewed' },
+            { id: 'recent', label: 'Newest' },
+            { id: 'price_low', label: 'Price: Low to High' },
+            { id: 'price_high', label: 'Price: High to Low' },
+            { id: 'trust_high', label: 'Seller Trust Rating' },
+            { id: 'views_high', label: 'Most Viewed' },
           ].map((opt) => (
             <TouchableOpacity
               key={opt.id}
