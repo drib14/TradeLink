@@ -66,24 +66,29 @@ export const adminService = {
     return res;
   },
 
-  async getAnnouncements() {
-    const res = await api.get('/admin/announcements');
-    return res.data?.announcements || [];
+  async getVisits(params: { period: 'day' | 'week' | 'month' | 'year'; date: string }) {
+    const res = await api.get('/admin/visits', params);
+    return res.data || { totalVisitors: 0, selectedDayVisitors: 0, daily: [] };
   },
 
-  async createAnnouncement(data: { title: string; message: string; campus: string; type: string }) {
-    const res = await api.post('/admin/announcements', data);
-    return res.data?.announcement;
+  async getEmailAudience(params: { audience: string; campus?: string }) {
+    const res = await api.get('/admin/email-campaigns/audience', params);
+    return res.data || { count: 0 };
   },
 
-  async deleteAnnouncement(id: string) {
-    const res = await api.delete(`/admin/announcements/${id}`);
-    return res;
+  async getEmailCampaigns() {
+    const res = await api.get('/admin/email-campaigns');
+    return res.data?.campaigns || [];
   },
 
-  async toggleAnnouncement(id: string) {
-    const res = await api.patch(`/admin/announcements/${id}/toggle`);
-    return res;
+  async createEmailCampaign(data: { title: string; subject: string; message: string; audience: string; campus?: string }) {
+    const res = await api.post('/admin/email-campaigns', data);
+    return res.data;
+  },
+
+  async processEmailCampaignBatch(id: string) {
+    const res = await api.post(`/admin/email-campaigns/${id}/process`);
+    return res.data;
   },
 
   async getAuditLogs(page = 1, limit = 50) {
