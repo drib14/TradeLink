@@ -148,7 +148,7 @@ export const AdminVisitorAnalytics: React.FC = () => {
         <article className="admin-panel-card admin-month-chart">
           <div className="admin-panel-heading">
             <div><h3>Monthly activity</h3><p>{selected.toLocaleDateString('en-PH', { month: 'long', year: 'numeric' })}</p></div>
-            <span className="admin-chart-total">{(data?.daily || []).reduce((sum, item) => sum + item.visitors, 0).toLocaleString()} <small>visitors</small></span>
+            <span className="admin-chart-total">{(data?.daily || []).reduce((sum, item) => sum + item.visitors, 0).toLocaleString()} <small>visitor-days</small></span>
           </div>
           <div className="admin-bar-chart" role="img" aria-label="Daily unique visitor counts for the selected month">
             {Array.from({ length: daysInMonth }, (_, index) => {
