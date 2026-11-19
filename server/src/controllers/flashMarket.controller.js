@@ -1,4 +1,4 @@
-const { v4: uuidv4 } = require('uuid');
+
 const db = require('../config/db');
 const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
@@ -167,7 +167,7 @@ const createFlashRequest = asyncHandler(async (req, res, next) => {
   const expiresAt = new Date(now.getTime() + hours * 3600 * 1000);
 
   const table = await getFlashTableName();
-  const reqId = uuidv4();
+  const reqId = require('crypto').randomUUID();
   const newReq = {
     id: reqId,
     requester_id: req.user.id,
@@ -258,7 +258,7 @@ const respondToFlashRequest = asyncHandler(async (req, res, next) => {
     `Flash Market Offer: Hi! I have "${target.item_name}" available on campus for your target budget of ₱${target.budget_range || '0'}. Let's coordinate meetup details here!`;
 
   if (!conv) {
-    const convId = uuidv4();
+    const convId = require('crypto').randomUUID();
     conv = {
       id: convId,
       listing_id: null,
@@ -276,7 +276,7 @@ const respondToFlashRequest = asyncHandler(async (req, res, next) => {
     });
   }
 
-  const msgId = uuidv4();
+  const msgId = require('crypto').randomUUID();
   const newMsg = {
     id: msgId,
     conversation_id: conv.id,
