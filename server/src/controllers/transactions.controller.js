@@ -220,7 +220,6 @@ const createTransaction = asyncHandler(async (req, res, next) => {
   const {
     listingId,
     sellerId,
-    buyerId,
     tradeMode = 'buy_sell',
     amount,
     finalPrice,
