@@ -94,7 +94,7 @@ const getEmailAudience = asyncHandler(async (req, res) => {
   const audience = ['all', 'campus', 'verified', 'unverified'].includes(req.query.audience) ? req.query.audience : 'all';
   const campus = String(req.query.campus || '').trim();
   if (audience === 'campus' && !campus) return res.status(200).json({ status: 'success', data: { count: 0 } });
-  const row = await audienceQuery(audience, campus).count({ count: '*' }).first();
+  const row = await audienceQuery(audience, campus).clearSelect().count({ count: '*' }).first();
   res.status(200).json({ status: 'success', data: { count: Number(row?.count) || 0 } });
 });
 
@@ -126,8 +126,8 @@ const getEmailCampaigns = asyncHandler(async (req, res) => {
 });
 
 const createEmailCampaign = asyncHandler(async (req, res, next) => {
-  const title = String(req.body.title || '').trim();
-  const subject = String(req.body.subject || '').trim();
+  const title = String(req.body.title || '').replace(/[\\r\\n]+/g, ' ').trim();
+  const subject = String(req.body.subject || '').replace(/[\\r\\n]+/g, ' ').trim();
   const message = String(req.body.message || '').trim();
   const audience = ['all', 'campus', 'verified', 'unverified'].includes(req.body.audience) ? req.body.audience : 'all';
   const campus = String(req.body.campus || '').trim();
