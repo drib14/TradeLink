@@ -71,6 +71,10 @@ function isPlaceholder(value) {
   );
 }
 
+function isCodeReference(value) {
+  return /^(?:config|env|process\.env)\.[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/.test(String(value || '').trim());
+}
+
 function redact(value) {
   const text = String(value || '');
   if (text.length <= 8) return '****';
@@ -133,7 +137,7 @@ function runScanner() {
         let match;
         while ((match = rule.regex.exec(line)) !== null) {
           const candidate = match[1] || match[0];
-          if (isPlaceholder(candidate)) continue;
+          if (isPlaceholder(candidate) || isCodeReference(candidate)) continue;
           violations.push({
             file: relPath,
             line: lineIndex + 1,

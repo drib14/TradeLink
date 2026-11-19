@@ -13,7 +13,8 @@ This directory is strictly a **standalone React + TypeScript + Vite frontend app
 - **Marketplace Moderation**: Live prohibited keyword scanning, listing take-down, and flagged listing resolution.
 - **Campus Safety & Dispute Resolution**: Meetup monitor and dispute arbitration.
 - **User & Trust Management**: Trust score adjustment, warning issuance, and student ban controls.
-- **Campus Bulletin**: Broadcast announcements across UC campuses.
+- **Visitor Analytics**: Anonymous daily unique visitor counts with day, week, month, year filters and a date calendar.
+- **Student Email Campaigns**: Target active student accounts by campus or verification status, with resumable batch delivery.
 
 ## Scripts
 - `npm run dev`: Start Vite dev server on port `5174`.

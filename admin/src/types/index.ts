@@ -51,17 +51,6 @@ export interface User {
   warningsCount?: number;
 }
 
-export interface CampusAnnouncement {
-  id: string;
-  title: string;
-  message: string;
-  campus: Campus | 'All';
-  type: 'info' | 'alert' | 'event';
-  authorName: string;
-  createdAt: string;
-  isActive: boolean;
-}
-
 export interface TradeDispute {
   id: string;
   transactionId?: string;
@@ -109,7 +98,7 @@ export interface AdminAuditLog {
   id: string;
   adminName: string;
   action: string;
-  targetType: 'user' | 'listing' | 'verification' | 'flash' | 'wanted' | 'meetup' | 'announcement' | 'dispute' | 'system';
+  targetType: 'user' | 'listing' | 'verification' | 'flash' | 'wanted' | 'meetup' | 'email_campaign' | 'dispute' | 'system';
   targetId: string;
   details: string;
   timestamp: string;

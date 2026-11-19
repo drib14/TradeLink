@@ -16,10 +16,11 @@ exports.seed = async function(knex) {
   }
   // Truncate tables in reverse dependency order
   const tables = [
+    'email_campaign_recipients', 'email_campaigns', 'site_visits',
     'review_badges', 'reviews', 'messages', 'conversations',
     'transactions', 'swap_offers', 'flash_requests', 'wanted_requests',
     'listing_media', 'listings', 'verification_requests', 'flagged_listings',
-    'trade_disputes', 'announcements', 'admin_audit_logs', 'prohibited_keywords',
+    'trade_disputes', 'admin_audit_logs', 'prohibited_keywords',
     'feature_flags', 'system_config', 'password_reset_requests',
     'users'
   ];
@@ -60,20 +61,6 @@ exports.seed = async function(knex) {
       bio: 'TradeLink Administration',
       is_pro_merchant: false,
       is_banned: false
-    }
-  ]);
-
-  // 2. Seed Baseline Campus Announcements
-  await knex('announcements').insert([
-    {
-      id: 'ann-1',
-      title: 'Safe Student Trading Reminder',
-      message: 'Coordinate trades safely through direct chat. Always verify items before completing payments.',
-      campus: 'All',
-      type: 'alert',
-      author_id: 'user-admin',
-      author_name: 'TradeLink Admin',
-      is_active: true
     }
   ]);
 

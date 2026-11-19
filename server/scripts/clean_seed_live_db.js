@@ -55,14 +55,17 @@ async function main() {
       console.log('✓ Schema applied successfully.');
     }
 
+    await connection.query('DROP TABLE IF EXISTS announcements');
+
     console.log('\n--- Cleaning tables (deleting all mock users and products) ---');
     await connection.query('SET FOREIGN_KEY_CHECKS = 0');
 
     const cleanTables = [
+      'email_campaign_recipients', 'email_campaigns', 'site_visits',
       'review_badges', 'reviews', 'messages', 'conversations',
       'transactions', 'swap_offers', 'flash_requests', 'wanted_requests',
       'listing_media', 'listings', 'verification_requests', 'flagged_listings',
-      'trade_disputes', 'announcements', 'admin_audit_logs', 'prohibited_keywords',
+      'trade_disputes', 'admin_audit_logs', 'prohibited_keywords',
       'password_reset_requests', 'feature_flags', 'system_config',
       'users'
     ];
@@ -137,13 +140,7 @@ async function main() {
     `, [adminName, adminEmail, adminPasswordHash]);
     console.log(`✓ Administrator account seeded: ${adminEmail} (ADMIN001)`);
 
-    console.log('\n--- Seeding Baseline Announcements & Prohibited Keywords ---');
-    await connection.query(`
-      INSERT INTO \`announcements\` (\`id\`, \`title\`, \`message\`, \`campus\`, \`type\`, \`author_id\`, \`is_active\`) VALUES
-      ('ann-1', 'Campus Safety & Meetup Guidelines', 'Schedule handovers in well-lit public campus spots (canteen, library entrance, or student lounge) during daylight hours. Always physically inspect items before finalizing payment or barter.', 'All', 'alert', 'user-admin', 1),
-      ('ann-2', 'Academic Resource Desk Active', 'Need calculators, reviewers, or course essentials urgently? Use Flash Market to post instant same-day peer requests to students on your campus.', 'All', 'info', 'user-admin', 1),
-      ('ann-3', 'Textbook & Gear Swap Portal Live', 'TradeLink now fully supports direct item-for-item swaps and textbook exchanges with zero platform fees.', 'All', 'info', 'user-admin', 1)
-    `);
+    console.log('\n--- Seeding Prohibited Keywords ---');
 
     await connection.query(`
       INSERT INTO \`admin_audit_logs\` (\`id\`, \`admin_id\`, \`admin_name\`, \`action\`, \`target_type\`, \`target_id\`, \`details\`, \`ip_address\`) VALUES
@@ -199,13 +196,11 @@ async function main() {
     const [[listingCount]] = await connection.query('SELECT COUNT(*) as count FROM listings');
     const [[txCount]] = await connection.query('SELECT COUNT(*) as count FROM transactions');
     const [[flashCount]] = await connection.query('SELECT COUNT(*) as count FROM flash_requests');
-    const [[annCount]] = await connection.query('SELECT COUNT(*) as count FROM announcements');
 
     console.log(`Users in DB:        ${userCount.count} (Expected: 1 - Admin only)`);
     console.log(`Listings in DB:     ${listingCount.count} (Expected: 0 - Clean)`);
     console.log(`Transactions in DB: ${txCount.count} (Expected: 0 - Clean)`);
     console.log(`Flash Requests:     ${flashCount.count} (Expected: 0 - Clean)`);
-    console.log(`Announcements:      ${annCount.count} (Expected: 3 - Baseline)`);
 
     console.log('\n✓ Clean seed completed successfully!');
   } catch (err) {

@@ -13,6 +13,10 @@ USE `tradelink_db_test`;
 -- Disable foreign key checks for clean teardown and recreation
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS `email_campaign_recipients`;
+DROP TABLE IF EXISTS `email_campaigns`;
+DROP TABLE IF EXISTS `site_visits`;
+DROP TABLE IF EXISTS `announcements`;
 DROP TABLE IF EXISTS `user_favorites`;
 DROP TABLE IF EXISTS `notifications`;
 DROP TABLE IF EXISTS `security_events`;
@@ -30,7 +34,6 @@ DROP TABLE IF EXISTS `listings`;
 DROP TABLE IF EXISTS `verification_requests`;
 DROP TABLE IF EXISTS `flagged_listings`;
 DROP TABLE IF EXISTS `trade_disputes`;
-DROP TABLE IF EXISTS `announcements`;
 DROP TABLE IF EXISTS `admin_audit_logs`;
 DROP TABLE IF EXISTS `prohibited_keywords`;
 DROP TABLE IF EXISTS `password_reset_requests`;
@@ -480,36 +483,7 @@ CREATE TABLE `trade_disputes` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
--- 15. CAMPUS ANNOUNCEMENTS BULLETIN TABLE
--- ----------------------------------------------------------------------------
-CREATE TABLE `announcements` (
-  `id` VARCHAR(36) NOT NULL PRIMARY KEY,
-  `title` VARCHAR(200) NOT NULL,
-  `message` TEXT NOT NULL,
-  `campus` ENUM(
-    'All',
-    'UC Main',
-    'UC Banilad',
-    'UC LM',
-    'UC METC',
-    'UC Pardo-Talisay',
-    'UC South Campus',
-    'UC Medical Center',
-    'UC PRI'
-  ) NOT NULL DEFAULT 'All',
-  `type` ENUM('info', 'alert', 'event') NOT NULL DEFAULT 'info',
-  `author_id` VARCHAR(36) DEFAULT NULL,
-  `is_active` BOOLEAN NOT NULL DEFAULT TRUE,
-  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-  FOREIGN KEY (`author_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
-  INDEX `idx_ann_campus` (`campus`),
-  INDEX `idx_ann_active` (`is_active`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ----------------------------------------------------------------------------
--- 16. ADMIN AUDIT LOGS TABLE
+-- 15. ADMIN AUDIT LOGS TABLE
 -- ----------------------------------------------------------------------------
 CREATE TABLE `admin_audit_logs` (
   `id` VARCHAR(64) NOT NULL PRIMARY KEY,
@@ -639,3 +613,55 @@ CREATE TABLE `user_favorites` (
 
 -- Re-enable foreign key constraints
 SET FOREIGN_KEY_CHECKS = 1;
+
+ 
+-- ----------------------------------------------------------------------------
+-- DAILY UNIQUE VISITORS (ANONYMOUS HASH ONLY)
+-- ----------------------------------------------------------------------------
+CREATE TABLE `site_visits` (
+  `visitor_hash` CHAR(64) NOT NULL,
+  `visit_date` DATE NOT NULL,
+  PRIMARY KEY (`visitor_hash`, `visit_date`),
+  INDEX `idx_site_visits_date` (`visit_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------
+-- ADMIN EMAIL CAMPAIGNS
+-- ----------------------------------------------------------------------------
+CREATE TABLE `email_campaigns` (
+  `id` VARCHAR(36) NOT NULL PRIMARY KEY,
+  `title` VARCHAR(160) NOT NULL,
+  `subject` VARCHAR(200) NOT NULL,
+  `message` TEXT NOT NULL,
+  `audience` ENUM('all', 'campus', 'verified', 'unverified') NOT NULL DEFAULT 'all',
+  `campus` VARCHAR(100) DEFAULT NULL,
+  `total_recipients` INT UNSIGNED NOT NULL DEFAULT 0,
+  `sent_count` INT UNSIGNED NOT NULL DEFAULT 0,
+  `failed_count` INT UNSIGNED NOT NULL DEFAULT 0,
+  `status` ENUM('sending', 'sent', 'partial', 'failed') NOT NULL DEFAULT 'sending',
+  `created_by` VARCHAR(36) DEFAULT NULL,
+  `completed_at` DATETIME DEFAULT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  INDEX `idx_email_campaign_created` (`created_at`),
+  INDEX `idx_email_campaign_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `email_campaign_recipients` (
+  `id` VARCHAR(36) NOT NULL PRIMARY KEY,
+  `campaign_id` VARCHAR(36) NOT NULL,
+  `user_id` VARCHAR(36) DEFAULT NULL,
+  `email` VARCHAR(254) NOT NULL,
+  `recipient_name` VARCHAR(120) DEFAULT NULL,
+  `status` ENUM('queued', 'processing', 'sent', 'failed') NOT NULL DEFAULT 'queued',
+  `error_message` VARCHAR(500) DEFAULT NULL,
+  `processing_at` DATETIME DEFAULT NULL,
+  `sent_at` DATETIME DEFAULT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (`campaign_id`) REFERENCES `email_campaigns` (`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  UNIQUE KEY `uq_email_campaign_recipient` (`campaign_id`, `email`),
+  INDEX `idx_campaign_recipient_status` (`campaign_id`, `status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

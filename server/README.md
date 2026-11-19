@@ -99,7 +99,7 @@ Server will start on `http://localhost:3001` with base API route at `http://loca
    - Refresh Token: 7-day token stored in an `HttpOnly`, `SameSite=Strict`, `Secure` cookie and hashed in MySQL for instant revocation.
 3. **Role-Based Access Control (RBAC)**:
    - `student`: Buy, sell, swap, chat, submit reviews, manage own listings
-   - `admin`: Moderation desk, dispute resolutions, ID verification reviews, campus bulletin, system config, feature flags, user moderation
+   - `admin`: Moderation desk, dispute resolutions, ID verification reviews, visitor analytics, student email campaigns, system config, feature flags, user moderation
 4. **Anti-Brute Force Rate Limiting**:
    - `/api/auth/login`: max 10 requests per 15 mins per IP
    - `/api/auth/forgot-password`: max 5 requests per hour
@@ -178,8 +178,10 @@ Server will start on `http://localhost:3001` with base API route at `http://loca
 - `DELETE /api/admin/flags/:id/remove` — Delete listing for policy breach
 - `GET /api/admin/disputes` — Active transaction dispute cases
 - `PATCH /api/admin/disputes/:id/resolve` — Issue verdict (refund, warning, dismissal, account ban)
-- `GET /api/admin/announcements` — Campus bulletin list
-- `POST /api/admin/announcements` — Create announcement
+- `GET /api/admin/visits` — Daily, weekly, monthly, and yearly unique visitor analytics
+- `GET /api/admin/email-campaigns/audience` — Eligible student email audience count
+- `POST /api/admin/email-campaigns` — Queue a direct email update for students
+- `POST /api/admin/email-campaigns/:id/process` — Deliver or resume a campaign in small batches
 - `GET /api/admin/audit-logs` — Administrative audit trail with IP addresses
 - `GET /api/admin/users` — Student directory with warning and ban tools
 - `PATCH /api/admin/users/:id/ban` — Suspend account

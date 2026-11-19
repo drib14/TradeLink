@@ -119,6 +119,8 @@ const corsOptions = {
     'x-idempotency-key',
     'X-Request-ID',
     'x-request-id',
+    'X-Visitor-Id',
+    'x-visitor-id',
     'Cache-Control',
     'Pragma'
   ],

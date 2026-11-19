@@ -8,9 +8,11 @@ export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || DEFAULT_HOST;
 
 const ACCESS_TOKEN_KEY = 'tradelink_mobile_access_token';
 const REFRESH_TOKEN_KEY = 'tradelink_mobile_refresh_token';
+const VISITOR_ID_KEY = 'tradelink_mobile_visitor_id';
 
 let cachedAccessToken: string | null = null;
 let cachedRefreshToken: string | null = null;
+let cachedVisitorId: string | null = null;
 
 // Secure storage helpers with web fallback
 async function secureSet(key: string, value: string | null) {
@@ -111,6 +113,21 @@ function processQueue(error: any, token: string | null = null) {
   failedQueue = [];
 }
 
+async function getMobileVisitorId(): Promise<string | null> {
+  if (cachedVisitorId) return cachedVisitorId;
+  try {
+    let visitorId = await secureGet(VISITOR_ID_KEY);
+    if (!visitorId) {
+      visitorId = 'm-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+      await secureSet(VISITOR_ID_KEY, visitorId);
+    }
+    cachedVisitorId = visitorId;
+    return visitorId;
+  } catch {
+    return null;
+  }
+}
+
 export async function mobileRequest<T = any>(
   method: HttpMethod,
   endpoint: string,
@@ -122,6 +139,8 @@ export async function mobileRequest<T = any>(
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
+  const visitorId = await getMobileVisitorId();
+  if (visitorId) headers['X-Visitor-Id'] = visitorId;
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;

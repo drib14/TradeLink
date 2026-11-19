@@ -23,13 +23,11 @@ async function verify() {
     const [[listings]] = await conn.query('SELECT COUNT(*) as count FROM listings');
     const [[transactions]] = await conn.query('SELECT COUNT(*) as count FROM transactions');
     const [[flash]] = await conn.query('SELECT COUNT(*) as count FROM flash_requests');
-    const [[announcements]] = await conn.query('SELECT COUNT(*) as count FROM announcements');
 
     console.log('\n--- Live DB Table Counts ---');
     console.log(`Total Listings:     ${listings.count}`);
     console.log(`Total Transactions: ${transactions.count}`);
     console.log(`Total Flash Reqs:   ${flash.count}`);
-    console.log(`Announcements:      ${announcements.count}`);
 
     await conn.end();
   } catch (err) {

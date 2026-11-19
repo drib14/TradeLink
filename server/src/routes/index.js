@@ -24,6 +24,7 @@ const adminRoutes = require('./admin.routes');
 const adminAuthRoutes = require('./adminAuth.routes');
 const aiRoutes = require('./ai.routes');
 const categoriesRoutes = require('./categories.routes');
+const visitorTracking = require('../middleware/visitorTracking');
 
 // System Health Check
 router.get('/health', async (req, res) => {
@@ -82,6 +83,9 @@ router.post('/upload', authenticate, checkUploadQuota, uploadLimiter, upload.arr
     }
   });
 }));
+
+// Record anonymous daily visitors from customer app requests; admin and auth-admin paths are excluded.
+router.use(visitorTracking);
 
 // Mount domain routes
 router.use('/auth', authRoutes);

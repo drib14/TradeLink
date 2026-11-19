@@ -54,17 +54,6 @@ export interface User {
   paymentMethods?: string;
 }
 
-export interface CampusAnnouncement {
-  id: string;
-  title: string;
-  message: string;
-  campus: Campus | 'All';
-  type: 'info' | 'alert' | 'event';
-  authorName: string;
-  createdAt: string;
-  isActive: boolean;
-}
-
 export interface TradeDispute {
   id: string;
   transactionId?: string;
@@ -112,7 +101,7 @@ export interface AdminAuditLog {
   id: string;
   adminName: string;
   action: string;
-  targetType: 'user' | 'listing' | 'verification' | 'flash_request' | 'transaction' | 'announcement' | 'dispute' | 'system';
+  targetType: 'user' | 'listing' | 'verification' | 'flash_request' | 'transaction' | 'dispute' | 'system';
   targetId: string;
   details: string;
   timestamp: string;
