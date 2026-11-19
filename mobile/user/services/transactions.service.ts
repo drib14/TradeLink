@@ -8,6 +8,7 @@ export interface CreateTransactionPayload {
   notes?: string;
   selectedVariation?: string;
   variationId?: string;
+  quantity?: number;
 }
 
 export const mobileTransactionsService = {
@@ -30,6 +31,7 @@ export const mobileTransactionsService = {
       notes: payload.notes,
       selectedVariation: payload.selectedVariation,
       variationId: payload.variationId,
+      quantity: payload.quantity || 1,
     });
     return res.data;
   },
