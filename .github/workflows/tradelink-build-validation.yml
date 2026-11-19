@@ -22,6 +22,7 @@ jobs:
           cache-dependency-path: |
             admin/package-lock.json
             client/package-lock.json
+            mobile/user/package-lock.json
       - name: Install admin dependencies
         run: npm ci --prefix admin
       - name: Build admin dashboard
@@ -30,6 +31,12 @@ jobs:
         run: npm ci --prefix client
       - name: Build student web app
         run: npm run build --prefix client
+      - name: Install mobile app dependencies
+        run: npm ci --prefix mobile/user
+      - name: Type-check mobile app
+        run: npx --prefix mobile/user tsc --noEmit --project mobile/user/tsconfig.json
+      - name: Run mobile app tests
+        run: npm test --prefix mobile/user -- --runInBand
 
   backend-validation:
     name: Validate backend JavaScript and purchase schema
