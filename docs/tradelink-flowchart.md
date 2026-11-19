@@ -79,7 +79,7 @@ flowchart TD
     AY -->|Yes| BA[Remove listing and apply warning or ban]
 
     P -. Administrative review .-> BB[Admin dashboard]
-    BB --> BC[Review IDs, listings, disputes, users, and announcements]
+    BB --> BC[Review IDs, listings, disputes, users, visitor analytics, and email campaigns]
     BC --> BD[Record action in admin audit log]
 
     classDef startEnd fill:#dff3e4,stroke:#247a43,color:#123b22;
