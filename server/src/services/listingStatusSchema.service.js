@@ -4,7 +4,7 @@ let schemaPromise = null;
 
 const REQUIRED_STATUSES = ['active', 'reserved', 'sold', 'swapped', 'donated', 'archived', 'banned', 'deleted'];
 
-async function ensureListingStatusSchema() {
+function ensureListingStatusSchema() {
   if (schemaPromise) return schemaPromise;
 
   schemaPromise = (async () => {
