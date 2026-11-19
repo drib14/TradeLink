@@ -544,7 +544,11 @@ async function autoInitDatabase() {
     // 1d. Replace the retired campus bulletin table with durable visitor and email campaign storage.
     // This lightweight schema check also runs on Vercel serverless cold starts; do not rely only on CLI migrations.
     try {
-      await db.schema.dropTableIfExists('announcements');
+      try {
+        await db.schema.dropTableIfExists('announcements');
+      } catch (retiredTableError) {
+        logger.warn('[DB Init] Retired announcements table cleanup note: ' + retiredTableError.message);
+      }
 
       const ensureTable = async (name, createTable) => {
         if (await db.schema.hasTable(name)) return;
