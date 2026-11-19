@@ -6,6 +6,7 @@ const { serializeTransaction } = require('../serializers');
 const emailService = require('../services/email.service');
 const { generate4DigitCode, hashCode, verifyCode } = require('../utils/generateCode');
 const { encryptMessageContent } = require('../services/message.service');
+const { ensureListingStatusSchema } = require('../services/listingStatusSchema.service');
 
 /**
  * Generates a human-friendly unique reference code e.g. TL-2026-B8A2
@@ -221,7 +222,7 @@ const createTransaction = asyncHandler(async (req, res, next) => {
     sellerId,
     buyerId,
     tradeMode = 'buy_sell',
-    amount = 0,
+    amount,
     finalPrice,
     paymentMethod = 'cash',
     swapOfferId,
@@ -230,10 +231,12 @@ const createTransaction = asyncHandler(async (req, res, next) => {
     variationId
   } = req.body;
 
+  await ensureListingStatusSchema();
+
   const targetListingId = listingId;
   // SECURITY: Always use the authenticated user as buyer — never trust client-supplied buyerId
   const targetBuyerId = req.user.id;
-  const targetAmount = parseFloat(amount ?? finalPrice ?? 0);
+  const targetAmount = Number(amount ?? finalPrice ?? 0);
 
   const listing = await db('listings').where({ id: targetListingId }).first();
   if (!listing) {
@@ -299,11 +302,13 @@ const createTransaction = asyncHandler(async (req, res, next) => {
     notes: notes ? notes.trim() : null
   };
 
-  const hasVariationCol = await db.schema.hasColumn('transactions', 'selected_variation').catch(() => false);
+  const [hasVariationCol, hasVariationIdCol] = await Promise.all([
+    db.schema.hasColumn('transactions', 'selected_variation').catch(() => false),
+    db.schema.hasColumn('transactions', 'variation_id').catch(() => false)
+  ]);
   const txInsertData = { ...newTx };
-  if (!hasVariationCol) {
-    delete txInsertData.selected_variation;
-  }
+  if (!hasVariationCol) delete txInsertData.selected_variation;
+  if (!hasVariationIdCol) delete txInsertData.variation_id;
 
   const orderQuantity = Math.max(1, parseInt(req.body.quantity, 10) || (notes?.match(/Qty:\s*(\d+)/i) ? parseInt(notes.match(/Qty:\s*(\d+)/i)[1], 10) : 1));
   if (orderQuantity > Math.max(1, Number(listing.quantity ?? 1))) {
@@ -374,8 +379,14 @@ const createTransaction = asyncHandler(async (req, res, next) => {
     console.error('[TRANSACTION EMAIL] Error dispatching order confirmation emails:', emailErr.message);
   }
 
-  const media = await db('listing_media').where({ listing_id: targetListingId }).first();
-  const serialized = serializeTransaction(newTx, media?.media_url || '');
+  let primaryImage = '';
+  try {
+    const media = await db('listing_media').where({ listing_id: targetListingId }).first();
+    primaryImage = media?.media_url || '';
+  } catch (mediaError) {
+    console.warn('[TRANSACTION] Order created but listing media lookup failed:', mediaError.message);
+  }
+  const serialized = serializeTransaction(newTx, primaryImage);
 
   const isBuyer = req.user.id === targetBuyerId;
 
