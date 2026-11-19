@@ -1,4 +1,4 @@
-const { v4: uuidv4 } = require('uuid');
+
 const db = require('../config/db');
 const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
@@ -64,7 +64,7 @@ const toggleFavorite = asyncHandler(async (req, res, next) => {
       isFavorited = false;
     } else {
       await trx('user_favorites').insert({
-        id: uuidv4(),
+        id: require('crypto').randomUUID(),
         user_id: req.user.id,
         listing_id: listingId,
         created_at: new Date()
