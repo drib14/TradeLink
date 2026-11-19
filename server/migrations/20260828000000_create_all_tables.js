@@ -270,25 +270,6 @@ exports.up = async function(knex) {
     table.index(['status'], 'idx_disputes_status');
   });
 
-  // 14. Announcements
-  await knex.schema.createTable('announcements', (table) => {
-    table.string('id', 36).primary();
-    table.string('title', 200).notNullable();
-    table.text('message').notNullable();
-    table.enu('campus', [
-      'All', 'UC Main', 'UC Banilad', 'UC LM', 'UC METC',
-      'UC Pardo-Talisay', 'UC South Campus', 'UC Medical Center', 'UC PRI'
-    ]).notNullable().defaultTo('All');
-    table.enu('type', ['info', 'alert', 'event']).notNullable().defaultTo('info');
-    table.string('author_id', 36).notNullable().references('id').inTable('users').onDelete('RESTRICT');
-    table.string('author_name', 100).notNullable().defaultTo('UC Administration');
-    table.boolean('is_active').notNullable().defaultTo(true);
-    table.timestamps(true, true);
-
-    table.index(['campus'], 'idx_ann_campus');
-    table.index(['is_active'], 'idx_ann_active');
-  });
-
   // 15. Admin Audit Logs
   await knex.schema.createTable('admin_audit_logs', (table) => {
     table.string('id', 36).primary();
@@ -361,7 +342,6 @@ exports.down = async function(knex) {
   await knex.schema.dropTableIfExists('system_config');
   await knex.schema.dropTableIfExists('prohibited_keywords');
   await knex.schema.dropTableIfExists('admin_audit_logs');
-  await knex.schema.dropTableIfExists('announcements');
   await knex.schema.dropTableIfExists('trade_disputes');
   await knex.schema.dropTableIfExists('flagged_listings');
   await knex.schema.dropTableIfExists('verification_requests');
