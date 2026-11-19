@@ -12,6 +12,7 @@ const VISITOR_ID_KEY = 'tradelink_mobile_visitor_id';
 
 let cachedAccessToken: string | null = null;
 let cachedRefreshToken: string | null = null;
+let cachedVisitorId: string | null = null;
 
 // Secure storage helpers with web fallback
 async function secureSet(key: string, value: string | null) {
@@ -113,12 +114,14 @@ function processQueue(error: any, token: string | null = null) {
 }
 
 async function getMobileVisitorId(): Promise<string | null> {
+  if (cachedVisitorId) return cachedVisitorId;
   try {
     let visitorId = await secureGet(VISITOR_ID_KEY);
     if (!visitorId) {
       visitorId = 'm-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
       await secureSet(VISITOR_ID_KEY, visitorId);
     }
+    cachedVisitorId = visitorId;
     return visitorId;
   } catch {
     return null;
