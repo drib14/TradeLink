@@ -99,7 +99,7 @@ Server will start on `http://localhost:3001` with base API route at `http://loca
    - Refresh Token: 7-day token stored in an `HttpOnly`, `SameSite=Strict`, `Secure` cookie and hashed in MySQL for instant revocation.
 3. **Role-Based Access Control (RBAC)**:
    - `student`: Buy, sell, swap, chat, submit reviews, manage own listings
-   - `admin`: Moderation desk, dispute resolutions, ID verification reviews, campus bulletin, system config, feature flags, user moderation
+   - `admin`: Moderation desk, dispute resolutions, ID verification reviews, visitor analytics, student email campaigns, system config, feature flags, user moderation
 4. **Anti-Brute Force Rate Limiting**:
    - `/api/auth/login`: max 10 requests per 15 mins per IP
    - `/api/auth/forgot-password`: max 5 requests per hour
