@@ -541,6 +541,63 @@ async function autoInitDatabase() {
 
 
 
+    // 1d. Replace the retired campus bulletin table with durable visitor and email campaign storage.
+    // This lightweight schema check also runs on Vercel serverless cold starts; do not rely only on CLI migrations.
+    try {
+      await db.schema.dropTableIfExists('announcements');
+
+      const ensureTable = async (name, createTable) => {
+        if (await db.schema.hasTable(name)) return;
+        try { await createTable(); }
+        catch (error) { if (!(await db.schema.hasTable(name))) throw error; }
+      };
+
+      await ensureTable('site_visits', () => db.schema.createTable('site_visits', (table) => {
+        table.string('visitor_hash', 64).notNullable();
+        table.date('visit_date').notNullable();
+        table.dateTime('first_seen_at').notNullable().defaultTo(db.fn.now());
+        table.dateTime('last_seen_at').notNullable().defaultTo(db.fn.now());
+        table.string('last_path', 200).nullable();
+        table.primary(['visitor_hash', 'visit_date']);
+        table.index(['visit_date'], 'idx_site_visits_date');
+      }));
+
+      await ensureTable('email_campaigns', () => db.schema.createTable('email_campaigns', (table) => {
+        table.string('id', 36).primary();
+        table.string('title', 160).notNullable();
+        table.string('subject', 200).notNullable();
+        table.text('message').notNullable();
+        table.enu('audience', ['all', 'campus', 'verified', 'unverified']).notNullable().defaultTo('all');
+        table.string('campus', 100).nullable();
+        table.integer('total_recipients').unsigned().notNullable().defaultTo(0);
+        table.integer('sent_count').unsigned().notNullable().defaultTo(0);
+        table.integer('failed_count').unsigned().notNullable().defaultTo(0);
+        table.enu('status', ['sending', 'sent', 'partial', 'failed']).notNullable().defaultTo('sending');
+        table.string('created_by', 36).nullable().references('id').inTable('users').onDelete('SET NULL');
+        table.dateTime('completed_at').nullable();
+        table.timestamps(true, true);
+        table.index(['created_at'], 'idx_email_campaign_created');
+        table.index(['status'], 'idx_email_campaign_status');
+      }));
+
+      await ensureTable('email_campaign_recipients', () => db.schema.createTable('email_campaign_recipients', (table) => {
+        table.string('id', 36).primary();
+        table.string('campaign_id', 36).notNullable().references('id').inTable('email_campaigns').onDelete('CASCADE');
+        table.string('user_id', 36).nullable().references('id').inTable('users').onDelete('SET NULL');
+        table.string('email', 254).notNullable();
+        table.string('recipient_name', 120).nullable();
+        table.enu('status', ['queued', 'processing', 'sent', 'failed']).notNullable().defaultTo('queued');
+        table.string('error_message', 500).nullable();
+        table.dateTime('processing_at').nullable();
+        table.dateTime('sent_at').nullable();
+        table.timestamps(true, true);
+        table.unique(['campaign_id', 'email'], 'uq_email_campaign_recipient');
+        table.index(['campaign_id', 'status'], 'idx_campaign_recipient_status');
+      }));
+    } catch (communicationsSchemaError) {
+      logger.warn('[DB Init] Visitor/email campaign schema note: ' + communicationsSchemaError.message);
+    }
+
     // ────────────────────────────────────────────────────────────
     // Sections 2-8: Admin seeding, keywords, feature flags,
     // stats normalization, and category seeding.
