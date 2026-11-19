@@ -294,7 +294,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   // If user is not authenticated as admin, show the official Admin Access Gate
   if (!isAdmin) {
     return (
-      <div className="container" style={{ padding: '3.5rem 1.5rem 6rem 1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '75vh' }}>
+      <div className="container admin-dashboard" style={{ padding: '3.5rem 1.5rem 6rem 1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '75vh' }}>
         <div
           className="clean-card"
           style={{
