@@ -169,12 +169,9 @@ describe('Tier 1: Server API Smoke Tests', () => {
   });
 
   describe('11. Admin Routes Smoke', () => {
-    it('GET /api/admin/announcements should return 200 for public bulletins (or 500/503 if DB offline)', async () => {
-      const res = await request(app).get('/api/admin/announcements');
-      expect([200, 500, 503]).toContain(res.status);
-      if (res.status === 200) {
-        expect(res.body.status).toBe('success');
-      }
+    it('GET /api/admin/visits should reject unauthenticated requests with 401', async () => {
+      const res = await request(app).get('/api/admin/visits');
+      expect(res.status).toBe(401);
     });
 
     it('GET /api/admin/config should return 200 for public system config (or 500/503 if DB offline)', async () => {
